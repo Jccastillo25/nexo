@@ -2,12 +2,15 @@ import { createClient } from '@/lib/supabase/server'
 
 type TimeCorrection = {
   id: string
-  reason: string | null
+  reason: string
   status: string
-  evidence_url: string | null
+  correction_type: string
+  original_recorded_at: string
+  proposed_recorded_at: string
   created_at: string
+  rejection_reason: string | null
   employees: { first_name: string; last_name: string; employee_code: string } | null
-  time_records: { checked_at: string; record_type: string } | null
+  time_records: { recorded_at: string; event_type: string } | null
 }
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
@@ -16,15 +19,29 @@ const statusConfig: Record<string, { label: string; cls: string }> = {
   rejected: { label: 'Rechazada',  cls: 'bg-red-100   text-red-700'   },
 }
 
+const correctionTypeLabel: Record<string, string> = {
+  adjust_time:        'Ajuste de hora',
+  change_event_type:  'Cambio de tipo',
+  delete:             'Eliminación',
+  add:                'Agregar marcación',
+}
+
+const eventTypeLabel: Record<string, string> = {
+  clock_in:  'Entrada',
+  clock_out: 'Salida',
+  break_start: 'Inicio descanso',
+  break_end:   'Fin descanso',
+}
+
 export default async function CorrectionsPage() {
   const supabase = await createClient()
 
   const { data: rawCorrections } = await supabase
     .from('time_corrections')
     .select(
-      'id, reason, status, evidence_url, created_at, ' +
+      'id, reason, status, correction_type, original_recorded_at, proposed_recorded_at, rejection_reason, created_at, ' +
       'employees(first_name, last_name, employee_code), ' +
-      'time_records(checked_at, record_type)'
+      'time_records(recorded_at, event_type)'
     )
     .order('created_at', { ascending: false })
     .limit(50)
@@ -34,14 +51,21 @@ export default async function CorrectionsPage() {
   const pending  = corrections?.filter((c) => c.status === 'pending').length  ?? 0
   const approved = corrections?.filter((c) => c.status === 'approved').length ?? 0
   const rejected = corrections?.filter((c) => c.status === 'rejected').length ?? 0
-  const withEvidence = corrections?.filter((c) => !!c.evidence_url).length ?? 0
+  const total    = corrections?.length ?? 0
 
   const stats = [
-    { label: 'Pendientes',     value: pending },
-    { label: 'Aprobadas',      value: approved },
-    { label: 'Rechazadas',     value: rejected },
-    { label: 'Con evidencia',  value: withEvidence },
+    { label: 'Total',      value: total },
+    { label: 'Pendientes', value: pending },
+    { label: 'Aprobadas',  value: approved },
+    { label: 'Rechazadas', value: rejected },
   ]
+
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleString('es-NI', {
+      timeZone: 'America/Managua',
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
 
   return (
     <section className="space-y-6">
@@ -68,7 +92,7 @@ export default async function CorrectionsPage() {
       <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
         <div className="border-b border-slate-100 px-6 py-4">
           <h2 className="text-base font-semibold text-slate-900">
-            Solicitudes de corrección ({corrections?.length ?? 0})
+            Solicitudes de corrección ({total})
           </h2>
         </div>
 
@@ -78,9 +102,10 @@ export default async function CorrectionsPage() {
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50 text-left">
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Empleado</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Tipo</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Marcación original</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Propuesta</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Motivo</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Evidencia</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Solicitado</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
                 </tr>
@@ -90,6 +115,8 @@ export default async function CorrectionsPage() {
                   const emp = c.employees
                   const rec = c.time_records
                   const st  = statusConfig[c.status] ?? { label: c.status, cls: 'bg-slate-100 text-slate-600' }
+                  const ctLabel = correctionTypeLabel[c.correction_type] ?? c.correction_type
+                  const etLabel = rec ? (eventTypeLabel[rec.event_type] ?? rec.event_type) : null
                   return (
                     <tr key={c.id} className="hover:bg-slate-50">
                       <td className="px-6 py-4">
@@ -100,23 +127,28 @@ export default async function CorrectionsPage() {
                           <p className="text-xs font-mono text-slate-400">{emp.employee_code}</p>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-slate-600 text-xs">
-                        {rec
-                          ? new Date(rec.checked_at).toLocaleString('es-NI', { timeZone: 'America/Managua' })
-                          : '—'}
-                      </td>
-                      <td className="px-6 py-4 text-slate-600 max-w-xs truncate">{c.reason ?? '—'}</td>
                       <td className="px-6 py-4">
-                        {c.evidence_url ? (
-                          <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-                            Adjunta
-                          </span>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                          {ctLabel}
+                        </span>
+                        {etLabel && (
+                          <p className="mt-1 text-xs text-slate-400">{etLabel}</p>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-400">
-                        {new Date(c.created_at).toLocaleString('es-NI', { timeZone: 'America/Managua' })}
+                      <td className="px-6 py-4 text-xs text-slate-600">
+                        {fmt(c.original_recorded_at)}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-600">
+                        {fmt(c.proposed_recorded_at)}
+                      </td>
+                      <td className="px-6 py-4 text-slate-600 max-w-xs">
+                        <p className="truncate">{c.reason}</p>
+                        {c.rejection_reason && (
+                          <p className="mt-1 text-xs text-red-500 truncate">Rechazo: {c.rejection_reason}</p>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-400 whitespace-nowrap">
+                        {fmt(c.created_at)}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${st.cls}`}>

@@ -2,21 +2,20 @@ import { createClient } from '@/lib/supabase/server'
 
 type Incident = {
   id: string
-  incident_type: string
-  severity: string | null
-  description: string | null
+  type: string
+  minutes: number | null
   status: string
-  incident_date: string | null
+  remarks: string | null
   created_at: string
   employees: { first_name: string; last_name: string; employee_code: string } | null
 }
 
 const typeConfig: Record<string, { label: string; cls: string }> = {
-  tardanza:         { label: 'Tardanza',          cls: 'bg-amber-100  text-amber-700'  },
-  ausencia:         { label: 'Ausencia',           cls: 'bg-red-100    text-red-700'    },
-  salida_anticipada:{ label: 'Salida anticipada',  cls: 'bg-orange-100 text-orange-700' },
-  fuera_de_turno:   { label: 'Fuera de turno',     cls: 'bg-purple-100 text-purple-700' },
-  marcacion_incompleta: { label: 'Marc. incompleta', cls: 'bg-slate-100 text-slate-600' },
+  tardiness:           { label: 'Tardanza',          cls: 'bg-amber-100  text-amber-700'  },
+  absence:             { label: 'Ausencia',           cls: 'bg-red-100    text-red-700'    },
+  early_departure:     { label: 'Salida anticipada',  cls: 'bg-orange-100 text-orange-700' },
+  incomplete_punch:    { label: 'Marc. incompleta',   cls: 'bg-slate-100  text-slate-600'  },
+  unauthorized_overtime:{ label: 'Horas extra no aut.', cls: 'bg-purple-100 text-purple-700' },
 }
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
@@ -31,23 +30,23 @@ export default async function IncidentsPage() {
   const { data: rawIncidents } = await supabase
     .from('incidents')
     .select(
-      'id, incident_type, severity, description, status, incident_date, created_at, ' +
+      'id, type, minutes, status, remarks, created_at, ' +
       'employees(first_name, last_name, employee_code)'
     )
-    .order('incident_date', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(50)
 
   const incidents = rawIncidents as unknown as Incident[] | null
 
-  const open      = incidents?.filter((i) => i.status === 'open').length  ?? 0
-  const tardanzas = incidents?.filter((i) => i.incident_type === 'tardanza').length ?? 0
-  const ausencias = incidents?.filter((i) => i.incident_type === 'ausencia').length ?? 0
-  const others    = (incidents?.length ?? 0) - tardanzas - ausencias
+  const open      = incidents?.filter((i) => i.status === 'open').length     ?? 0
+  const tardiness = incidents?.filter((i) => i.type === 'tardiness').length  ?? 0
+  const absence   = incidents?.filter((i) => i.type === 'absence').length    ?? 0
+  const others    = (incidents?.length ?? 0) - tardiness - absence
 
   const stats = [
     { label: 'Abiertas',    value: open },
-    { label: 'Tardanzas',   value: tardanzas },
-    { label: 'Ausencias',   value: ausencias },
+    { label: 'Tardanzas',   value: tardiness },
+    { label: 'Ausencias',   value: absence },
     { label: 'Otros tipos', value: others },
   ]
 
@@ -87,17 +86,17 @@ export default async function IncidentsPage() {
                 <tr className="border-b border-slate-100 bg-slate-50 text-left">
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Empleado</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Tipo</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Severidad</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Descripción</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Minutos</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Observaciones</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {incidents.map((inc) => {
-                  const emp = inc.employees
-                  const type = typeConfig[inc.incident_type] ?? { label: inc.incident_type, cls: 'bg-slate-100 text-slate-600' }
-                  const st   = statusConfig[inc.status]      ?? { label: inc.status,         cls: 'bg-slate-100 text-slate-600' }
+                  const emp  = inc.employees
+                  const type = typeConfig[inc.type]   ?? { label: inc.type,   cls: 'bg-slate-100 text-slate-600' }
+                  const st   = statusConfig[inc.status] ?? { label: inc.status, cls: 'bg-slate-100 text-slate-600' }
                   return (
                     <tr key={inc.id} className="hover:bg-slate-50">
                       <td className="px-6 py-4">
@@ -113,16 +112,14 @@ export default async function IncidentsPage() {
                           {type.label}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-500 capitalize">
-                        {inc.severity ?? '—'}
+                      <td className="px-6 py-4 text-slate-600">
+                        {inc.minutes != null ? `${inc.minutes} min` : '—'}
                       </td>
                       <td className="px-6 py-4 text-slate-600 max-w-xs truncate">
-                        {inc.description ?? '—'}
+                        {inc.remarks ?? '—'}
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-400">
-                        {inc.incident_date
-                          ? new Date(inc.incident_date).toLocaleDateString('es-NI')
-                          : new Date(inc.created_at).toLocaleDateString('es-NI')}
+                        {new Date(inc.created_at).toLocaleDateString('es-NI')}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${st.cls}`}>
