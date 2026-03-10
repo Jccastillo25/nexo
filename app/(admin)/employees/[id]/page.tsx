@@ -2,9 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-const recordTypeLabels: Record<string, { label: string; cls: string }> = {
-  check_in:  { label: 'Entrada',  cls: 'bg-green-100 text-green-700'  },
-  check_out: { label: 'Salida',   cls: 'bg-slate-100 text-slate-600'  },
+const eventTypeLabels: Record<string, { label: string; cls: string }> = {
+  clock_in:    { label: 'Entrada',         cls: 'bg-green-100 text-green-700'  },
+  clock_out:   { label: 'Salida',          cls: 'bg-slate-100 text-slate-600'  },
   break_start: { label: 'Inicio descanso', cls: 'bg-amber-100 text-amber-700' },
   break_end:   { label: 'Fin descanso',    cls: 'bg-blue-100  text-blue-700'  },
 }
@@ -37,9 +37,9 @@ export default async function EmployeeDetailPage({
       .single(),
     supabase
       .from('time_records')
-      .select('id, record_type, checked_at, is_late, late_minutes, source')
+      .select('id, event_type, recorded_at, tardiness_minutes, overtime_minutes, source')
       .eq('employee_id', id)
-      .order('checked_at', { ascending: false })
+      .order('recorded_at', { ascending: false })
       .limit(10),
     supabase
       .from('leave_requests')
@@ -49,7 +49,7 @@ export default async function EmployeeDetailPage({
       .limit(5),
     supabase
       .from('employee_pins')
-      .select('id, pin_hash, is_active, last_used_at')
+      .select('id, is_active, created_at, last_revealed_at, last_reset_at')
       .eq('employee_id', id)
       .eq('is_active', true)
       .maybeSingle(),
@@ -63,18 +63,19 @@ export default async function EmployeeDetailPage({
 
   if (!employee) notFound()
 
-  const branch     = employee.branches as unknown as { name: string } | null
-  const shiftData  = shift?.shifts    as unknown as { name: string; start_time: string; end_time: string } | null
+  const branch    = employee.branches as unknown as { name: string } | null
+  const shiftData = shift?.shifts    as unknown as { name: string; start_time: string; end_time: string } | null
 
   const infoRows = [
-    { label: 'Código',      value: employee.employee_code },
-    { label: 'Correo',      value: employee.email ?? '—' },
-    { label: 'Teléfono',    value: employee.phone ?? '—' },
-    { label: 'Sucursal',    value: branch?.name ?? '—' },
-    { label: 'Ingreso',     value: employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('es-NI') : '—' },
-    { label: 'Turno',       value: shiftData ? `${shiftData.name} (${shiftData.start_time.slice(0,5)}–${shiftData.end_time.slice(0,5)})` : '—' },
-    { label: 'PIN activo',  value: pin ? 'Sí' : 'No' },
-    { label: 'Último uso PIN', value: pin?.last_used_at ? new Date(pin.last_used_at).toLocaleString('es-NI', { timeZone: 'America/Managua' }) : '—' },
+    { label: 'Código',           value: employee.employee_code },
+    { label: 'Correo',           value: employee.email ?? '—' },
+    { label: 'Teléfono',         value: employee.phone ?? '—' },
+    { label: 'Sucursal',         value: branch?.name ?? '—' },
+    { label: 'Ingreso',          value: employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('es-NI') : '—' },
+    { label: 'Turno',            value: shiftData ? `${shiftData.name} (${shiftData.start_time.slice(0, 5)}–${shiftData.end_time.slice(0, 5)})` : '—' },
+    { label: 'PIN activo',       value: pin ? 'Sí' : 'No' },
+    { label: 'PIN creado',       value: pin?.created_at ? new Date(pin.created_at).toLocaleDateString('es-NI') : '—' },
+    { label: 'Último reveal PIN',value: pin?.last_revealed_at ? new Date(pin.last_revealed_at).toLocaleString('es-NI', { timeZone: 'America/Managua' }) : '—' },
   ]
 
   return (
@@ -130,26 +131,36 @@ export default async function EmployeeDetailPage({
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Tipo</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha y hora</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Tardanza</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Horas extra</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Origen</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {recentRecords.map((r) => {
-                  const rt = recordTypeLabels[r.record_type] ?? { label: r.record_type, cls: 'bg-slate-100 text-slate-600' }
+                  const et = eventTypeLabels[r.event_type] ?? { label: r.event_type, cls: 'bg-slate-100 text-slate-600' }
                   return (
                     <tr key={r.id} className="hover:bg-slate-50">
                       <td className="px-6 py-3.5">
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${rt.cls}`}>
-                          {rt.label}
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${et.cls}`}>
+                          {et.label}
                         </span>
                       </td>
                       <td className="px-6 py-3.5 text-slate-600 text-xs">
-                        {new Date(r.checked_at).toLocaleString('es-NI', { timeZone: 'America/Managua' })}
+                        {new Date(r.recorded_at).toLocaleString('es-NI', { timeZone: 'America/Managua' })}
                       </td>
                       <td className="px-6 py-3.5">
-                        {r.is_late ? (
+                        {r.tardiness_minutes && r.tardiness_minutes > 0 ? (
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
-                            +{r.late_minutes} min
+                            +{r.tardiness_minutes} min
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-3.5">
+                        {r.overtime_minutes && r.overtime_minutes > 0 ? (
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                            +{r.overtime_minutes} min
                           </span>
                         ) : (
                           <span className="text-xs text-slate-400">—</span>
