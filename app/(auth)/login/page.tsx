@@ -25,19 +25,10 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="grid gap-4">
-            <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
-              <p className="text-sm text-white/70">Módulos activos</p>
-              <p className="mt-2 text-lg font-semibold">
-                Dashboard · Asistencia · Empleados · Horarios · Permisos
-              </p>
-            </div>
-            <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
-              <p className="text-sm text-white/70">Sistema</p>
-              <p className="mt-2 text-lg font-semibold">
-                Control de acceso por roles · Auditoría completa
-              </p>
-            </div>
+          <div>
+            <p className="text-sm text-white/50">
+              Grupo CT · Sistema de Control de Asistencia
+            </p>
           </div>
         </section>
 

@@ -1,16 +1,35 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function KioskPage() {
   const [pin, setPin] = useState('')
+  const [time, setTime] = useState('')
+  const [date, setDate] = useState('')
 
-  const timeText = useMemo(() => {
-    return new Intl.DateTimeFormat('es-NI', {
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(new Date())
+  useEffect(() => {
+    const update = () => {
+      const now = new Date()
+      setTime(
+        new Intl.DateTimeFormat('es-NI', {
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true,
+        }).format(now)
+      )
+      setDate(
+        new Intl.DateTimeFormat('es-NI', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+        }).format(now)
+      )
+    }
+    update()
+    const id = setInterval(update, 1000)
+    return () => clearInterval(id)
   }, [])
 
   const addDigit = (digit: string) => {
@@ -27,85 +46,112 @@ export default function KioskPage() {
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-500 to-violet-600 px-4 py-6 text-white">
-      <div className="mx-auto flex max-w-6xl items-start justify-between">
-        <div />
-        <div className="text-center">
-          <h1 className="text-4xl font-bold">Marcación Grupo CT</h1>
-          <p className="mt-2 text-xl text-white/90">Sistema de Control de Asistencia</p>
-          <p className="mt-3 text-sm font-semibold text-white/90">
-            • SUC 02 – Ferretería La Máxima
+    <main className="min-h-screen bg-slate-950 flex flex-col">
+
+      {/* Topbar */}
+      <header className="flex items-center justify-between px-8 py-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            Grupo CT
+          </p>
+          <p className="mt-0.5 text-sm font-semibold text-slate-300">
+            Sistema de Control de Asistencia
           </p>
         </div>
-
         <Link
           href="/login"
-          className="rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur hover:bg-white/20"
+          className="rounded-2xl border border-slate-700 bg-slate-800 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-slate-700 hover:text-white"
         >
-          Área Administrativa
+          Área Administrativa →
         </Link>
+      </header>
+
+      {/* Main content */}
+      <div className="flex flex-1 items-center justify-center px-4 py-8">
+        <div className="w-full max-w-sm">
+
+          {/* Clock */}
+          <div className="mb-8 text-center">
+            <p className="text-6xl font-bold tabular-nums text-white tracking-tight">
+              {time}
+            </p>
+            <p className="mt-2 text-sm capitalize text-slate-400">{date}</p>
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              SUC 02 – Ferretería La Máxima
+            </p>
+          </div>
+
+          {/* Card */}
+          <div className="rounded-3xl bg-white p-8 shadow-2xl">
+
+            <h2 className="text-center text-2xl font-bold text-slate-900">
+              Ingrese su PIN
+            </h2>
+            <p className="mt-1.5 text-center text-sm text-slate-500">
+              PIN de 4 dígitos para marcar asistencia
+            </p>
+
+            {/* PIN indicators */}
+            <div className="mt-6 grid grid-cols-4 gap-3">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className={`h-14 rounded-2xl border-2 text-2xl font-bold leading-[3.25rem] text-center transition-colors ${
+                    pin[i]
+                      ? 'border-slate-900 bg-slate-900 text-white'
+                      : 'border-slate-200 bg-slate-50 text-transparent'
+                  }`}
+                >
+                  •
+                </div>
+              ))}
+            </div>
+
+            {/* Keypad */}
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              {keys.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => addDigit(key)}
+                  className="h-14 rounded-2xl bg-slate-100 text-2xl font-bold text-slate-900 transition hover:bg-slate-200 active:scale-95"
+                >
+                  {key}
+                </button>
+              ))}
+
+              {/* Bottom row */}
+              <button
+                type="button"
+                onClick={clearPin}
+                className="h-14 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 active:scale-95"
+              >
+                Borrar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => addDigit('0')}
+                className="h-14 rounded-2xl bg-slate-100 text-2xl font-bold text-slate-900 transition hover:bg-slate-200 active:scale-95"
+              >
+                0
+              </button>
+
+              <button
+                type="button"
+                onClick={submitPin}
+                disabled={pin.length !== 4}
+                className="h-14 rounded-2xl bg-slate-900 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Marcar
+              </button>
+            </div>
+          </div>
+
+        </div>
       </div>
 
-      <section className="mx-auto mt-10 max-w-md rounded-[28px] bg-white p-8 text-center text-slate-900 shadow-2xl">
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border-4 border-blue-400 text-3xl text-blue-500">
-          🕒
-        </div>
-
-        <h2 className="text-4xl font-bold tracking-tight">Ingrese su PIN</h2>
-        <p className="mt-3 text-base text-slate-500">
-          Use su PIN de 4 dígitos para marcar asistencia
-        </p>
-
-        <p className="mt-5 text-3xl font-bold text-blue-500">{timeText}</p>
-
-        <div className="mt-8 grid grid-cols-4 gap-3">
-          {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-16 rounded-2xl border-2 border-slate-200 bg-slate-50 text-2xl font-bold leading-[4rem]"
-            >
-              {pin[i] ? '•' : ''}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 grid grid-cols-3 gap-3">
-          {keys.map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => addDigit(key)}
-              className="h-16 rounded-2xl bg-slate-100 text-3xl font-bold text-slate-900 transition hover:bg-slate-200"
-            >
-              {key}
-            </button>
-          ))}
-
-          <button
-            type="button"
-            onClick={clearPin}
-            className="h-16 rounded-2xl bg-red-100 text-2xl font-bold text-red-500 transition hover:bg-red-200"
-          >
-            C
-          </button>
-
-          <button
-            type="button"
-            onClick={() => addDigit('0')}
-            className="h-16 rounded-2xl bg-slate-100 text-3xl font-bold text-slate-900 transition hover:bg-slate-200"
-          >
-            0
-          </button>
-
-          <button
-            type="button"
-            onClick={submitPin}
-            className="h-16 rounded-2xl bg-blue-300 text-2xl font-bold text-white transition hover:bg-blue-400"
-          >
-            ✓
-          </button>
-        </div>
-      </section>
     </main>
   )
 }
