@@ -1,142 +1,92 @@
-'use client'
-
-import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
-  const router = useRouter()
-  const supabase = createClient()
-
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState<string | null>(null)
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-    if (error) {
-      setError(error.message === 'Invalid login credentials'
-        ? 'Correo o contraseña incorrectos.'
-        : error.message)
-      setLoading(false)
-      return
-    }
-
-    router.push('/dashboard')
-    router.refresh()
-  }
-
   return (
-    <div className="auth-form-wrap">
-      <div className="auth-form-header">
-        <h2>Iniciar sesión</h2>
-        <p>Ingresa tus credenciales para continuar</p>
+    <main className="min-h-screen bg-slate-100 px-4 py-10">
+      <div className="mx-auto max-w-6xl rounded-[32px] bg-white shadow-sm ring-1 ring-slate-200 lg:grid lg:grid-cols-[1.1fr_480px]">
+        <section className="hidden min-h-[680px] rounded-l-[32px] bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-700 p-10 text-white lg:flex lg:flex-col lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">
+              Grupo CT
+            </p>
+            <h1 className="mt-4 text-5xl font-bold leading-tight">
+              Área administrativa
+            </h1>
+            <p className="mt-6 max-w-md text-base leading-7 text-white/75">
+              Administra asistencia, empleados, horarios, permisos y reportes
+              desde un solo panel.
+            </p>
+          </div>
+
+          <div className="grid gap-4">
+            <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
+              <p className="text-sm text-white/70">Módulos</p>
+              <p className="mt-2 text-lg font-semibold">
+                Dashboard, asistencia, empleados, horarios, permisos y reportes
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
+              <p className="text-sm text-white/70">Acceso rápido</p>
+              <p className="mt-2 text-lg font-semibold">
+                Enfocado en operación diaria y control visual
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="p-6 md:p-10">
+          <div className="mx-auto max-w-md">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Acceso
+            </p>
+            <h2 className="mt-3 text-4xl font-bold text-slate-900">
+              Iniciar sesión
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-500">
+              Esta pantalla es visual. Si ya tienes login funcional, no copies este archivo.
+            </p>
+
+            <form className="mt-8 space-y-5">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Correo electrónico
+                </label>
+                <input
+                  type="email"
+                  placeholder="correo@empresa.com"
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-300"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Contraseña
+                </label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-300"
+                />
+              </div>
+
+              <Link
+                href="/dashboard"
+                className="flex h-12 w-full items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Entrar al panel visual
+              </Link>
+
+              <Link
+                href="/"
+                className="flex h-12 w-full items-center justify-center rounded-2xl border border-slate-200 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Volver al kiosko
+              </Link>
+            </form>
+          </div>
+        </section>
       </div>
-
-      <form onSubmit={handleLogin} className="auth-form">
-        <div className="field">
-          <label htmlFor="email">Correo electrónico</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="tu@correo.com"
-            required
-            autoComplete="email"
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="password">Contraseña</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
-            required
-            autoComplete="current-password"
-          />
-        </div>
-
-        {error && <p className="form-error">{error}</p>}
-
-        <button type="submit" className="btn-primary" disabled={loading}>
-          {loading ? 'Ingresando…' : 'Iniciar sesión'}
-        </button>
-      </form>
-
-      <p className="auth-link">
-        ¿No tienes cuenta?{' '}
-        <Link href="/registro">Crear cuenta</Link>
-      </p>
-
-      <style>{`
-        .auth-form-wrap {
-          width: 100%; max-width: 380px;
-        }
-        .auth-form-header { margin-bottom: 2rem; }
-        .auth-form-header h2 {
-          font-size: 1.625rem; font-weight: 700;
-          color: var(--gray-900); margin-bottom: .375rem;
-        }
-        .auth-form-header p { color: var(--gray-500); font-size: .9375rem; }
-
-        .auth-form { display: flex; flex-direction: column; gap: 1.125rem; }
-
-        .field { display: flex; flex-direction: column; gap: .375rem; }
-        .field label {
-          font-size: .8125rem; font-weight: 600;
-          color: var(--gray-700); letter-spacing: .01em;
-        }
-        .field input {
-          padding: .65rem .875rem;
-          border: 1.5px solid var(--gray-200);
-          border-radius: var(--radius);
-          font-size: .9375rem;
-          outline: none; transition: border-color .15s;
-          background: var(--gray-50);
-        }
-        .field input:focus {
-          border-color: var(--brand-500);
-          background: white;
-        }
-
-        .form-error {
-          font-size: .8125rem; color: var(--danger);
-          background: #fef2f2; border: 1px solid #fecaca;
-          padding: .5rem .75rem; border-radius: var(--radius-sm);
-        }
-
-        .btn-primary {
-          margin-top: .25rem;
-          padding: .75rem 1rem;
-          background: var(--brand-600);
-          color: white; border: none;
-          border-radius: var(--radius);
-          font-size: .9375rem; font-weight: 600;
-          cursor: pointer; transition: background .15s;
-        }
-        .btn-primary:hover:not(:disabled) { background: var(--brand-700); }
-        .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
-
-        .auth-link {
-          margin-top: 1.5rem; text-align: center;
-          font-size: .875rem; color: var(--gray-500);
-        }
-        .auth-link a { color: var(--brand-600); font-weight: 600; text-decoration: none; }
-        .auth-link a:hover { text-decoration: underline; }
-      `}</style>
-    </div>
+    </main>
   )
 }
-
-export const dynamic = 'force-dynamic'
