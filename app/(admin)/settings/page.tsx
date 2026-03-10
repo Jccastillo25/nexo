@@ -1,7 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
+import { AppearanceForm } from './_components/appearance-form'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
+
+  const { data: appSettings } = await supabase
+    .from('app_settings')
+    .select('key, value')
+
+  const settings = Object.fromEntries(
+    (appSettings ?? []).map((r) => [r.key, r.value as string | null])
+  )
 
   const { data: company } = await supabase
     .from('companies')
@@ -39,6 +48,23 @@ export default async function SettingsPage() {
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
           Parámetros generales de la empresa, sucursales activas y tipos de permiso configurados.
         </p>
+      </div>
+
+      {/* Apariencia */}
+      <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
+        <div className="border-b border-slate-100 px-6 py-4">
+          <h2 className="text-base font-semibold text-slate-900">Apariencia</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Logo, favicon e imagen de fondo del kiosko. Los cambios se aplican en tiempo real.
+          </p>
+        </div>
+        <div className="p-6">
+          <AppearanceForm
+            logoUrl={settings.logo_url ?? null}
+            faviconUrl={settings.favicon_url ?? null}
+            kioskBgUrl={settings.kiosk_bg_url ?? null}
+          />
+        </div>
       </div>
 
       {/* Información de la empresa */}

@@ -34,6 +34,13 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const { data: brandingRows } = await supabase
+    .from('app_settings')
+    .select('key, value')
+    .eq('key', 'logo_url')
+
+  const logoUrl = brandingRows?.[0]?.value ?? null
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
       <div className="grid min-h-screen lg:grid-cols-[300px_1fr]">
@@ -41,6 +48,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
           companyName={companyName}
           userName={userName}
           userRole={userRole}
+          logoUrl={logoUrl}
         />
         <div className="flex min-h-screen flex-col">
           <AdminTopbar />

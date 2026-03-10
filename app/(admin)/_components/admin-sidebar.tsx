@@ -9,6 +9,7 @@ interface AdminSidebarProps {
   companyName?: string
   userName?: string
   userRole?: string
+  logoUrl?: string | null
 }
 
 const roleLabels: Record<string, string> = {
@@ -36,6 +37,7 @@ export function AdminSidebar({
   companyName = 'Grupo CT',
   userName = 'Administrador',
   userRole = 'admin',
+  logoUrl,
 }: AdminSidebarProps) {
   const pathname = usePathname()
 
@@ -45,9 +47,17 @@ export function AdminSidebar({
 
         {/* Encabezado */}
         <div className="border-b border-slate-200 px-6 py-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-            Sistema de marcación
-          </p>
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className="mb-3 h-10 w-auto max-w-[160px] object-contain"
+            />
+          ) : (
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Sistema de marcación
+            </p>
+          )}
           <h1 className="mt-2 text-2xl font-bold text-slate-900">
             Área Administrativa
           </h1>

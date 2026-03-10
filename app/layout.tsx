@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
+import { createClient } from '@/lib/supabase/server'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -17,13 +18,26 @@ export const metadata: Metadata = {
   description: 'Sistema de control de asistencia',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const supabase = await createClient()
+  const { data: rows } = await supabase
+    .from('app_settings')
+    .select('key, value')
+    .in('key', ['favicon_url'])
+
+  const faviconUrl = rows?.find((r) => r.key === 'favicon_url')?.value ?? null
+
   return (
     <html lang="es">
+      <head>
+        {faviconUrl && (
+          <link rel="icon" href={faviconUrl} />
+        )}
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
