@@ -6,3 +6,6 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
