@@ -25,3 +25,87 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+:root {
+  --bg-app: #f5f7fb;
+  --bg-surface: #ffffff;
+  --border-soft: #e6eaf2;
+  --border-medium: #d4dce8;
+
+  --text-strong: #172033;
+  --text-body: #344054;
+  --text-muted: #667085;
+
+  --primary-700: #274c9b;
+  --primary-600: #2f5dbd;
+  --primary-500: #3b6dd8;
+  --primary-100: #e8f0ff;
+
+  --success: #12b76a;
+  --success-soft: #eafbf3;
+  --warning: #f59e0b;
+  --warning-soft: #fff6e5;
+  --danger: #e5484d;
+  --danger-soft: #fdecec;
+  --info: #2e90fa;
+  --info-soft: #eaf4ff;
+
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #d0d8e5;
+  --sidebar-active: #ffffff;
+  --sidebar-active-bg: rgba(255, 255, 255, 0.08);
+
+  --radius-input: 14px;
+  --radius-card: 16px;
+  --radius-hero: 24px;
+
+  --shadow-input: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-card: 0 8px 24px rgba(16, 24, 40, 0.08);
+  --shadow-modal: 0 20px 50px rgba(16, 24, 40, 0.18);
+}
+
+body {
+  background: var(--bg-app);
+  color: var(--text-body);
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: var(--bg-app);
+}
+
+.app-surface {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.status-warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.status-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.status-info {
+  background: var(--info-soft);
+  color: var(--info);
+}

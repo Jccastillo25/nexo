@@ -1,9 +1,16 @@
-import Link from 'next/link'
+'use client'
+
+import { useActionState } from 'react'
+import { signIn, type AuthState } from '../../actions/auth'
 
 export default function LoginPage() {
+  const [state, action, pending] = useActionState<AuthState, FormData>(signIn, null)
+
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-10">
       <div className="mx-auto max-w-6xl rounded-[32px] bg-white shadow-sm ring-1 ring-slate-200 lg:grid lg:grid-cols-[1.1fr_480px]">
+
+        {/* Panel izquierdo */}
         <section className="hidden min-h-[680px] rounded-l-[32px] bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-700 p-10 text-white lg:flex lg:flex-col lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">
@@ -20,21 +27,21 @@ export default function LoginPage() {
 
           <div className="grid gap-4">
             <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
-              <p className="text-sm text-white/70">Módulos</p>
+              <p className="text-sm text-white/70">Módulos activos</p>
               <p className="mt-2 text-lg font-semibold">
-                Dashboard, asistencia, empleados, horarios, permisos y reportes
+                Dashboard · Asistencia · Empleados · Horarios · Permisos
               </p>
             </div>
-
             <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
-              <p className="text-sm text-white/70">Acceso rápido</p>
+              <p className="text-sm text-white/70">Sistema</p>
               <p className="mt-2 text-lg font-semibold">
-                Enfocado en operación diaria y control visual
+                Control de acceso por roles · Auditoría completa
               </p>
             </div>
           </div>
         </section>
 
+        {/* Formulario */}
         <section className="p-6 md:p-10">
           <div className="mx-auto max-w-md">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
@@ -44,18 +51,26 @@ export default function LoginPage() {
               Iniciar sesión
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-500">
-              Esta pantalla es visual. Si ya tienes login funcional, no copies este archivo.
+              Ingresa con tu cuenta de administrador de Grupo CT.
             </p>
 
-            <form className="mt-8 space-y-5">
+            <form action={action} className="mt-8 space-y-5">
+              {state?.error && (
+                <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-200">
+                  {state.error}
+                </div>
+              )}
+
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Correo electrónico
                 </label>
                 <input
                   type="email"
+                  name="email"
                   placeholder="correo@empresa.com"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-300"
+                  required
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
                 />
               </div>
 
@@ -65,24 +80,27 @@ export default function LoginPage() {
                 </label>
                 <input
                   type="password"
+                  name="password"
                   placeholder="••••••••"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-300"
+                  required
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
                 />
               </div>
 
-              <Link
-                href="/dashboard"
-                className="flex h-12 w-full items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white transition hover:bg-slate-800"
+              <button
+                type="submit"
+                disabled={pending}
+                className="flex h-12 w-full items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Entrar al panel visual
-              </Link>
+                {pending ? 'Verificando…' : 'Entrar al panel'}
+              </button>
 
-              <Link
+              <a
                 href="/"
                 className="flex h-12 w-full items-center justify-center rounded-2xl border border-slate-200 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Volver al kiosko
-              </Link>
+              </a>
             </form>
           </div>
         </section>
