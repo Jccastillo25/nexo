@@ -63,13 +63,12 @@ export default async function EmployeesPage() {
             Listado maestro de colaboradores con perfil, estado, sucursal y turno asignado.
           </p>
         </div>
-        <button
-          disabled
-          title="Próximamente"
-          className="shrink-0 rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white opacity-40 cursor-not-allowed"
+        <Link
+          href="/employees/new"
+          className="shrink-0 rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
           + Nuevo empleado
-        </button>
+        </Link>
       </div>
 
       {/* Stats */}

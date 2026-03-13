@@ -49,12 +49,20 @@ export default async function SchedulesPage() {
             Turnos definidos para la operación. Configura entrada, salida, descanso y tolerancias.
           </p>
         </div>
-        <Link
-          href="/schedules/assignments"
-          className="shrink-0 rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-        >
-          Ver asignaciones
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/schedules/assignments"
+            className="shrink-0 rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Ver asignaciones
+          </Link>
+          <Link
+            href="/schedules/new"
+            className="shrink-0 rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            + Nuevo turno
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
