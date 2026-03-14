@@ -21,12 +21,11 @@ export async function createCompany(
     return { error: 'Nombre, Razón Social y Slug son obligatorios.' }
   }
 
-  const { error } = await supabase.from('companies').insert({
-    display_name,
-    legal_name,
-    slug: slug.toLowerCase().replace(/\s+/g, '-'),
-    tax_id: tax_id || null,
-    is_active: true,
+  const { error } = await supabase.rpc('create_company_with_owner', {
+    p_display_name: display_name,
+    p_legal_name: legal_name,
+    p_slug: slug.toLowerCase().replace(/\s+/g, '-'),
+    p_tax_id: tax_id || null,
   })
 
   if (error) {
