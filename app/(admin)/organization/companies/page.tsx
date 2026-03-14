@@ -40,14 +40,6 @@ export default async function CompaniesPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl bg-amber-50 p-4 border border-amber-200 text-xs font-mono text-amber-800">
-        <p><strong>DIAGNÓSTICO RLS:</strong></p>
-        <p>User ID: {user?.id || 'NULL'}</p>
-        <p>Companies Fetched: {companies?.length ?? 'undefined'}</p>
-        <p>Fetch Error: {companiesErr?.message || 'None'}</p>
-        <p>Auth Error: {authErr?.message || 'None'}</p>
-      </div>
-
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         {[
@@ -79,6 +71,7 @@ export default async function CompaniesPage() {
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">RUC / NIT</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Creada</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -95,6 +88,14 @@ export default async function CompaniesPage() {
                       <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${c.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                         {c.is_active ? 'Activa' : 'Inactiva'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Link
+                        href={`/organization/companies/${c.id}/edit`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                      >
+                        Editar
+                      </Link>
                     </td>
                   </tr>
                 ))}

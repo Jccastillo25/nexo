@@ -41,5 +41,49 @@ export async function createCompany(
   }
 
   revalidatePath('/organization/companies')
+  revalidatePath('/organization')
+  redirect('/organization/companies')
+}
+
+export async function updateCompany(
+  id: string,
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient()
+
+  const display_name = formData.get('display_name') as string
+  const legal_name = formData.get('legal_name') as string
+  const slug = formData.get('slug') as string
+  const tax_id = formData.get('tax_id') as string
+  const is_active = formData.get('is_active') === 'on'
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'No tienes una sesión activa.' }
+  }
+
+  const { error } = await supabase
+    .from('companies')
+    .update({
+      display_name,
+      legal_name,
+      slug: slug.toLowerCase().replace(/\s+/g, '-'),
+      tax_id: tax_id || null,
+      is_active,
+    })
+    .eq('id', id)
+
+  if (error) {
+    if (error.code === '23505' && error.message.includes('slug')) {
+      return { error: 'El slug ya está en uso por otra empresa.' }
+    }
+    return { error: error.message }
+  }
+
+  revalidatePath('/organization/companies')
+  revalidatePath(`/organization/companies/${id}/edit`)
+  revalidatePath('/organization')
   redirect('/organization/companies')
 }
