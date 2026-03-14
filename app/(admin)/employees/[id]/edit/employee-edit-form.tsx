@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 import Link from 'next/link'
-import { updateEmployee, type ActionState } from '../../../../../actions/employees'
+import { updateEmployee, type ActionState } from '../../../../actions/employees'
 
 interface EmployeeEditFormProps {
   employee: {
