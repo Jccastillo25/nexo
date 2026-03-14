@@ -40,6 +40,14 @@ export default async function CompaniesPage() {
         </div>
       </div>
 
+      <div className="rounded-2xl bg-amber-50 p-4 border border-amber-200 text-xs font-mono text-amber-800">
+        <p><strong>DIAGNÓSTICO RLS:</strong></p>
+        <p>User ID: {user?.id || 'NULL'}</p>
+        <p>Companies Fetched: {companies?.length ?? 'undefined'}</p>
+        <p>Fetch Error: {companiesErr?.message || 'None'}</p>
+        <p>Auth Error: {authErr?.message || 'None'}</p>
+      </div>
+
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         {[
