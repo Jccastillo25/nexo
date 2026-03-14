@@ -1,7 +1,7 @@
 'use client'
 
 import { useFormState, useFormStatus } from 'react-dom'
-import { ActionState, updateCompany } from '@/actions/companies'
+import { ActionState, updateCompany } from '../../../../../actions/companies'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
