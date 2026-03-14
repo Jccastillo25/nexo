@@ -131,12 +131,19 @@ export default async function EmployeesPage() {
                       <td className="px-6 py-4">
                         <StatusBadge active={emp.is_active} />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 flex items-center gap-3">
                         <Link
                           href={`/employees/${emp.id}`}
                           className="text-xs font-semibold text-slate-600 underline-offset-2 hover:underline"
                         >
                           Ver perfil
+                        </Link>
+                        <span className="text-slate-200">|</span>
+                        <Link
+                          href={`/employees/${emp.id}/edit`}
+                          className="text-xs font-semibold text-slate-900 underline-offset-2 hover:underline"
+                        >
+                          Editar
                         </Link>
                       </td>
                     </tr>

@@ -96,12 +96,20 @@ export default async function EmployeeDetailPage({
             </span>
           </div>
         </div>
-        <Link
-          href="/employees"
-          className="shrink-0 rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-        >
-          ← Empleados
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/employees/${employee.id}/edit`}
+            className="shrink-0 rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Editar perfil
+          </Link>
+          <Link
+            href="/employees"
+            className="shrink-0 rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            ← Empleados
+          </Link>
+        </div>
       </div>
 
       {/* Seguridad y Acceso */}

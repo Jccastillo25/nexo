@@ -49,5 +49,44 @@ export async function createEmployee(
   })
 
   revalidatePath('/employees')
+  revalidatePath('/(admin)/employees', 'page')
   redirect('/employees')
+}
+
+export async function updateEmployee(
+  id: string,
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient()
+
+  const first_name = formData.get('first_name') as string
+  const last_name = formData.get('last_name') as string
+  const email = formData.get('email') as string
+  const branch_id = formData.get('branch_id') as string
+  const is_active = formData.get('is_active') === 'on'
+
+  if (!first_name || !last_name || !branch_id) {
+    return { error: 'Nombre, apellido y sucursal son requeridos.' }
+  }
+
+  const { error } = await supabase
+    .from('employees')
+    .update({
+      first_name,
+      last_name,
+      email: email || null,
+      branch_id,
+      is_active,
+    })
+    .eq('id', id)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/employees')
+  revalidatePath(`/(admin)/employees/${id}`, 'page')
+  revalidatePath(`/(admin)/employees/${id}/edit`, 'page')
+  redirect(`/employees/${id}`)
 }
