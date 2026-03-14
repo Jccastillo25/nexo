@@ -56,6 +56,12 @@ export default async function AssignmentsPage() {
         >
           ← Turnos
         </Link>
+        <Link
+          href="/schedules/assignments/new"
+          className="shrink-0 rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+        >
+          + Asignar Turno
+        </Link>
       </div>
 
       {/* Stats */}

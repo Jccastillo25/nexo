@@ -40,3 +40,39 @@ export async function createShift(
   revalidatePath('/schedules')
   redirect('/schedules')
 }
+
+export async function assignShift(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient()
+
+  const employee_id = formData.get('employee_id') as string
+  const shift_id = formData.get('shift_id') as string
+  const start_date = formData.get('start_date') as string
+
+  if (!employee_id || !shift_id) {
+    return { error: 'Empleado y turno son requeridos.' }
+  }
+
+  // Desactivar asignaciones previas para este empleado
+  await supabase
+    .from('employee_shifts')
+    .update({ is_active: false })
+    .eq('employee_id', employee_id)
+
+  // Insertar nueva asignación
+  const { error } = await supabase.from('employee_shifts').insert({
+    employee_id,
+    shift_id,
+    start_date: start_date || new Date().toISOString().split('T')[0],
+    is_active: true,
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/schedules/assignments')
+  redirect('/schedules/assignments')
+}
