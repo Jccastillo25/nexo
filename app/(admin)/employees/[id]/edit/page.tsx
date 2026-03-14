@@ -17,7 +17,7 @@ export default async function EditEmployeePage({
   ] = await Promise.all([
     supabase
       .from('employees')
-      .select('id, first_name, last_name, email, branch_id, is_active')
+      .select('id, first_name, last_name, email, phone, hire_date, branch_id, is_active')
       .eq('id', id)
       .single(),
     supabase

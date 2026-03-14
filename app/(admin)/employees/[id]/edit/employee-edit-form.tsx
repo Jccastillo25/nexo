@@ -10,6 +10,8 @@ interface EmployeeEditFormProps {
     first_name: string
     last_name: string
     email: string | null
+    phone: string | null
+    hire_date: string | null
     branch_id: string
     is_active: boolean
   }
