@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { AppearanceForm } from './_components/appearance-form'
+import { KioskSettingsForm } from './_components/kiosk-settings-form'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -65,6 +66,21 @@ export default async function SettingsPage() {
             kioskBgUrl={settings.kiosk_bg_url ?? null}
           />
         </div>
+
+      {/* Ajustes del Kiosko */}
+      <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
+        <div className="border-b border-slate-100 px-6 py-4">
+          <h2 className="text-base font-semibold text-slate-900">Kiosko de Marcación</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Personalización de la comunicación visual para los empleados.
+          </p>
+        </div>
+        <div className="p-6">
+          <KioskSettingsForm
+            customMessage={settings.kiosk_custom_message ?? null}
+          />
+        </div>
+      </div>
       </div>
 
       {/* Información de la empresa */}

@@ -10,19 +10,19 @@ interface KioskClientProps {
   companyName: string
   branchId: string | null
   branchName: string | null
+  customMessage: string
 }
 
-type EventType = 'clock_in' | 'clock_out'
+type EventType = 'clock_in' | 'clock_out' | 'break_in' | 'break_out'
 
 type KioskResult =
-  | { success: true; employee_name: string; event_type: EventType; tardiness_minutes: number; overtime_minutes: number }
+  | { success: true; employee_name: string; employee_code: string; event_type: EventType; tardiness_minutes: number; overtime_minutes: number }
   | { success: false; error: string }
 
-type UIState = 'idle' | 'loading' | 'success' | 'error'
+type UIState = 'idle' | 'loading' | 'selecting_action' | 'success' | 'error'
 
-export function KioskClient({ logoUrl, kioskBgUrl, companyName, branchId, branchName }: KioskClientProps) {
+export function KioskClient({ logoUrl, kioskBgUrl, companyName, branchId, branchName, customMessage }: KioskClientProps) {
   const [pin, setPin]             = useState('')
-  const [eventType, setEventType] = useState<EventType>('clock_in')
   const [time, setTime]           = useState('')
   const [date, setDate]           = useState('')
   const [uiState, setUiState]     = useState<UIState>('idle')
@@ -71,22 +71,26 @@ export function KioskClient({ logoUrl, kioskBgUrl, companyName, branchId, branch
     if (resetTimer.current) clearTimeout(resetTimer.current)
   }
 
-  const submitPin = async () => {
-    if (pin.length !== 4 || uiState === 'loading') return
+  const validatePin = async () => {
+    if (pin.length !== 4 || uiState !== 'idle') return
     if (!branchId) {
-      setResult({ success: false, error: 'No hay sucursal activa configurada. Contacte al administrador.' })
+      setResult({ success: false, error: 'No hay sucursal activa configurada.' })
       setUiState('error')
       resetTimer.current = setTimeout(reset, 4000)
       return
     }
 
+    setUiState('selecting_action')
+  }
+
+  const executeAction = async (type: EventType) => {
     setUiState('loading')
 
     const supabase = createClient()
     const { data, error } = await supabase.rpc('kiosk_clock_event', {
       p_branch_id:  branchId,
       p_pin:        pin,
-      p_event_type: eventType,
+      p_event_type: type,
     })
 
     if (error) {
@@ -101,10 +105,10 @@ export function KioskClient({ logoUrl, kioskBgUrl, companyName, branchId, branch
     resetTimer.current = setTimeout(reset, uiState === 'error' ? 4000 : 5000)
   }
 
-  // Auto-submit cuando el PIN llega a 4 dígitos
+  // Auto-transition a selección cuando el PIN llega a 4 dígitos
   useEffect(() => {
     if (pin.length === 4 && uiState === 'idle') {
-      submitPin()
+      validatePin()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin])
@@ -126,24 +130,11 @@ export function KioskClient({ logoUrl, kioskBgUrl, companyName, branchId, branch
       {kioskBgUrl && <div className="absolute inset-0 bg-black/50" />}
 
       <div className="relative flex flex-col flex-1">
-        {/* Topbar */}
+        {/* Topbar simplificado */}
         <header className="flex items-center justify-between px-8 py-5">
           <div className="flex items-center gap-3">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="h-8 w-auto object-contain" />
-            ) : (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{companyName}</p>
-                <p className="mt-0.5 text-sm font-semibold text-slate-300">Sistema de Control de Asistencia</p>
-              </div>
-            )}
+            {logoUrl && <img src={logoUrl} alt="Logo" className="h-8 w-auto object-contain" />}
           </div>
-          <Link
-            href="/login"
-            className="rounded-2xl border border-slate-700 bg-slate-800/80 px-5 py-2.5 text-sm font-semibold text-slate-300 backdrop-blur transition hover:bg-slate-700 hover:text-white"
-          >
-            Área Administrativa →
-          </Link>
         </header>
 
         {/* Main content */}
@@ -161,7 +152,8 @@ export function KioskClient({ logoUrl, kioskBgUrl, companyName, branchId, branch
             </div>
 
             {/* Card */}
-            <div className="rounded-3xl bg-white p-8 shadow-2xl">
+            <div className="rounded-3xl bg-white p-8 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-slate-100" />
 
               {/* ---- SUCCESS STATE ---- */}
               {isSuccess && result?.success && (
@@ -173,21 +165,14 @@ export function KioskClient({ logoUrl, kioskBgUrl, companyName, branchId, branch
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-slate-900">{result.employee_name}</p>
-                    <p className="mt-1 text-sm font-semibold text-green-600">
-                      {result.event_type === 'clock_in' ? '✓ Entrada registrada' : '✓ Salida registrada'}
+                    <p className="mt-2 text-sm font-bold text-slate-400 font-mono tracking-widest">{result.employee_code}</p>
+                    <p className="mt-4 text-sm font-semibold text-green-600">
+                      {result.event_type === 'clock_in' ? '✓ Turno Iniciado' : 
+                       result.event_type === 'clock_out' ? '✓ Turno Finalizado' :
+                       result.event_type === 'break_in' ? '✓ Descanso Iniciado' : '✓ Descanso Finalizado'}
                     </p>
-                    {result.tardiness_minutes > 0 && (
-                      <p className="mt-2 text-xs text-amber-600">
-                        ⚠ Tardanza: {result.tardiness_minutes} min
-                      </p>
-                    )}
-                    {result.overtime_minutes > 0 && (
-                      <p className="mt-2 text-xs text-blue-600">
-                        ★ Horas extra: {result.overtime_minutes} min
-                      </p>
-                    )}
                   </div>
-                  <p className="text-xs text-slate-400">Reiniciando en unos segundos…</p>
+                  <p className="text-xs text-slate-400">Listo para la siguiente marcación…</p>
                 </div>
               )}
 
@@ -199,77 +184,88 @@ export function KioskClient({ logoUrl, kioskBgUrl, companyName, branchId, branch
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </div>
-                  <div>
-                    <p className="text-lg font-bold text-slate-900">Error</p>
-                    <p className="mt-1 text-sm text-red-600">{result.error}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={reset}
-                    className="rounded-2xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white hover:bg-slate-800"
-                  >
-                    Intentar de nuevo
+                  <p className="text-sm font-semibold text-red-600 leading-relaxed">{result.error}</p>
+                  <button onClick={reset} className="mt-2 font-bold text-xs text-slate-400 hover:text-slate-600">
+                    VOLVER A INTENTAR
                   </button>
                 </div>
               )}
 
-              {/* ---- NORMAL STATE ---- */}
-              {!isSuccess && !isError && (
-                <>
-                  {/* Toggle Entrada / Salida */}
-                  <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5">
+              {/* ---- SELECT ACTION STATE ---- */}
+              {uiState === 'selecting_action' && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-slate-900">¿Qué acción realizas?</h2>
+                    <p className="mt-1 text-xs font-mono text-slate-400">PIN INGRESADO CORRECTAMENTE</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
                     <button
-                      type="button"
-                      onClick={() => setEventType('clock_in')}
-                      className={`rounded-xl py-2.5 text-sm font-bold transition ${
-                        eventType === 'clock_in'
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
+                      onClick={() => executeAction('clock_in')}
+                      className="group flex items-center justify-between rounded-2xl bg-slate-50 p-4 transition hover:bg-emerald-50 hover:ring-1 hover:ring-emerald-200"
                     >
-                      Entrada
+                      <span className="font-bold text-slate-700 group-hover:text-emerald-700 text-sm">INICIO DE TURNO</span>
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
                     </button>
                     <button
-                      type="button"
-                      onClick={() => setEventType('clock_out')}
-                      className={`rounded-xl py-2.5 text-sm font-bold transition ${
-                        eventType === 'clock_out'
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
+                      onClick={() => executeAction('break_in')}
+                      className="group flex items-center justify-between rounded-2xl bg-slate-50 p-4 transition hover:bg-blue-50 hover:ring-1 hover:ring-blue-200"
                     >
-                      Salida
+                      <span className="font-bold text-slate-700 group-hover:text-blue-700 text-sm">INICIAR DESCANSO</span>
+                      <span className="h-2 w-2 rounded-full bg-blue-500" />
+                    </button>
+                    <button
+                      onClick={() => executeAction('break_out')}
+                      className="group flex items-center justify-between rounded-2xl bg-slate-50 p-4 transition hover:bg-indigo-50 hover:ring-1 hover:ring-indigo-200"
+                    >
+                      <span className="font-bold text-slate-700 group-hover:text-indigo-700 text-sm">FIN DE DESCANSO</span>
+                      <span className="h-2 w-2 rounded-full bg-indigo-500" />
+                    </button>
+                    <button
+                      onClick={() => executeAction('clock_out')}
+                      className="group flex items-center justify-between rounded-2xl bg-slate-50 p-4 transition hover:bg-red-50 hover:ring-1 hover:ring-red-200"
+                    >
+                      <span className="font-bold text-slate-700 group-hover:text-red-700 text-sm">FINALIZAR TURNO</span>
+                      <span className="h-2 w-2 rounded-full bg-red-500" />
                     </button>
                   </div>
 
-                  <h2 className="mt-5 text-center text-xl font-bold text-slate-900">Ingrese su PIN</h2>
-                  <p className="mt-1 text-center text-xs text-slate-500">PIN de 4 dígitos</p>
+                  <button onClick={reset} className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600">
+                    CANCELAR
+                  </button>
+                </div>
+              )}
+
+              {/* ---- IDLE STATE (PIN ENTRY) ---- */}
+              {uiState === 'idle' && (
+                <>
+                  <h2 className="text-center text-xl font-bold text-slate-900">Ingrese su PIN</h2>
+                  <p className="mt-1 text-center text-[10px] font-bold text-slate-400 tracking-widest uppercase">Identificación de Personal</p>
 
                   {/* PIN indicators */}
-                  <div className="mt-5 grid grid-cols-4 gap-3">
+                  <div className="mt-6 grid grid-cols-4 gap-3">
                     {[0, 1, 2, 3].map((i) => (
                       <div
                         key={i}
-                        className={`h-12 rounded-2xl border-2 text-2xl font-bold leading-[2.75rem] text-center transition-colors ${
+                        className={`h-14 rounded-2xl border-2 text-2xl font-bold leading-[3.25rem] text-center transition-all duration-300 ${
                           pin[i]
-                            ? 'border-slate-900 bg-slate-900 text-white'
-                            : 'border-slate-200 bg-slate-50 text-transparent'
+                            ? 'border-slate-900 bg-slate-900 text-white scale-105'
+                            : 'border-slate-100 bg-slate-50 text-slate-200'
                         }`}
                       >
-                        •
+                        {pin[i] ? '•' : '0'}
                       </div>
                     ))}
                   </div>
 
                   {/* Keypad */}
-                  <div className="mt-5 grid grid-cols-3 gap-3">
+                  <div className="mt-6 grid grid-cols-3 gap-3">
                     {keys.map((key) => (
                       <button
                         key={key}
                         type="button"
                         onClick={() => addDigit(key)}
-                        disabled={uiState === 'loading'}
-                        className="h-14 rounded-2xl bg-slate-100 text-2xl font-bold text-slate-900 transition hover:bg-slate-200 active:scale-95 disabled:opacity-50"
+                        className="h-16 rounded-2xl bg-slate-50 text-2xl font-bold text-slate-800 transition hover:bg-slate-100 active:scale-95"
                       >
                         {key}
                       </button>
@@ -278,40 +274,53 @@ export function KioskClient({ logoUrl, kioskBgUrl, companyName, branchId, branch
                     <button
                       type="button"
                       onClick={clearPin}
-                      disabled={uiState === 'loading'}
-                      className="h-14 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 active:scale-95 disabled:opacity-50"
+                      className="h-16 rounded-2xl text-xs font-bold text-slate-400 transition hover:text-slate-600 active:scale-95"
                     >
-                      ← Borrar
+                      BORRAR
                     </button>
 
                     <button
                       type="button"
                       onClick={() => addDigit('0')}
-                      disabled={uiState === 'loading'}
-                      className="h-14 rounded-2xl bg-slate-100 text-2xl font-bold text-slate-900 transition hover:bg-slate-200 active:scale-95 disabled:opacity-50"
+                      className="h-16 rounded-2xl bg-slate-50 text-2xl font-bold text-slate-800 transition hover:bg-slate-100 active:scale-95"
                     >
                       0
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={submitPin}
-                      disabled={pin.length !== 4 || uiState === 'loading'}
-                      className="h-14 rounded-2xl bg-slate-900 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      {uiState === 'loading' ? (
-                        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      ) : (
-                        'Marcar'
-                      )}
-                    </button>
+                    <div className="flex h-16 items-center justify-center">
+                       {/* Placeholder para balancear grid */}
+                    </div>
                   </div>
                 </>
               )}
 
+              {/* ---- LOADING STATE ---- */}
+              {uiState === 'loading' && (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
+                  <p className="mt-6 text-sm font-bold text-slate-500 animate-pulse">PROCESANDO MARCACIÓN...</p>
+                </div>
+              )}
+
+              {/* Mensaje Personalizado */}
+              <div className="mt-8 border-t border-slate-50 pt-4 text-center">
+                <p className="text-[11px] font-medium leading-relaxed text-slate-400 italic">
+                  "{customMessage}"
+                </p>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Footer con acceso sutil */}
+        <footer className="p-8 flex justify-center">
+          <Link
+            href="/login"
+            className="text-[10px] font-bold tracking-widest text-slate-600/30 transition hover:text-slate-600 uppercase"
+          >
+            Acceso Administrativo
+          </Link>
+        </footer>
       </div>
     </main>
   )

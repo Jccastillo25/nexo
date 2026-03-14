@@ -8,7 +8,7 @@ export default async function KioskPage() {
     supabase
       .from('app_settings')
       .select('key, value')
-      .in('key', ['logo_url', 'kiosk_bg_url', 'company_name']),
+      .in('key', ['logo_url', 'kiosk_bg_url', 'company_name', 'kiosk_custom_message']),
     supabase
       .from('branches')
       .select('id, name')
@@ -30,6 +30,7 @@ export default async function KioskPage() {
       companyName={settings.company_name ?? 'Grupo CT'}
       branchId={branch?.id ?? null}
       branchName={branch?.name ?? null}
+      customMessage={settings.kiosk_custom_message ?? 'Gracias por su puntualidad'}
     />
   )
 }
