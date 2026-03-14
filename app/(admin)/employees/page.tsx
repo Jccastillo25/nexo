@@ -25,7 +25,7 @@ export default async function EmployeesPage() {
   ] = await Promise.all([
     supabase
       .from('employees')
-      .select('id, employee_code, first_name, last_name, is_active, hire_date, email, branches(name)', { count: 'exact' })
+      .select('id, employee_code, first_name, last_name, is_active, hire_date, email, phone, branches(name)', { count: 'exact' })
       .order('first_name'),
     supabase
       .from('employees')

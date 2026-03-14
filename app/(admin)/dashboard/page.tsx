@@ -27,6 +27,7 @@ export default async function DashboardPage() {
     { count: pendingCorrections },
     { count: pendingLeave },
     { data: recentRecords },
+    { count: totalBranches },
   ] = await Promise.all([
     supabase
       .from('employees')
@@ -50,13 +51,16 @@ export default async function DashboardPage() {
       .select('id, event_type, recorded_at, tardiness_minutes, employees(first_name, last_name)')
       .order('recorded_at', { ascending: false })
       .limit(6),
+    supabase
+      .from('branches')
+      .select('*', { count: 'exact', head: true }),
   ])
 
   const stats = [
     { label: 'Empleados activos', value: fmt(activeEmployees), href: '/employees' },
+    { label: 'Sucursales totales', value: fmt(totalBranches), href: '/organization/branches' },
     { label: 'Entradas hoy', value: fmt(todayCheckins), href: '/attendance/records' },
-    { label: 'Correcciones pendientes', value: fmt(pendingCorrections), href: '/attendance/corrections' },
-    { label: 'Permisos pendientes', value: fmt(pendingLeave), href: '/leave' },
+    { label: 'Correcciones / Permisos', value: `${fmt(pendingCorrections)} / ${fmt(pendingLeave)}`, href: '/attendance/corrections' },
   ]
 
   const quickActions = [

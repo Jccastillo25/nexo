@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from '../../actions/auth'
@@ -40,6 +41,14 @@ export function AdminSidebar({
   logoUrl,
 }: AdminSidebarProps) {
   const pathname = usePathname()
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredNav = adminNav.map(section => ({
+    ...section,
+    items: section.items.filter(item => 
+      item.label.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  })).filter(section => section.items.length > 0)
 
   return (
     <aside className="border-r border-slate-200 bg-white">
@@ -70,12 +79,27 @@ export function AdminSidebar({
             </p>
           </div>
         </div>
+        {/* Buscador */}
+        <div className="px-4 py-4">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Buscar módulo..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-xs font-medium outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+            />
+            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </div>
+          </div>
+        </div>
 
         {/* Navegación */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          {adminNav.map((section) => (
+        <div className="flex-1 overflow-y-auto px-4 py-2">
+          {filteredNav.map((section) => (
             <div key={section.title} className="mb-6">
-              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
                 {section.title}
               </p>
               <div className="space-y-1">

@@ -73,6 +73,7 @@ export async function updateEmployee(
   const birth_date = formData.get('birth_date') as string
   const gender = formData.get('gender') as string
   const address = formData.get('address') as string
+  const is_active = formData.get('is_active') === 'on'
 
   if (!first_name || !last_name || !branch_id) {
     return { error: 'Nombre, apellido y sucursal son requeridos.' }

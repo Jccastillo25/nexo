@@ -33,7 +33,7 @@ export default async function EmployeeDetailPage({
   ] = await Promise.all([
     supabase
       .from('employees')
-      .select('id, first_name, last_name, employee_code, email, phone, hire_date, is_active, branches(name)')
+      .select('id, first_name, last_name, employee_code, email, phone, hire_date, is_active, national_id, social_security_id, tax_id, birth_date, gender, address, branches(name)')
       .eq('id', id)
       .single(),
     supabase
