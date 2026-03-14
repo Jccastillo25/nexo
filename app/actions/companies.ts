@@ -17,16 +17,21 @@ export async function createCompany(
   const slug = formData.get('slug') as string
   const tax_id = formData.get('tax_id') as string
 
-  if (!display_name || !legal_name || !slug) {
-    return { error: 'Nombre, Razón Social y Slug son obligatorios.' }
+  const { data: { user }, error: authErr } = await supabase.auth.getUser()
+  console.log("== AUTH CHECK IN SERVER ACTION ==", user?.id, authErr?.message)
+
+  if (!user) {
+    return { error: 'No tienes una sesión activa para crear empresas (Server Action Auth failed).' }
   }
 
-  const { error } = await supabase.rpc('create_company_with_owner', {
+  const { data: newCompanyId, error } = await supabase.rpc('create_company_with_owner', {
     p_display_name: display_name,
     p_legal_name: legal_name,
     p_slug: slug.toLowerCase().replace(/\s+/g, '-'),
     p_tax_id: tax_id || null,
   })
+
+  console.log("== RPC RESULT ==", newCompanyId, error)
 
   if (error) {
     if (error.code === '23505' && error.message.includes('slug')) {

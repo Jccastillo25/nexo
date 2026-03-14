@@ -4,10 +4,16 @@ import Link from 'next/link'
 export default async function CompaniesPage() {
   const supabase = await createClient()
 
-  const { data: companies } = await supabase
+  const { data: { user }, error: authErr } = await supabase.auth.getUser()
+  const { data: companies, error: companiesErr } = await supabase
     .from('companies')
-    .select('id, display_name, legal_name, slug, tax_id, is_active, created_at')
+    .select('*')
     .order('display_name')
+
+  console.log("== DEBUG COMPANIES PAGE ==")
+  console.log("User ID:", user?.id, "Auth Err:", authErr?.message)
+  console.log("Companies:", companies?.length, "Err:", companiesErr?.message)
+  console.log("==========================")
 
   const active   = companies?.filter((c) => c.is_active).length  ?? 0
   const inactive = (companies?.length ?? 0) - active
@@ -37,6 +43,14 @@ export default async function CompaniesPage() {
             + Nueva empresa
           </Link>
         </div>
+      </div>
+
+      <div className="rounded-2xl bg-red-50 p-4 border border-red-200 text-xs font-mono text-red-800">
+        <p><strong>DEBUG INFO:</strong></p>
+        <p>user_id: {user?.id || 'NULL (No session found in Server Component!)'}</p>
+        <p>auth_err: {authErr?.message || 'None'}</p>
+        <p>companies_err: {companiesErr?.message || 'None'}</p>
+        <p>companies_count: {companies?.length}</p>
       </div>
 
       {/* Stats */}
