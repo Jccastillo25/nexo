@@ -1,0 +1,49 @@
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
+
+export async function resetEmployeePin(employeeId: string) {
+  const supabase = await createClient()
+
+  // Generar nuevo PIN
+  const newPin = Math.floor(1000 + Math.random() * 9000).toString()
+
+  // Usar una transacción simple: 
+  const { error: err1 } = await supabase
+    .from('employees')
+    .update({ employee_code: newPin })
+    .eq('id', employeeId)
+
+  if (err1) {
+    if (err1.code === '23505') {
+       return { error: 'Colisión temporal al generar el nuevo PIN. Por favor, intenta nuevamente.' }
+    }
+    return { error: err1.message }
+  }
+
+  // Marcar como inactivo el anterior (si la tabla se usa para historial riguroso)
+  await supabase
+    .from('employee_pins')
+    .update({ is_active: false })
+    .eq('employee_id', employeeId)
+    .eq('is_active', true)
+
+  // Insertar el nuevo pin en historial
+  const { error: err2 } = await supabase
+    .from('employee_pins')
+    .insert({
+      employee_id: employeeId,
+      pin: newPin,
+      is_active: true,
+      last_reset_at: new Date().toISOString()
+    })
+
+  if (err2) {
+    console.error("Error inserting pin history:", err2.message)
+    // No fallamos toda la request si falla el historial secundario.
+  }
+
+  revalidatePath(`/employees/${employeeId}`)
+  return { success: true }
+}

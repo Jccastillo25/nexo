@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { PinManager } from './pin-manager'
 
 const eventTypeLabels: Record<string, { label: string; cls: string }> = {
   clock_in:    { label: 'Entrada',         cls: 'bg-green-100 text-green-700'  },
@@ -67,15 +68,15 @@ export default async function EmployeeDetailPage({
   const shiftData = shift?.shifts    as unknown as { name: string; start_time: string; end_time: string } | null
 
   const infoRows = [
-    { label: 'Código',           value: employee.employee_code },
+    { label: 'Código PIN',       value: 'Protegido (Ver panel de Seguridad)' },
     { label: 'Correo',           value: employee.email ?? '—' },
     { label: 'Teléfono',         value: employee.phone ?? '—' },
     { label: 'Sucursal',         value: branch?.name ?? '—' },
     { label: 'Ingreso',          value: employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('es-NI') : '—' },
     { label: 'Turno',            value: shiftData ? `${shiftData.name} (${shiftData.start_time.slice(0, 5)}–${shiftData.end_time.slice(0, 5)})` : '—' },
-    { label: 'PIN activo',       value: pin ? 'Sí' : 'No' },
+    { label: 'PIN en historial', value: pin ? 'Sí' : 'No' },
     { label: 'PIN creado',       value: pin?.created_at ? new Date(pin.created_at).toLocaleDateString('es-NI') : '—' },
-    { label: 'Último reveal PIN',value: pin?.last_revealed_at ? new Date(pin.last_revealed_at).toLocaleString('es-NI', { timeZone: 'America/Managua' }) : '—' },
+    { label: 'Último reveal',    value: pin?.last_revealed_at ? new Date(pin.last_revealed_at).toLocaleString('es-NI', { timeZone: 'America/Managua' }) : '—' },
   ]
 
   return (
@@ -88,7 +89,7 @@ export default async function EmployeeDetailPage({
           <h1 className="mt-2 text-3xl font-bold text-slate-900">
             {employee.first_name} {employee.last_name}
           </h1>
-          <p className="mt-1 font-mono text-sm text-slate-400">{employee.employee_code}</p>
+          <p className="mt-1 text-sm text-slate-500">Perfil de Colaborador</p>
           <div className="mt-3">
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${employee.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
               {employee.is_active ? 'Activo' : 'Inactivo'}
@@ -103,10 +104,20 @@ export default async function EmployeeDetailPage({
         </Link>
       </div>
 
+      {/* Seguridad y Acceso */}
+      <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
+        <div className="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-slate-900">Seguridad y Acceso</h2>
+        </div>
+        <div className="p-6">
+          <PinManager employeeId={employee.id} currentPin={employee.employee_code} />
+        </div>
+      </div>
+
       {/* Datos generales */}
       <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
         <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Datos del colaborador</h2>
+          <h2 className="text-base font-semibold text-slate-900">Datos profesionales</h2>
         </div>
         <dl className="divide-y divide-slate-100">
           {infoRows.map((row) => (

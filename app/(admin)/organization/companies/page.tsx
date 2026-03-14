@@ -23,12 +23,20 @@ export default async function CompaniesPage() {
             Empresas registradas en el sistema y sus parámetros base.
           </p>
         </div>
-        <Link
-          href="/organization"
-          className="shrink-0 rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-        >
-          ← Organización
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/organization"
+            className="shrink-0 rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            ← Organización
+          </Link>
+          <Link
+            href="/organization/companies/new"
+            className="shrink-0 rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            + Nueva empresa
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
