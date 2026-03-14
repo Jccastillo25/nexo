@@ -70,6 +70,31 @@ export function EmployeeEditForm({ employee, branches }: EmployeeEditFormProps) 
           />
         </div>
 
+        <div className="sm:col-span-1">
+          <label className="mb-2 block text-sm font-semibold text-slate-900">
+            Teléfono
+          </label>
+          <input
+            type="tel"
+            name="phone"
+            defaultValue={employee.phone ?? ''}
+            placeholder="+505 0000 0000"
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+          />
+        </div>
+
+        <div className="sm:col-span-1">
+          <label className="mb-2 block text-sm font-semibold text-slate-900">
+            Fecha de ingreso
+          </label>
+          <input
+            type="date"
+            name="hire_date"
+            defaultValue={employee.hire_date ? new Date(employee.hire_date).toISOString().split('T')[0] : ''}
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+          />
+        </div>
+
         <div>
            <label className="mb-2 block text-sm font-semibold text-slate-900">
             Sucursal asignada *

@@ -96,7 +96,8 @@ export default async function EmployeesPage() {
                 <tr className="border-b border-slate-100 bg-slate-50 text-left">
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Código</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Nombre</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Correo</th>
+                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Correo</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Teléfono</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Sucursal</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Ingreso</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
@@ -121,8 +122,11 @@ export default async function EmployeesPage() {
                       <td className="px-6 py-4 font-medium text-slate-900">
                         {emp.first_name} {emp.last_name}
                       </td>
-                      <td className="px-6 py-4 text-slate-500">
+                       <td className="px-6 py-4 text-slate-500">
                         {emp.email ?? '—'}
+                      </td>
+                      <td className="px-6 py-4 text-slate-500">
+                        {emp.phone ?? '—'}
                       </td>
                       <td className="px-6 py-4 text-slate-600">
                         {branch?.name ?? '—'}

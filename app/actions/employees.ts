@@ -63,6 +63,8 @@ export async function updateEmployee(
   const first_name = formData.get('first_name') as string
   const last_name = formData.get('last_name') as string
   const email = formData.get('email') as string
+  const phone = formData.get('phone') as string
+  const hire_date = formData.get('hire_date') as string
   const branch_id = formData.get('branch_id') as string
   const is_active = formData.get('is_active') === 'on'
 
@@ -76,6 +78,8 @@ export async function updateEmployee(
       first_name,
       last_name,
       email: email || null,
+      phone: phone || null,
+      hire_date: hire_date || null,
       branch_id,
       is_active,
     })
@@ -89,4 +93,16 @@ export async function updateEmployee(
   revalidatePath(`/(admin)/employees/${id}`, 'page')
   revalidatePath(`/(admin)/employees/${id}/edit`, 'page')
   redirect(`/employees/${id}`)
+}
+
+export async function toggleEmployeeStatus(id: string, currentStatus: boolean) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('employees')
+    .update({ is_active: !currentStatus })
+    .eq('id', id)
+
+  if (error) throw error
+  revalidatePath('/employees')
+  revalidatePath(`/(admin)/employees/${id}`, 'page')
 }
