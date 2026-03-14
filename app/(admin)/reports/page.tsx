@@ -4,20 +4,20 @@ const reportCards = [
   {
     title: 'Asistencia diaria',
     desc: 'Resumen de entradas, salidas y tardanzas por día y sucursal.',
-    badge: 'Próximamente',
-    href: '#',
+    badge: 'Listo',
+    href: '/reports/attendance',
   },
   {
     title: 'Horas trabajadas',
     desc: 'Total de horas por empleado en un rango de fechas seleccionado.',
-    badge: 'Próximamente',
-    href: '#',
+    badge: 'Listo',
+    href: '/reports/hours',
   },
   {
     title: 'Tardanzas y ausencias',
     desc: 'Detalle de incidencias por empleado con descripción de cada evento.',
-    badge: 'Próximamente',
-    href: '#',
+    badge: 'Listo',
+    href: '/reports/incidents',
   },
   {
     title: 'Permisos y vacaciones',
