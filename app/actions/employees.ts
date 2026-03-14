@@ -31,6 +31,7 @@ export async function createEmployee(
     email: email || null,
     branch_id,
     is_active: true,
+    // Nuevos campos inicializados en null o vacíos si se desea
   }).select('id').single()
 
   if (error) {
@@ -66,7 +67,12 @@ export async function updateEmployee(
   const phone = formData.get('phone') as string
   const hire_date = formData.get('hire_date') as string
   const branch_id = formData.get('branch_id') as string
-  const is_active = formData.get('is_active') === 'on'
+  const national_id = formData.get('national_id') as string
+  const social_security_id = formData.get('social_security_id') as string
+  const tax_id = formData.get('tax_id') as string
+  const birth_date = formData.get('birth_date') as string
+  const gender = formData.get('gender') as string
+  const address = formData.get('address') as string
 
   if (!first_name || !last_name || !branch_id) {
     return { error: 'Nombre, apellido y sucursal son requeridos.' }
@@ -82,6 +88,12 @@ export async function updateEmployee(
       hire_date: hire_date || null,
       branch_id,
       is_active,
+      national_id: national_id || null,
+      social_security_id: social_security_id || null,
+      tax_id: tax_id || null,
+      birth_date: birth_date || null,
+      gender: gender || null,
+      address: address || null,
     })
     .eq('id', id)
 

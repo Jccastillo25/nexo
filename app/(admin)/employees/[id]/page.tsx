@@ -112,16 +112,6 @@ export default async function EmployeeDetailPage({
         </div>
       </div>
 
-      {/* Seguridad y Acceso */}
-      <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
-        <div className="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">Seguridad y Acceso</h2>
-        </div>
-        <div className="p-6">
-          <PinManager employeeId={employee.id} currentPin={employee.employee_code} />
-        </div>
-      </div>
-
       {/* Datos generales */}
       <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
         <div className="border-b border-slate-100 px-6 py-4">
