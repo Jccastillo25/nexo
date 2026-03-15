@@ -42,7 +42,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
   const logoUrl = brandingRows?.[0]?.value ?? null
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-screen bg-[#F0F2F5] text-slate-900">
       <div className="grid min-h-screen lg:grid-cols-[300px_1fr]">
         <AdminSidebar
           companyName={companyName}

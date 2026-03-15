@@ -33,7 +33,7 @@ export default async function EmployeeDetailPage({
   ] = await Promise.all([
     supabase
       .from('employees')
-      .select('id, first_name, last_name, employee_code, email, phone, hire_date, is_active, national_id, social_security_id, tax_id, birth_date, gender, address, branches(name)')
+      .select('id, first_name, last_name, employee_code, email, phone, hire_date, is_active, national_id, social_security_id, tax_id, birth_date, gender, address, photo_url, branches(name)')
       .eq('id', id)
       .single(),
     supabase
@@ -84,16 +84,32 @@ export default async function EmployeeDetailPage({
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Empleados</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">
-            {employee.first_name} {employee.last_name}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">Perfil de Colaborador</p>
-          <div className="mt-3">
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${employee.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-              {employee.is_active ? 'Activo' : 'Inactivo'}
-            </span>
+        <div className="flex items-center gap-5">
+          {/* Avatar */}
+          {employee.photo_url ? (
+            <img
+              src={employee.photo_url}
+              alt={`${employee.first_name} ${employee.last_name}`}
+              className="h-20 w-20 shrink-0 rounded-full object-cover ring-4 ring-slate-100 shadow"
+            />
+          ) : (
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-200 ring-4 ring-slate-100 shadow">
+              <span className="text-2xl font-bold text-slate-500">
+                {employee.first_name[0]}{employee.last_name[0]}
+              </span>
+            </div>
+          )}
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Empleados</p>
+            <h1 className="mt-1 text-3xl font-bold text-slate-900">
+              {employee.first_name} {employee.last_name}
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">Perfil de Colaborador</p>
+            <div className="mt-2">
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${employee.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                {employee.is_active ? 'Activo' : 'Inactivo'}
+              </span>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
