@@ -50,7 +50,7 @@ export default async function EmployeeDetailPage({
       .limit(5),
     supabase
       .from('employee_pins')
-      .select('id, is_active, created_at, last_revealed_at, last_reset_at')
+      .select('id, pin, is_active, created_at, last_revealed_at, last_reset_at')
       .eq('employee_id', id)
       .eq('is_active', true)
       .maybeSingle(),
@@ -126,6 +126,11 @@ export default async function EmployeeDetailPage({
             ← Empleados
           </Link>
         </div>
+      </div>
+
+      {/* PIN de seguridad */}
+      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+        <PinManager employeeId={employee.id} currentPin={pin?.pin ?? '0000'} />
       </div>
 
       {/* Datos generales */}
