@@ -130,7 +130,7 @@ export default async function EmployeeDetailPage({
 
       {/* PIN de seguridad */}
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <PinManager employeeId={employee.id} currentPin={pin?.pin ?? '0000'} />
+        <PinManager employeeId={employee.id} currentPin={employee.employee_code ?? '0000'} />
       </div>
 
       {/* Datos generales */}
