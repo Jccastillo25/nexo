@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { resetEmployeePin } from '../../../actions/pins'
 
 export function PinManager({ employeeId, currentPin }: { employeeId: string; currentPin: string }) {
+  const router = useRouter()
   const [isVisible, setIsVisible] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
@@ -18,6 +20,7 @@ export function PinManager({ employeeId, currentPin }: { employeeId: string; cur
        alert('Error: ' + res.error)
     } else {
        setIsVisible(true) // Mostramos el nuevo PIN
+       router.refresh()    // Forzamos actualización de props del servidor
     }
   }
 

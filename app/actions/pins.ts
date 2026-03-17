@@ -56,6 +56,9 @@ export async function resetEmployeePin(employeeId: string) {
     // No fallamos toda la request si falla el historial secundario.
   }
 
+  revalidatePath('/employees')
   revalidatePath(`/employees/${employeeId}`)
+  revalidatePath(`/(admin)/employees/${employeeId}`, 'page')
+  
   return { success: true }
 }
