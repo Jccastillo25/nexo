@@ -6,8 +6,20 @@ import { revalidatePath } from 'next/cache'
 export async function resetEmployeePin(employeeId: string) {
   const supabase = await createClient()
 
-  // Generar nuevo PIN
-  const newPin = Math.floor(1000 + Math.random() * 9000).toString()
+  // Obtener company_id del empleado
+  const { data: employee, error: empErr } = await supabase
+    .from('employees')
+    .select('company_id')
+    .eq('id', employeeId)
+    .single()
+
+  if (empErr || !employee?.company_id) {
+    return { error: 'No se pudo obtener la información de la empresa del empleado.' }
+  }
+
+  // Generar nuevo PIN aleatorio y único
+  const { generateUniquePin } = await import('@/lib/utils')
+  const newPin = await generateUniquePin(supabase, employee.company_id)
 
   // Usar una transacción simple: 
   const { error: err1 } = await supabase

@@ -39,8 +39,9 @@ export async function createEmployee(
     return { error: 'No se encontró una empresa asociada a tu cuenta.' }
   }
 
-  // Generar PIN aleatorio de 4 dígitos (1000 a 9999)
-  const employee_code = Math.floor(1000 + Math.random() * 9000).toString()
+  // Generar PIN aleatorio y único de 4 dígitos (1000 a 9999)
+  const { generateUniquePin } = await import('@/lib/utils')
+  const employee_code = await generateUniquePin(supabase, membership.company_id)
 
   const { data: newEmployee, error } = await supabase.from('employees').insert({
     employee_code,
