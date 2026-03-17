@@ -21,6 +21,24 @@ export async function createEmployee(
     return { error: 'Nombre, apellido y sucursal son requeridos.' }
   }
 
+  // Obtener company_id del usuario autenticado
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: 'No tienes una sesión activa.' }
+  }
+
+  const { data: membership } = await supabase
+    .from('company_memberships')
+    .select('company_id')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .limit(1)
+    .single()
+
+  if (!membership?.company_id) {
+    return { error: 'No se encontró una empresa asociada a tu cuenta.' }
+  }
+
   // Generar PIN aleatorio de 4 dígitos (1000 a 9999)
   const employee_code = Math.floor(1000 + Math.random() * 9000).toString()
 
@@ -30,8 +48,8 @@ export async function createEmployee(
     last_name,
     email: email || null,
     branch_id,
+    company_id: membership.company_id,
     is_active: true,
-    // Nuevos campos inicializados en null o vacíos si se desea
   }).select('id').single()
 
   if (error) {
