@@ -47,33 +47,36 @@ export default async function DashboardPage() {
       value: fmt(todayCheckins),
       sub: `/ ${fmt(activeEmployees)} empleados`,
       href: '/attendance/records',
-      iconBg: 'bg-green-50',
+      iconBg: 'var(--success-soft)',
+      iconColor: 'var(--success)',
       icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
         </svg>
       ),
     },
     {
-      label: 'Sucursales',
-      value: fmt(totalBranches),
-      sub: 'registradas',
-      href: '/organization/branches',
-      iconBg: 'bg-blue-50',
+      label: 'Ausencias',
+      value: fmt((activeEmployees ?? 0) - (todayCheckins ?? 0)),
+      sub: 'sin justificar',
+      href: '/attendance/incidents',
+      iconBg: 'var(--danger-soft)',
+      iconColor: 'var(--danger)',
       icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
         </svg>
       ),
     },
     {
-      label: 'Correcciones',
+      label: 'Tardanzas Hoy',
       value: fmt(pendingCorrections),
-      sub: 'pendientes de revisión',
+      sub: '> 15 minutos',
       href: '/attendance/corrections',
-      iconBg: 'bg-amber-50',
+      iconBg: 'var(--warning-soft)',
+      iconColor: 'var(--warning)',
       icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
           <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
@@ -84,9 +87,10 @@ export default async function DashboardPage() {
       value: fmt(pendingLeave),
       sub: 'esperando aprobación',
       href: '/leave',
-      iconBg: 'bg-purple-50',
+      iconBg: 'var(--info-soft)',
+      iconColor: 'var(--info)',
       icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-purple-600">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
         </svg>
@@ -95,10 +99,10 @@ export default async function DashboardPage() {
   ]
 
   const quickActions = [
-    { label: 'Nuevo empleado', href: '/employees', color: 'bg-blue-600 hover:bg-blue-700' },
-    { label: 'Ver registros', href: '/attendance/records', color: 'bg-slate-800 hover:bg-slate-700' },
-    { label: 'Gestionar horarios', href: '/schedules', color: 'bg-indigo-600 hover:bg-indigo-700' },
-    { label: 'Ver reportes', href: '/reports', color: 'bg-violet-600 hover:bg-violet-700' },
+    { label: 'Nuevo empleado', href: '/employees', color: 'var(--primary)', hoverColor: 'var(--primary-hover)' },
+    { label: 'Ver registros', href: '/attendance/records', color: 'var(--text-strong)', hoverColor: '#3C4043' },
+    { label: 'Gestionar horarios', href: '/schedules', color: 'var(--text-strong)', hoverColor: '#3C4043' },
+    { label: 'Ver reportes', href: '/reports', color: 'var(--text-strong)', hoverColor: '#3C4043' },
   ]
 
   const noData = activeEmployees === null
@@ -106,15 +110,18 @@ export default async function DashboardPage() {
   return (
     <section className="space-y-6">
 
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* ── Header ── */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-          <p className="mt-0.5 text-sm capitalize text-slate-500">{todayLabel}</p>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-strong)' }}>Dashboard</h1>
+          <p className="mt-1 text-sm capitalize" style={{ color: 'var(--text-muted)' }}>
+            {todayLabel} — Vista de Sucursal Principal
+          </p>
         </div>
         <Link
           href="/"
-          className="flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700"
+          className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition"
+          style={{ background: 'var(--text-strong)' }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -123,47 +130,57 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Aviso sin sesión */}
+      {/* ── No session warning ── */}
       {noData && (
-        <div className="rounded-2xl bg-amber-50 px-6 py-4 ring-1 ring-amber-200">
-          <p className="text-sm font-semibold text-amber-800">
+        <div className="rounded-xl px-5 py-4" style={{ background: 'var(--warning-soft)', border: '1px solid #FBBF24' }}>
+          <p className="text-sm font-semibold" style={{ color: 'var(--warning)' }}>
             Sin sesión activa — los datos reales aparecerán una vez que inicies sesión.{' '}
             <Link href="/login" className="underline underline-offset-2">Iniciar sesión →</Link>
           </p>
         </div>
       )}
 
-      {/* Stats */}
+      {/* ── Stat cards ── */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
           <Link
             key={stat.label}
             href={stat.href}
-            className="flex items-center justify-between rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:ring-slate-300"
+            className="group relative overflow-hidden rounded-2xl bg-white p-5 transition-all hover:shadow-md"
+            style={{ border: '1px solid var(--border-soft)' }}
           >
-            <div>
-              <p className="text-sm text-slate-500">{stat.label}</p>
-              <p className="mt-2 text-3xl font-bold text-slate-900">{stat.value}</p>
-              <p className="mt-1 text-xs text-slate-400">{stat.sub}</p>
-            </div>
-            <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.iconBg}`}>
-              {stat.icon}
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{stat.label}</p>
+                <p className="mt-2 text-4xl font-bold" style={{ color: 'var(--text-strong)' }}>{stat.value}</p>
+                <p className="mt-1 text-xs" style={{ color: 'var(--text-light)' }}>{stat.sub}</p>
+              </div>
+              <div
+                className="flex h-12 w-12 items-center justify-center rounded-full"
+                style={{ background: stat.iconBg, color: stat.iconColor }}
+              >
+                {stat.icon}
+              </div>
             </div>
           </Link>
         ))}
       </div>
 
-      {/* Actividad reciente */}
-      <div className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Actividad reciente</h2>
-          <Link href="/attendance/records" className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-200">
+      {/* ── Recent activity ── */}
+      <div className="overflow-hidden rounded-2xl bg-white" style={{ border: '1px solid var(--border-soft)' }}>
+        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: 'var(--border-soft)' }}>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-strong)' }}>Actividad reciente</h2>
+          <Link
+            href="/attendance/records"
+            className="rounded-full px-3 py-1 text-xs font-semibold transition"
+            style={{ background: 'var(--bg-app)', color: 'var(--text-muted)' }}
+          >
             Ver todos
           </Link>
         </div>
 
         {recentRecords && recentRecords.length > 0 ? (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y" style={{ borderColor: 'var(--border-soft)' }}>
             {recentRecords.map((record) => {
               const emp = record.employees as unknown as { first_name: string; last_name: string; photo_url?: string | null } | null
               const name = emp ? `${emp.first_name} ${emp.last_name}` : 'Empleado'
@@ -172,25 +189,22 @@ export default async function DashboardPage() {
               const tardanza = record.tardiness_minutes > 0 ? record.tardiness_minutes : 0
               return (
                 <div key={record.id} className="flex items-center gap-4 px-6 py-3.5">
-                  {/* Avatar */}
                   {emp?.photo_url ? (
                     <img src={emp.photo_url} alt={name} className="h-9 w-9 shrink-0 rounded-full object-cover" />
                   ) : (
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200">
-                      <span className="text-xs font-bold text-slate-500">{initials}</span>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: 'var(--bg-app)' }}>
+                      <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{initials}</span>
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-800">{name}</p>
-                    <p className="text-xs text-slate-400">{fmtTime(record.recorded_at)}</p>
+                    <p className="truncate text-sm font-medium" style={{ color: 'var(--text-strong)' }}>{name}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-light)' }}>{fmtTime(record.recorded_at)}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {tardanza > 0 && (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
-                        +{tardanza} min
-                      </span>
+                      <span className="status-badge status-warning">+{tardanza} min</span>
                     )}
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${isIn ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                    <span className={`status-badge ${isIn ? 'status-success' : 'status-info'}`}>
                       {isIn ? 'Entrada' : 'Salida'}
                     </span>
                   </div>
@@ -199,28 +213,28 @@ export default async function DashboardPage() {
             })}
           </div>
         ) : (
-          <div className="px-6 py-10 text-center text-sm text-slate-400">
+          <div className="px-6 py-10 text-center text-sm" style={{ color: 'var(--text-light)' }}>
             No hay actividad registrada aún.
           </div>
         )}
       </div>
 
-      {/* Acciones rápidas */}
+      {/* ── Quick actions ── */}
       <div>
-        <p className="mb-3 text-sm font-semibold text-slate-500">Acceso rápido</p>
+        <p className="mb-3 text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>Acceso rápido</p>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {quickActions.map((action) => (
             <Link
               key={action.label}
               href={action.href}
-              className={`rounded-2xl px-5 py-4 text-sm font-semibold text-white transition ${action.color}`}
+              className="rounded-xl px-5 py-4 text-sm font-semibold text-white transition-all hover:opacity-90"
+              style={{ background: action.color }}
             >
               {action.label}
             </Link>
           ))}
         </div>
       </div>
-
     </section>
   )
 }

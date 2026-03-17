@@ -1,13 +1,66 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f1f5f9;
-  --foreground: #0f172a;
+  /* ── App backgrounds ── */
+  --bg-app: #F8F9FA;
+  --bg-surface: #ffffff;
+
+  /* ── Borders ── */
+  --border-soft: #E8EAED;
+  --border-medium: #DADCE0;
+
+  /* ── Typography ── */
+  --text-strong: #202124;
+  --text-body: #3C4043;
+  --text-muted: #5F6368;
+  --text-light: #9AA0A6;
+
+  /* ── Primary (Figma blue) ── */
+  --primary: #0066FF;
+  --primary-hover: #0052CC;
+  --primary-soft: #EBF2FF;
+  --primary-softer: #F5F8FF;
+
+  /* ── Status colors ── */
+  --success: #1E8E3E;
+  --success-soft: #E6F4EA;
+  --warning: #B45309;
+  --warning-soft: #FFF4E5;
+  --danger: #D93025;
+  --danger-soft: #FCE8E6;
+  --info: #1A73E8;
+  --info-soft: #E8F0FE;
+
+  /* ── Sidebar ── */
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 0px;
+  --sidebar-bg: #FFFFFF;
+  --sidebar-border: #E8EAED;
+  --sidebar-item-hover: #F1F3F4;
+  --sidebar-active-bg: #EBF2FF;
+  --sidebar-active-text: #0066FF;
+  --sidebar-icon: #5F6368;
+  --sidebar-text: #3C4043;
+  --sidebar-section-text: #9AA0A6;
+
+  /* ── Radii ── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* ── Shadows ── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.16);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-app);
+  --color-foreground: var(--text-body);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -21,71 +74,27 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-:root {
-  --bg-app: #f5f7fb;
-  --bg-surface: #ffffff;
-  --border-soft: #e6eaf2;
-  --border-medium: #d4dce8;
-
-  --text-strong: #172033;
-  --text-body: #344054;
-  --text-muted: #667085;
-
-  --primary-700: #274c9b;
-  --primary-600: #2f5dbd;
-  --primary-500: #3b6dd8;
-  --primary-100: #e8f0ff;
-
-  --success: #12b76a;
-  --success-soft: #eafbf3;
-  --warning: #f59e0b;
-  --warning-soft: #fff6e5;
-  --danger: #e5484d;
-  --danger-soft: #fdecec;
-  --info: #2e90fa;
-  --info-soft: #eaf4ff;
-
-  --sidebar-bg: #0f172a;
-  --sidebar-text: #d0d8e5;
-  --sidebar-active: #ffffff;
-  --sidebar-active-bg: rgba(255, 255, 255, 0.08);
-
-  --radius-input: 14px;
-  --radius-card: 16px;
-  --radius-hero: 24px;
-
-  --shadow-input: 0 1px 2px rgba(16, 24, 40, 0.06);
-  --shadow-card: 0 8px 24px rgba(16, 24, 40, 0.08);
-  --shadow-modal: 0 20px 50px rgba(16, 24, 40, 0.18);
-}
-
-body {
   background: var(--bg-app);
   color: var(--text-body);
+  font-family: var(--font-sans, 'Inter', system-ui, -apple-system, sans-serif);
 }
 
-.app-shell {
-  min-height: 100vh;
-  background: var(--bg-app);
-}
+/* ── Utility classes ── */
 
 .app-surface {
   background: var(--bg-surface);
   border: 1px solid var(--border-soft);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
+/* Status badges */
 .status-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  border-radius: 999px;
-  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-pill);
+  padding: 0.3rem 0.65rem;
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -108,4 +117,31 @@ body {
 .status-info {
   background: var(--info-soft);
   color: var(--info);
+}
+
+/* Collapse animation */
+.collapse-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+
+.collapse-content[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.collapse-content > div {
+  overflow: hidden;
+}
+
+/* Sidebar transition */
+.sidebar-transition {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Overlay */
+.sidebar-overlay {
+  background: rgba(0, 0, 0, 0.3);
+  transition: opacity 0.3s ease;
 }

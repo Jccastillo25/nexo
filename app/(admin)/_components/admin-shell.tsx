@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { AdminSidebar } from './admin-sidebar'
-import { AdminTopbar } from './admin-topbar'
+import { AdminShellClient } from './admin-shell-client'
 
 export async function AdminShell({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -42,21 +41,13 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
   const logoUrl = brandingRows?.[0]?.value ?? null
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] text-slate-900">
-      <div className="grid min-h-screen lg:grid-cols-[300px_1fr]">
-        <AdminSidebar
-          companyName={companyName}
-          userName={userName}
-          userRole={userRole}
-          logoUrl={logoUrl}
-        />
-        <div className="flex min-h-screen flex-col">
-          <AdminTopbar />
-          <main className="flex-1 p-4 md:p-6">
-            <div className="mx-auto w-full max-w-7xl">{children}</div>
-          </main>
-        </div>
-      </div>
-    </div>
+    <AdminShellClient
+      companyName={companyName}
+      userName={userName}
+      userRole={userRole}
+      logoUrl={logoUrl}
+    >
+      {children}
+    </AdminShellClient>
   )
 }
