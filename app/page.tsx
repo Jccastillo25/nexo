@@ -23,14 +23,13 @@ export default async function KioskPage() {
 
   const branch = branches?.[0] ?? null
 
-  return (
+   return (
     <KioskClient
-      logoUrl={settings.logo_url ?? null}
-      kioskBgUrl={settings.kiosk_bg_url ?? null}
-      companyName={settings.company_name ?? 'Grupo CT'}
-      branchId={branch?.id ?? null}
-      branchName={branch?.name ?? null}
-      customMessage={settings.kiosk_custom_message ?? 'Gracias por su puntualidad'}
+      initialLogoUrl={settings.logo_url ?? null}
+      initialKioskBgUrl={settings.kiosk_bg_url ?? null}
+      initialCompanyName={settings.company_name ?? 'Grupo CT'}
+      initialCustomMessage={settings.kiosk_custom_message ?? 'Gracias por su puntualidad'}
+      initialBranchId={branch?.id ?? null}
     />
   )
 }
