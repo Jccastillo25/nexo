@@ -68,7 +68,8 @@ export default async function BranchesPage() {
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Código</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Empresa</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Creada</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
+                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -86,6 +87,14 @@ export default async function BranchesPage() {
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${b.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                           {b.is_active ? 'Activa' : 'Inactiva'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Link
+                          href={`/organization/branches/${b.id}/edit`}
+                          className="text-sm font-semibold text-slate-900 transition hover:text-slate-600"
+                        >
+                          Editar
+                        </Link>
                       </td>
                     </tr>
                   )

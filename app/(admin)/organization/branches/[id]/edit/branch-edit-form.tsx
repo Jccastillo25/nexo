@@ -2,38 +2,51 @@
 
 import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { createBranch, type ActionState } from '../../../../actions/branches'
+import { updateBranch, type ActionState } from '../../../../actions/branches'
 import { createClient } from '@/lib/supabase/client'
 
-export function BranchForm({ companies }: { companies: { id: string; display_name: string; slug: string }[] }) {
-  const [state, action, pending] = useActionState<ActionState, FormData>(createBranch, null)
-  const [companyId, setCompanyId] = useState('')
-  const [name, setName] = useState('')
-  const [code, setCode] = useState('')
+interface BranchEditFormProps {
+  branch: any
+  companies: { id: string; display_name: string; slug: string }[]
+}
 
-  useEffect(() => {
-    if (!companyId) {
-      setCode('')
-      return
+export function BranchEditForm({ branch, companies }: BranchEditFormProps) {
+  const updateBranchWithId = updateBranch.bind(null, branch.id)
+  const [state, action, pending] = useActionState<ActionState, FormData>(updateBranchWithId, null)
+  const [companyId, setCompanyId] = useState(branch.company_id)
+  const [name, setName] = useState(branch.name)
+  const [code, setCode] = useState(branch.code || '')
+  const [autoCode, setAutoCode] = useState(false)
+
+  const generateSlugInitials = (nameStr: string) => {
+    if (!nameStr) return ''
+    return nameStr
+      .trim()
+      .split(/\s+/)
+      .map(word => word[0])
+      .join('')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+  }
+
+  const toggleAutoCode = async () => {
+    const newAuto = !autoCode
+    setAutoCode(newAuto)
+    if (newAuto && companyId) {
+      const company = companies.find(c => c.id === companyId)
+      if (company) {
+        const supabase = createClient()
+        const { count } = await supabase
+          .from('branches')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', companyId)
+        
+        const nextNum = (count ?? 0) + 1
+        const paddedNum = nextNum.toString().padStart(2, '0')
+        setCode(`${company.slug.toLowerCase()}-suc-${paddedNum}`)
+      }
     }
-
-    const company = companies.find(c => c.id === companyId)
-    if (!company) return
-
-    const generateCode = async () => {
-      const supabase = createClient()
-      const { count } = await supabase
-        .from('branches')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', companyId)
-      
-      const nextNum = (count ?? 0) + 1
-      const paddedNum = nextNum.toString().padStart(2, '0')
-      setCode(`${company.slug.toLowerCase()}-suc-${paddedNum}`)
-    }
-
-    generateCode()
-  }, [companyId, companies])
+  }
 
   return (
     <form action={action} className="space-y-6">
@@ -52,7 +65,10 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
             name="company_id"
             required
             value={companyId}
-            onChange={(e) => setCompanyId(e.target.value)}
+            onChange={(e) => {
+              setCompanyId(e.target.value)
+              setAutoCode(false)
+            }}
             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           >
             <option value="">Selecciona una empresa...</option>
@@ -83,16 +99,28 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
           <label className="mb-2 block text-sm font-semibold text-slate-900">
             Código interno (Opcional)
           </label>
-          <input
-            type="text"
-            name="code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Ej. SUC-01"
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              name="code"
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value)
+                setAutoCode(false)
+              }}
+              placeholder="Ej. gct-suc-01"
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            />
+            <button
+              type="button"
+              onClick={toggleAutoCode}
+              className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition ${autoCode ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'}`}
+            >
+              Auto {autoCode ? 'ON' : 'OFF'}
+            </button>
+          </div>
           <p className="mt-2 text-xs text-slate-500">
-            Identificador corto para reportes. Se genera automáticamente según el slug de la empresa.
+            Identificador corto para reportes.
           </p>
         </div>
 
@@ -102,10 +130,24 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
           </label>
           <textarea
             name="address"
+            defaultValue={branch.address}
             placeholder="Dirección completa de la sucursal"
             rows={3}
             className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           />
+        </div>
+
+        <div className="sm:col-span-2 flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="is_active"
+            name="is_active"
+            defaultChecked={branch.is_active}
+            className="h-5 w-5 rounded-lg border-slate-200 text-slate-900 focus:ring-slate-900"
+          />
+          <label htmlFor="is_active" className="text-sm font-semibold text-slate-900 cursor-pointer">
+            Sucursal Activa
+          </label>
         </div>
       </div>
 
@@ -121,7 +163,7 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
           disabled={pending}
           className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
         >
-          {pending ? 'Guardando...' : 'Guardar sucursal'}
+          {pending ? 'Guardando...' : 'Guardar cambios'}
         </button>
       </div>
     </form>
