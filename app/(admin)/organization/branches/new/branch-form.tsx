@@ -1,3 +1,5 @@
+'use client'
+
 import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createBranch, type ActionState } from '../../../../actions/branches'
