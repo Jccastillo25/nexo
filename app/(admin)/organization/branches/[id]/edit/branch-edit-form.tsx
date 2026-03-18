@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { updateBranch, type ActionState } from '../../../../actions/branches'
+import { updateBranch, type ActionState } from '../../../../../actions/branches'
 import { createClient } from '@/lib/supabase/client'
 
 interface BranchEditFormProps {
