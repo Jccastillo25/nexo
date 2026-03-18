@@ -55,7 +55,7 @@ export function CompanyForm() {
             name="display_name"
             required
             onChange={handleNameChange}
-            placeholder="Ej. Grupo CT Nicaragua"
+            placeholder="Ej. Gestor360 Nicaragua"
             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           />
         </div>

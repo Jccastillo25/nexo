@@ -156,7 +156,7 @@ export default function LoginPage() {
                     <div className="flex h-4 w-4 items-center justify-center rounded bg-slate-800">
                         <span className="text-[8px] font-bold text-white">CT</span>
                     </div>
-                    <span className="text-[11px] font-bold text-slate-800">Grupo Castillo Torrez</span>
+                    <span className="text-[11px] font-bold text-slate-800">Gestor360</span>
                 </div>
             </div>
           </div>

@@ -158,13 +158,13 @@ export default function OnboardingPage() {
               <div className="field">
                 <label>Nombre legal *</label>
                 <input value={legalName} onChange={e => setLegalName(e.target.value)}
-                  placeholder="Grupo CT S.A. de C.V." required />
+                  placeholder="Gestor360 S.A. de C.V." required />
               </div>
               <div className="field">
                 <label>Nombre comercial *</label>
                 <input value={displayName}
                   onChange={e => { setDisplayName(e.target.value); setSlug(generateSlug(e.target.value)) }}
-                  placeholder="Grupo CT" required />
+                  placeholder="Gestor360" required />
               </div>
               <div className="field">
                 <label>Identificador fiscal</label>

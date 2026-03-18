@@ -180,18 +180,14 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
     <div className="bg-mesh min-h-screen flex flex-col font-display antialiased text-slate-900 select-none overflow-hidden">
       
       {/* --- HEADER --- */}
-      <header className="w-full px-6 py-6 flex justify-between items-center max-w-7xl mx-auto z-10 transition-all">
+      <header className="w-full px-6 py-4 flex justify-between items-center max-w-7xl mx-auto z-10 transition-all">
         <div className="flex items-center gap-3 text-white">
           <div className="bg-[#0d7ff2] p-2 rounded-xl shadow-lg shadow-blue-500/20 ring-1 ring-white/10">
-            {kioskData?.logo_url || initialLogoUrl ? (
-              <img src={kioskData?.logo_url || initialLogoUrl as string} alt="Logo" className="w-7 h-7 object-contain" />
-            ) : (
-              <span className="material-symbols-outlined text-white text-2xl">apps</span>
-            )}
+            <span className="material-symbols-outlined text-white text-2xl">apps</span>
           </div>
           <div className="flex flex-col">
             <span className="text-xl font-black tracking-tight leading-none uppercase italic">
-              {kioskData?.company_name || initialCompanyName || 'Gestor360'}
+              Gestor360
             </span>
             <span className="text-[9px] font-bold tracking-[0.2em] text-blue-400 mt-1 uppercase">SISTEMA INTEGRAL</span>
           </div>
@@ -215,7 +211,7 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
       </header>
 
       {/* --- MAIN CONTENT --- */}
-      <main className="flex-grow flex items-center justify-center px-4 py-8 relative z-0">
+      <main className="flex-grow flex items-center justify-center px-4 py-2 relative z-0">
         <div className="w-full max-w-[460px] animate-in fade-in zoom-in-95 duration-500">
           
           <div className="bg-white rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden ring-1 ring-slate-100 relative">
@@ -260,24 +256,27 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
 
             {/* IDLE (PIN) */}
             {uiState === 'idle' && (
-              <div className="p-8 sm:p-12">
-                <div className="text-center mb-10">
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Bienvenido/a</h2>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mt-2">Identifíquese con su PIN</p>
+              <div className="p-6 sm:p-10">
+                <div className="text-center mb-6">
+                  <div className="mb-4 inline-block px-6 py-2 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
+                    <span className="text-slate-900 font-black text-3xl tracking-tight tabular-nums">{time}</span>
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Bienvenido/a</h2>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mt-1">Identifíquese con su PIN</p>
                 </div>
-                <div className="flex justify-center gap-4 mb-10">
+                <div className="flex justify-center gap-3 mb-8">
                   {[0,1,2,3].map(i => (
                     <div key={i} className={`size-16 rounded-[1.25rem] flex items-center justify-center border-[3px] transition-all ${pin[i] ? 'border-blue-500 bg-blue-50 shadow-xl shadow-blue-500/10' : 'border-slate-100 bg-white'}`}>
                       {pin[i] ? <div className="size-4 bg-blue-500 rounded-full shadow-lg animate-in zoom-in-50" /> : <div className="size-3 bg-slate-200 rounded-full" />}
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   {keys.map(key => (
-                    <button key={key} onClick={() => addDigit(key)} className="h-20 rounded-2xl bg-slate-50 text-2xl font-black text-slate-800 transition-all hover:bg-slate-100 active:scale-95 active:bg-blue-500 active:text-white shadow-sm ring-1 ring-slate-100">{key}</button>
+                    <button key={key} onClick={() => addDigit(key)} className="h-16 rounded-2xl bg-slate-50 text-xl font-black text-slate-800 transition-all hover:bg-slate-100 active:scale-95 active:bg-blue-500 active:text-white shadow-sm ring-1 ring-slate-100">{key}</button>
                   ))}
-                  <button onClick={clearPin} className="h-20 rounded-2xl flex items-center justify-center group"><span className="material-symbols-outlined text-slate-300 text-3xl font-bold group-hover:text-red-500 transition-colors">backspace</span></button>
-                  <button onClick={() => addDigit('0')} className="h-20 rounded-2xl bg-slate-50 text-2xl font-black text-slate-800 hover:bg-slate-100 active:scale-95 active:bg-blue-500 active:text-white shadow-sm ring-1 ring-slate-100">0</button>
+                  <button onClick={clearPin} className="h-16 rounded-2xl flex items-center justify-center group"><span className="material-symbols-outlined text-slate-300 text-2xl font-bold group-hover:text-red-500 transition-colors">backspace</span></button>
+                  <button onClick={() => addDigit('0')} className="h-16 rounded-2xl bg-slate-50 text-xl font-black text-slate-800 hover:bg-slate-100 active:scale-95 active:bg-blue-500 active:text-white shadow-sm ring-1 ring-slate-100">0</button>
                   <div className="flex items-center justify-center"><div className="size-2 rounded-full bg-slate-100" /></div>
                 </div>
               </div>
@@ -322,7 +321,7 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
 
             {/* ÉXITO */}
             {uiState === 'success' && result && result.success && (
-              <div className="p-10 sm:p-14">
+              <div className="p-8 sm:p-10">
                 <div className="mb-12 text-center flex flex-col items-center">
                   <div className="relative mb-8">
                     <div className="absolute inset-0 bg-emerald-500/10 rounded-full scale-[1.9] blur-2xl animate-pulse" />
@@ -359,7 +358,7 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
 
             {/* ERROR */}
             {(uiState === 'error' || (result && !result.success)) && (
-               <div className="p-10 sm:p-14 text-center">
+               <div className="p-8 sm:p-10 text-center">
                  <div className="relative mb-10 inline-block">
                     <div className="absolute inset-0 bg-red-500/10 rounded-full scale-[1.8] blur-2xl animate-pulse" />
                     <div className="relative size-24 bg-red-500 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-red-500/30 transform -rotate-6">
@@ -390,11 +389,9 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
       </main>
 
       {/* --- FOOTER --- */}
-      <footer className="w-full py-8 text-center px-6 z-10">
-        <p className="text-white/20 text-[10px] font-black tracking-[0.2em] uppercase">
-          © {new Date().getFullYear()} {kioskData?.company_name || initialCompanyName || 'Gestor360 HR Solutions'}
-          <br/>
-          <span className="opacity-50 tracking-[0.5em] mt-2 block">Premium HR Integration</span>
+      <footer className="w-full py-4 text-center px-6 z-10">
+        <p className="text-white/20 text-[9px] font-black tracking-[0.2em] uppercase">
+          © {new Date().getFullYear()} {kioskData?.company_name || initialCompanyName || 'Gestor360'}
         </p>
       </footer>
 

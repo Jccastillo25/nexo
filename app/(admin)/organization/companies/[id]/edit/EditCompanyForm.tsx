@@ -76,7 +76,7 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
               required
               onChange={handleNameChange}
               className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
-              placeholder="Ej. Grupo CT Nicaragua"
+              placeholder="Ej. Gestor360 Nicaragua"
             />
           </div>
 
