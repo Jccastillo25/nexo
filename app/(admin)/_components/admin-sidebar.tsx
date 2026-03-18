@@ -92,7 +92,7 @@ const chevronIcon = (
 )
 
 export function AdminSidebar({
-  companyName = 'Grupo CT',
+  companyName = 'Gestor360',
   userName = 'Administrador',
   userRole = 'admin',
   logoUrl,

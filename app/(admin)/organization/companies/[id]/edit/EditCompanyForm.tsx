@@ -13,6 +13,9 @@ interface EditCompanyFormProps {
     slug: string
     tax_id: string | null
     is_active: boolean
+    address?: string | null
+    phone?: string | null
+    report_logo_url?: string | null
   }
 }
 
@@ -136,6 +139,59 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
               className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
               placeholder="Ej. J0000000000000"
             />
+          </div>
+
+          {/* Dirección */}
+          <div className="space-y-2 md:col-span-2">
+            <label htmlFor="address" className="text-sm font-semibold text-slate-900">
+              Dirección Fiscal (Opcional)
+            </label>
+            <textarea
+              id="address"
+              name="address"
+              defaultValue={company.address || ''}
+              rows={2}
+              className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+              placeholder="Ej. De la rotonda 1c al sur..."
+            />
+          </div>
+
+          {/* Teléfono */}
+          <div className="space-y-2">
+            <label htmlFor="phone" className="text-sm font-semibold text-slate-900">
+              Teléfono de Contacto (Opcional)
+            </label>
+            <input
+              type="text"
+              id="phone"
+              name="phone"
+              defaultValue={company.phone || ''}
+              className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+              placeholder="Ej. +505 8888-8888"
+            />
+          </div>
+
+          {/* Logo para reportes */}
+          <div className="space-y-2">
+            <label htmlFor="logo_file" className="text-sm font-semibold text-slate-900">
+              Logo para Reportes (Opcional)
+            </label>
+            <div className="flex items-center gap-4">
+              {company.report_logo_url && (
+                <img src={company.report_logo_url} alt="Logo" className="h-[46px] w-[46px] object-cover rounded-xl border bg-white p-1" />
+              )}
+              <div className="flex-1">
+                <input
+                  type="file"
+                  id="logo_file"
+                  name="logo_file"
+                  accept="image/png, image/jpeg, image/webp"
+                  className="w-full rounded-2xl bg-slate-50 px-4 py-[9px] text-[13px] transition file:mr-4 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-1 file:text-[11px] file:font-semibold file:text-white hover:file:bg-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 cursor-pointer"
+                />
+                <p className="mt-1 text-[11px] text-slate-400">Sube una imagen para reemplazar el logo actual.</p>
+              </div>
+            </div>
+            <input type="hidden" name="report_logo_url" value={company.report_logo_url || ''} />
           </div>
         </div>
 

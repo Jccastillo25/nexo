@@ -25,13 +25,13 @@ export default function LoginPage() {
               <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
             </svg>
           </div>
-          <span className="text-lg font-bold tracking-wide text-white">Grupo CT</span>
+          <span className="text-lg font-bold tracking-wide text-white">Gestor360</span>
         </div>
 
         {/* Tarjeta de Formulario */}
         <div className="rounded-[24px] bg-white px-8 py-10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10">
           <div className="mb-8 text-center">
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">Bienvenido a Grupo CT</h2>
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">Bienvenido a Gestor360</h2>
             <p className="mt-1.5 text-xs text-slate-500">Inicie sesión para acceder a su panel de control</p>
           </div>
 
@@ -106,7 +106,7 @@ export default function LoginPage() {
              <a href="#" className="hover:text-slate-300 transition">Política de privacidad</a>
              <a href="#" className="hover:text-slate-300 transition">Ayuda</a>
           </div>
-          <p>© {new Date().getFullYear()} Grupo CT por Grupo Castillo Torrez. Todos los derechos reservados.</p>
+          <p>© {new Date().getFullYear()} Gestor360. Todos los derechos reservados.</p>
         </div>
       </div>
 
@@ -129,7 +129,7 @@ export default function LoginPage() {
             </h3>
             
             <p className="mt-3 text-center text-[13px] leading-relaxed text-slate-600">
-              Usted está a punto de iniciar una sesión administrativa en el sistema <strong>Grupo CT</strong>. Por favor, confirme para continuar.
+              Usted está a punto de iniciar una sesión administrativa en el sistema <strong>Gestor360</strong>. Por favor, confirme para continuar.
             </p>
 
             <div className="mt-8 grid gap-2.5">

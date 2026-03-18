@@ -8,7 +8,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  let companyName = 'Grupo CT'
+  let companyName = 'Gestor360'
   let userName = 'Administrador'
   let userRole = 'admin'
 

@@ -112,6 +112,43 @@ export function CompanyForm() {
             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           />
         </div>
+
+        <div className="sm:col-span-2">
+          <label className="mb-2 block text-sm font-semibold text-slate-900">
+            Dirección Fiscal (Opcional)
+          </label>
+          <textarea
+            name="address"
+            rows={2}
+            placeholder="Ej. De la rotonda 1c al sur..."
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+          />
+        </div>
+
+        <div className="sm:col-span-1">
+          <label className="mb-2 block text-sm font-semibold text-slate-900">
+            Teléfono de Contacto (Opcional)
+          </label>
+          <input
+            type="text"
+            name="phone"
+            placeholder="Ej. +505 8888-8888"
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+          />
+        </div>
+
+        <div className="sm:col-span-1">
+          <label className="mb-2 block text-sm font-semibold text-slate-900">
+            Logo para Reportes (Opcional)
+          </label>
+          <input
+            type="file"
+            name="logo_file"
+            accept="image/png, image/jpeg, image/webp"
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-[9px] text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer"
+          />
+          <p className="mt-1 text-[11px] text-slate-500">Max 3MB. PNG, JPG o WebP.</p>
+        </div>
       </div>
 
       <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">

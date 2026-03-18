@@ -27,7 +27,7 @@ export default async function KioskPage() {
     <KioskClient
       initialLogoUrl={settings.logo_url ?? null}
       initialKioskBgUrl={settings.kiosk_bg_url ?? null}
-      initialCompanyName={settings.company_name ?? 'Grupo CT'}
+      initialCompanyName={settings.company_name ?? 'Gestor360'}
       initialCustomMessage={settings.kiosk_custom_message ?? 'Gracias por su puntualidad'}
       initialBranchId={branch?.id ?? null}
     />

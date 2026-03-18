@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Marcación Grupo CT',
+  title: 'Gestor360',
   description: 'Sistema de control de asistencia',
 }
 

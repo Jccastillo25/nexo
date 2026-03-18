@@ -16,6 +16,22 @@ export async function createCompany(
   const legal_name = formData.get('legal_name') as string
   const slug = formData.get('slug') as string
   const tax_id = formData.get('tax_id') as string
+  const address = formData.get('address') as string
+  const phone = formData.get('phone') as string
+  let report_logo_url = formData.get('report_logo_url') as string
+  const logoFile = formData.get('logo_file') as File | null
+
+  if (logoFile && logoFile.size > 0) {
+    const ext = logoFile.type.split('/')[1] || 'png'
+    const filePath = `companies/logo_${Date.now()}.${ext}`
+    const { error: uploadError } = await supabase.storage
+      .from('employee-photos')
+      .upload(filePath, logoFile, { upsert: true })
+    if (!uploadError) {
+      const { data } = supabase.storage.from('employee-photos').getPublicUrl(filePath)
+      report_logo_url = data.publicUrl
+    }
+  }
 
   const { data: { user }, error: authErr } = await supabase.auth.getUser()
   console.log("== AUTH CHECK IN SERVER ACTION ==", user?.id, authErr?.message)
@@ -30,6 +46,15 @@ export async function createCompany(
     p_slug: slug.toLowerCase().replace(/\s+/g, '-'),
     p_tax_id: tax_id || null,
   })
+
+  // Check if we need to update the newly created company with the extra fields
+  if (newCompanyId && !error && (address || phone || report_logo_url)) {
+    await supabase.from('companies').update({
+      address: address || null,
+      phone: phone || null,
+      report_logo_url: report_logo_url || null,
+    }).eq('id', newCompanyId)
+  }
 
   console.log("== RPC RESULT ==", newCompanyId, error)
 
@@ -56,7 +81,23 @@ export async function updateCompany(
   const legal_name = formData.get('legal_name') as string
   const slug = formData.get('slug') as string
   const tax_id = formData.get('tax_id') as string
+  const address = formData.get('address') as string
+  const phone = formData.get('phone') as string
+  let report_logo_url = formData.get('report_logo_url') as string
+  const logoFile = formData.get('logo_file') as File | null
   const is_active = formData.get('is_active') === 'on'
+
+  if (logoFile && logoFile.size > 0) {
+    const ext = logoFile.type.split('/')[1] || 'png'
+    const filePath = `companies/${id}_logo_${Date.now()}.${ext}`
+    const { error: uploadError } = await supabase.storage
+      .from('employee-photos')
+      .upload(filePath, logoFile, { upsert: true })
+    if (!uploadError) {
+      const { data } = supabase.storage.from('employee-photos').getPublicUrl(filePath)
+      report_logo_url = data.publicUrl
+    }
+  }
 
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -71,6 +112,9 @@ export async function updateCompany(
       legal_name,
       slug: slug.toLowerCase().replace(/\s+/g, '-'),
       tax_id: tax_id || null,
+      address: address || null,
+      phone: phone || null,
+      report_logo_url: report_logo_url || null,
       is_active,
     })
     .eq('id', id)
