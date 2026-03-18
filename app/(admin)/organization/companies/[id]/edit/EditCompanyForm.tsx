@@ -22,9 +22,31 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
   const [slug, setSlug] = useState(company.slug)
   const [autoSlug, setAutoSlug] = useState(false)
 
+  function generateSlugInitials(name: string) {
+    if (!name) return ''
+    return name
+      .trim()
+      .split(/\s+/)
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '')
+  }
+
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (autoSlug) {
-      setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))
+      setSlug(generateSlugInitials(e.target.value))
+    }
+  }
+
+  const toggleAutoSlug = () => {
+    const newAuto = !autoSlug
+    setAutoSlug(newAuto)
+    if (newAuto) {
+      const nameInput = document.getElementById('display_name') as HTMLInputElement
+      if (nameInput) {
+        setSlug(generateSlugInitials(nameInput.value))
+      }
     }
   }
 
@@ -92,7 +114,7 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
               />
               <button
                 type="button"
-                onClick={() => setAutoSlug(!autoSlug)}
+                onClick={toggleAutoSlug}
                 className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition ${autoSlug ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'}`}
               >
                 Auto {autoSlug ? 'ON' : 'OFF'}
