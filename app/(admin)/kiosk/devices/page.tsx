@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getKioskDevices, deleteKioskDevice, updateKioskDevice } from '@/app/actions/kiosk'
+import { getKioskDevices, deleteKioskDevice, updateKioskDevice } from '../../../actions/kiosk'
 import Link from 'next/link'
 import { 
   Monitor, 

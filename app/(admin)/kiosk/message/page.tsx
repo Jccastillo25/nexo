@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '../../../../src/lib/supabase/server'
 import { KioskSettingsForm } from '../../settings/_components/kiosk-settings-form'
 import { MessageSquare, Info } from 'lucide-react'
 

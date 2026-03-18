@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { registerKioskDevice } from '@/app/actions/kiosk'
-import { createClient } from '@/lib/supabase/client'
+import { registerKioskDevice } from '../../../../actions/kiosk'
+import { createClient } from '../../../../../src/lib/supabase/client'
 import { redirect, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Monitor, MapPin, Keyboard, Info } from 'lucide-react'
