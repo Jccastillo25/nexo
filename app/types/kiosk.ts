@@ -9,6 +9,10 @@ export interface KioskDevice {
   branch_name: string
   company_name: string
   logo_url: string | null
+  name: string | null
+  location: string | null
+  notes: string | null
+  is_active: boolean
 }
 
 export interface KioskClientProps {

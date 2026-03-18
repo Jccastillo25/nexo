@@ -63,7 +63,6 @@ export const adminNav: NavSection[] = [
       { href: '/organization', label: 'General' },
       { href: '/organization/companies', label: 'Empresas' },
       { href: '/organization/branches', label: 'Sucursales' },
-      { href: '/organization/kiosks', label: 'Kioskos' },
       { href: '/organization/memberships', label: 'Membresías' },
     ],
   },
@@ -72,6 +71,15 @@ export const adminNav: NavSection[] = [
     items: [
       { href: '/security', label: 'Seguridad' },
       { href: '/settings', label: 'Configuración' },
+    ],
+  },
+  {
+    title: 'Kiosko',
+    items: [
+      { href: '/kiosk/message', label: 'Mensaje del Kiosco' },
+      { href: '/kiosk/devices', label: 'Dispositivos Kiosko' },
+      { href: '/kiosk/settings', label: 'Configuración Kioscos' },
+      { href: '/kiosk/assign', label: 'Asignar Kiosko' },
     ],
   },
 ]
