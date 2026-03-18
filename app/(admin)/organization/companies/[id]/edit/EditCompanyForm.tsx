@@ -29,8 +29,8 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
       .split(/\s+/)
       .map(word => word[0])
       .join('')
-      .toUpperCase()
-      .replace(/[^A-Z0-9]+/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
   }
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {

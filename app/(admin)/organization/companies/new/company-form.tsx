@@ -1,11 +1,41 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createCompany, type ActionState } from '../../../../actions/companies'
 
 export function CompanyForm() {
   const [state, action, pending] = useActionState<ActionState, FormData>(createCompany, null)
+  const [slug, setSlug] = useState('')
+  const [autoSlug, setAutoSlug] = useState(true)
+
+  function generateSlugInitials(name: string) {
+    if (!name) return ''
+    return name
+      .trim()
+      .split(/\s+/)
+      .map(word => word[0])
+      .join('')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+  }
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (autoSlug) {
+      setSlug(generateSlugInitials(e.target.value))
+    }
+  }
+
+  const toggleAutoSlug = () => {
+    const newAuto = !autoSlug
+    setAutoSlug(newAuto)
+    if (newAuto) {
+      const nameInput = document.getElementsByName('display_name')[0] as HTMLInputElement
+      if (nameInput) {
+        setSlug(generateSlugInitials(nameInput.value))
+      }
+    }
+  }
 
   return (
     <form action={action} className="space-y-6">
@@ -24,6 +54,7 @@ export function CompanyForm() {
             type="text"
             name="display_name"
             required
+            onChange={handleNameChange}
             placeholder="Ej. Grupo CT Nicaragua"
             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           />
@@ -42,23 +73,35 @@ export function CompanyForm() {
           />
         </div>
 
-        <div>
+        <div className="sm:col-span-2">
           <label className="mb-2 block text-sm font-semibold text-slate-900">
             Slug / Identificador Corto *
           </label>
-          <input
-            type="text"
-            name="slug"
-            required
-            placeholder="Ej. grupo-ct"
-            pattern="[A-Za-z0-9\-]+"
-            title="Solo letras, números y guiones"
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
-          />
-          <p className="mt-2 text-xs text-slate-500">Usado para URLs únicas.</p>
+          <div className="relative">
+            <input
+              type="text"
+              name="slug"
+              value={slug}
+              onChange={(e) => {
+                setSlug(e.target.value)
+                setAutoSlug(false)
+              }}
+              required
+              placeholder="Ej. GCT"
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            />
+            <button
+              type="button"
+              onClick={toggleAutoSlug}
+              className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition ${autoSlug ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'}`}
+            >
+              Auto {autoSlug ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">Usado para URLs únicas. Se genera automáticamente basado en las iniciales.</p>
         </div>
 
-        <div>
+        <div className="sm:col-span-2">
            <label className="mb-2 block text-sm font-semibold text-slate-900">
             RUC / NIT (Opcional)
           </label>

@@ -29,7 +29,7 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
       
       const nextNum = (count ?? 0) + 1
       const paddedNum = nextNum.toString().padStart(2, '0')
-      setCode(`${company.slug}-SUC-${paddedNum}`)
+      setCode(`${company.slug.toLowerCase()}-suc-${paddedNum}`)
     }
 
     generateCode()

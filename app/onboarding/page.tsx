@@ -42,8 +42,8 @@ export default function OnboardingPage() {
       .split(/\s+/)
       .map(word => word[0])
       .join('')
-      .toUpperCase()
-      .replace(/[^A-Z0-9]+/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
   }
 
   async function handleCreateCompany(e: React.FormEvent) {
@@ -64,7 +64,7 @@ export default function OnboardingPage() {
     setCompanyId(data as string)
     setStep('sucursal')
     // Auto-fill branch code for the first branch
-    setBranchCode(`${finalSlug}-SUC-01`)
+    setBranchCode(`${finalSlug}-suc-01`)
     setLoading(false)
   }
 
