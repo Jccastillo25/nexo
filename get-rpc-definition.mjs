@@ -5,7 +5,7 @@ const env = fs.readFileSync('.env.local', 'utf8')
 const envMap = Object.fromEntries(env.split('\n').filter(l => l.includes('=')).map(l => l.split('=')))
 
 const supabaseUrl = envMap.NEXT_PUBLIC_SUPABASE_URL?.trim()
-const supabaseKey = envMap.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY?.trim() || envMap.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+const supabaseKey = envMap.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() 
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
