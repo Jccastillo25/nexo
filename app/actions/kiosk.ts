@@ -20,8 +20,7 @@ export async function getKioskByDeviceCode(code: string): Promise<{ data: KioskD
       branches!inner (
         name,
         companies!inner (
-          display_name,
-          logo_url
+          display_name
         )
       )
     `)
@@ -45,7 +44,7 @@ export async function getKioskByDeviceCode(code: string): Promise<{ data: KioskD
       device_code: data.device_code,
       branch_name: branch.name,
       company_name: company.display_name,
-      logo_url: company.logo_url,
+      logo_url: null,
       name: data.name,
       location: data.location,
       notes: data.notes,
