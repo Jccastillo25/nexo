@@ -1,11 +1,37 @@
-'use client'
-
-import { useActionState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createBranch, type ActionState } from '../../../../actions/branches'
+import { createClient } from '@/lib/supabase/client'
 
-export function BranchForm({ companies }: { companies: { id: string; display_name: string }[] }) {
+export function BranchForm({ companies }: { companies: { id: string; display_name: string; slug: string }[] }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createBranch, null)
+  const [companyId, setCompanyId] = useState('')
+  const [name, setName] = useState('')
+  const [code, setCode] = useState('')
+
+  useEffect(() => {
+    if (!companyId) {
+      setCode('')
+      return
+    }
+
+    const company = companies.find(c => c.id === companyId)
+    if (!company) return
+
+    const generateCode = async () => {
+      const supabase = createClient()
+      const { count } = await supabase
+        .from('branches')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+      
+      const nextNum = (count ?? 0) + 1
+      const paddedNum = nextNum.toString().padStart(2, '0')
+      setCode(`${company.slug}-SUC-${paddedNum}`)
+    }
+
+    generateCode()
+  }, [companyId, companies])
 
   return (
     <form action={action} className="space-y-6">
@@ -23,6 +49,8 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
           <select
             name="company_id"
             required
+            value={companyId}
+            onChange={(e) => setCompanyId(e.target.value)}
             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           >
             <option value="">Selecciona una empresa...</option>
@@ -42,6 +70,8 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
             type="text"
             name="name"
             required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             placeholder="Ej. Oficina Central"
             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           />
@@ -54,11 +84,13 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
           <input
             type="text"
             name="code"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
             placeholder="Ej. SUC-01"
             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           />
           <p className="mt-2 text-xs text-slate-500">
-            Identificador corto para reportes.
+            Identificador corto para reportes. Se genera automáticamente según el slug de la empresa.
           </p>
         </div>
       </div>

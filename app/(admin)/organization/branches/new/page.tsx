@@ -7,7 +7,7 @@ export default async function NewBranchPage() {
 
   const { data: companies } = await supabase
     .from('companies')
-    .select('id, display_name')
+    .select('id, display_name, slug')
     .eq('is_active', true)
     .order('display_name')
 

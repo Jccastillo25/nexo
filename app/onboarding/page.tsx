@@ -36,11 +36,14 @@ export default function OnboardingPage() {
   const [toleranceOut, setToleranceOut]   = useState(5)
 
   function generateSlug(name: string) {
+    if (!name) return ''
     return name
-      .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
+      .trim()
+      .split(/\s+/)
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '')
   }
 
   async function handleCreateCompany(e: React.FormEvent) {
@@ -60,6 +63,8 @@ export default function OnboardingPage() {
 
     setCompanyId(data as string)
     setStep('sucursal')
+    // Auto-fill branch code for the first branch
+    setBranchCode(`${finalSlug}-SUC-01`)
     setLoading(false)
   }
 
