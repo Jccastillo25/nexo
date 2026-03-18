@@ -1,3 +1,5 @@
+'use client'
+
 import { useActionState, useState, useRef } from 'react'
 import { signIn, type AuthState } from '../../actions/auth'
 

@@ -1,4 +1,4 @@
-import { getKioskDevices, deleteKioskDevice } from '@/app/actions/kiosk'
+import { getKioskDevices, deleteKioskDevice } from '../../../actions/kiosk'
 import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
 

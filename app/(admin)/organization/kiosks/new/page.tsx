@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { registerKioskDevice } from '@/app/actions/kiosk'
+import { registerKioskDevice } from '../../../../actions/kiosk'
 import { redirect } from 'next/navigation'
 
 export default async function NewKioskPage() {
