@@ -2,21 +2,20 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
-const data = [
-  { name: 'Lun', total: 1000, value: 600 },
-  { name: 'Mar', total: 1000, value: 620 },
-  { name: 'Mie', total: 1000, value: 680 },
-  { name: 'Jue', total: 1000, value: 610 },
-  { name: 'Vie', total: 1000, value: 720 },
-  { name: 'Sab', total: 1000, value: 450 },
-  { name: 'Dom', total: 1000, value: 380 },
-]
-
-export function AttendanceChart() {
+export function AttendanceChart({ data }: { data: { name: string; total: number; value: number }[] }) {
+  const chartData = data.length > 0 ? data : [
+    { name: 'Lun', total: 100, value: 0 },
+    { name: 'Mar', total: 100, value: 0 },
+    { name: 'Mie', total: 100, value: 0 },
+    { name: 'Jue', total: 100, value: 0 },
+    { name: 'Vie', total: 100, value: 0 },
+    { name: 'Sab', total: 100, value: 0 },
+    { name: 'Dom', total: 100, value: 0 },
+  ]
   return (
     <div className="h-[350px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+        <BarChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-soft)" />
           <XAxis 
             dataKey="name" 

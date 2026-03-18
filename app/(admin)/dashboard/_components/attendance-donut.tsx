@@ -2,12 +2,12 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
-const data = [
-  { name: 'Presentes', value: 1092, color: 'var(--primary)' },
-  { name: 'Ausentes', value: 192, color: 'var(--bg-app)' },
-]
-
-export function AttendanceDonut() {
+export function AttendanceDonut({ present, total }: { present: number; total: number }) {
+  const percent = total > 0 ? Math.round((present / total) * 100) : 0
+  const data = [
+    { name: 'Presentes', value: present, color: 'var(--primary)' },
+    { name: 'Ausentes', value: Math.max(0, total - present), color: 'var(--bg-app)' },
+  ]
   return (
     <div className="h-[200px] w-full flex items-center justify-center relative">
       <ResponsiveContainer width="100%" height="100%">
@@ -36,7 +36,7 @@ export function AttendanceDonut() {
         </PieChart>
       </ResponsiveContainer>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <span className="text-2xl font-black text-white">85%</span>
+        <span className="text-2xl font-black text-white">{percent}%</span>
         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center leading-tight">Asistencia<br/>Actual</span>
       </div>
     </div>

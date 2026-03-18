@@ -1,12 +1,10 @@
 'use client'
 
-const delays = [
-  { name: 'Juan Perez (Bodega)', minutes: 120, color: '#ef4444' },
-  { name: 'Maria Garcia (Ventas)', minutes: 85, color: '#f59e0b' },
-  { name: 'Luis Castro (IT)', minutes: 42, color: '#fcd34d' },
-]
-
-export function TopDelaysChart() {
+export function TopDelaysChart({ delays }: { delays: { name: string; minutes: number; color: string }[] }) {
+  if (!delays || delays.length === 0) {
+    return <div className="text-center py-10 text-xs text-slate-500">Sin datos de atrasos este mes.</div>
+  }
+  const maxMins = Math.max(...delays.map(d => d.minutes), 60)
   return (
     <div className="space-y-6">
       {delays.map((item, i) => (
@@ -19,7 +17,7 @@ export function TopDelaysChart() {
             <div 
               className="h-full rounded-full transition-all duration-1000"
               style={{ 
-                width: `${(item.minutes / 130) * 100}%`,
+                width: `${(item.minutes / maxMins) * 100}%`,
                 backgroundColor: item.color,
                 boxShadow: `0 0 10px ${item.color}44`
               }}

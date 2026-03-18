@@ -30,60 +30,140 @@ export default async function DashboardPage() {
   todayStart.setHours(0, 0, 0, 0)
   const todayISO = todayStart.toISOString()
 
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+  const sevenDaysAgoISO = sevenDaysAgo.toISOString()
+
+  const startOfMonth = new Date()
+  startOfMonth.setDate(1)
+  startOfMonth.setHours(0, 0, 0, 0)
+  const startOfMonthISO = startOfMonth.toISOString()
+
   const [
     { count: activeEmployees },
     { count: todayCheckins },
     { count: pendingCorrections },
     { count: pendingLeave },
     { data: recentRecords },
+    { data: weeklyRecords },
+    { data: monthlyDelaysData },
+    { data: branches },
+    { data: employeesWithBranch },
+    { data: realPendingRequests },
+    { data: authUser },
   ] = await Promise.all([
     supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true),
     supabase.from('time_records').select('*', { count: 'exact', head: true }).eq('event_type', 'clock_in').gte('recorded_at', todayISO),
     supabase.from('time_corrections').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('leave_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('time_records').select('id, event_type, recorded_at, tardiness_minutes, employees(first_name, last_name, photo_url)').order('recorded_at', { ascending: false }).limit(4),
+    supabase.from('time_records').select('recorded_at').eq('event_type', 'clock_in').gte('recorded_at', sevenDaysAgoISO),
+    supabase.from('time_records').select('employee_id, tardiness_minutes, employees(first_name, last_name)').gte('recorded_at', startOfMonthISO).gt('tardiness_minutes', 0),
+    supabase.from('branches').select('id, name'),
+    supabase.from('employees').select('branch_id').eq('is_active', true),
+    supabase.from('leave_requests').select('id, type, status, employees(first_name, last_name)').eq('status', 'pending').limit(3),
+    supabase.auth.getUser(),
   ])
+
+  const user = authUser?.user
+  const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario'
+  const role = (user?.user_metadata?.role || 'Administrador').toUpperCase()
+
+  // --- TRANSFORMATION: Weekly Attendance ---
+  const dayLabels = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
+  const weeklyChartData = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date()
+    date.setDate(date.getDate() - (6 - i))
+    const label = dayLabels[date.getDay()]
+    const iso = date.toISOString().split('T')[0]
+    const count = weeklyRecords?.filter(r => r.recorded_at.startsWith(iso)).length || 0
+    return { name: label, total: activeEmployees || 0, value: count }
+  })
+
+  // --- TRANSFORMATION: Top Delays ---
+  const delayMap: Record<string, { name: string; minutes: number }> = {}
+  monthlyDelaysData?.forEach((r: any) => {
+    const emp = r.employees
+    const name = emp ? `${emp.first_name} ${emp.last_name}` : 'Empleado'
+    if (!delayMap[r.employee_id]) {
+        delayMap[r.employee_id] = { name, minutes: 0 }
+    }
+    delayMap[r.employee_id].minutes += (r.tardiness_minutes || 0)
+  })
+  const topDelays = Object.values(delayMap)
+    .sort((a, b) => b.minutes - a.minutes)
+    .slice(0, 3)
+    .map((d, i) => ({ ...d, color: i === 0 ? '#ef4444' : i === 1 ? '#f59e0b' : '#fcd34d' }))
+
+  // --- TRANSFORMATION: Branch Distribution ---
+  const branchMap: Record<string, number> = {}
+  employeesWithBranch?.forEach(e => {
+    if (e.branch_id) {
+       branchMap[e.branch_id] = (branchMap[e.branch_id] || 0) + 1
+    }
+  })
+  const distribution = branches?.map((b, i) => {
+    const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-purple-500']
+    return {
+      name: b.name,
+      count: branchMap[b.id] || 0,
+      total: activeEmployees || 0,
+      color: colors[i % colors.length]
+    }
+  }).slice(0, 4) || []
+
+  // --- TRANSFORMATION: Pending Requests ---
+  const pendingRequests = realPendingRequests?.map((req: any) => {
+    const emp = req.employees
+    const name = emp ? `${emp.first_name} ${emp.last_name}` : 'Empleado'
+    const initials = emp ? `${emp.first_name[0]}${emp.last_name[0]}` : '??'
+    const colors: Record<string, string> = {
+        'VACACIONES': 'bg-blue-500/10 text-blue-400',
+        'PERMISO MEDICO': 'bg-orange-500/10 text-orange-400',
+        'DIA ADMINISTRATIVO': 'bg-purple-500/10 text-purple-400'
+    }
+    return {
+      name,
+      type: (req.type || 'PERMISO').toUpperCase(),
+      initials,
+      color: colors[req.type] || 'bg-slate-500/10 text-slate-400'
+    }
+  }) || []
 
   const stats = [
     {
       label: 'Total Colaboradores',
-      value: fmt(activeEmployees || 1284),
-      trend: '+4%',
+      value: fmt(activeEmployees),
+      trend: 'Activos',
       trendUp: true,
       icon: <Users className="w-5 h-5" />,
       color: 'primary'
     },
     {
       label: 'Asistencia Actual',
-      value: fmt(todayCheckins || 1092),
-      trend: '85% Hoy',
+      value: fmt(todayCheckins),
+      trend: `${activeEmployees ? Math.round((todayCheckins! / activeEmployees) * 100) : 0}% Hoy`,
       trendUp: true,
       icon: <Clock className="w-5 h-5 text-blue-400" />,
       color: 'blue'
     },
     {
-      label: 'Tasa de Atrasos',
-      value: '12.4%',
-      trend: '-2.5%',
+      label: 'Correcciones',
+      value: fmt(pendingCorrections),
+      trend: 'Pendientes',
       trendUp: false,
-      icon: <Clock className="w-5 h-5 text-orange-400" />,
+      icon: <AlertTriangle className="w-5 h-5 text-orange-400" />,
       color: 'orange'
     },
     {
       label: 'Permisos Pendientes',
-      value: fmt(pendingLeave || 48),
-      trend: '12',
+      value: fmt(pendingLeave),
+      trend: (pendingLeave || 0).toString(),
       trendUp: false,
       isBadge: true,
       icon: <Calendar className="w-5 h-5 text-purple-400" />,
       color: 'purple'
     },
-  ]
-
-  const pendingRequests = [
-    { name: 'Ana Valenzuela', type: 'VACACIONES', initials: 'AV', color: 'bg-blue-500/10 text-blue-400' },
-    { name: 'Roberto Diaz', type: 'PERMISO MEDICO', initials: 'RD', color: 'bg-orange-500/10 text-orange-400' },
-    { name: 'Laura Meza', type: 'DIA ADMINISTRATIVO', initials: 'LM', color: 'bg-purple-500/10 text-purple-400' },
   ]
 
   return (
@@ -119,8 +199,8 @@ export default async function DashboardPage() {
           </button>
           <div className="flex items-center gap-3 pl-2 border-l border-slate-700">
             <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold text-white">Carlos Méndez</p>
-              <p className="text-[10px] text-slate-500 font-medium">Administrador Global</p>
+              <p className="text-xs font-bold text-white">{fullName}</p>
+              <p className="text-[10px] text-slate-500 font-medium">{role}</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center overflow-hidden">
                <div className="w-full h-full bg-slate-400/20" />
@@ -172,7 +252,7 @@ export default async function DashboardPage() {
                 </button>
               </div>
             </div>
-            <AttendanceChart />
+            <AttendanceChart data={weeklyChartData} />
           </div>
 
           {/* Bottom Row inside main column */}
@@ -217,15 +297,10 @@ export default async function DashboardPage() {
                 <div className="app-surface p-6">
                    <div className="flex items-center justify-between mb-4">
                       <h2 className="text-base font-black text-white tracking-tight uppercase">Distribución de Personal</h2>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">POR DEPARTAMENTO</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">POR SUCURSAL</span>
                    </div>
                    <div className="space-y-4">
-                      {[
-                        { name: 'Ventas', count: 342, total: 1284, color: 'bg-blue-500' },
-                        { name: 'IT & Desarrollo', count: 186, total: 1284, color: 'bg-emerald-500' },
-                        { name: 'Logística', count: 421, total: 1284, color: 'bg-orange-500' },
-                        { name: 'Administración', count: 335, total: 1284, color: 'bg-purple-500' },
-                      ].map((dept, i) => (
+                      {distribution.map((dept, i) => (
                         <div key={i} className="space-y-2">
                            <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-slate-300">
                               <span>{dept.name}</span>
@@ -236,6 +311,9 @@ export default async function DashboardPage() {
                            </div>
                         </div>
                       ))}
+                      {distribution.length === 0 && (
+                        <div className="text-center py-10 text-xs text-slate-500 uppercase tracking-widest">Sin sucursales</div>
+                      )}
                    </div>
                 </div>
 
@@ -246,7 +324,7 @@ export default async function DashboardPage() {
                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> EN VIVO
                       </span>
                    </div>
-                   <AttendanceDonut />
+                   <AttendanceDonut present={todayCheckins || 0} total={activeEmployees || 0} />
                 </div>
              </div>
           </div>
@@ -261,7 +339,7 @@ export default async function DashboardPage() {
                 <h2 className="text-base font-black text-white tracking-tight uppercase">Top Atrasos (Mensual)</h2>
                 <AlertTriangle className="w-4 h-4 text-orange-400" />
              </div>
-             <TopDelaysChart />
+             <TopDelaysChart delays={topDelays} />
              <button className="w-full mt-8 py-3 bg-slate-800 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white transition-all border border-slate-700/50 hover:border-slate-500">
                 Ver reporte completo
              </button>

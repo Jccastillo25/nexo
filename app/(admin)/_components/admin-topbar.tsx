@@ -1,4 +1,4 @@
-'use client'
+import { usePathname } from 'next/navigation'
 
 interface AdminTopbarProps {
   sidebarOpen: boolean
@@ -13,6 +13,8 @@ export function AdminTopbar({
   onMobileMenuOpen,
   userName = 'Admin',
 }: AdminTopbarProps) {
+  const pathname = usePathname()
+  const isDashboard = pathname === '/dashboard'
   const initials = userName
     .split(' ')
     .slice(0, 2)
@@ -64,59 +66,63 @@ export function AdminTopbar({
           </button>
 
           {/* Search bar */}
-          <div className="relative hidden md:block">
-            <svg
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              style={{ color: 'var(--text-light)' }}
-            >
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Buscar empleados..."
-              className="h-9 w-56 rounded-xl border pl-10 pr-4 text-sm outline-none transition lg:w-72 focus:border-[#0d7ff2] focus:ring-1 focus:ring-[#0d7ff2]"
-              style={{
-                borderColor: 'var(--border-medium)',
-                background: 'var(--bg-app)',
-                color: 'var(--text-strong)',
-              }}
-            />
-          </div>
+          {!isDashboard && (
+            <div className="relative hidden md:block">
+              <svg
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+                width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ color: 'var(--text-light)' }}
+              >
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Buscar empleados..."
+                className="h-9 w-56 rounded-xl border pl-10 pr-4 text-sm outline-none transition lg:w-72 focus:border-[#0d7ff2] focus:ring-1 focus:ring-[#0d7ff2]"
+                style={{
+                  borderColor: 'var(--border-medium)',
+                  background: 'var(--bg-app)',
+                  color: 'var(--text-strong)',
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {/* ── Spacer ── */}
         <div className="flex-1" />
 
         {/* ── Right: Notifications + Avatar ── */}
-        <div className="flex items-center gap-2">
-          {/* Notification bell */}
-          <button
-            className="flex h-9 w-9 items-center justify-center rounded-xl border transition-colors"
-            style={{
-              borderColor: 'var(--border-medium)',
-              color: 'var(--text-muted)',
-              background: 'var(--sidebar-bg)',
-            }}
-            title="Notificaciones"
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-item-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--sidebar-bg)')}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-          </button>
+        {!isDashboard && (
+          <div className="flex items-center gap-2">
+            {/* Notification bell */}
+            <button
+              className="flex h-9 w-9 items-center justify-center rounded-xl border transition-colors"
+              style={{
+                borderColor: 'var(--border-medium)',
+                color: 'var(--text-muted)',
+                background: 'var(--sidebar-bg)',
+              }}
+              title="Notificaciones"
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-item-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--sidebar-bg)')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+            </button>
 
-          {/* User avatar */}
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white cursor-default"
-            style={{ background: 'var(--primary)' }}
-            title={userName}
-          >
-            {initials}
+            {/* User avatar */}
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white cursor-default"
+              style={{ background: 'var(--primary)' }}
+              title={userName}
+            >
+              {initials}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </header>
   )
