@@ -16,144 +16,148 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#4f46e5] flex items-center justify-center px-4 py-10 relative overflow-hidden">
-      {/* Fondo Decorativo Estilo Premium */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#6366f1] via-[#4f46e5] to-[#3b82f6]" />
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/20 rounded-full blur-3xl" />
-
-      <div className="relative mx-auto w-full max-w-[480px]">
+    <main className="bg-mesh relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
+      <div className="relative mx-auto w-full max-w-[440px]">
         {/* Logo / Header Superior */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-xl">
-             <span className="text-3xl font-black italic text-[#4f46e5]">M</span>
+        <div className="mb-8 flex items-center justify-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0d7ff2]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">
-            Iniciar Sesión
-          </h1>
-          <p className="mt-2 text-white/70">
-            Acceda a su cuenta de Marcación Grupo CT
-          </p>
+          <span className="text-lg font-bold tracking-wide text-white">Grupo CT</span>
         </div>
 
         {/* Tarjeta de Formulario */}
-        <div className="rounded-[32px] bg-white p-8 shadow-2xl ring-1 ring-white/20">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900">Bienvenido</h2>
-            <p className="mt-1 text-sm text-slate-500">Ingrese sus credenciales para continuar</p>
+        <div className="rounded-[24px] bg-white px-8 py-10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10">
+          <div className="mb-8 text-center">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">Bienvenido a Grupo CT</h2>
+            <p className="mt-1.5 text-xs text-slate-500">Inicie sesión para acceder a su panel de control</p>
           </div>
 
           <form 
             ref={formRef}
             action={action} 
             onSubmit={handleFormSubmit}
-            className="space-y-6"
+            className="space-y-5"
           >
             {state?.error && (
-              <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-200">
+              <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-200">
                 {state.error}
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 ml-1">
-                Correo Electrónico
+            <div className="space-y-1.5">
+              <label className="ml-1 text-[13px] font-bold text-slate-700">
+                Correo electrónico
               </label>
               <input
                 type="email"
                 name="email"
-                placeholder="ejemplo@correo.com"
+                placeholder="ejemplo@grupo-ct.com"
                 required
-                className="h-14 w-full rounded-2xl border border-slate-100 bg-slate-50 px-5 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
+                className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-[13px] font-medium outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 ml-1">
-                Contraseña
-              </label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-[13px] font-bold text-slate-700">
+                  Contraseña
+                </label>
+                <a href="#" className="text-[11px] font-bold text-[#0d7ff2] hover:underline">
+                  ¿Olvidó su contraseña?
+                </a>
+              </div>
               <input
                 type="password"
                 name="password"
                 placeholder="••••••••"
                 required
-                className="h-14 w-full rounded-2xl border border-slate-100 bg-slate-50 px-5 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
+                className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-[13px] font-medium outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
               />
+            </div>
+
+            <div className="flex items-center gap-2 px-1 pt-1 pb-2">
+              <input type="checkbox" id="remember" className="rounded text-[#0d7ff2] focus:ring-[#0d7ff2]" />
+              <label htmlFor="remember" className="text-xs font-semibold text-slate-500 cursor-pointer">Mantener sesión iniciada</label>
             </div>
 
             <button
               type="submit"
               disabled={pending}
-              className="group relative flex h-14 w-full items-center justify-center overflow-hidden rounded-2xl bg-[#4f46e5] text-base font-bold text-white shadow-lg transition hover:bg-[#4338ca] active:scale-[0.98] disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-center rounded-xl bg-[#0d7ff2] text-sm font-bold text-white shadow-lg shadow-blue-500/30 transition hover:bg-[#0b6ed6] active:scale-[0.98] disabled:opacity-60"
             >
-              <span className="relative z-10 flex items-center gap-2">
-                {pending ? 'Verificando...' : (
-                  <>
-                    Ingresar
-                    <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </>
-                )}
-              </span>
+              {pending ? 'Verificando...' : 'Iniciar Sesión'}
             </button>
-
-            <div className="text-center">
-              <p className="text-xs text-slate-400 font-medium tracking-wide">
-                ¿Olvidó su contraseña? Contacte al administrador del sistema
+            
+            <div className="mt-6 text-center">
+              <p className="text-xs font-medium text-slate-500">
+                ¿No tiene una cuenta? <a href="#" className="text-[#0d7ff2] hover:underline">Contacte con soporte</a>
               </p>
             </div>
           </form>
         </div>
 
         {/* Footer */}
-        <p className="mt-8 text-center text-xs text-white/50 font-medium">
-          © {new Date().getFullYear()} Grupo CT. Todos los derechos reservados.
-        </p>
+        <div className="mt-8 flex flex-col items-center gap-2 text-[11px] font-medium text-slate-400/60">
+          <div className="flex gap-4">
+             <a href="#" className="hover:text-slate-300 transition">Términos de servicio</a>
+             <a href="#" className="hover:text-slate-300 transition">Política de privacidad</a>
+             <a href="#" className="hover:text-slate-300 transition">Ayuda</a>
+          </div>
+          <p>© {new Date().getFullYear()} Grupo CT por Grupo Castillo Torrez. Todos los derechos reservados.</p>
+        </div>
       </div>
 
-      {/* MODAL DE CONFIRMACIÓN (ESTILO PREMIUM) */}
+      {/* MODAL DE CONFIRMACIÓN (ESTILO PREMIUM GESTOR360) */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md">
-          <div className="absolute inset-0 bg-slate-900/60" onClick={() => setShowConfirm(false)} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-[#0f172a]/80 transition-opacity" onClick={() => setShowConfirm(false)} />
           
-          <div className="relative w-full max-w-sm rounded-[32px] bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-[400px] rounded-[24px] bg-white p-10 shadow-[0_20px_60px_rgba(0,0,0,0.4)] animate-in zoom-in-95 duration-200">
             <div className="mb-6 flex justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600 ring-8 ring-blue-50/50">
-                <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0d7ff2] text-white shadow-lg shadow-blue-500/30">
+                <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
             </div>
 
-            <h3 className="text-center text-2xl font-bold text-slate-900">
+            <h3 className="text-center text-[19px] font-bold tracking-tight text-slate-900">
               Confirmar inicio de sesión
             </h3>
             
-            <p className="mt-4 text-center text-sm leading-relaxed text-slate-600">
-              ¿Está seguro de que desea iniciar sesión en el área administrativa?
-            </p>
-            
-            <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-center text-xs leading-relaxed text-slate-500 italic border border-slate-100">
-              "Esta acción iniciará una sesión administrativa en este dispositivo y reemplazará cualquier sesión previa existente."
+            <p className="mt-3 text-center text-[13px] leading-relaxed text-slate-600">
+              Usted está a punto de iniciar una sesión administrativa en el sistema <strong>Grupo CT</strong>. Por favor, confirme para continuar.
             </p>
 
-            <div className="mt-8 grid gap-3">
+            <div className="mt-8 grid gap-2.5">
               <button
                 onClick={() => {
                   formRef.current?.requestSubmit()
                   setShowConfirm(false)
                 }}
-                className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#4f46e5] text-sm font-bold text-white shadow-md transition hover:bg-[#4338ca] active:scale-[0.98]"
+                className="flex h-11 w-full items-center justify-center rounded-xl bg-[#0d7ff2] text-[13px] font-bold text-white shadow-lg shadow-blue-500/30 transition hover:bg-[#0b6ed6] active:scale-[0.98]"
               >
                 Sí, iniciar sesión
               </button>
               <button
                 onClick={() => setShowConfirm(false)}
-                className="flex h-12 w-full items-center justify-center rounded-2xl bg-slate-50 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
+                className="flex h-11 w-full items-center justify-center rounded-xl bg-transparent text-[13px] font-bold text-slate-500 hover:text-slate-800 transition"
               >
                 Cancelar
               </button>
+            </div>
+            
+            <div className="mt-8 flex flex-col items-center justify-center border-t border-slate-100 pt-6">
+                <p className="mb-2 text-[9px] font-bold uppercase tracking-widest text-slate-400">Desarrollado por</p>
+                <div className="flex items-center gap-2 opacity-50 saturate-0">
+                    <div className="flex h-4 w-4 items-center justify-center rounded bg-slate-800">
+                        <span className="text-[8px] font-bold text-white">CT</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-800">Grupo Castillo Torrez</span>
+                </div>
             </div>
           </div>
         </div>

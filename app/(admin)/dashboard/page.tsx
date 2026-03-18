@@ -146,8 +146,7 @@ export default async function DashboardPage() {
           <Link
             key={stat.label}
             href={stat.href}
-            className="group relative overflow-hidden rounded-2xl bg-white p-5 transition-all hover:shadow-md"
-            style={{ border: '1px solid var(--border-soft)' }}
+            className="app-surface group relative overflow-hidden p-5 transition-all hover:border-[color:var(--border-medium)]"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -166,14 +165,13 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* ── Recent activity ── */}
-      <div className="overflow-hidden rounded-2xl bg-white" style={{ border: '1px solid var(--border-soft)' }}>
+      <div className="app-surface overflow-hidden">
         <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: 'var(--border-soft)' }}>
           <h2 className="text-base font-semibold" style={{ color: 'var(--text-strong)' }}>Actividad reciente</h2>
           <Link
             href="/attendance/records"
-            className="rounded-full px-3 py-1 text-xs font-semibold transition"
-            style={{ background: 'var(--bg-app)', color: 'var(--text-muted)' }}
+            className="rounded-full border border-[color:var(--border-medium)] px-3 py-1 text-xs font-semibold transition hover:bg-[color:var(--sidebar-item-hover)]"
+            style={{ background: 'var(--sidebar-bg)', color: 'var(--text-body)' }}
           >
             Ver todos
           </Link>
@@ -192,8 +190,8 @@ export default async function DashboardPage() {
                   {emp?.photo_url ? (
                     <img src={emp.photo_url} alt={name} className="h-9 w-9 shrink-0 rounded-full object-cover" />
                   ) : (
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: 'var(--bg-app)' }}>
-                      <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{initials}</span>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-medium)' }}>
+                      <span className="text-xs font-bold" style={{ color: 'var(--text-body)' }}>{initials}</span>
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -227,8 +225,12 @@ export default async function DashboardPage() {
             <Link
               key={action.label}
               href={action.href}
-              className="rounded-xl px-5 py-4 text-sm font-semibold text-white transition-all hover:opacity-90"
-              style={{ background: action.color }}
+              className="rounded-xl px-5 py-4 text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
+              style={{
+                background: action.label === 'Nuevo empleado' ? 'var(--primary)' : 'var(--sidebar-bg)',
+                color: action.label === 'Nuevo empleado' ? 'white' : 'var(--text-strong)',
+                border: action.label === 'Nuevo empleado' ? 'none' : '1px solid var(--border-medium)',
+              }}
             >
               {action.label}
             </Link>

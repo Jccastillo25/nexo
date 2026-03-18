@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 .bg-mesh {
   background-color: #0f172a;
@@ -11,46 +9,46 @@
 
 :root {
   /* ── App backgrounds ── */
-  --bg-app: #F8F9FA;
-  --bg-surface: #ffffff;
+  --bg-app: #0f172a;
+  --bg-surface: #1e293b;
 
   /* ── Borders ── */
-  --border-soft: #E8EAED;
-  --border-medium: #DADCE0;
+  --border-soft: #334155;
+  --border-medium: #475569;
 
   /* ── Typography ── */
-  --text-strong: #202124;
-  --text-body: #3C4043;
-  --text-muted: #5F6368;
-  --text-light: #9AA0A6;
+  --text-strong: #ffffff;
+  --text-body: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-light: #64748b;
 
-  /* ── Primary (Figma blue) ── */
-  --primary: #0066FF;
-  --primary-hover: #0052CC;
-  --primary-soft: #EBF2FF;
-  --primary-softer: #F5F8FF;
+  /* ── Primary ── */
+  --primary: #0d7ff2;
+  --primary-hover: #0b6ed6;
+  --primary-soft: rgba(13, 127, 242, 0.15);
+  --primary-softer: rgba(13, 127, 242, 0.05);
 
   /* ── Status colors ── */
-  --success: #1E8E3E;
-  --success-soft: #E6F4EA;
-  --warning: #B45309;
-  --warning-soft: #FFF4E5;
-  --danger: #D93025;
-  --danger-soft: #FCE8E6;
-  --info: #1A73E8;
-  --info-soft: #E8F0FE;
+  --success: #10b981;
+  --success-soft: rgba(16, 185, 129, 0.15);
+  --warning: #f59e0b;
+  --warning-soft: rgba(245, 158, 11, 0.15);
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.15);
+  --info: #0ea5e9;
+  --info-soft: rgba(14, 165, 233, 0.15);
 
   /* ── Sidebar ── */
   --sidebar-width: 280px;
   --sidebar-collapsed-width: 0px;
-  --sidebar-bg: #FFFFFF;
-  --sidebar-border: #E8EAED;
-  --sidebar-item-hover: #F1F3F4;
-  --sidebar-active-bg: #EBF2FF;
-  --sidebar-active-text: #0066FF;
-  --sidebar-icon: #5F6368;
-  --sidebar-text: #3C4043;
-  --sidebar-section-text: #9AA0A6;
+  --sidebar-bg: #1e293b;
+  --sidebar-border: #334155;
+  --sidebar-item-hover: #334155;
+  --sidebar-active-bg: rgba(13, 127, 242, 0.15);
+  --sidebar-active-text: #38bdf8;
+  --sidebar-icon: #64748b;
+  --sidebar-text: #cbd5e1;
+  --sidebar-section-text: #475569;
 
   /* ── Radii ── */
   --radius-sm: 8px;

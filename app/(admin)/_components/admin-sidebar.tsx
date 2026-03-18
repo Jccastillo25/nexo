@@ -123,7 +123,7 @@ export function AdminSidebar({
     .toUpperCase()
 
   return (
-    <aside className="flex h-full flex-col bg-white">
+    <aside className="flex h-full flex-col transition-colors border-r" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-soft)' }}>
 
       {/* ── Logo area ── */}
       <div className="flex items-center gap-3 px-5 py-5">
@@ -213,7 +213,7 @@ export function AdminSidebar({
                 {/* Collapsible children */}
                 <div className="collapse-content" data-open={isOpen}>
                   <div>
-                    <div className="ml-8 space-y-0.5 border-l-2 py-1 pl-3" style={{ borderColor: 'var(--border-soft)' }}>
+                    <div className="ml-8 space-y-0.5 border-l-2 py-1 pl-3" style={{ borderColor: 'var(--border-medium)' }}>
                       {section.items.map((item) => {
                         const active = isActive(pathname, item.href)
                         return (
@@ -241,7 +241,7 @@ export function AdminSidebar({
       </nav>
 
       {/* ── Footer ── */}
-      <div className="border-t px-3 py-3 space-y-2" style={{ borderColor: 'var(--border-soft)' }}>
+      <div className="border-t px-3 py-3 space-y-2" style={{ borderColor: 'var(--border-medium)' }}>
         {/* Kiosk link */}
         <Link
           href="/"
@@ -257,7 +257,7 @@ export function AdminSidebar({
         </Link>
 
         {/* User info */}
-        <div className="flex items-center gap-3 rounded-xl px-3 py-3" style={{ background: 'var(--bg-app)' }}>
+        <div className="flex items-center gap-3 rounded-xl px-3 py-3 border transition-colors" style={{ background: 'transparent', borderColor: 'var(--border-medium)' }}>
           <div
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
             style={{ background: 'var(--primary)' }}

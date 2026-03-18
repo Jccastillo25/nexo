@@ -22,9 +22,9 @@ export function AdminTopbar({
 
   return (
     <header
-      className="sticky top-0 z-20 border-b"
+      className="sticky top-0 z-20 border-b transition-colors"
       style={{
-        background: 'rgba(255,255,255,0.92)',
+        background: 'rgba(30, 41, 59, 0.85)',
         backdropFilter: 'blur(12px)',
         borderColor: 'var(--border-soft)',
       }}
@@ -75,11 +75,11 @@ export function AdminTopbar({
             <input
               type="text"
               placeholder="Buscar empleados..."
-              className="h-9 w-56 rounded-xl border pl-10 pr-4 text-sm outline-none transition lg:w-72"
+              className="h-9 w-56 rounded-xl border pl-10 pr-4 text-sm outline-none transition lg:w-72 focus:border-[#0d7ff2] focus:ring-1 focus:ring-[#0d7ff2]"
               style={{
-                borderColor: 'var(--border-soft)',
+                borderColor: 'var(--border-medium)',
                 background: 'var(--bg-app)',
-                color: 'var(--text-body)',
+                color: 'var(--text-strong)',
               }}
             />
           </div>
@@ -94,13 +94,13 @@ export function AdminTopbar({
           <button
             className="flex h-9 w-9 items-center justify-center rounded-xl border transition-colors"
             style={{
-              borderColor: 'var(--border-soft)',
+              borderColor: 'var(--border-medium)',
               color: 'var(--text-muted)',
-              background: 'white',
+              background: 'var(--sidebar-bg)',
             }}
             title="Notificaciones"
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-app)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-item-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--sidebar-bg)')}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
