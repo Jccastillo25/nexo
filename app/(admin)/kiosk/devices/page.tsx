@@ -20,6 +20,10 @@ export default function KioskDevicesPage() {
   const [devices, setDevices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [copySuccess, setCopySuccess] = useState<string | null>(null)
+  
+  // Edit State
+  const [editingDevice, setEditingDevice] = useState<any | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
     fetchDevices()
@@ -42,6 +46,27 @@ export default function KioskDevicesPage() {
     if (confirm('¿Estás seguro de que deseas eliminar este dispositivo?')) {
       await deleteKioskDevice(id)
       fetchDevices()
+    }
+  }
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingDevice) return
+    
+    setIsUpdating(true)
+    const res = await updateKioskDevice(editingDevice.id, {
+      name: editingDevice.name,
+      location: editingDevice.location,
+      notes: editingDevice.notes,
+      is_active: editingDevice.is_active
+    })
+    
+    setIsUpdating(false)
+    if (res.success) {
+      setEditingDevice(null)
+      fetchDevices()
+    } else {
+      alert('Error updating device: ' + res.error)
     }
   }
 
@@ -130,6 +155,7 @@ export default function KioskDevicesPage() {
                 )}
               </button>
               <button
+                onClick={() => setEditingDevice(device)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 dark:hover:border-indigo-900 transition-all"
                 title="Editar"
               >
@@ -164,6 +190,76 @@ export default function KioskDevicesPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {editingDevice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-slate-950/40" onClick={() => setEditingDevice(null)} />
+          <div className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl animate-in zoom-in-95">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Editar Dispositivo</h2>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Nombre del Dispositivo</label>
+                <input
+                  type="text"
+                  value={editingDevice.name || ''}
+                  onChange={(e) => setEditingDevice({ ...editingDevice, name: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-3 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
+                  placeholder="Ej: Tablet Recepción"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ubicación física</label>
+                <input
+                  type="text"
+                  value={editingDevice.location || ''}
+                  onChange={(e) => setEditingDevice({ ...editingDevice, location: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-3 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
+                  placeholder="Ej: Lobby entrada principal"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Notas</label>
+                <textarea
+                  value={editingDevice.notes || ''}
+                  onChange={(e) => setEditingDevice({ ...editingDevice, notes: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-3 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
+                  rows={3}
+                  placeholder="Información adicional..."
+                />
+              </div>
+              <div className="flex items-center gap-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingDevice({ ...editingDevice, is_active: !editingDevice.is_active })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${editingDevice.is_active ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${editingDevice.is_active ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Dispositivo Activo</span>
+              </div>
+              
+              <div className="flex gap-3 mt-8">
+                <button
+                  type="button"
+                  onClick={() => setEditingDevice(null)}
+                  className="flex-1 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-sm font-bold text-slate-600 dark:text-slate-300 transition hover:bg-slate-200 dark:hover:bg-slate-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="flex-1 h-12 rounded-2xl bg-indigo-600 text-sm font-bold text-white shadow-lg transition hover:bg-indigo-500 disabled:opacity-50"
+                >
+                  {isUpdating ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
