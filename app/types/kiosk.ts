@@ -24,5 +24,5 @@ export interface KioskClientProps {
 }
 
 export type KioskResult =
-  | { success: true; employee_name: string; employee_code: string; event_type: EventType; tardiness_minutes: number; overtime_minutes: number }
-  | { success: false; error: string }
+  | { success: true; employee_name: string; employee_code: string; event_type: EventType; tardiness_minutes: number; overtime_minutes: number; error?: string }
+  | { success: false; error: string; event_type?: EventType }
