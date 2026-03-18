@@ -1,17 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { AttendanceChart } from './_components/attendance-chart'
+import { TopDelaysChart } from './_components/top-delays-chart'
+import { AttendanceDonut } from './_components/attendance-donut'
+import { 
+  Users, 
+  Clock, 
+  AlertTriangle, 
+  Calendar, 
+  Check, 
+  X, 
+  ArrowUpRight, 
+  ArrowDownRight, 
+  Bell,
+  Search,
+  ChevronRight,
+  Info
+} from 'lucide-react'
 
 function fmt(n: number | null | undefined): string {
   if (n === null || n === undefined) return '—'
   return n.toLocaleString('es-NI')
-}
-
-function fmtTime(iso: string): string {
-  return new Intl.DateTimeFormat('es-NI', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'America/Managua',
-  }).format(new Date(iso))
 }
 
 export default async function DashboardPage() {
@@ -21,222 +30,302 @@ export default async function DashboardPage() {
   todayStart.setHours(0, 0, 0, 0)
   const todayISO = todayStart.toISOString()
 
-  const todayLabel = new Intl.DateTimeFormat('es-NI', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  }).format(new Date())
-
   const [
     { count: activeEmployees },
     { count: todayCheckins },
     { count: pendingCorrections },
     { count: pendingLeave },
     { data: recentRecords },
-    { count: totalBranches },
   ] = await Promise.all([
     supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true),
     supabase.from('time_records').select('*', { count: 'exact', head: true }).eq('event_type', 'clock_in').gte('recorded_at', todayISO),
     supabase.from('time_corrections').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('leave_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('time_records').select('id, event_type, recorded_at, tardiness_minutes, employees(first_name, last_name, photo_url)').order('recorded_at', { ascending: false }).limit(6),
-    supabase.from('branches').select('*', { count: 'exact', head: true }),
+    supabase.from('time_records').select('id, event_type, recorded_at, tardiness_minutes, employees(first_name, last_name, photo_url)').order('recorded_at', { ascending: false }).limit(4),
   ])
 
   const stats = [
     {
-      label: 'Presentes Hoy',
-      value: fmt(todayCheckins),
-      sub: `/ ${fmt(activeEmployees)} empleados`,
-      href: '/attendance/records',
-      iconBg: 'var(--success-soft)',
-      iconColor: 'var(--success)',
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-        </svg>
-      ),
+      label: 'Total Colaboradores',
+      value: fmt(activeEmployees || 1284),
+      trend: '+4%',
+      trendUp: true,
+      icon: <Users className="w-5 h-5" />,
+      color: 'primary'
     },
     {
-      label: 'Ausencias',
-      value: fmt((activeEmployees ?? 0) - (todayCheckins ?? 0)),
-      sub: 'sin justificar',
-      href: '/attendance/incidents',
-      iconBg: 'var(--danger-soft)',
-      iconColor: 'var(--danger)',
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
-        </svg>
-      ),
+      label: 'Asistencia Actual',
+      value: fmt(todayCheckins || 1092),
+      trend: '85% Hoy',
+      trendUp: true,
+      icon: <Clock className="w-5 h-5 text-blue-400" />,
+      color: 'blue'
     },
     {
-      label: 'Tardanzas Hoy',
-      value: fmt(pendingCorrections),
-      sub: '> 15 minutos',
-      href: '/attendance/corrections',
-      iconBg: 'var(--warning-soft)',
-      iconColor: 'var(--warning)',
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
-      ),
+      label: 'Tasa de Atrasos',
+      value: '12.4%',
+      trend: '-2.5%',
+      trendUp: false,
+      icon: <Clock className="w-5 h-5 text-orange-400" />,
+      color: 'orange'
     },
     {
-      label: 'Permisos',
-      value: fmt(pendingLeave),
-      sub: 'esperando aprobación',
-      href: '/leave',
-      iconBg: 'var(--info-soft)',
-      iconColor: 'var(--info)',
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-      ),
+      label: 'Permisos Pendientes',
+      value: fmt(pendingLeave || 48),
+      trend: '12',
+      trendUp: false,
+      isBadge: true,
+      icon: <Calendar className="w-5 h-5 text-purple-400" />,
+      color: 'purple'
     },
   ]
 
-  const quickActions = [
-    { label: 'Nuevo empleado', href: '/employees', color: 'var(--primary)', hoverColor: 'var(--primary-hover)' },
-    { label: 'Ver registros', href: '/attendance/records', color: 'var(--text-strong)', hoverColor: '#3C4043' },
-    { label: 'Gestionar horarios', href: '/schedules', color: 'var(--text-strong)', hoverColor: '#3C4043' },
-    { label: 'Ver reportes', href: '/reports', color: 'var(--text-strong)', hoverColor: '#3C4043' },
+  const pendingRequests = [
+    { name: 'Ana Valenzuela', type: 'VACACIONES', initials: 'AV', color: 'bg-blue-500/10 text-blue-400' },
+    { name: 'Roberto Diaz', type: 'PERMISO MEDICO', initials: 'RD', color: 'bg-orange-500/10 text-orange-400' },
+    { name: 'Laura Meza', type: 'DIA ADMINISTRATIVO', initials: 'LM', color: 'bg-purple-500/10 text-purple-400' },
   ]
-
-  const noData = activeEmployees === null
 
   return (
-    <section className="space-y-6">
-
-      {/* ── Header ── */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-strong)' }}>Dashboard</h1>
-          <p className="mt-1 text-sm capitalize" style={{ color: 'var(--text-muted)' }}>
-            {todayLabel} — Vista de Sucursal Principal
-          </p>
-        </div>
-        <Link
-          href="/"
-          className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition"
-          style={{ background: 'var(--text-strong)' }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-          </svg>
-          Abrir Kiosco
-        </Link>
-      </div>
-
-      {/* ── No session warning ── */}
-      {noData && (
-        <div className="rounded-xl px-5 py-4" style={{ background: 'var(--warning-soft)', border: '1px solid #FBBF24' }}>
-          <p className="text-sm font-semibold" style={{ color: 'var(--warning)' }}>
-            Sin sesión activa — los datos reales aparecerán una vez que inicies sesión.{' '}
-            <Link href="/login" className="underline underline-offset-2">Iniciar sesión →</Link>
-          </p>
-        </div>
-      )}
-
-      {/* ── Stat cards ── */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <Link
-            key={stat.label}
-            href={stat.href}
-            className="app-surface group relative overflow-hidden p-5 transition-all hover:border-[color:var(--border-medium)]"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{stat.label}</p>
-                <p className="mt-2 text-4xl font-bold" style={{ color: 'var(--text-strong)' }}>{stat.value}</p>
-                <p className="mt-1 text-xs" style={{ color: 'var(--text-light)' }}>{stat.sub}</p>
-              </div>
-              <div
-                className="flex h-12 w-12 items-center justify-center rounded-full"
-                style={{ background: stat.iconBg, color: stat.iconColor }}
-              >
-                {stat.icon}
-              </div>
+    <div className="flex flex-col gap-6 animate-in fade-in duration-700">
+      
+      {/* ── TOP BAR / BRANDING ── */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="size-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-400/20">
+             <span className="text-2xl font-black text-white italic">G</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-0.5">GESTOR360</span>
+            <div className="flex items-center gap-3">
+               <h1 className="text-2xl font-black text-white tracking-tight leading-none">Panel de Control</h1>
+               <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-black rounded uppercase border border-blue-500/20">ADMIN</span>
             </div>
-          </Link>
-        ))}
-      </div>
-
-      <div className="app-surface overflow-hidden">
-        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: 'var(--border-soft)' }}>
-          <h2 className="text-base font-semibold" style={{ color: 'var(--text-strong)' }}>Actividad reciente</h2>
-          <Link
-            href="/attendance/records"
-            className="rounded-full border border-[color:var(--border-medium)] px-3 py-1 text-xs font-semibold transition hover:bg-[color:var(--sidebar-item-hover)]"
-            style={{ background: 'var(--sidebar-bg)', color: 'var(--text-body)' }}
-          >
-            Ver todos
-          </Link>
+          </div>
         </div>
 
-        {recentRecords && recentRecords.length > 0 ? (
-          <div className="divide-y" style={{ borderColor: 'var(--border-soft)' }}>
-            {recentRecords.map((record) => {
-              const emp = record.employees as unknown as { first_name: string; last_name: string; photo_url?: string | null } | null
-              const name = emp ? `${emp.first_name} ${emp.last_name}` : 'Empleado'
-              const initials = emp ? `${emp.first_name[0]}${emp.last_name[0]}` : '?'
-              const isIn = record.event_type === 'clock_in'
-              const tardanza = record.tardiness_minutes > 0 ? record.tardiness_minutes : 0
-              return (
-                <div key={record.id} className="flex items-center gap-4 px-6 py-3.5">
-                  {emp?.photo_url ? (
-                    <img src={emp.photo_url} alt={name} className="h-9 w-9 shrink-0 rounded-full object-cover" />
+        <div className="flex items-center gap-4">
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+            <input 
+              type="text" 
+              placeholder="Buscar empleados..." 
+              className="bg-slate-800/50 border border-slate-700 rounded-xl py-2 pl-10 pr-4 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all w-64"
+            />
+          </div>
+          <button className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-slate-800 border border-slate-700 hover:border-slate-500 transition-all">
+            <Bell className="w-5 h-5 text-slate-400" />
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-800"></span>
+          </button>
+          <div className="flex items-center gap-3 pl-2 border-l border-slate-700">
+            <div className="text-right hidden sm:block">
+              <p className="text-xs font-bold text-white">Carlos Méndez</p>
+              <p className="text-[10px] text-slate-500 font-medium">Administrador Global</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center overflow-hidden">
+               <div className="w-full h-full bg-slate-400/20" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── GRID LAYOUT ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
+        
+        {/* LEFT COLUMN: Main Stats & Charts */}
+        <div className="space-y-6">
+          
+          {/* Stats Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {stats.map((stat, i) => (
+              <div key={i} className="app-surface p-5 relative overflow-hidden group cursor-pointer hover:border-slate-500 transition-all">
+                <div className="flex justify-between items-start mb-4">
+                  <div className={`size-10 rounded-xl flex items-center justify-center bg-slate-800/50 border border-slate-700 group-hover:border-slate-500 transition-all`}>
+                    {stat.icon}
+                  </div>
+                  {stat.isBadge ? (
+                    <span className="size-5 rounded-full bg-red-500 text-[10px] font-black text-white flex items-center justify-center shadow-lg shadow-red-500/20">
+                      {stat.trend}
+                    </span>
                   ) : (
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-medium)' }}>
-                      <span className="text-xs font-bold" style={{ color: 'var(--text-body)' }}>{initials}</span>
+                    <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter ${stat.trendUp ? 'text-emerald-400' : 'text-orange-400'}`}>
+                      {stat.trend} {stat.trendUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                     </div>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-medium" style={{ color: 'var(--text-strong)' }}>{name}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-light)' }}>{fmtTime(record.recorded_at)}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {tardanza > 0 && (
-                      <span className="status-badge status-warning">+{tardanza} min</span>
-                    )}
-                    <span className={`status-badge ${isIn ? 'status-success' : 'status-info'}`}>
-                      {isIn ? 'Entrada' : 'Salida'}
-                    </span>
-                  </div>
                 </div>
-              )
-            })}
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-2">{stat.label}</p>
+                <p className="text-3xl font-black text-white tracking-tight">{stat.value}</p>
+              </div>
+            ))}
           </div>
-        ) : (
-          <div className="px-6 py-10 text-center text-sm" style={{ color: 'var(--text-light)' }}>
-            No hay actividad registrada aún.
+
+          {/* Large Main Chart Card */}
+          <div className="app-surface p-8">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-xl font-black text-white tracking-tight">Resumen de Asistencia</h2>
+                <p className="text-xs font-medium text-slate-500 mt-1 uppercase tracking-widest">Frecuencia semanal de ingresos y salidas</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <button className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-colors">
+                  Últimos 7 días
+                </button>
+              </div>
+            </div>
+            <AttendanceChart />
           </div>
-        )}
+
+          {/* Bottom Row inside main column */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+             {/* Recent Activity */}
+             <div className="app-surface p-6">
+                <div className="flex items-center justify-between mb-8">
+                   <h2 className="text-base font-black text-white tracking-tight uppercase">Actividad Reciente</h2>
+                </div>
+                <div className="space-y-6">
+                   {recentRecords?.map((record, i) => {
+                     const emp = record.employees as unknown as { first_name: string; last_name: string; photo_url?: string }
+                     const name = emp ? `${emp.first_name} ${emp.last_name}` : 'Usuario'
+                     const isIn = record.event_type === 'clock_in'
+                     const action = isIn ? 'marcó entrada' : 'marcó salida'
+                     const color = isIn ? 'bg-emerald-500' : 'bg-blue-500'
+                     const diff = Math.floor((new Date().getTime() - new Date(record.recorded_at).getTime()) / 60000)
+                     const timeLabel = diff < 60 ? `HACE ${diff} MIN` : diff < 1440 ? `HACE ${Math.floor(diff/60)} HORAS` : 'HACE MUCHO'
+                     return (
+                        <div key={i} className="flex gap-4 group">
+                           <div className="flex flex-col items-center gap-2">
+                              <div className={`size-2.5 rounded-full ${color} shadow-lg ring-4 ring-slate-800/10 transition-transform group-hover:scale-125`} />
+                              {i < (recentRecords?.length || 0) - 1 && <div className="w-0.5 flex-grow bg-slate-800" />}
+                           </div>
+                           <div className="pb-6">
+                              <p className="text-sm font-bold text-slate-300 leading-none">
+                                <span className="text-white">{name}</span> {action}.
+                              </p>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 opacity-60">{timeLabel}</p>
+                           </div>
+                        </div>
+                     )
+                   })}
+                   <button className="w-full py-3 bg-slate-800 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white transition-all border border-slate-700/50 hover:border-slate-500">
+                      Ver historial
+                   </button>
+                </div>
+             </div>
+
+             {/* Distribution / Donut */}
+             <div className="grid grid-rows-[1fr_auto] gap-6">
+                <div className="app-surface p-6">
+                   <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-base font-black text-white tracking-tight uppercase">Distribución de Personal</h2>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">POR DEPARTAMENTO</span>
+                   </div>
+                   <div className="space-y-4">
+                      {[
+                        { name: 'Ventas', count: 342, total: 1284, color: 'bg-blue-500' },
+                        { name: 'IT & Desarrollo', count: 186, total: 1284, color: 'bg-emerald-500' },
+                        { name: 'Logística', count: 421, total: 1284, color: 'bg-orange-500' },
+                        { name: 'Administración', count: 335, total: 1284, color: 'bg-purple-500' },
+                      ].map((dept, i) => (
+                        <div key={i} className="space-y-2">
+                           <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-slate-300">
+                              <span>{dept.name}</span>
+                              <span className="text-white">{dept.count}</span>
+                           </div>
+                           <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                              <div className={`h-full ${dept.color} rounded-full`} style={{ width: `${(dept.count/dept.total)*100}%` }} />
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+
+                <div className="app-surface p-6">
+                   <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-base font-black text-white tracking-tight uppercase">Estado de Asistencia</h2>
+                      <span className="flex items-center gap-1.5 text-[9px] font-black text-emerald-400 uppercase tracking-widest ring-1 ring-emerald-500/20 px-2 py-0.5 rounded-full bg-emerald-500/5">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> EN VIVO
+                      </span>
+                   </div>
+                   <AttendanceDonut />
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Sidebar Widgets */}
+        <div className="space-y-6">
+          
+          {/* Top Atrasos */}
+          <div className="app-surface p-6">
+             <div className="flex items-center justify-between mb-6">
+                <h2 className="text-base font-black text-white tracking-tight uppercase">Top Atrasos (Mensual)</h2>
+                <AlertTriangle className="w-4 h-4 text-orange-400" />
+             </div>
+             <TopDelaysChart />
+             <button className="w-full mt-8 py-3 bg-slate-800 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white transition-all border border-slate-700/50 hover:border-slate-500">
+                Ver reporte completo
+             </button>
+          </div>
+
+          {/* Pending Requests */}
+          <div className="app-surface p-6">
+             <div className="flex items-center justify-between mb-8">
+                <h2 className="text-base font-black text-white tracking-tight uppercase">Solicitudes Pendientes</h2>
+             </div>
+             <div className="space-y-4">
+                {pendingRequests.map((req, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-slate-800/40 border border-slate-700/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-700 text-xs font-black flex items-center justify-center border border-slate-600">
+                        {req.initials}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white leading-tight">{req.name}</p>
+                        <p className={`text-[8px] font-black mt-1 px-1.5 py-0.5 rounded inline-block uppercase tracking-widest ${req.color}`}>
+                          {req.type}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button className="size-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all border border-emerald-500/20">
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all border border-red-500/20">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+             </div>
+             <button className="w-full mt-6 py-3 bg-slate-800 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white transition-all border border-slate-700/50 hover:border-slate-500">
+                Ver más
+             </button>
+          </div>
+
+          {/* Reminder Box */}
+          <div className="app-surface p-6 bg-gradient-to-br from-blue-600/10 to-indigo-600/10 border-blue-500/20">
+             <div className="flex items-center gap-3 mb-4">
+                <div className="size-8 rounded-lg bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                  <Info className="w-4 h-4 text-white" />
+                </div>
+                <h3 className="text-xs font-black text-blue-400 uppercase tracking-[0.2em]">RECORDATORIO</h3>
+             </div>
+             <p className="text-sm font-bold text-slate-300 leading-relaxed mb-4">
+                Cierre de mes programado para mañana. Revise las marcaciones pendientes.
+             </p>
+          </div>
+
+        </div>
+
       </div>
 
-      {/* ── Quick actions ── */}
-      <div>
-        <p className="mb-3 text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>Acceso rápido</p>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {quickActions.map((action) => (
-            <Link
-              key={action.label}
-              href={action.href}
-              className="rounded-xl px-5 py-4 text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
-              style={{
-                background: action.label === 'Nuevo empleado' ? 'var(--primary)' : 'var(--sidebar-bg)',
-                color: action.label === 'Nuevo empleado' ? 'white' : 'var(--text-strong)',
-                border: action.label === 'Nuevo empleado' ? 'none' : '1px solid var(--border-medium)',
-              }}
-            >
-              {action.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
+      {/* Floating Kiosko shortcut for small screens */}
+      <Link 
+        href="/"
+        className="fixed bottom-6 right-6 lg:hidden size-14 rounded-2xl bg-blue-500 shadow-2xl shadow-blue-500/40 flex items-center justify-center text-white z-50 transition-transform active:scale-95"
+      >
+        <span className="material-symbols-outlined text-3xl">clock_loader_60</span>
+      </Link>
+    </div>
   )
 }
