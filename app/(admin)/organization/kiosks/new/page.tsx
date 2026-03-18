@@ -13,6 +13,8 @@ export default async function NewKioskPage() {
     .eq('is_active', true)
     .order('name')
 
+  const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+
   async function handleSubmit(formData: FormData) {
     'use server'
     const branchId = formData.get('branchId') as string
@@ -63,8 +65,9 @@ export default async function NewKioskPage() {
               name="deviceCode"
               type="text"
               required
-              placeholder="Ej: DELL01, CAJA-01"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              defaultValue={generatedCode}
+              placeholder="Ej: KIOSK-01"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono font-bold"
             />
             <p className="text-[10px] text-muted-foreground uppercase font-bold px-1">
               Este código debe ser ingresado en la pantalla de vinculación del kiosko.
