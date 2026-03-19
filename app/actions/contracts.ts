@@ -152,8 +152,44 @@ export async function updateContract(
   redirect('/contracts')
 }
 
+export async function markContractAsPrinted(id: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('contracts')
+    .update({ is_printed: true })
+    .eq('id', id)
+  
+  if (error) return { error: error.message }
+  revalidatePath('/contracts')
+  return {}
+}
+
+export async function annulContract(id: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('contracts')
+    .update({ status: 'annulled', is_active: false })
+    .eq('id', id)
+  
+  if (error) return { error: error.message }
+  revalidatePath('/contracts')
+  return {}
+}
+
 export async function deleteContract(id: string): Promise<{ error?: string }> {
   const supabase = await createClient()
+  
+  // 1. Check if already printed
+  const { data: contract } = await supabase
+    .from('contracts')
+    .select('is_printed')
+    .eq('id', id)
+    .single()
+  
+  if (contract?.is_printed) {
+    return { error: 'No se puede eliminar un contrato que ya ha sido impreso. Debe anularlo.' }
+  }
+
   const { error } = await supabase.from('contracts').delete().eq('id', id)
   if (error) return { error: error.message }
   revalidatePath('/contracts')
