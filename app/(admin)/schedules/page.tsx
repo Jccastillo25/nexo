@@ -89,34 +89,50 @@ export default async function SchedulesPage() {
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50 text-left">
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Turno</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Entrada</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Salida</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Días</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Horario</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Descanso</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Tolerancia E.</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Tolerancia S.</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Tolerancia</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {shifts.map((shift) => (
                   <tr key={shift.id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4 font-medium text-slate-900">
-                      {shift.name}
+                    <td className="px-6 py-4">
+                      <p className="font-semibold text-slate-900">{shift.name}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+                          const isActive = ((shift as any).days_of_week as number[])?.includes(d)
+                          const labels = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
+                          return (
+                            <span 
+                              key={d} 
+                              className={`flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-bold ${
+                                isActive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'
+                              }`}
+                            >
+                              {labels[d]}
+                            </span>
+                          )
+                        })}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-slate-600">
-                      {fmtTime(shift.start_time)}
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">
-                      {fmtTime(shift.end_time)}
+                      <span className="font-medium text-slate-900">{fmtTime(shift.start_time)}</span>
+                      <span className="mx-1 text-slate-300">-</span>
+                      <span className="font-medium text-slate-900">{fmtTime(shift.end_time)}</span>
                     </td>
                     <td className="px-6 py-4 text-slate-500">
                       {shift.break_minutes} min
                     </td>
                     <td className="px-6 py-4 text-slate-500">
-                      {shift.tolerance_in} min
-                    </td>
-                    <td className="px-6 py-4 text-slate-500">
-                      {shift.tolerance_out} min
+                      <div className="flex flex-col text-xs">
+                        <span>E: {shift.tolerance_in}m</span>
+                        <span>S: {shift.tolerance_out}m</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <span

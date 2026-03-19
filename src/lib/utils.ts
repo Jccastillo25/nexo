@@ -86,10 +86,11 @@ export async function checkAttendanceReady(
     return { ready: false, reason: 'El empleado no tiene un PIN configurado.' }
   }
 
-  // Check active shift assignment
+  // Check active shift assignment (now optional to allow clocking in without a move-to-contracts-first approach)
   const activeShifts = employee.employee_shifts?.filter(s => s.is_active) ?? []
   if (activeShifts.length === 0) {
-    return { ready: false, reason: 'El empleado no tiene un turno activo asignado para hoy.' }
+    // We return ready: true but we could log that no shift was found for punctuality calculation
+    return { ready: true } 
   }
 
   return { ready: true }

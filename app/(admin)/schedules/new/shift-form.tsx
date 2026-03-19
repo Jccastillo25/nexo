@@ -93,6 +93,38 @@ export function ShiftForm() {
             />
           </div>
         </div>
+
+        <div className="sm:col-span-2">
+          <label className="mb-3 block text-sm font-semibold text-slate-900">
+            Días de la semana
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 1, label: 'Lu' },
+              { id: 2, label: 'Ma' },
+              { id: 3, label: 'Mi' },
+              { id: 4, label: 'Ju' },
+              { id: 5, label: 'Vi' },
+              { id: 6, label: 'Sa' },
+              { id: 0, label: 'Do' },
+            ].map((day) => (
+              <label
+                key={day.id}
+                className="relative flex cursor-pointer items-center justify-center rounded-xl bg-slate-50 px-4 py-2 ring-1 ring-slate-200 transition-all hover:bg-slate-100 has-[:checked]:bg-slate-900 has-[:checked]:text-white has-[:checked]:ring-slate-900"
+              >
+                <input
+                  type="checkbox"
+                  name="days_of_week"
+                  value={day.id}
+                  defaultChecked={day.id >= 1 && day.id <= 5}
+                  className="sr-only"
+                />
+                <span className="text-xs font-bold">{day.label}</span>
+              </label>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-slate-500">Seleccione los días laborales para este turno.</p>
+        </div>
       </div>
 
       <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">

@@ -19,9 +19,7 @@ export async function createShift(
   const tolerance_in = parseInt(formData.get('tolerance_in') as string, 10)
   const tolerance_out = parseInt(formData.get('tolerance_out') as string, 10)
 
-  if (!name || !start_time || !end_time) {
-    return { error: 'Nombre, hora de entrada y hora de salida son requeridos.' }
-  }
+  const days_of_week = formData.getAll('days_of_week').map(Number)
 
   const { error } = await supabase.from('shifts').insert({
     name,
@@ -30,6 +28,7 @@ export async function createShift(
     break_minutes: isNaN(break_minutes) ? 0 : break_minutes,
     tolerance_in: isNaN(tolerance_in) ? 0 : tolerance_in,
     tolerance_out: isNaN(tolerance_out) ? 0 : tolerance_out,
+    days_of_week: days_of_week.length > 0 ? days_of_week : [1, 2, 3, 4, 5],
     is_active: true,
   })
 
