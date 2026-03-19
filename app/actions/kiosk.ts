@@ -173,3 +173,44 @@ export async function deleteKioskDevice(id: string) {
   revalidatePath('/kiosk/devices')
   return { success: true }
 }
+
+export async function verifyKioskPin(pin: string, branchId: string): Promise<{ success: boolean; employeeName?: string; error?: string }> {
+  const supabase = await createClient()
+
+  // First, get the company_id for the branch
+  const { data: branch, error: branchErr } = await supabase
+    .from('branches')
+    .select('company_id')
+    .eq('id', branchId)
+    .single()
+
+  if (branchErr || !branch) {
+    return { success: false, error: 'Sucursal no válida.' }
+  }
+
+  // Find the employee by PIN and company
+  const { data: employee, error: empErr } = await supabase
+    .from('employees')
+    .select('id, first_name, last_name')
+    .eq('company_id', branch.company_id)
+    .eq('employee_code', pin)
+    .single()
+
+  if (empErr || !employee) {
+    return { success: false, error: 'PIN incorrecto o empleado no encontrado.' }
+  }
+
+  // Import and run checkAttendanceReady
+  const { checkAttendanceReady } = await import('@/lib/utils')
+  const { ready, reason } = await checkAttendanceReady(supabase, employee.id)
+
+  if (!ready) {
+    return { success: false, error: reason }
+  }
+
+  return { 
+    success: true, 
+    employeeName: `${employee.first_name} ${employee.last_name}` 
+  }
+}
+

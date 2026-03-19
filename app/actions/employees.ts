@@ -39,37 +39,21 @@ export async function createEmployee(
     return { error: 'No se encontró una empresa asociada a tu cuenta.' }
   }
 
-  // Generar PIN aleatorio y único de 4 dígitos (1000 a 9999)
-  const { generateUniquePin } = await import('@/lib/utils')
-  const employee_code = await generateUniquePin(supabase, membership.company_id)
-
-  const { data: newEmployee, error } = await supabase.from('employees').insert({
-    employee_code,
+  // Se omite la generación del PIN aquí.
+  // El PIN se genera posteriormente desde la pestaña de "Seguridad y Kiosko"
+  // una vez que el empleado tiene un turno asignado.
+  const { error } = await supabase.from('employees').insert({
+    employee_code: null, // "Pendiente de configuración"
     first_name,
     last_name,
     email: email || null,
     branch_id,
     company_id: membership.company_id,
     is_active: true,
-  }).select('id').single()
-
-  if (error) {
-    if (error.code === '23505') {
-       return { error: 'Ocurrió una colisión en el PIN temporal. Por favor, intenta guardar de nuevo.' }
-    }
-    return { error: error.message }
-  }
-
-  // Insertar el pin en employee_pins para el historial de control de seguridad (si la tabla lo requiere explícitamente)
-  // El kiosko RPC 'kiosk_clock_event' típicamente cruza information o el trigger insertó uno. Intentamos insertarlo por si no hay trigger.
-  const { error: pinError } = await supabase.from('employee_pins').insert({
-    employee_id: newEmployee.id,
-    pin: employee_code, // Asumimos que la columna se llama pin
-    is_active: true
   })
 
-  if (pinError) {
-    console.error('[createEmployee] Error inserting into employee_pins:', pinError.message)
+  if (error) {
+    return { error: error.message }
   }
 
   revalidatePath('/employees')

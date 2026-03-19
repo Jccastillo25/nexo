@@ -20,9 +20,12 @@ export const adminNav: NavSection[] = [
   },
   {
     title: 'Empleados',
-    direct: true,
     items: [
-      { href: '/employees', label: 'Empleados' },
+      { href: '/employees', label: 'Directorio' },
+      { href: '/employees/new?fast=true', label: 'Altas Rápidas' },
+      { href: '/employees/groups', label: 'Grupos/Equipos' },
+      { href: '/employees/documents', label: 'Documentos' },
+      { href: '/employees/kiosk-settings', label: 'Configuración de Kiosko' },
     ],
   },
   {

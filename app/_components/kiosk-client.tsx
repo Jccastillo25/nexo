@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 import { EventType, KioskResult, UIState, KioskClientProps } from '../types/kiosk'
-import { getKioskByDeviceCode } from '../actions/kiosk'
+import { getKioskByDeviceCode, verifyKioskPin } from '../actions/kiosk'
 
 export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyName, initialCustomMessage, initialBranchId }: KioskClientProps) {
   const [pin, setPin]             = useState('')
@@ -21,6 +21,7 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
     logo_url: string | null;
   } | null>(null)
   
+  const [validatedEmployeeName, setValidatedEmployeeName] = useState<string | null>(null)
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [lockedUntil, setLockedUntil] = useState<number | null>(null)
   
@@ -106,6 +107,7 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
     setPin('')
     setUiState('idle')
     setResult(null)
+    setValidatedEmployeeName(null)
     if (resetTimer.current) clearTimeout(resetTimer.current)
   }
 
@@ -121,12 +123,35 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
       return
     }
 
-    if (!kioskData?.branch_id && !initialBranchId) {
+    const branchIdToUse = kioskData?.branch_id || initialBranchId
+    if (!branchIdToUse) {
       setResult({ success: false, error: 'No hay sucursal activa configurada.' })
       setUiState('error')
       resetTimer.current = setTimeout(reset, 4000)
       return
     }
+
+    setUiState('loading')
+
+    // Validar en el backend (PIN, Activo, Turno Asignado)
+    const { success, employeeName, error } = await verifyKioskPin(pin, branchIdToUse)
+
+    if (!success) {
+      setResult({ success: false, error: error || 'Perfil no válido.' })
+      setUiState('error')
+      
+      const newFails = failedAttempts + 1
+      setFailedAttempts(newFails)
+      if (newFails >= 5) {
+        setLockedUntil(Date.now() + 30_000) // 30s lockout
+        setFailedAttempts(0)
+      }
+      resetTimer.current = setTimeout(reset, 4000)
+      return
+    }
+
+    setFailedAttempts(0)
+    setValidatedEmployeeName(employeeName || 'Colaborador')
     setUiState('selecting_action')
   }
 
@@ -317,7 +342,9 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
                    </div>
                 </div>
                 <div className="text-center mb-8">
-                  <h1 className="text-slate-900 text-3xl font-black leading-tight mb-2 tracking-tight">Bienvenido/a</h1>
+                  <h1 className="text-slate-900 text-3xl font-black leading-tight mb-2 tracking-tight">
+                    {validatedEmployeeName ? `Hola, ${validatedEmployeeName.split(' ')[0]}` : 'Bienvenido/a'}
+                  </h1>
                   <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">
                      <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600" /></span>Perfil Validado
                   </div>
