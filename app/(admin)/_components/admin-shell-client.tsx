@@ -73,16 +73,18 @@ export function AdminShellClient({
 
       {/* ── Main content area ── */}
       <div
-        className="flex min-h-screen flex-col sidebar-transition"
-        style={{
-          marginLeft: sidebarOpen ? 'var(--sidebar-width)' : '0px',
-        }}
+        className={`flex min-h-screen flex-col sidebar-transition w-full transition-all duration-300 ${
+          sidebarOpen ? 'lg:pl-[280px]' : ''
+        }`}
       >
         <AdminTopbar
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           onMobileMenuOpen={() => setMobileSidebarOpen(true)}
           userName={userName}
+          userRole={userRole}
+          companyName={companyName}
+          logoUrl={logoUrl}
         />
         <main className="flex-1 p-4 md:p-6">
           <div className="mx-auto w-full max-w-7xl">{children}</div>

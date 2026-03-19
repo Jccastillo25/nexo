@@ -167,48 +167,8 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-700">
+    <div className="flex flex-col gap-6 animate-in fade-in duration-700 pt-2">
       
-      {/* ── TOP BAR / BRANDING ── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="size-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-400/20">
-             <span className="text-2xl font-black text-white italic">G</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-0.5">GESTOR360</span>
-            <div className="flex items-center gap-3">
-               <h1 className="text-2xl font-black text-white tracking-tight leading-none">Panel de Control</h1>
-               <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-black rounded uppercase border border-blue-500/20">ADMIN</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
-            <input 
-              type="text" 
-              placeholder="Buscar empleados..." 
-              className="bg-slate-800/50 border border-slate-700 rounded-xl py-2 pl-10 pr-4 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all w-64"
-            />
-          </div>
-          <button className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-slate-800 border border-slate-700 hover:border-slate-500 transition-all">
-            <Bell className="w-5 h-5 text-slate-400" />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-800"></span>
-          </button>
-          <div className="flex items-center gap-3 pl-2 border-l border-slate-700">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold text-white">{fullName}</p>
-              <p className="text-[10px] text-slate-500 font-medium">{role}</p>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center overflow-hidden">
-               <div className="w-full h-full bg-slate-400/20" />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* ── GRID LAYOUT ── */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
         

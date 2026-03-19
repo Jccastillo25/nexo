@@ -200,12 +200,8 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
                {kioskData?.branch_name ?? 'SIN VINCULAR'}
             </p>
           </div>
-          <div className="size-11 rounded-full border-2 border-[#0d7ff2]/30 p-1 bg-white/5 backdrop-blur-sm shadow-xl transition-transform hover:scale-105">
-             <div className="w-full h-full rounded-full bg-slate-800 flex items-center justify-center overflow-hidden bg-cover bg-center"
-               style={kioskData?.logo_url || initialLogoUrl ? { backgroundImage: `url(${kioskData?.logo_url || initialLogoUrl})` } : {}}
-             >
-                {!(kioskData?.logo_url || initialLogoUrl) && <span className="material-symbols-outlined text-slate-400 text-sm">business</span>}
-             </div>
+          <div className="size-11 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-400/20 transition-transform hover:scale-105">
+             <span className="text-xl font-black text-white italic">G</span>
           </div>
         </div>
       </header>
