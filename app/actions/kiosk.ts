@@ -229,7 +229,7 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
   // 1. Verify existence and active status
   const { data: employee, error: empErr } = await supabase
     .from('employees')
-    .select('id, first_name, last_name, is_active, employee_code')
+    .select('id, first_name, last_name, is_active, employee_code, company_id')
     .eq('employee_code', pin)
     .eq('branch_id', branchId)
     .maybeSingle()
@@ -244,6 +244,7 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     .insert({
       employee_id: employee.id,
       branch_id: branchId,
+      company_id: employee.company_id,
       event_type: eventType,
       recorded_at: new Date().toISOString(),
       tardiness_minutes: 0, // Simplified: logic for tardiness can be expanded separately
