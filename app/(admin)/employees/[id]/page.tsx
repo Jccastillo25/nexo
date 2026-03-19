@@ -27,7 +27,7 @@ export default async function EmployeeDetailPage({
   const supabase = await createClient()
 
   const [
-    { data: employee },
+    { data: employeeData },
     { data: recentRecords },
     { data: leaveRequests },
     { data: shift },
@@ -63,6 +63,8 @@ export default async function EmployeeDetailPage({
       .eq('is_active', true)
       .maybeSingle(),
   ])
+
+  const employee = employeeData as any
 
   if (!employee) notFound()
 

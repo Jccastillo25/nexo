@@ -12,7 +12,7 @@ export default async function EditEmployeePage({
   const supabase = await createClient()
 
   const [
-    { data: employee },
+    { data: employeeData },
     { data: branches }
   ] = await Promise.all([
     supabase
@@ -26,6 +26,8 @@ export default async function EditEmployeePage({
       .eq('is_active', true)
       .order('name')
   ])
+
+  const employee = employeeData as any
 
   if (!employee) notFound()
 

@@ -56,7 +56,7 @@ export default async function EmployeesPage({
   }
 
   const [
-    { data: employees, count: total },
+    results,
     { count: inactive },
     { count: noPin },
     { data: branches },
@@ -75,6 +75,9 @@ export default async function EmployeesPage({
     supabase.from('branches').select('id, name').eq('is_active', true).order('name'),
     supabase.from('shifts').select('id, name').eq('is_active', true).order('name'),
   ])
+
+  const employees = results.data as any[] | null
+  const total = results.count
 
   const stats = [
     { label: 'Total', value: total ?? 0 },
