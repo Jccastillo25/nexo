@@ -86,6 +86,13 @@ export async function updateEmployee(
     return { error: 'Nombre, apellido y sucursal son requeridos.' }
   }
 
+  // Ensure company_id is in sync with the selected branch
+  const { data: branchData } = await supabase
+    .from('branches')
+    .select('company_id')
+    .eq('id', branch_id)
+    .single()
+
   const { error } = await supabase
     .from('employees')
     .update({
@@ -95,6 +102,7 @@ export async function updateEmployee(
       phone: phone || null,
       hire_date: hire_date || null,
       branch_id,
+      company_id: branchData?.company_id, // Sync company_id
       is_active,
       national_id: national_id || null,
       social_security_id: social_security_id || null,

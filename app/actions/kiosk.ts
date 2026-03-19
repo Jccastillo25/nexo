@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { KioskDevice } from '../types/kiosk'
 
@@ -175,7 +176,7 @@ export async function deleteKioskDevice(id: string) {
 }
 
 export async function verifyKioskPin(pin: string, branchId: string): Promise<{ success: boolean; employeeName?: string; error?: string }> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // First, get the company_id for the branch
   const { data: branch, error: branchErr } = await supabase
@@ -191,12 +192,19 @@ export async function verifyKioskPin(pin: string, branchId: string): Promise<{ s
   // Find the employee by PIN and company
   const { data: employee, error: empErr } = await supabase
     .from('employees')
-    .select('id, first_name, last_name')
-    .eq('company_id', branch.company_id)
+    .select('id, first_name, last_name, company_id, branch_id, is_active')
     .eq('employee_code', pin)
-    .single()
+    .eq('company_id', branch.company_id)
+    .maybeSingle()
 
-  if (empErr || !employee) {
+  if (empErr) {
+    console.error('Kiosk PIN verification DB error:', empErr.message)
+    return { success: false, error: 'Error técnico al validar PIN. Por favor, intente de nuevo.' }
+  }
+
+  if (!employee) {
+    // Audit attempt: trace if PIN exists but in different company (optional, for debugging)
+    console.warn(`PIN ${pin} not found for company ${branch.company_id}`)
     return { success: false, error: 'PIN incorrecto o empleado no encontrado.' }
   }
 
