@@ -27,7 +27,7 @@ export default async function EditEmployeePage({
       .order('name')
   ])
 
-  const employee = employeeData as any
+  const employee = employeeData as unknown as any
 
   if (!employee) notFound()
 

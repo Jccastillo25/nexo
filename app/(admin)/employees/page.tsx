@@ -76,7 +76,7 @@ export default async function EmployeesPage({
     supabase.from('shifts').select('id, name').eq('is_active', true).order('name'),
   ])
 
-  const employees = results.data as any[] | null
+  const employees = results.data as unknown as any[] | null
   const total = results.count
 
   const stats = [

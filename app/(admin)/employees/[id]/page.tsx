@@ -64,7 +64,7 @@ export default async function EmployeeDetailPage({
       .maybeSingle(),
   ])
 
-  const employee = employeeData as any
+  const employee = employeeData as unknown as any
 
   if (!employee) notFound()
 
