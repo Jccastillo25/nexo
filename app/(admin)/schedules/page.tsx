@@ -94,6 +94,7 @@ export default async function SchedulesPage() {
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Descanso</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Tolerancia</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -144,6 +145,14 @@ export default async function SchedulesPage() {
                       >
                         {shift.is_active ? 'Activo' : 'Inactivo'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Link
+                        href={`/schedules/${shift.id}/edit`}
+                        className="rounded-xl border-2 border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                      >
+                        Editar
+                      </Link>
                     </td>
                   </tr>
                 ))}

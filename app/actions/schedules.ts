@@ -40,6 +40,53 @@ export async function createShift(
   redirect('/schedules')
 }
 
+export async function updateShift(
+  id: string,
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient()
+
+  const name = formData.get('name') as string
+  const start_time = formData.get('start_time') as string
+  const end_time = formData.get('end_time') as string
+  const break_minutes = parseInt(formData.get('break_minutes') as string, 10)
+  const tolerance_in = parseInt(formData.get('tolerance_in') as string, 10)
+  const tolerance_out = parseInt(formData.get('tolerance_out') as string, 10)
+  const is_active = formData.get('is_active') === 'on'
+
+  const days_of_week = formData.getAll('days_of_week').map(Number)
+
+  const { error } = await supabase
+    .from('shifts')
+    .update({
+      name,
+      start_time,
+      end_time,
+      break_minutes: isNaN(break_minutes) ? 0 : break_minutes,
+      tolerance_in: isNaN(tolerance_in) ? 0 : tolerance_in,
+      tolerance_out: isNaN(tolerance_out) ? 0 : tolerance_out,
+      days_of_week: days_of_week.length > 0 ? days_of_week : [1, 2, 3, 4, 5],
+      is_active,
+    })
+    .eq('id', id)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/schedules')
+  redirect('/schedules')
+}
+
+export async function deleteShift(id: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase.from('shifts').delete().eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/schedules')
+  return {}
+}
+
 export async function assignShift(
   _prevState: ActionState,
   formData: FormData,

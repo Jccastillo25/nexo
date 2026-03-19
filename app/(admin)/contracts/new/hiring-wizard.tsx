@@ -75,146 +75,152 @@ export function HiringWizard({ initialEmployees }: { initialEmployees: Employee[
         )}
 
         {/* Step 1: Employee Selection */}
-        {step === 1 && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            <h2 className="text-xl font-bold text-slate-900">Selección de Empleado</h2>
-            <p className="text-sm text-slate-500">¿Para quién es este contrato?</p>
-            
-            <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2">
-              {initialEmployees.map((emp) => (
-                <label 
-                  key={emp.id}
-                  className={`flex cursor-pointer items-center justify-between rounded-2xl border p-4 transition ${
-                    selectedEmployee === emp.id 
-                      ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' 
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input 
-                      type="radio" 
-                      name="employee_id" 
-                      value={emp.id}
-                      checked={selectedEmployee === emp.id}
-                      onChange={() => setSelectedEmployee(emp.id)}
-                      className="h-4 w-4 accent-slate-900" 
-                    />
-                    <div>
-                      <p className="font-semibold text-slate-900">{emp.first_name} {emp.last_name}</p>
-                      <p className="text-xs text-slate-500">{emp.email || 'Sin correo'}</p>
-                    </div>
+        <div className={step === 1 ? 'space-y-4 animate-in fade-in slide-in-from-bottom-2' : 'hidden'}>
+          <h2 className="text-xl font-bold text-slate-900">Selección de Empleado</h2>
+          <p className="text-sm text-slate-500">¿Para quién es este contrato?</p>
+          
+          <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2">
+            {initialEmployees.map((emp) => (
+              <label 
+                key={emp.id}
+                className={`flex cursor-pointer items-center justify-between rounded-2xl border-2 p-4 transition ${
+                  selectedEmployee === emp.id 
+                    ? 'border-slate-900 bg-slate-100 ring-1 ring-slate-900' 
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="radio" 
+                    name="employee_id" 
+                    value={emp.id}
+                    checked={selectedEmployee === emp.id}
+                    onChange={() => setSelectedEmployee(emp.id)}
+                    className="h-5 w-5 accent-slate-900" 
+                    required={step === 1}
+                  />
+                  <div>
+                    <p className="font-bold text-slate-900">{emp.first_name} {emp.last_name}</p>
+                    <p className="text-xs text-slate-600 font-medium">{emp.email || 'Sin correo'}</p>
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                    emp.is_active ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                  }`}>
-                    {emp.is_active ? 'Activo' : 'Pendiente'}
-                  </span>
+                </div>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                  emp.is_active ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                }`}>
+                  {emp.is_active ? 'Activo' : 'Pendiente'}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Step 2: Terms */}
+        <div className={step === 2 ? 'space-y-4 animate-in fade-in slide-in-from-bottom-2' : 'hidden'}>
+          <h2 className="text-xl font-bold text-slate-900">Términos del Contrato</h2>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-900">Tipo de Contrato</label>
+              <select 
+                name="contract_type" 
+                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
+              >
+                <option value="Indefinido">Indefinido</option>
+                <option value="Temporal">Temporal (Obra/Servicio)</option>
+                <option value="Servicios Prof.">Servicios Profesionales</option>
+                <option value="Pasantía">Pasantía</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-900">Salario Mensual</label>
+              <input 
+                type="number" 
+                name="salary" 
+                placeholder="0.00" 
+                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900" 
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-900">Fecha de Inicio</label>
+              <input 
+                type="date" 
+                name="start_date" 
+                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900" 
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-900">Fecha de Cierre (Opcional)</label>
+              <input 
+                type="date" 
+                name="end_date" 
+                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900" 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Step 3: Shift Assignment */}
+        <div className={step === 3 ? 'space-y-4 animate-in fade-in slide-in-from-bottom-2' : 'hidden'}>
+          <h2 className="text-xl font-bold text-slate-900">Asignación de Turno</h2>
+          <p className="text-sm text-slate-500">Este vínculo es obligatorio para la marcación.</p>
+          
+          {loadingShifts ? (
+            <p className="py-8 text-center text-sm text-slate-500 italic">Cargando turnos desde el servidor...</p>
+          ) : (
+            <div className="grid gap-3">
+              {shifts.map((shift) => (
+                <label 
+                  key={shift.id}
+                  className="flex cursor-pointer items-center gap-4 rounded-2xl border-2 border-slate-200 p-5 transition hover:bg-slate-50 has-[:checked]:border-slate-900 has-[:checked]:bg-slate-50 has-[:checked]:ring-1 has-[:checked]:ring-slate-900 shadow-sm"
+                >
+                  <input type="radio" name="schedule_id" value={shift.id} className="h-6 w-6 accent-slate-900" required={step === 3} />
+                  <div className="flex-1">
+                    <p className="font-bold text-slate-900">{shift.name}</p>
+                    <p className="text-sm font-medium text-slate-600">{shift.start_time} - {shift.end_time}</p>
+                  </div>
                 </label>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Step 2: Terms */}
-        {step === 2 && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            <h2 className="text-xl font-bold text-slate-900">Términos del Contrato</h2>
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-900">Tipo de Contrato</label>
-                <select name="contract_type" className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none outline-none focus:border-slate-400">
-                  <option value="Indefinido">Indefinido</option>
-                  <option value="Temporal">Temporal (Obra/Servicio)</option>
-                  <option value="Servicios Prof.">Servicios Profesionales</option>
-                  <option value="Pasantía">Pasantía</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-900">Salario Mensual</label>
-                <input type="number" name="salary" placeholder="0.00" className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-slate-400" />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-900">Fecha de Inicio</label>
-                <input type="date" name="start_date" className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-slate-400" />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-900">Fecha de Cierre (Opcional)</label>
-                <input type="date" name="end_date" className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-slate-400" />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Shift Assignment (using API) */}
-        {step === 3 && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            <h2 className="text-xl font-bold text-slate-900">Asignación de Turno</h2>
-            <p className="text-sm text-slate-500">Este vínculo es obligatorio para la marcación.</p>
-            
-            {loadingShifts ? (
-              <p className="py-8 text-center text-sm text-slate-500 italic">Cargando turnos desde el servidor...</p>
-            ) : (
-              <div className="grid gap-3">
-                {shifts.map((shift) => (
-                  <label 
-                    key={shift.id}
-                    className="flex cursor-pointer items-center gap-4 rounded-2xl border border-slate-200 p-5 transition hover:bg-slate-50 has-[:checked]:border-slate-900 has-[:checked]:ring-1 has-[:checked]:ring-slate-900 shadow-sm"
-                  >
-                    <input type="radio" name="schedule_id" value={shift.id} className="h-5 w-5 accent-slate-900" required />
-                    <div className="flex-1">
-                      <p className="font-bold text-slate-900">{shift.name}</p>
-                      <p className="text-sm text-slate-500">{shift.start_time} - {shift.end_time}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Step 4: Finalize & Preview */}
-        {step === 4 && (
-          <div className="space-y-6 animate-in zoom-in-95">
-            <div className="text-center space-y-2">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-white">
-                <span className="text-2xl font-bold italic">G</span>
-              </div>
-              <h2 className="text-2xl font-bold text-slate-900">Vista Previa</h2>
-              <p className="text-sm text-slate-500">Revisa los datos antes de formalizar la contratación.</p>
+        <div className={step === 4 ? 'space-y-6 animate-in zoom-in-95' : 'hidden'}>
+          <div className="text-center space-y-2">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-white">
+              <span className="text-2xl font-bold italic">G</span>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900">Vista Previa</h2>
+            <p className="text-sm text-slate-500">Revisa los datos antes de formalizar la contratación.</p>
+          </div>
+          
+          <div className="rounded-3xl border-2 border-slate-200 bg-white p-8 shadow-sm space-y-6 max-h-[500px] overflow-y-auto">
+            <div className="border-b-2 border-slate-100 pb-4 flex justify-between items-center">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Contrato Laboral Dynamico</h3>
+              <span className="text-[10px] font-bold bg-slate-200 px-2 py-1 rounded tracking-tighter uppercase text-slate-700">Draft</span>
             </div>
             
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 shadow-sm space-y-6 max-h-[500px] overflow-y-auto">
-              <div className="border-b border-slate-200 pb-4 flex justify-between items-center">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Contrato Laboral Dynamico</h3>
-                <span className="text-[10px] font-bold bg-slate-200 px-2 py-1 rounded tracking-tighter uppercase">Draft</span>
-              </div>
-              
-              <div className="space-y-4 text-sm leading-relaxed text-slate-600">
-                <p>
-                  Yo, **GESTOR360 S.A.**, formalizo la contratación de **{initialEmployees.find(e => e.id === selectedEmployee)?.first_name} {initialEmployees.find(e => e.id === selectedEmployee)?.last_name}** 
-                  bajo la modalidad de **Contrato Indefinido**.
-                </p>
-                <p>
-                  El colaborador desempeñará sus funciones en el horario **{shifts.find(s => s.id === (state as any)?.schedule_id || true)?.name || 'Turno Seleccionado'}** 
-                  ({shifts.find(s => s.id)?.start_time} - {shifts.find(s => s.id)?.end_time}), 
-                  cumpliendo con las políticas de asistencia y puntualidad establecidas.
-                </p>
-                <p className="pt-4 border-t border-slate-200 italic text-xs">
-                  * Al hacer clic en finalizar, el sistema habilitará el PIN automático para el Kiosko de marcación.
-                </p>
-              </div>
+            <div className="space-y-4 text-sm leading-relaxed text-slate-900 font-medium">
+              <p>
+                Yo, <span className="font-bold">GESTOR360 S.A.</span>, formalizo la contratación de <span className="font-bold text-slate-900 underline">{initialEmployees.find(e => e.id === selectedEmployee)?.first_name} {initialEmployees.find(e => e.id === selectedEmployee)?.last_name}</span> bajo la modalidad de <span className="font-bold">Contrato Laboral</span>.
+              </p>
+              <p>
+                El colaborador cumplirá sus funciones según lo establecido en el sistema, asegurando el cumplimiento de entrada y salida mediante el Kiosko de Marcación.
+              </p>
+              <p className="pt-4 border-t border-slate-100 italic text-xs text-slate-500">
+                * Al hacer clic en finalizar, el sistema habilitará el PIN automático para el Kiosko de marcación.
+              </p>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Actions */}
         <div className="flex items-center justify-between pt-6 border-t border-slate-100">
           {step > 1 ? (
-            <button type="button" onClick={prevStep} className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+            <button type="button" onClick={prevStep} className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-100">
               Atrás
             </button>
           ) : (
-            <Link href="/contracts" className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+            <Link href="/contracts" className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-100">
               Cancelar
             </Link>
           )}
@@ -224,7 +230,7 @@ export function HiringWizard({ initialEmployees }: { initialEmployees: Employee[
               type="button" 
               onClick={nextStep} 
               disabled={step === 1 && !selectedEmployee}
-              className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-semibold text-white shadow-xl transition hover:bg-slate-800 disabled:opacity-50 active:scale-95"
+              className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-bold text-white shadow-xl transition hover:bg-slate-800 disabled:opacity-50 active:scale-95"
             >
               Siguiente
             </button>
@@ -232,7 +238,7 @@ export function HiringWizard({ initialEmployees }: { initialEmployees: Employee[
             <button 
               type="submit" 
               disabled={pending}
-              className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-10 text-sm font-semibold text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 disabled:opacity-50 active:scale-95"
+              className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-10 text-sm font-bold text-white shadow-xl shadow-slate-300 transition hover:bg-slate-800 disabled:opacity-50 active:scale-95"
             >
               {pending ? 'Procesando...' : 'Finalizar y Contratar'}
             </button>
