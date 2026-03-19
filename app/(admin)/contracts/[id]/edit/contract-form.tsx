@@ -2,7 +2,7 @@
 
 import { useState, useActionState } from 'react'
 import Link from 'next/link'
-import { updateContract, type ContractActionState } from '../../../actions/contracts'
+import { updateContract, type ContractActionState } from '../../../../actions/contracts'
 
 type Shift = {
   id: string
