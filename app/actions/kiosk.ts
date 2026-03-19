@@ -176,25 +176,15 @@ export async function deleteKioskDevice(id: string) {
 }
 
 export async function verifyKioskPin(pin: string, branchId: string): Promise<{ success: boolean; employeeName?: string; error?: string }> {
+  // Use admin client to ensure we can read employee and shift data even from a public kiosk
   const supabase = createAdminClient()
 
-  // First, get the company_id for the branch
-  const { data: branch, error: branchErr } = await supabase
-    .from('branches')
-    .select('company_id')
-    .eq('id', branchId)
-    .single()
-
-  if (branchErr || !branch) {
-    return { success: false, error: 'Sucursal no válida.' }
-  }
-
-  // Find the employee by PIN and company
+  // Find the employee by PIN and branch_id directly
   const { data: employee, error: empErr } = await supabase
     .from('employees')
     .select('id, first_name, last_name, company_id, branch_id, is_active')
     .eq('employee_code', pin)
-    .eq('company_id', branch.company_id)
+    .eq('branch_id', branchId)
     .maybeSingle()
 
   if (empErr) {
@@ -203,9 +193,20 @@ export async function verifyKioskPin(pin: string, branchId: string): Promise<{ s
   }
 
   if (!employee) {
-    // Audit attempt: trace if PIN exists but in different company (optional, for debugging)
-    console.warn(`PIN ${pin} not found for company ${branch.company_id}`)
-    return { success: false, error: 'PIN incorrecto o empleado no encontrado.' }
+    // If not found in this branch, maybe the employee is in the company but another branch?
+    // We check globally just to provide a better error message (diagnostics)
+    const { data: globalCheck } = await supabase
+      .from('employees')
+      .select('id, branches(name)')
+      .eq('employee_code', pin)
+      .maybeSingle()
+
+    if (globalCheck) {
+      const branchName = (globalCheck.branches as any)?.name || 'otra sucursal'
+      return { success: false, error: `PIN correcto pero el empleado está asignado a: ${branchName}.` }
+    }
+
+    return { success: false, error: 'PIN incorrecto o empleado no encontrado en esta sucursal.' }
   }
 
   // Import and run checkAttendanceReady
