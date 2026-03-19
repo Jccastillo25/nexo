@@ -34,7 +34,6 @@ export async function createCompany(
   }
 
   const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  console.log("== AUTH CHECK IN SERVER ACTION ==", user?.id, authErr?.message)
 
   if (!user) {
     return { error: 'No tienes una sesión activa para crear empresas (Server Action Auth failed).' }
@@ -56,7 +55,6 @@ export async function createCompany(
     }).eq('id', newCompanyId)
   }
 
-  console.log("== RPC RESULT ==", newCompanyId, error)
 
   if (error) {
     if (error.code === '23505' && error.message.includes('slug')) {

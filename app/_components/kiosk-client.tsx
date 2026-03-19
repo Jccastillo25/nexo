@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { EventType, KioskResult, UIState, KioskClientProps } from '../types/kiosk'
 import { getKioskByDeviceCode } from '../actions/kiosk'
 
-export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyName, initialCustomMessage }: KioskClientProps) {
+export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyName, initialCustomMessage, initialBranchId }: KioskClientProps) {
   const [pin, setPin]             = useState('')
   const [time, setTime]           = useState('')
   const [date, setDate]           = useState('')
@@ -20,6 +20,9 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
     company_name: string;
     logo_url: string | null;
   } | null>(null)
+  
+  const [failedAttempts, setFailedAttempts] = useState(0)
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null)
   
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -108,7 +111,17 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
 
   const validatePin = async () => {
     if (pin.length !== 4 || uiState !== 'idle') return
-    if (!kioskData?.branch_id) {
+    
+    // Check if locked
+    if (lockedUntil && Date.now() < lockedUntil) {
+      const wait = Math.ceil((lockedUntil - Date.now()) / 1000)
+      setResult({ success: false, error: `Demasiados intentos. Intente de nuevo en ${wait}s.` })
+      setUiState('error')
+      resetTimer.current = setTimeout(reset, 4000)
+      return
+    }
+
+    if (!kioskData?.branch_id && !initialBranchId) {
       setResult({ success: false, error: 'No hay sucursal activa configurada.' })
       setUiState('error')
       resetTimer.current = setTimeout(reset, 4000)
@@ -142,20 +155,25 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
   }
 
   const executeAction = async (type: EventType) => {
+    if (lockedUntil && Date.now() < lockedUntil) return
     setUiState('loading')
 
     const supabase = createClient()
     const { data, error } = await supabase.rpc('kiosk_clock_event', {
-      p_branch_id:  kioskData?.branch_id,
+      p_branch_id:  kioskData?.branch_id || initialBranchId,
       p_pin:        pin,
       p_event_type: type,
     })
 
+    let isError = false
+
     if (error) {
+      isError = true
       setResult({ success: false, error: error.message })
       setUiState('error')
     } else {
       const res = data as KioskResult
+      isError = !res.success
       setResult({
         ...res,
         event_type: type // Aseguramos el tipo para el visual
@@ -163,7 +181,18 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
       setUiState(res.success ? 'success' : 'error')
     }
 
-    resetTimer.current = setTimeout(reset, uiState === 'error' ? 4000 : 5000)
+    if (isError) {
+      const newFails = failedAttempts + 1
+      setFailedAttempts(newFails)
+      if (newFails >= 5) {
+        setLockedUntil(Date.now() + 30_000) // 30s lockout
+        setFailedAttempts(0)
+      }
+    } else {
+      setFailedAttempts(0)
+    }
+
+    resetTimer.current = setTimeout(reset, isError ? 4000 : 5000)
   }
 
   // Auto-transition a selección cuando el PIN llega a 4 dígitos

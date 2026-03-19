@@ -56,10 +56,14 @@ export async function assignShift(
   }
 
   // Desactivar asignaciones previas para este empleado
-  await supabase
+  const { error: deactivateError } = await supabase
     .from('employee_shifts')
     .update({ is_active: false })
     .eq('employee_id', employee_id)
+
+  if (deactivateError) {
+    return { error: 'No se pudieron desactivar los turnos anteriores.' }
+  }
 
   // Insertar nueva asignación
   const { error } = await supabase.from('employee_shifts').insert({

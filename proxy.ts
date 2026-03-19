@@ -57,7 +57,10 @@ export async function proxy(request: NextRequest) {
   if (!user && isProtected) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
-    loginUrl.searchParams.set('next', pathname)
+    // Solo guardar rutas internas (sin protocolo ni dominio externo)
+    if (pathname.startsWith('/') && !pathname.startsWith('//')) {
+      loginUrl.searchParams.set('next', pathname)
+    }
     return NextResponse.redirect(loginUrl)
   }
 

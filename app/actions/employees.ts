@@ -62,11 +62,15 @@ export async function createEmployee(
 
   // Insertar el pin en employee_pins para el historial de control de seguridad (si la tabla lo requiere explícitamente)
   // El kiosko RPC 'kiosk_clock_event' típicamente cruza information o el trigger insertó uno. Intentamos insertarlo por si no hay trigger.
-  await supabase.from('employee_pins').insert({
+  const { error: pinError } = await supabase.from('employee_pins').insert({
     employee_id: newEmployee.id,
     pin: employee_code, // Asumimos que la columna se llama pin
     is_active: true
   })
+
+  if (pinError) {
+    console.error('[createEmployee] Error inserting into employee_pins:', pinError.message)
+  }
 
   revalidatePath('/employees')
   revalidatePath('/(admin)/employees', 'page')
