@@ -38,7 +38,7 @@ export default async function EmployeesPage({
   const { q, branch, shift } = await searchParams
   const supabase = await createClient()
 
-  let selectQuery = 'id, employee_code, first_name, last_name, is_active, hire_date, email, phone, branches(id, name)'
+  let selectQuery = 'id, employee_code, first_name, last_name, is_active, hire_date, email, phone, photo_url, branches(id, name)'
   if (shift) {
     selectQuery += ', employee_shifts!inner(shift_id, is_active)'
   }
@@ -211,9 +211,13 @@ export default async function EmployeesPage({
                       <tr key={emp.id} className="transition hover:bg-slate-50 group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500 uppercase">
-                              {emp.first_name?.[0] ?? ''}{emp.last_name?.[0] ?? ''}
-                            </div>
+                            {emp.photo_url ? (
+                              <img src={emp.photo_url} alt="" className="h-8 w-8 rounded-full object-cover shadow-sm ring-1 ring-slate-200" />
+                            ) : (
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500 uppercase">
+                                {emp.first_name?.[0] ?? ''}{emp.last_name?.[0] ?? ''}
+                              </div>
+                            )}
                             <div>
                               <div className="font-semibold text-slate-900">{emp.first_name} {emp.last_name}</div>
                               <div className="text-xs text-slate-500">{emp.email}</div>
