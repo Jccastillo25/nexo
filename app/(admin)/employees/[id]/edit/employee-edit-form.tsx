@@ -10,6 +10,7 @@ interface EmployeeEditFormProps {
   employee: {
     id: string
     employee_code?: string | null
+    employee_number: string | null
     first_name: string
     last_name: string
     email: string | null
