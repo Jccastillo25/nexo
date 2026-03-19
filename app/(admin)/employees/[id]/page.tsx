@@ -128,20 +128,20 @@ export default async function EmployeeDetailPage({
           {employee.photo_url ? (
             <img
               src={employee.photo_url}
-              alt={`${employee.first_name} ${employee.last_name}`}
+              alt={`${employee.first_name ?? 'Empleado'} ${employee.last_name ?? ''}`}
               className="h-20 w-20 shrink-0 rounded-full object-cover ring-4 ring-slate-100 shadow"
             />
           ) : (
             <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-200 ring-4 ring-slate-100 shadow">
               <span className="text-2xl font-bold text-slate-500">
-                {employee.first_name[0]}{employee.last_name[0]}
+                {employee.first_name?.[0] ?? ''}{employee.last_name?.[0] ?? ''}
               </span>
             </div>
           )}
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Empleados</p>
             <h1 className="mt-1 text-3xl font-bold text-slate-900">
-              {employee.first_name} {employee.last_name}
+              {employee.first_name ?? '—'} {employee.last_name ?? ''}
             </h1>
             <p className="mt-1 text-sm text-slate-500">Perfil de Colaborador</p>
             <div className="mt-2 flex gap-2">

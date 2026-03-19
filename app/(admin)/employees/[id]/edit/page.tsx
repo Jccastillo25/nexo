@@ -42,7 +42,7 @@ export default async function EditEmployeePage({
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Editar colaborador</h1>
-          <p className="text-sm text-slate-500">Actualiza la información de {employee.first_name}.</p>
+          <p className="text-sm text-slate-500">Actualiza la información de {employee.first_name ?? 'este colaborador'}.</p>
         </div>
       </div>
 
