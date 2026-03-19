@@ -229,13 +229,47 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
   // 1. Verify existence and active status
   const { data: employee, error: empErr } = await supabase
     .from('employees')
-    .select('id, first_name, last_name, is_active, employee_code, company_id')
+    .select(`
+      id, first_name, last_name, is_active, employee_code, company_id,
+      contracts!left(
+        status,
+        shifts!left(
+          start_time, tolerance_in
+        )
+      )
+    `)
     .eq('employee_code', pin)
     .eq('branch_id', branchId)
     .maybeSingle()
 
   if (empErr || !employee || !employee.is_active) {
     return { success: false, error: 'PIN incorrecto o empleado no encontrado en esta sucursal.' }
+  }
+
+  // Tardiness Calculation Logic
+  let tardinessMinutes = 0
+  if (eventType === 'clock_in' && employee.contracts) {
+    const activeContract = employee.contracts.find((c: any) => c.status === 'active' && c.shifts)
+    
+    // Supabase TS bindings might type it as an array if it cannot infer the uniqueness
+    const shiftRaw = activeContract?.shifts
+    const shift = Array.isArray(shiftRaw) ? shiftRaw[0] : shiftRaw
+
+    if (shift && shift.start_time) {
+      // Nicaragua is UTC-6
+      const utcNow = new Date()
+      const nicaTime = new Date(utcNow.getTime() - 6 * 60 * 60 * 1000)
+      
+      const currentTotalMins = nicaTime.getUTCHours() * 60 + nicaTime.getUTCMinutes()
+      
+      const [shiftHours, shiftMins] = shift.start_time.split(':').map(Number)
+      const shiftTotalMins = shiftHours * 60 + shiftMins
+      const tolerance = shift.tolerance_in || 0
+      
+      if (currentTotalMins > shiftTotalMins + tolerance) {
+        tardinessMinutes = currentTotalMins - shiftTotalMins
+      }
+    }
   }
 
   // 2. Insert the time record directly using admin privileges
@@ -247,8 +281,8 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
       company_id: employee.company_id,
       event_type: eventType,
       recorded_at: new Date().toISOString(),
-      tardiness_minutes: 0, // Simplified: logic for tardiness can be expanded separately
-      status: 'pending' // Standard default status for new records unless auto-approved
+      tardiness_minutes: tardinessMinutes,
+      status: 'pending'
     })
 
   if (insertErr) {
@@ -266,7 +300,7 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     employee_name: `${employee.first_name} ${employee.last_name}`,
     employee_code: employee.employee_code,
     event_type: eventType,
-    tardiness_minutes: 0,
+    tardiness_minutes: tardinessMinutes,
     overtime_minutes: 0
   }
 }
