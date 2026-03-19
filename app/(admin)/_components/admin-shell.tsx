@@ -11,6 +11,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
   let companyName = 'Gestor360'
   let userName = 'Administrador'
   let userRole = 'admin'
+  let userCompanies: { id: string, name: string, slug: string }[] = []
 
   if (user) {
     userName =
@@ -18,18 +19,27 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
       user.email?.split('@')[0] ||
       'Administrador'
 
-    const { data: membership } = await supabase
+    const { data: memberships } = await supabase
       .from('company_memberships')
-      .select('role, companies(display_name)')
+      .select('role, company_id, companies(id, display_name, slug)')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .limit(1)
-      .single()
 
-    if (membership) {
-      userRole = membership.role
-      const co = membership.companies as unknown as { display_name: string } | null
+    if (memberships && memberships.length > 0) {
+      const primary = memberships[0]
+      userRole = primary.role
+      const co = primary.companies as unknown as { display_name: string } | null
       if (co?.display_name) companyName = co.display_name
+      
+      // Map all authorized companies
+      userCompanies = memberships.map(m => {
+        const c = m.companies as unknown as { id: string, display_name: string, slug: string }
+        return {
+          id: c.id,
+          name: c.display_name,
+          slug: c.slug
+        }
+      })
     }
   }
 
@@ -46,6 +56,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
       userName={userName}
       userRole={userRole}
       logoUrl={logoUrl}
+      companies={userCompanies}
     >
       {children}
     </AdminShellClient>

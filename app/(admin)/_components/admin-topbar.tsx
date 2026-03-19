@@ -1,4 +1,5 @@
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { ChevronDown, Building2 } from 'lucide-react'
 import { adminNav } from './admin-nav'
 
 interface AdminTopbarProps {
@@ -9,6 +10,7 @@ interface AdminTopbarProps {
   userRole?: string
   companyName?: string
   logoUrl?: string | null
+  companies?: { id: string, name: string, slug: string }[]
 }
 
 export function AdminTopbar({
@@ -19,12 +21,18 @@ export function AdminTopbar({
   userRole = 'Administrador',
   companyName = 'Gestor360',
   logoUrl,
+  companies = [],
 }: AdminTopbarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const currentCompanyId = searchParams.get('company_id') || 'all'
+
   const isDashboard = pathname === '/dashboard'
   
   const initials = userName
     .split(' ')
+    .filter(Boolean)
     .slice(0, 2)
     .map((w) => w[0])
     .join('')
@@ -62,6 +70,15 @@ export function AdminTopbar({
 
   const pageTitle = getDynamicTitle()
 
+  const handleCompanyChange = (id: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (id === 'all') {
+      params.delete('company_id')
+    } else {
+      params.set('company_id', id)
+    }
+    router.push(`${pathname}?${params.toString()}`)
+  }
   return (
     <header
       className="sticky top-0 z-20 border-b transition-all duration-300"
@@ -99,19 +116,39 @@ export function AdminTopbar({
             </button>
           </div>
 
-          {/* Title Branding */}
-          <div className="flex flex-col ml-0.5 truncate">
+          {/* Title Branding + Company Selector */}
+          <div className="flex flex-col ml-0.5 min-w-0">
             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-0.5 hidden sm:block truncate">
               {companyName}
             </span>
-            <div className="flex items-center gap-2 md:gap-3 truncate">
-              <h1 className="text-sm md:text-xl font-black text-white tracking-tight leading-none truncate">
-                {pageTitle}
-              </h1>
-              {isDashboard && (
-                <span className="shrink-0 px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] md:text-[9px] font-black rounded uppercase border border-blue-500/20">
-                  ADMIN
-                </span>
+            <div className="flex items-center gap-2 md:gap-4 truncate">
+              <h1 className="text-sm md:text-xl font-black text-white tracking-tight leading-none shrink-0">{pageTitle}</h1>
+              
+              {/* Vertical divider (Small) */}
+              <div className="w-px h-4 bg-slate-700/50 hidden xs:block" />
+
+              {/* Company Selector */}
+              {companies.length > 0 ? (
+                <div className="relative flex items-center group">
+                  <div className="absolute left-2.5 pointer-events-none text-blue-400 group-focus-within:text-blue-300 transition-colors hidden sm:block">
+                    <Building2 size={12} strokeWidth={3} />
+                  </div>
+                  <select 
+                    value={currentCompanyId}
+                    onChange={(e) => handleCompanyChange(e.target.value)}
+                    className="appearance-none bg-slate-800/40 hover:bg-slate-700/50 border border-slate-700/50 hover:border-slate-500/50 rounded-lg pl-2 sm:pl-8 pr-7 py-1.5 text-[10px] md:text-xs font-black text-slate-300 hover:text-white transition-all outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer uppercase tracking-widest max-w-[140px] sm:max-w-[200px] truncate"
+                  >
+                    <option value="all">Todas las empresas</option>
+                    {companies.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-2 pointer-events-none text-slate-500 group-hover:text-slate-300 transition-colors">
+                    <ChevronDown size={12} strokeWidth={3} />
+                  </div>
+                </div>
+              ) : (
+                isDashboard && <span className="shrink-0 px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] md:text-[9px] font-black rounded uppercase border border-blue-500/20">ADMIN</span>
               )}
             </div>
           </div>

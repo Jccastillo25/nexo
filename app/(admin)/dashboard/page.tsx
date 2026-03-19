@@ -21,10 +21,38 @@ import {
 function fmt(n: number | null | undefined): string {
   if (n === null || n === undefined) return '—'
   return n.toLocaleString('es-NI')
-}
-
-export default async function DashboardPage() {
+}export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ company_id?: string }>
+}) {
   const supabase = await createClient()
+  const params = await searchParams
+  const company_id = params.company_id
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  // Fetch all authorized company IDs for the user
+  const { data: memberships } = await supabase
+    .from('company_memberships')
+    .select('company_id')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+
+  const authorizedIds = memberships?.map(m => m.company_id) || []
+  
+  // Decide target filtering
+  const filteringAll = !company_id || company_id === 'all'
+  const targetId = filteringAll ? null : company_id
+
+  // Helper to apply company filter
+  const applyFilter = (query: any) => {
+    if (targetId) {
+      return query.eq('company_id', targetId)
+    }
+    return query.in('company_id', authorizedIds)
+  }
 
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
@@ -50,39 +78,38 @@ export default async function DashboardPage() {
     { data: branches },
     { data: employeesWithBranch },
     { data: realPendingRequests },
-    { data: authUser },
   ] = await Promise.all([
-    supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true),
-    supabase.from('time_records').select('*', { count: 'exact', head: true }).eq('event_type', 'clock_in').gte('recorded_at', todayISO),
-    supabase.from('time_corrections').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('leave_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('time_records').select('id, event_type, recorded_at, tardiness_minutes, employees(first_name, last_name, photo_url)').order('recorded_at', { ascending: false }).limit(4),
-    supabase.from('time_records').select('recorded_at').eq('event_type', 'clock_in').gte('recorded_at', sevenDaysAgoISO),
-    supabase.from('time_records').select('employee_id, tardiness_minutes, employees(first_name, last_name)').gte('recorded_at', startOfMonthISO).gt('tardiness_minutes', 0),
-    supabase.from('branches').select('id, name'),
-    supabase.from('employees').select('branch_id').eq('is_active', true),
-    supabase.from('leave_requests').select('id, type, status, employees(first_name, last_name)').eq('status', 'pending').limit(3),
-    supabase.auth.getUser(),
+    applyFilter(supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true)),
+    applyFilter(supabase.from('time_records').select('*', { count: 'exact', head: true }).eq('event_type', 'clock_in').gte('recorded_at', todayISO)),
+    applyFilter(supabase.from('time_corrections').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
+    applyFilter(supabase.from('leave_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
+    applyFilter(supabase.from('time_records').select('id, event_type, recorded_at, tardiness_minutes, employees(first_name, last_name, photo_url)').order('recorded_at', { ascending: false }).limit(4)),
+    applyFilter(supabase.from('time_records').select('recorded_at').eq('event_type', 'clock_in').gte('recorded_at', sevenDaysAgoISO)),
+    applyFilter(supabase.from('time_records').select('employee_id, tardiness_minutes, employees(first_name, last_name)').gte('recorded_at', startOfMonthISO).gt('tardiness_minutes', 0)),
+    applyFilter(supabase.from('branches').select('id, name')),
+    applyFilter(supabase.from('employees').select('branch_id').eq('is_active', true)),
+    applyFilter(supabase.from('leave_requests').select('id, type, status, employees(first_name, last_name)').eq('status', 'pending').limit(3)),
   ])
 
-  const user = authUser?.user
-  const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario'
-  const role = (user?.user_metadata?.role || 'Administrador').toUpperCase()
+  const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario'
+  const role = (user.user_metadata?.role || 'Administrador').toUpperCase()
 
   // --- TRANSFORMATION: Weekly Attendance ---
   const dayLabels = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
+  const wr: any = weeklyRecords
   const weeklyChartData = Array.from({ length: 7 }, (_, i) => {
     const date = new Date()
     date.setDate(date.getDate() - (6 - i))
     const label = dayLabels[date.getDay()]
     const iso = date.toISOString().split('T')[0]
-    const count = weeklyRecords?.filter(r => r.recorded_at.startsWith(iso)).length || 0
+    const count = wr?.filter((r: any) => r.recorded_at.startsWith(iso)).length || 0
     return { name: label, total: activeEmployees || 0, value: count }
   })
 
   // --- TRANSFORMATION: Top Delays ---
   const delayMap: Record<string, { name: string; minutes: number }> = {}
-  monthlyDelaysData?.forEach((r: any) => {
+  const mdd: any = monthlyDelaysData
+  mdd?.forEach((r: any) => {
     const emp = r.employees
     const name = emp ? `${emp.first_name} ${emp.last_name}` : 'Empleado'
     if (!delayMap[r.employee_id]) {
@@ -91,18 +118,20 @@ export default async function DashboardPage() {
     delayMap[r.employee_id].minutes += (r.tardiness_minutes || 0)
   })
   const topDelays = Object.values(delayMap)
-    .sort((a, b) => b.minutes - a.minutes)
+    .sort((a: any, b: any) => b.minutes - a.minutes)
     .slice(0, 3)
-    .map((d, i) => ({ ...d, color: i === 0 ? '#ef4444' : i === 1 ? '#f59e0b' : '#fcd34d' }))
+    .map((d: any, i: number) => ({ ...d, color: i === 0 ? '#ef4444' : i === 1 ? '#f59e0b' : '#fcd34d' }))
 
   // --- TRANSFORMATION: Branch Distribution ---
   const branchMap: Record<string, number> = {}
-  employeesWithBranch?.forEach(e => {
+  const ewb: any = employeesWithBranch
+  ewb?.forEach((e: any) => {
     if (e.branch_id) {
        branchMap[e.branch_id] = (branchMap[e.branch_id] || 0) + 1
     }
   })
-  const distribution = branches?.map((b, i) => {
+  const brs: any = branches
+  const distribution = brs?.map((b: any, i: number) => {
     const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-purple-500']
     return {
       name: b.name,
@@ -113,7 +142,8 @@ export default async function DashboardPage() {
   }).slice(0, 4) || []
 
   // --- TRANSFORMATION: Pending Requests ---
-  const pendingRequests = realPendingRequests?.map((req: any) => {
+  const prs: any = realPendingRequests
+  const pendingRequests = prs?.map((req: any) => {
     const emp = req.employees
     const name = emp ? `${emp.first_name} ${emp.last_name}` : 'Empleado'
     const initials = emp ? `${emp.first_name[0]}${emp.last_name[0]}` : '??'

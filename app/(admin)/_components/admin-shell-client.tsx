@@ -9,6 +9,7 @@ interface AdminShellClientProps {
   userName: string
   userRole: string
   logoUrl: string | null
+  companies: { id: string, name: string, slug: string }[]
   children: React.ReactNode
 }
 
@@ -17,6 +18,7 @@ export function AdminShellClient({
   userName,
   userRole,
   logoUrl,
+  companies,
   children,
 }: AdminShellClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -85,6 +87,7 @@ export function AdminShellClient({
           userRole={userRole}
           companyName={companyName}
           logoUrl={logoUrl}
+          companies={companies}
         />
         <main className="flex-1 p-4 md:p-6">
           <div className="mx-auto w-full max-w-7xl">{children}</div>
