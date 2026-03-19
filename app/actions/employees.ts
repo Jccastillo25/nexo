@@ -15,10 +15,10 @@ export async function createEmployee(
   const first_name = formData.get('first_name') as string
   const last_name = formData.get('last_name') as string
   const email = formData.get('email') as string
-  const branch_id = formData.get('branch_id') as string
+  const branch_id = formData.get('branch_id') as string // Now optional
 
-  if (!first_name || !last_name || !branch_id) {
-    return { error: 'Nombre, apellido y sucursal son requeridos.' }
+  if (!first_name || !last_name) {
+    return { error: 'Nombre y apellido son requeridos.' }
   }
 
   // Obtener company_id del usuario autenticado
@@ -43,12 +43,12 @@ export async function createEmployee(
   // El PIN se genera posteriormente desde la pestaña de "Seguridad y Kiosko"
   // una vez que el empleado tiene un turno asignado.
   const { error } = await supabase.from('employees').insert({
-    employee_code: null, // "Pendiente de configuración"
+    employee_code: null, // No PIN yet
     first_name,
     last_name,
     email: email || null,
-    branch_id,
-    company_id: membership.company_id,
+    branch_id: branch_id || null,
+    company_id: membership?.company_id || null,
     is_active: true,
   })
 
@@ -73,7 +73,7 @@ export async function updateEmployee(
   const email = formData.get('email') as string
   const phone = formData.get('phone') as string
   const hire_date = formData.get('hire_date') as string
-  const branch_id = formData.get('branch_id') as string
+  const branch_id = formData.get('branch_id') as string // Optional
   const national_id = formData.get('national_id') as string
   const social_security_id = formData.get('social_security_id') as string
   const tax_id = formData.get('tax_id') as string
@@ -82,16 +82,20 @@ export async function updateEmployee(
   const address = formData.get('address') as string
   const is_active = formData.get('is_active') === 'on'
 
-  if (!first_name || !last_name || !branch_id) {
-    return { error: 'Nombre, apellido y sucursal son requeridos.' }
+  if (!first_name || !last_name) {
+    return { error: 'Nombre y apellido son requeridos.' }
   }
 
-  // Ensure company_id is in sync with the selected branch
-  const { data: branchData } = await supabase
-    .from('branches')
-    .select('company_id')
-    .eq('id', branch_id)
-    .single()
+  // If branch is provided, sync company_id. If not, keep nulls or existing
+  let company_id = null
+  if (branch_id) {
+    const { data: branchData } = await supabase
+      .from('branches')
+      .select('company_id')
+      .eq('id', branch_id)
+      .single()
+    company_id = branchData?.company_id || null
+  }
 
   const { error } = await supabase
     .from('employees')
@@ -101,8 +105,8 @@ export async function updateEmployee(
       email: email || null,
       phone: phone || null,
       hire_date: hire_date || null,
-      branch_id,
-      company_id: branchData?.company_id, // Sync company_id
+      branch_id: branch_id || null,
+      company_id: company_id,
       is_active,
       national_id: national_id || null,
       social_security_id: social_security_id || null,

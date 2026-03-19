@@ -5,11 +5,23 @@ import { HiringWizard } from './hiring-wizard'
 export default async function NewContractPage() {
   const supabase = await createClient()
 
-  // Fetch employees that might need a contract
+  // 1. Fetch employees that might need a contract
   const { data: employees } = await supabase
     .from('employees')
     .select('id, first_name, last_name, email, is_active')
     .order('first_name')
+
+  // 2. Fetch companies for the wizard
+  const { data: companies } = await supabase
+    .from('companies')
+    .select('id, display_name, abbreviation')
+    .eq('is_active', true)
+
+  // 3. Fetch branches for the wizard
+  const { data: branches } = await supabase
+    .from('branches')
+    .select('id, name, code, company_id')
+    .eq('is_active', true)
 
   return (
     <section className="mx-auto max-w-2xl space-y-6">
@@ -27,7 +39,11 @@ export default async function NewContractPage() {
       </div>
 
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-10">
-        <HiringWizard initialEmployees={employees || []} />
+        <HiringWizard 
+          initialEmployees={employees || []} 
+          companies={companies || []}
+          branches={branches || []}
+        />
       </div>
     </section>
   )

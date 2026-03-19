@@ -90,7 +90,7 @@ export default async function ContractsPage() {
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Tipo / Salario</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Horario Asignado</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Vigencia</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Estado</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -131,6 +131,14 @@ export default async function ContractsPage() {
                         }`}>
                           {contract.status}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Link
+                          href={`/contracts/${contract.id}/edit`}
+                          className="rounded-xl border-2 border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Editar
+                        </Link>
                       </td>
                     </tr>
                   )

@@ -68,20 +68,22 @@ export function EmployeeForm({ branches }: { branches: { id: string; name: strin
 
         <div>
            <label className="mb-2 block text-sm font-semibold text-slate-900">
-            Sucursal asignada *
+            Sucursal (Opcional)
           </label>
           <select
             name="branch_id"
-            required
             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           >
-            <option value="">Selecciona una sucursal...</option>
+            <option value="">Sin asignar (Candidato)</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
               </option>
             ))}
           </select>
+          <p className="mt-2 text-xs text-slate-500">
+            Puedes asignarla ahora o dejarla pendiente hasta la contratación.
+          </p>
         </div>
       </div>
 
