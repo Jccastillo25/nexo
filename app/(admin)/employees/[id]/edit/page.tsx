@@ -13,21 +13,29 @@ export default async function EditEmployeePage({
 
   const [
     { data: employeeData },
-    { data: branches }
+    { data: branches },
+    { data: contract }
   ] = await Promise.all([
     supabase
       .from('employees')
-      .select('id, employee_code, first_name, last_name, email, phone, hire_date, national_id, social_security_id, tax_id, birth_date, gender, address, branch_id, is_active, photo_url')
+      .select('id, employee_code, employee_number, first_name, last_name, email, phone, hire_date, national_id, social_security_id, tax_id, birth_date, gender, address, branch_id, is_active, photo_url')
       .eq('id', id)
       .single(),
     supabase
       .from('branches')
       .select('id, name')
       .eq('is_active', true)
-      .order('name')
+      .order('name'),
+    supabase
+      .from('contracts')
+      .select('id')
+      .eq('employee_id', id)
+      .eq('status', 'active')
+      .maybeSingle()
   ])
 
   const employee = employeeData as unknown as any
+  const hasActiveContract = !!contract
 
   if (!employee) notFound()
 
@@ -47,7 +55,11 @@ export default async function EditEmployeePage({
       </div>
 
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
-        <EmployeeEditForm employee={employee} branches={branches ?? []} />
+        <EmployeeEditForm 
+          employee={employee} 
+          branches={branches ?? []} 
+          hasActiveContract={hasActiveContract}
+        />
       </div>
     </section>
   )

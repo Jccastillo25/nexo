@@ -237,6 +237,26 @@ Registra una marcación desde el kiosco:
 
 ---
 
+### `contracts`
+Contrataciones legales de los empleados vinculadas con su turno y empresa.
+
+| Columna          | Tipo        | Descripción                                      |
+|------------------|-------------|--------------------------------------------------|
+| `id`             | `uuid` PK   | Identificador único                              |
+| `employee_id`    | `uuid` FK   | Empleado → `employees.id`                        |
+| `schedule_id`    | `uuid` FK   | Horario/Turno → `shifts.id`                      |
+| `company_id`     | `uuid` FK   | Empresa → `companies.id`                         |
+| `branch_id`      | `uuid` FK   | Sucursal → `branches.id`                         |
+| `contract_type`  | `text`      | Tipo (Indefinido, Temporal, etc.)                |
+| `salary`         | `numeric`   | Salario mensual pactado                          |
+| `start_date`     | `date`      | Fecha de inicio del contrato                     |
+| `end_date`       | `date`      | Fecha de vencimiento (opcional)                  |
+| `status`         | `text`      | `active`, `annulled`, `expired`, `terminated`    |
+| `is_printed`     | `bool`      | Indica si ya se generó/imprimió el PDF           |
+| `created_at`     | `timestamptz` | Fecha de creación                              |
+
+---
+
 ## Diagrama de relaciones
 
 ```
@@ -244,13 +264,15 @@ companies
     │
     ├─── branches ──────────────── kiosk_devices
     │         │
-    │         └─────────────────── employees
-    │                                   │
-    │                        ┌──────────┼──────────────────┐
-    │                        │          │                  │
-    │                employee_pins  employee_shifts    time_records
-    │                                   │                  │
-    │                                shifts        time_corrections
+    │         ├─────────────────── employees
+    │         │                       │
+    │         │            ┌──────────┼──────────────────┐
+    │         │            │          │                  │
+    │         │    employee_pins  employee_shifts    time_records
+    │         │                       │                  │
+    │         │                    shifts        time_corrections
+    │         │
+    │         └─────────────────── contracts
     │
     └─── company_memberships (users de Supabase Auth)
 
@@ -262,4 +284,4 @@ app_settings (global, sin FK)
 
 ---
 
-*Documentación de base de datos — Gestor360 v0.1.0 — 19 de marzo de 2026*
+*Documentación de base de datos — Gestor360 v0.2.0 — 19 de marzo de 2026*

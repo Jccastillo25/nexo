@@ -35,7 +35,7 @@ export default async function EmployeeDetailPage({
   ] = await Promise.all([
     supabase
       .from('employees')
-      .select('id, first_name, last_name, employee_code, email, phone, hire_date, is_active, national_id, social_security_id, tax_id, birth_date, gender, address, photo_url, branches(name)')
+      .select('id, first_name, last_name, employee_code, employee_number, email, phone, hire_date, is_active, national_id, social_security_id, tax_id, birth_date, gender, address, photo_url, branches(name)')
       .eq('id', id)
       .single(),
     supabase
@@ -58,9 +58,9 @@ export default async function EmployeeDetailPage({
       .maybeSingle(),
     supabase
       .from('contracts')
-      .select('*')
+      .select('*, companies(display_name), branches(name)')
       .eq('employee_id', id)
-      .eq('is_active', true)
+      .eq('status', 'active')
       .maybeSingle(),
   ])
 
@@ -70,14 +70,15 @@ export default async function EmployeeDetailPage({
 
   const branch    = employee.branches as unknown as { name: string } | null
   const shiftData = shift?.shifts    as unknown as { name: string; start_time: string; end_time: string } | null
+  const contractData = contract as any
 
   const infoRows = [
+    { label: 'N° Empleado',      value: employee.employee_number ?? 'PENDIENTE' },
     { label: 'Correo',           value: employee.email ?? '—' },
     { label: 'Teléfono',         value: employee.phone ?? '—' },
     { label: 'Sucursal',         value: branch?.name ?? '—' },
     { label: 'Ingreso',          value: employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('es-NI') : '—' },
     { label: 'Cédula',           value: employee.national_id ?? '—' },
-    { label: 'INSS',             value: employee.social_security_id ?? '—' },
   ]
 
   const tabClass = (currentTab: string) => 
@@ -315,29 +316,45 @@ export default async function EmployeeDetailPage({
             )}
           </div>
 
-          {contract ? (
+          {contractData ? (
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-100">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Número de Empleado</span>
+                <p className="mt-2 text-lg font-bold text-slate-900">{employee.employee_number ?? 'No asignado'}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-100">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Empresa</span>
+                <p className="mt-2 text-lg font-medium text-slate-900">{contractData.companies?.display_name ?? '—'}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-100">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Sucursal</span>
+                <p className="mt-2 text-lg font-medium text-slate-900">{contractData.branches?.name ?? '—'}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-100">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tipo de Contrato</span>
-                <p className="mt-2 text-lg font-medium text-slate-900 capitalize">{contract.contract_type ?? 'No especificado'}</p>
+                <p className="mt-2 text-lg font-medium text-slate-900 capitalize">{contractData.contract_type ?? 'No especificado'}</p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-100">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha de Inicio</span>
                 <p className="mt-2 text-lg font-medium text-slate-900">
-                  {contract.start_date ? new Date(contract.start_date).toLocaleDateString('es-NI') : '—'}
+                  {contractData.start_date ? new Date(contractData.start_date).toLocaleDateString('es-NI') : '—'}
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-100">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha de Fin</span>
                 <p className="mt-2 text-lg font-medium text-slate-900">
-                  {contract.end_date ? new Date(contract.end_date).toLocaleDateString('es-NI') : 'Indeterminado'}
+                  {contractData.end_date ? new Date(contractData.end_date).toLocaleDateString('es-NI') : 'Indeterminado'}
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-100">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Salario</span>
-                <p className="mt-2 text-lg font-medium text-slate-900">
-                  {contract.salary ? `C$ ${Number(contract.salary).toLocaleString('es-NI')}` : 'No especificado'}
+                <p className="mt-2 text-lg font-bold text-slate-900">
+                  {contractData.salary ? `C$ ${Number(contractData.salary).toLocaleString('es-NI')}` : 'No especificado'}
                 </p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-100">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Horario / Turno</span>
+                <p className="mt-2 text-lg font-medium text-slate-900">{shiftData?.name ?? '—'}</p>
               </div>
             </div>
           ) : (

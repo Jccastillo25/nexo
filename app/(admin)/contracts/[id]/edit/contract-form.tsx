@@ -89,6 +89,7 @@ export function ContractForm({ id, initialData, shifts }: ContractFormProps) {
                 className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
               >
                 <option value="active">Activo</option>
+                <option value="annulled">Anulado</option>
                 <option value="expired">Vencido</option>
                 <option value="terminated">Terminado</option>
               </select>

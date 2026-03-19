@@ -26,11 +26,12 @@ interface EmployeeEditFormProps {
     photo_url: string | null
   }
   branches: { id: string; name: string }[]
+  hasActiveContract: boolean
 }
 
 type Tab = 'general' | 'identificacion' | 'ubicacion' | 'foto' | 'seguridad'
 
-export function EmployeeEditForm({ employee, branches }: EmployeeEditFormProps) {
+export function EmployeeEditForm({ employee, branches, hasActiveContract }: EmployeeEditFormProps) {
   const [activeTab, setActiveTab] = useState<Tab>('general')
   const [previewUrl, setPreviewUrl] = useState<string | null>(employee.photo_url)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -180,7 +181,12 @@ export function EmployeeEditForm({ employee, branches }: EmployeeEditFormProps) 
       {/* ===================== PESTAÑA: SEGURIDAD ===================== */}
       {activeTab === 'seguridad' && (
         <div className="animate-in fade-in duration-300">
-           <PinManager employeeId={employee.id} currentPin={employee.employee_code ?? '0000'} />
+           <PinManager 
+             employeeId={employee.id} 
+             currentPin={employee.employee_code ?? '0000'} 
+             hasActiveContract={hasActiveContract}
+             employeeNumber={employee.employee_number}
+           />
            <div className="mt-8 rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-200">
               <h3 className="text-sm font-semibold text-slate-900">Configuración de Kiosko</h3>
               <p className="mt-2 text-sm text-slate-500">
