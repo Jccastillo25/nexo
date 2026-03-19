@@ -38,9 +38,18 @@ export const adminNav: NavSection[] = [
     ],
   },
   {
+    title: 'Contrataciones',
+    items: [
+      { href: '/contracts', label: 'Dashboard' },
+      { href: '/contracts/new', label: 'Nueva contratación' },
+      { href: '/contracts/templates', label: 'Plantillas' },
+    ],
+  },
+  {
     title: 'Horarios',
     items: [
       { href: '/schedules', label: 'Turnos' },
+      { href: '/schedules/new', label: 'Crear Turno' },
       { href: '/schedules/assignments', label: 'Asignaciones' },
     ],
   },
