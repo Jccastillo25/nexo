@@ -81,7 +81,7 @@ export function AdminTopbar({
   }
   return (
     <header
-      className="sticky top-0 z-20 border-b transition-all duration-300"
+      className="print:hidden sticky top-0 z-20 border-b transition-all duration-300"
       style={{
         background: 'rgba(15, 23, 42, 0.9)',
         backdropFilter: 'blur(16px)',

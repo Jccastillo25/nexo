@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { ReportActions } from '../_components/report-actions'
 
 interface AttendanceReportProps {
   searchParams: Promise<{
@@ -47,16 +48,19 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
             Análisis de puntualidad y marcas registradas para el día seleccionado.
           </p>
         </div>
-        <Link
-          href="/reports"
-          className="shrink-0 rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-        >
-          ← Volver
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <ReportActions />
+          <Link
+            href="/reports"
+            className="rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            ← Volver
+          </Link>
+        </div>
       </div>
 
       {/* Filtros */}
-      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 print:hidden">
         <form className="grid gap-4 sm:grid-cols-3">
           <div>
             <label className="mb-2 block text-xs font-bold uppercase text-slate-400">Fecha</label>

@@ -128,7 +128,7 @@ export function AdminSidebar({
     .toUpperCase()
 
   return (
-    <aside className="flex h-full flex-col transition-colors border-r" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-soft)' }}>
+    <aside className="print:hidden flex h-full flex-col transition-colors border-r" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-soft)' }}>
 
       {/* ── Logo area ── */}
       <div className="flex items-center gap-3 px-5 py-5">
