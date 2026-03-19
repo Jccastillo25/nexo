@@ -227,13 +227,13 @@ Configuración global de la aplicación en formato clave-valor.
 ### `create_company_with_owner(p_display_name, p_legal_name, p_slug, p_tax_id)`
 Crea una empresa y automáticamente asigna al usuario autenticado como `owner` en `company_memberships`. Retorna el `id` de la nueva empresa.
 
-### `kiosk_clock_event(pin, branch_id, device_code)`
-Registra una marcación desde el kiosco:
+### Server Actions (Alternativa a RPCs)
+
+#### `processKioskEvent(branch_id, pin, event_type)`
+Registra una marcación desde el kiosco. *(Funcionalidad migrada desde PostgreSQL hacia Next.js para mejorar la trazabilidad de errores RLS/Constraints)*:
 1. Busca al empleado por `employee_code = pin` y `branch_id`.
-2. Detecta si será `clock_in` o `clock_out` según el último registro del día.
-3. Calcula `tardiness_minutes` en base al turno activo (`employee_shifts` → `shifts`).
-4. Inserta el registro en `time_records`.
-5. Retorna nombre y foto del empleado para mostrar en el kiosco.
+2. Inserta el registro en `time_records` (requiere `company_id`).
+3. Retorna nombre y código del empleado para la UI.
 
 ---
 

@@ -208,7 +208,6 @@ Tablas principales en **Supabase (PostgreSQL)**:
 | Función                      | Descripción                                             |
 |------------------------------|---------------------------------------------------------|
 | `create_company_with_owner`  | Crea una empresa y asigna al usuario actual como `owner`|
-| `kiosk_clock_event`          | Registra una entrada/salida desde el kiosco (RPC)       |
 
 ### Storage Buckets
 
@@ -297,10 +296,10 @@ Usuario autenticado (Supabase Auth)
 Empleado ingresa PIN en kiosco
         │
         ▼
-RPC: kiosk_clock_event(pin, branch_id, device_code)
+Server Action: processKioskEvent(branch_id, pin, event_type)
         │
         ▼
-Supabase valida PIN → busca employee_code en employees
+Next.js valida PIN → busca employee_code en employees usando admin_client
         │
         ▼
 Inserta registro en time_records (clock_in / clock_out)
@@ -318,7 +317,7 @@ La ruta raíz `/` sirve el kiosco de marcación. Es una página pública (sin au
 
 1. Carga configuración desde `app_settings`: logo, imagen de fondo, mensaje y nombre de empresa.
 2. Muestra un teclado numérico para ingresar el PIN de 4 dígitos.
-3. Llama al RPC `kiosk_clock_event` al confirmar.
+3. Llama al Server Action `processKioskEvent` al confirmar.
 4. Los dispositivos físicos se identifican con un `device_code` en formato: `{empresa}-{sucursal}-ki-{nn}`.
 
 ---
