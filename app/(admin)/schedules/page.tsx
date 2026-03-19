@@ -17,7 +17,7 @@ export default async function SchedulesPage() {
   ] = await Promise.all([
     supabase
       .from('shifts')
-      .select('id, name, start_time, end_time, break_minutes, tolerance_in, tolerance_out, is_active', { count: 'exact' })
+      .select('id, name, start_time, end_time, break_minutes, tolerance_in, tolerance_out, is_active, days_of_week', { count: 'exact' })
       .order('name'),
     supabase
       .from('employee_shifts')
