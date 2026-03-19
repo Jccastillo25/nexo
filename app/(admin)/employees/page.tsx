@@ -155,17 +155,17 @@ export default async function EmployeesPage({
             </select>
 
             {(q || branch || shift) && (
-              <Link href="/employees" className="h-11 flex items-center px-4 text-sm text-slate-500 hover:text-slate-900">
+              <Link href="/employees" className="h-11 flex items-center px-4 text-sm text-slate-400 hover:text-white">
                 Limpiar
               </Link>
             )}
             <button type="submit" className="hidden">Buscar</button>
           </form>
           
-          <div className="flex gap-2 text-xs font-semibold text-slate-500 sm:hidden">
+          <div className="flex gap-2 text-xs font-semibold text-slate-400 sm:hidden">
             <span>{total} Total</span>
             <span>•</span>
-            <span className="text-green-600">{Math.max(0, total - inactive)} Activos</span>
+            <span className="text-green-400">{Math.max(0, total - inactive)} Activos</span>
           </div>
         </div>
 

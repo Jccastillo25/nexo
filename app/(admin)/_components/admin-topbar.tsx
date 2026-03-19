@@ -1,4 +1,5 @@
 import { usePathname } from 'next/navigation'
+import { adminNav } from './admin-nav'
 
 interface AdminTopbarProps {
   sidebarOpen: boolean
@@ -21,12 +22,45 @@ export function AdminTopbar({
 }: AdminTopbarProps) {
   const pathname = usePathname()
   const isDashboard = pathname === '/dashboard'
+  
   const initials = userName
     .split(' ')
     .slice(0, 2)
     .map((w) => w[0])
     .join('')
     .toUpperCase()
+
+  // Dynamic Title Logic
+  const getDynamicTitle = () => {
+    // Exact or direct match from nav
+    for (const section of adminNav) {
+      for (const item of section.items) {
+        // Strip query params for comparison
+        const itemPath = item.href.split('?')[0]
+        if (pathname === itemPath) return item.label
+      }
+    }
+
+    // Special cases for sub-routes
+    if (pathname.startsWith('/employees/')) {
+      if (pathname.includes('/edit')) return 'Editar Colaborador'
+      if (pathname.includes('/new')) return 'Nuevo Colaborador'
+      return 'Perfil de Colaborador'
+    }
+    
+    if (pathname.startsWith('/organization/')) return 'Organización'
+    if (pathname.startsWith('/attendance/')) return 'Marcaciones'
+    if (pathname.startsWith('/schedules/')) return 'Horarios'
+    if (pathname.startsWith('/reports/')) return 'Reportes'
+    if (pathname.startsWith('/kiosk/')) return 'Kiosko'
+    if (pathname.startsWith('/leave/')) return 'Permisos y Ausencias'
+    if (pathname.startsWith('/settings/')) return 'Configuración'
+    if (pathname.startsWith('/security/')) return 'Seguridad'
+
+    return 'Panel de Control'
+  }
+
+  const pageTitle = getDynamicTitle()
 
   return (
     <header
@@ -35,24 +69,13 @@ export function AdminTopbar({
         background: 'rgba(15, 23, 42, 0.9)',
         backdropFilter: 'blur(16px)',
         borderColor: 'var(--border-soft)',
-        height: isDashboard ? 'clamp(64px, 10vh, 80px)' : '64px',
+        height: 'clamp(64px, 10vh, 80px)',
       }}
     >
       <div className="flex h-full items-center gap-2 px-3 md:gap-4 md:px-6 overflow-hidden">
 
         {/* ── Left: Logo + Hamburger + Title ── */}
         <div className="flex items-center gap-2 md:gap-4 min-w-0">
-          {isDashboard && (
-            <div className="flex items-center gap-2 md:gap-4 shrink-0">
-              {/* Logo G Box */}
-              <div className="size-8 md:size-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-400/20">
-                <span className="text-lg md:text-xl font-black text-white italic">G</span>
-              </div>
-              
-              {/* Vertical divider */}
-              <div className="w-px h-8 bg-slate-700/50 hidden sm:block" />
-            </div>
-          )}
 
           {/* Hamburger / Sidebar Toggles */}
           <div className="flex items-center gap-1 shrink-0">
@@ -77,19 +100,21 @@ export function AdminTopbar({
           </div>
 
           {/* Title Branding */}
-          {isDashboard ? (
-            <div className="flex flex-col ml-0.5 truncate">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-0.5 hidden sm:block truncate">
-                {companyName}
-              </span>
-              <div className="flex items-center gap-2 md:gap-3 truncate">
-                <h1 className="text-sm md:text-xl font-black text-white tracking-tight leading-none truncate">Panel de Control</h1>
-                <span className="shrink-0 px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] md:text-[9px] font-black rounded uppercase border border-blue-500/20">ADMIN</span>
-              </div>
+          <div className="flex flex-col ml-0.5 truncate">
+            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-0.5 hidden sm:block truncate">
+              {companyName}
+            </span>
+            <div className="flex items-center gap-2 md:gap-3 truncate">
+              <h1 className="text-sm md:text-xl font-black text-white tracking-tight leading-none truncate">
+                {pageTitle}
+              </h1>
+              {isDashboard && (
+                <span className="shrink-0 px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] md:text-[9px] font-black rounded uppercase border border-blue-500/20">
+                  ADMIN
+                </span>
+              )}
             </div>
-          ) : (
-            <h2 className="text-sm font-bold text-white hidden sm:block truncate">Gestor360</h2>
-          )}
+          </div>
         </div>
 
         {/* ── Spacer ── */}

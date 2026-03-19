@@ -83,8 +83,8 @@ export default async function EmployeeDetailPage({
   const tabClass = (currentTab: string) => 
     `px-5 py-3 text-sm font-semibold transition-all border-b-2 whitespace-nowrap ${
       tab === currentTab
-        ? 'border-slate-900 text-slate-900'
-        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+        ? 'border-white text-white'
+        : 'border-transparent text-slate-400 hover:text-white hover:border-slate-500'
     }`
 
   // Construir Timeline
