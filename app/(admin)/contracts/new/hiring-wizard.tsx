@@ -25,6 +25,7 @@ export function HiringWizard({ initialEmployees }: { initialEmployees: Employee[
   const [shifts, setShifts] = useState<Shift[]>([])
   const [loadingShifts, setLoadingShifts] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState<string>('')
+  const [selectedShift, setSelectedShift] = useState<string>('')
   
   const [state, action, pending] = useActionState<ContractActionState, FormData>(createContract, null)
 
@@ -97,7 +98,7 @@ export function HiringWizard({ initialEmployees }: { initialEmployees: Employee[
                     checked={selectedEmployee === emp.id}
                     onChange={() => setSelectedEmployee(emp.id)}
                     className="h-5 w-5 accent-slate-900" 
-                    required={step === 1}
+                    required
                   />
                   <div>
                     <p className="font-bold text-slate-900">{emp.first_name} {emp.last_name}</p>
@@ -136,6 +137,7 @@ export function HiringWizard({ initialEmployees }: { initialEmployees: Employee[
                 type="number" 
                 name="salary" 
                 placeholder="0.00" 
+                defaultValue="0"
                 className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900" 
               />
             </div>
@@ -144,6 +146,7 @@ export function HiringWizard({ initialEmployees }: { initialEmployees: Employee[
               <input 
                 type="date" 
                 name="start_date" 
+                defaultValue={new Date().toISOString().split('T')[0]}
                 className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900" 
               />
             </div>
@@ -170,12 +173,26 @@ export function HiringWizard({ initialEmployees }: { initialEmployees: Employee[
               {shifts.map((shift) => (
                 <label 
                   key={shift.id}
-                  className="flex cursor-pointer items-center gap-4 rounded-2xl border-2 border-slate-200 p-5 transition hover:bg-slate-50 has-[:checked]:border-slate-900 has-[:checked]:bg-slate-50 has-[:checked]:ring-1 has-[:checked]:ring-slate-900 shadow-sm"
+                  className={`flex cursor-pointer items-center gap-4 rounded-2xl border-2 p-5 transition shadow-sm ${
+                    selectedShift === shift.id 
+                      ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' 
+                      : 'border-slate-200 hover:bg-slate-50'
+                  }`}
                 >
-                  <input type="radio" name="schedule_id" value={shift.id} className="h-6 w-6 accent-slate-900" required={step === 3} />
+                  <input 
+                    type="radio" 
+                    name="schedule_id" 
+                    value={shift.id} 
+                    checked={selectedShift === shift.id}
+                    onChange={() => setSelectedShift(shift.id)}
+                    className="h-6 w-6 accent-slate-900" 
+                    required
+                  />
                   <div className="flex-1">
                     <p className="font-bold text-slate-900">{shift.name}</p>
-                    <p className="text-sm font-medium text-slate-600">{shift.start_time} - {shift.end_time}</p>
+                    <p className="text-sm font-medium text-slate-600 font-mono">
+                      {shift.start_time.substring(0,5)} - {shift.end_time.substring(0,5)}
+                    </p>
                   </div>
                 </label>
               ))}
@@ -186,7 +203,7 @@ export function HiringWizard({ initialEmployees }: { initialEmployees: Employee[
         {/* Step 4: Finalize & Preview */}
         <div className={step === 4 ? 'space-y-6 animate-in zoom-in-95' : 'hidden'}>
           <div className="text-center space-y-2">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-white">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl">
               <span className="text-2xl font-bold italic">G</span>
             </div>
             <h2 className="text-2xl font-bold text-slate-900">Vista Previa</h2>
@@ -204,7 +221,7 @@ export function HiringWizard({ initialEmployees }: { initialEmployees: Employee[
                 Yo, <span className="font-bold">GESTOR360 S.A.</span>, formalizo la contratación de <span className="font-bold text-slate-900 underline">{initialEmployees.find(e => e.id === selectedEmployee)?.first_name} {initialEmployees.find(e => e.id === selectedEmployee)?.last_name}</span> bajo la modalidad de <span className="font-bold">Contrato Laboral</span>.
               </p>
               <p>
-                El colaborador cumplirá sus funciones según lo establecido en el sistema, asegurando el cumplimiento de entrada y salida mediante el Kiosko de Marcación.
+                El colaborador cumplirá sus funciones según lo establecido en el turno <span className="font-bold">{shifts.find(s => s.id === selectedShift)?.name || 'Seleccionado'}</span>, asegurando el cumplimiento de entrada y salida mediante el Kiosko de Marcación.
               </p>
               <p className="pt-4 border-t border-slate-100 italic text-xs text-slate-500">
                 * Al hacer clic en finalizar, el sistema habilitará el PIN automático para el Kiosko de marcación.
@@ -229,7 +246,7 @@ export function HiringWizard({ initialEmployees }: { initialEmployees: Employee[
             <button 
               type="button" 
               onClick={nextStep} 
-              disabled={step === 1 && !selectedEmployee}
+              disabled={(step === 1 && !selectedEmployee) || (step === 3 && !selectedShift)}
               className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-bold text-white shadow-xl transition hover:bg-slate-800 disabled:opacity-50 active:scale-95"
             >
               Siguiente
