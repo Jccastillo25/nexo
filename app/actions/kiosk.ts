@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import { KioskDevice } from '../types/kiosk'
+import { KioskDevice, EventType, KioskResult } from '../types/kiosk'
 
 export async function getKioskByDeviceCode(code: string): Promise<{ data: KioskDevice | null; error: string | null }> {
   const supabase = await createClient()
@@ -223,3 +223,49 @@ export async function verifyKioskPin(pin: string, branchId: string): Promise<{ s
   }
 }
 
+export async function processKioskEvent(branchId: string, pin: string, eventType: EventType): Promise<KioskResult> {
+  const supabase = createAdminClient()
+
+  // 1. Verify existence and active status
+  const { data: employee, error: empErr } = await supabase
+    .from('employees')
+    .select('id, first_name, last_name, is_active, employee_code')
+    .eq('employee_code', pin)
+    .eq('branch_id', branchId)
+    .maybeSingle()
+
+  if (empErr || !employee || !employee.is_active) {
+    return { success: false, error: 'PIN incorrecto o empleado no encontrado en esta sucursal.' }
+  }
+
+  // 2. Insert the time record directly using admin privileges
+  const { error: insertErr } = await supabase
+    .from('time_records')
+    .insert({
+      employee_id: employee.id,
+      branch_id: branchId,
+      event_type: eventType,
+      recorded_at: new Date().toISOString(),
+      tardiness_minutes: 0, // Simplified: logic for tardiness can be expanded separately
+      status: 'pending' // Standard default status for new records unless auto-approved
+    })
+
+  if (insertErr) {
+    console.error('Kiosk Clock-In Insert Error:', insertErr.message)
+    // If the database fails (e.g. schema changes), we provide a clearer message
+    return { success: false, error: `Error del sistema: ${insertErr.message}` }
+  }
+
+  // 3. Revalidate path to update dashboards
+  revalidatePath('/dashboard')
+  revalidatePath('/attendance')
+
+  return {
+    success: true,
+    employee_name: `${employee.first_name} ${employee.last_name}`,
+    employee_code: employee.employee_code,
+    event_type: eventType,
+    tardiness_minutes: 0,
+    overtime_minutes: 0
+  }
+}

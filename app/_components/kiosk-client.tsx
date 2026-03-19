@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 import { EventType, KioskResult, UIState, KioskClientProps } from '../types/kiosk'
-import { getKioskByDeviceCode, verifyKioskPin } from '../actions/kiosk'
+import { getKioskByDeviceCode, verifyKioskPin, processKioskEvent } from '../actions/kiosk'
 
 export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyName, initialCustomMessage, initialBranchId }: KioskClientProps) {
   const [pin, setPin]             = useState('')
@@ -181,29 +181,32 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
 
   const executeAction = async (type: EventType) => {
     if (lockedUntil && Date.now() < lockedUntil) return
+    const branchIdToUse = kioskData?.branch_id || initialBranchId
+    if (!branchIdToUse) {
+      setResult({ success: false, error: 'No hay sucursal activa configurada.' })
+      setUiState('error')
+      resetTimer.current = setTimeout(reset, 4000)
+      return
+    }
     setUiState('loading')
 
-    const supabase = createClient()
-    const { data, error } = await supabase.rpc('kiosk_clock_event', {
-      p_branch_id:  kioskData?.branch_id || initialBranchId,
-      p_pin:        pin,
-      p_event_type: type,
-    })
+    const res = await processKioskEvent(
+      branchIdToUse,
+      pin,
+      type
+    )
 
-    let isError = false
+    let isError = !res.success
 
-    if (error) {
-      isError = true
-      setResult({ success: false, error: error.message })
+    if (isError) {
+      setResult({ success: false, error: res.error || 'Error desconocido' })
       setUiState('error')
     } else {
-      const res = data as KioskResult
-      isError = !res.success
       setResult({
         ...res,
         event_type: type // Aseguramos el tipo para el visual
       })
-      setUiState(res.success ? 'success' : 'error')
+      setUiState('success')
     }
 
     if (isError) {
