@@ -253,7 +253,7 @@ function fmt(n: number | null | undefined): string {
                    <h2 className="text-base font-black text-white tracking-tight uppercase">Actividad Reciente</h2>
                 </div>
                 <div className="space-y-6">
-                   {recentRecords?.map((record, i) => {
+                   {recentRecords?.map((record: any, i: number) => {
                      const emp = record.employees as unknown as { first_name: string; last_name: string; photo_url?: string }
                      const name = emp ? `${emp.first_name} ${emp.last_name}` : 'Usuario'
                      const isIn = record.event_type === 'clock_in'
@@ -290,7 +290,7 @@ function fmt(n: number | null | undefined): string {
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">POR SUCURSAL</span>
                    </div>
                    <div className="space-y-4">
-                      {distribution.map((dept, i) => (
+                      {distribution.map((dept: any, i: number) => (
                         <div key={i} className="space-y-2">
                            <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-slate-300">
                               <span>{dept.name}</span>
@@ -341,7 +341,7 @@ function fmt(n: number | null | undefined): string {
                 <h2 className="text-base font-black text-white tracking-tight uppercase">Solicitudes Pendientes</h2>
              </div>
              <div className="space-y-4">
-                {pendingRequests.map((req, i) => (
+                {pendingRequests.map((req: any, i: number) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-slate-800/40 border border-slate-700/30">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-slate-700 text-xs font-black flex items-center justify-center border border-slate-600">
