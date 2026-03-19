@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Info
 } from 'lucide-react'
+import { getNicaISODate, getNicaRange, formatInNica } from '@/lib/date-utils'
 
 function fmt(n: number | null | undefined): string {
   if (n === null || n === undefined) return '—'
@@ -54,18 +55,18 @@ function fmt(n: number | null | undefined): string {
     return query.in('company_id', authorizedIds)
   }
 
-  const todayStart = new Date()
-  todayStart.setHours(0, 0, 0, 0)
-  const todayISO = todayStart.toISOString()
+  const filterDate = getNicaISODate()
+  const { start: todayISO } = getNicaRange(filterDate)
 
+  // Ultimos 7 dias (calculado en Nica time)
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-  const sevenDaysAgoISO = sevenDaysAgo.toISOString()
+  const { start: sevenDaysAgoISO } = getNicaRange(getNicaISODate(sevenDaysAgo))
 
-  const startOfMonth = new Date()
-  startOfMonth.setDate(1)
-  startOfMonth.setHours(0, 0, 0, 0)
-  const startOfMonthISO = startOfMonth.toISOString()
+  // Inicio de mes (calculado en Nica time)
+  const startOfMonthDate = new Date()
+  startOfMonthDate.setDate(1)
+  const { start: startOfMonthISO } = getNicaRange(getNicaISODate(startOfMonthDate))
 
   const [
     { count: activeEmployees },
@@ -101,8 +102,8 @@ function fmt(n: number | null | undefined): string {
     const date = new Date()
     date.setDate(date.getDate() - (6 - i))
     const label = dayLabels[date.getDay()]
-    const iso = date.toISOString().split('T')[0]
-    const count = wr?.filter((r: any) => r.recorded_at.startsWith(iso)).length || 0
+    const nicaDay = getNicaISODate(date)
+    const count = wr?.filter((r: any) => getNicaISODate(new Date(r.recorded_at)) === nicaDay).length || 0
     return { name: label, total: activeEmployees || 0, value: count }
   })
 
@@ -268,10 +269,12 @@ function fmt(n: number | null | undefined): string {
                               {i < (recentRecords?.length || 0) - 1 && <div className="w-0.5 flex-grow bg-slate-800" />}
                            </div>
                            <div className="pb-6">
-                              <p className="text-sm font-bold text-slate-300 leading-none">
-                                <span className="text-white">{name}</span> {action}.
-                              </p>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 opacity-60">{timeLabel}</p>
+                               <p className="text-sm font-bold text-slate-300 leading-none">
+                                 <span className="text-white">{name}</span> {action}.
+                               </p>
+                               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 opacity-60">
+                                 {formatInNica(record.recorded_at, { hour: '2-digit', minute: '2-digit' })}
+                               </p>
                            </div>
                         </div>
                      )

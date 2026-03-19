@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ReportActions } from '../_components/report-actions'
+import { getNicaISODate, getNicaRange, formatInNica } from '@/lib/date-utils'
 
 interface HoursReportProps {
   searchParams: Promise<{
@@ -14,17 +15,20 @@ export default async function HoursReportPage({ searchParams }: HoursReportProps
   const { start, end, branch } = await searchParams
   const supabase = await createClient()
 
-  const defaultEnd = new Date().toISOString().split('T')[0]
-  const defaultStart = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const defaultEnd = getNicaISODate()
+  const defaultStart = getNicaISODate(new Date(Date.now() - 15 * 24 * 60 * 60 * 1000))
 
   const filterStart = start || defaultStart
   const filterEnd   = end   || defaultEnd
 
+  const { start: utcStart } = getNicaRange(filterStart)
+  const { end: utcEnd } = getNicaRange(filterEnd)
+
   let query = supabase
     .from('time_records')
     .select('recorded_at, event_type, employee_id, employees(first_name, last_name, employee_code, branch_id), branches(name)')
-    .gte('recorded_at', `${filterStart}T00:00:00Z`)
-    .lte('recorded_at', `${filterEnd}T23:59:59Z`)
+    .gte('recorded_at', utcStart)
+    .lte('recorded_at', utcEnd)
     .order('recorded_at', { ascending: true })
 
   if (branch && branch !== 'all') {

@@ -164,7 +164,14 @@ Pantalla principal del panel. Muestra:
 
 ### 📊 Reportes
 - Reportes generales, de asistencia, horas trabajadas e incidencias.
+- **Correcciones manuales**: Se implementó una lógica de corrección manual para registros de tiempo desfasados (ej. fix de Bryan).
 - *(Módulo en expansión activa)*
+
+### 🛠️ Herramientas de Mantenimiento
+Se han incluido scripts auxiliares en la carpeta `web/` para tareas administrativas específicas:
+- `fix_bryan.js`: Corrige minutos de tardanza para registros específicos mediante la API de Supabase (Service Role).
+- `get_rpc_def.mjs`: Utilidad para obtener definiciones de funciones RPC de la base de datos.
+- `test_shift.mjs`: Script de prueba para lógica de turnos y tolerancias.
 
 ### 🏢 Organización
 - **Empresas**: multitenant — cada empresa tiene su slug único, nombre legal, RUC/NIT, dirección, teléfono y logo de reportes. Se usa el RPC `create_company_with_owner`.
@@ -363,4 +370,4 @@ Cerrar sesión ──► signOut (Server Action)
 
 ---
 
-*Documentación generada el 19 de marzo de 2026 — Gestor360 v0.1.0*
+*Documentación actualizada el 19 de marzo de 2026 — Gestor360 v0.1.0*

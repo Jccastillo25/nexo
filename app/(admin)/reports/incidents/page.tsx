@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ReportActions } from '../_components/report-actions'
+import { getNicaISODate, getNicaRange, formatInNica } from '@/lib/date-utils'
 
 interface IncidentsReportProps {
   searchParams: Promise<{
@@ -15,18 +16,21 @@ export default async function IncidentsReportPage({ searchParams }: IncidentsRep
   const supabase = await createClient()
 
   // Rango por defecto (últimos 30 días)
-  const defaultEnd = new Date().toISOString().split('T')[0]
-  const defaultStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const defaultEnd = getNicaISODate()
+  const defaultStart = getNicaISODate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
 
   const filterStart = start || defaultStart
   const filterEnd   = end   || defaultEnd
+
+  const { start: utcStart } = getNicaRange(filterStart)
+  const { end: utcEnd } = getNicaRange(filterEnd)
 
   const query = supabase
     .from('time_records')
     .select('id, recorded_at, tardiness_minutes, employees(id, first_name, last_name, employee_code)')
     .gt('tardiness_minutes', 0)
-    .gte('recorded_at', `${filterStart}T00:00:00Z`)
-    .lte('recorded_at', `${filterEnd}T23:59:59Z`)
+    .gte('recorded_at', utcStart)
+    .lte('recorded_at', utcEnd)
     .order('recorded_at', { ascending: false })
 
   if (employee && employee !== 'all') {
@@ -137,8 +141,8 @@ export default async function IncidentsReportPage({ searchParams }: IncidentsRep
                     return (
                       <tr key={inc.id} className="hover:bg-slate-50 transition">
                         <td className="px-6 py-4 text-slate-500">
-                          {dt.toLocaleDateString('es-NI', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          <span className="block text-[10px] font-mono">{dt.toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit' })}</span>
+                          {formatInNica(inc.recorded_at, { day: 'numeric', month: 'short', year: 'numeric' })}
+                          <span className="block text-[10px] font-mono">{formatInNica(inc.recorded_at, { hour: '2-digit', minute: '2-digit' })}</span>
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-semibold text-slate-900">{inc.employees?.first_name} {inc.employees?.last_name}</p>

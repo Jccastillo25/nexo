@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getNicaTimeParts } from '@/lib/date-utils'
 import { revalidatePath } from 'next/cache'
 import { KioskDevice, EventType, KioskResult } from '../types/kiosk'
 
@@ -256,11 +257,8 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     const shift = Array.isArray(shiftRaw) ? shiftRaw[0] : shiftRaw
 
     if (shift && shift.start_time) {
-      // Nicaragua is UTC-6
-      const utcNow = new Date()
-      const nicaTime = new Date(utcNow.getTime() - 6 * 60 * 60 * 1000)
-      
-      const currentTotalMins = nicaTime.getUTCHours() * 60 + nicaTime.getUTCMinutes()
+      const { hour, minute } = getNicaTimeParts()
+      const currentTotalMins = hour * 60 + minute
       
       const [shiftHours, shiftMins] = shift.start_time.split(':').map(Number)
       const shiftTotalMins = shiftHours * 60 + shiftMins

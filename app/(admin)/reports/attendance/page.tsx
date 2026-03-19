@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ReportActions } from '../_components/report-actions'
+import { getNicaISODate, getNicaRange } from '@/lib/date-utils'
 
 interface AttendanceReportProps {
   searchParams: Promise<{
@@ -14,15 +15,14 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
   const supabase = await createClient()
 
   // Filtros
-  const filterDate = date || new Date().toISOString().split('T')[0]
-  const startOfDay = `${filterDate}T00:00:00Z`
-  const endOfDay = `${filterDate}T23:59:59Z`
-
+  const filterDate = date || getNicaISODate()
+  const { start, end: rangeEnd } = getNicaRange(filterDate)
+  
   const query = supabase
     .from('time_records')
     .select('id, event_type, recorded_at, tardiness_minutes, status, employees(first_name, last_name, employee_code), branches(name)')
-    .gte('recorded_at', startOfDay)
-    .lte('recorded_at', endOfDay)
+    .gte('recorded_at', start)
+    .lte('recorded_at', rangeEnd)
     .order('recorded_at', { ascending: true })
 
   if (branch && branch !== 'all') {
@@ -128,7 +128,12 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
             {records && records.length > 0 ? (
               records.map(r => {
                 const emp = r.employees as any
-                const time = new Date(r.recorded_at).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', hour12: true })
+                const time = new Date(r.recorded_at).toLocaleTimeString('es-NI', { 
+                  hour: '2-digit', 
+                  minute: '2-digit', 
+                  hour12: true,
+                  timeZone: 'America/Managua'
+                })
                 return (
                   <tr key={r.id} className="hover:bg-slate-50 transition">
                     <td className="px-6 py-4 font-medium text-slate-900">
