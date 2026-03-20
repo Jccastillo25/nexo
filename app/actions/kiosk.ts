@@ -287,8 +287,8 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
   if (!insertErr) {
     // 3. Update Employee current_status and last_status_change
     let nextStatus = 'offline'
-    if (eventType === 'clock_in' || eventType === 'break_end') nextStatus = 'active'
-    if (eventType === 'break_start') nextStatus = 'on_break'
+    if (eventType === 'clock_in' || eventType === 'break_in') nextStatus = 'active'
+    if (eventType === 'break_out') nextStatus = 'on_break'
 
     await supabase
       .from('employees')
@@ -299,7 +299,7 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
       .eq('id', employee.id)
 
     // 4. Handle employee_status_logs for breaks
-    if (eventType === 'break_start') {
+    if (eventType === 'break_out') {
       const breakMins = (employee.job_positions as any)?.default_break_mins || 60
       const startTime = new Date()
       const endTimeScheduled = new Date(startTime.getTime() + breakMins * 60000)
@@ -309,7 +309,7 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
         start_time: startTime.toISOString(),
         end_time_scheduled: endTimeScheduled.toISOString(),
       })
-    } else if (eventType === 'break_end') {
+    } else if (eventType === 'break_in') {
       // Find the last open break log and close it
       await supabase
         .from('employee_status_logs')
