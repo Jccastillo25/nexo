@@ -3,7 +3,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '../../../src/lib/supabase/client'
 import { endEmployeeBreak, startEmployeeBreak } from '../../actions/jobs'
-import { Coffee, CheckCircle2, History, Play, Square, Briefcase } from 'lucide-react'
+import { Coffee, CheckCircle2, History, Play, Square, Briefcase, Package, Banknote, Truck, Store, Monitor as MonitorIcon, Clipboard, User, ShieldCheck } from 'lucide-react'
+
+// Iconography Dictionary
+const IconMap: any = {
+  Briefcase, Package, Banknote, Truck, Store, Monitor: MonitorIcon, Clipboard, User, ShieldCheck
+}
 
 type Employee = {
   id: string
@@ -21,6 +26,7 @@ type JobPosition = {
   level: number
   parent_id: string | null
   default_break_mins: number
+  icon_name?: string | null
 }
 
 type StatusLog = {
@@ -90,15 +96,17 @@ export function OperationalMonitor({
   return (
     <div className="space-y-6">
       <div className="rounded-3xl bg-slate-50 p-6 shadow-inner ring-1 ring-slate-200">
-        <div className="space-y-12">
-          {treeData.map(node => (
-            <HierarchyNode 
-              key={node.id} 
-              node={node} 
-              activeLogs={activeLogs}
-              onEndBreak={(logId: string, name: string, empId: string) => setSelectedForEnd({ empId, logId, name })}
-            />
-          ))}
+        <div className="space-y-12 overflow-x-auto">
+          <div className="min-w-[700px]">
+            {treeData.map(node => (
+              <HierarchyNode 
+                key={node.id} 
+                node={node} 
+                activeLogs={activeLogs}
+                onEndBreak={(logId: string, name: string, empId: string) => setSelectedForEnd({ empId, logId, name })}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -161,19 +169,24 @@ function HierarchyNode({ node, activeLogs, onEndBreak }: any) {
   // Only render if it has employees or children
   if (node.employees.length === 0 && node.children.length === 0) return null
 
-  // Layout sizing based on hierarchy
+  // Layout sizing based on hierarchy mapping to Blueprint v2
   const isTopLevel = node.level === 1 || node.level === 2
-  const gridClasses = isTopLevel 
-    ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" // Larger cards for managers
-    : "grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6" // Compact for operatives
   
-  let marginClass = 'ml-0'
-  if (node.level === 2) marginClass = 'ml-4 sm:ml-8'
-  else if (node.level === 3) marginClass = 'ml-8 sm:ml-16'
-  else if (node.level > 3) marginClass = 'ml-12 sm:ml-24'
+  // Custom padding based on absolute dynamic indentation instruction from blueprint
+  let paddingClass = 'pl-0'
+  if (node.level === 2) paddingClass = 'pl-[20px]'
+  else if (node.level === 3) paddingClass = 'pl-[40px]'
+  else if (node.level > 3) paddingClass = 'pl-[60px]'
+
+  // Sub-grid mapping: "Agrupar estos últimos en un sub-grid de 4 columnas"
+  const gridClasses = isTopLevel 
+    ? "grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" // Larger cards for managers
+    : node.level > 3 
+      ? "grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4" // Explicit 4-cols for level 3.1
+      : "grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
 
   return (
-    <div className={`space-y-4 ${marginClass}`}>
+    <div className={`space-y-4 ${paddingClass}`}>
       <div className="flex items-center gap-3">
         <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">{node.name}</h3>
         <span className="flex h-5 items-center rounded-full bg-slate-200 px-2 text-[10px] font-bold text-slate-600">
@@ -258,34 +271,34 @@ function GraphicEmployeeCard({
   const percentage = Math.min((elapsedSeconds / maxSecs) * 100, 100)
   const isCritical = percentage >= 80 && !isOvertimeNum
 
-  // Lógica Semáforo
+  // Lógica Semáforo basada en el blueprint
   let cardBg = 'bg-white'
   let cardBorder = 'border-slate-200'
-  let timerUiColor = 'text-blue-500'
-  let ringStroke = 'stroke-blue-500'
+  let timerUiColor = 'text-[#4CAF50]' 
+  let ringStroke = 'stroke-[#4CAF50]'
 
   if (isOffline) {
     cardBg = 'bg-slate-50'
     cardBorder = 'border-slate-100' // Make offline border less visible
   } else if (employee.current_status === 'active') {
     cardBg = 'bg-white'
-    cardBorder = 'border-green-400 border-2'
+    cardBorder = 'border-[#4CAF50] border-2 shadow-[0_4px_10px_rgba(76,175,80,0.1)]'
   } else if (isBreak) {
     if (isOvertimeNum) {
-      cardBg = 'bg-red-50'
-      cardBorder = 'border-red-500 border-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
-      timerUiColor = 'text-red-600 animate-pulse'
-      ringStroke = 'stroke-red-500'
+      cardBg = 'bg-[#ffebee]'
+      cardBorder = 'border-[#F44336] border-2 shadow-[0_0_15px_rgba(244,67,54,0.3)]'
+      timerUiColor = 'text-[#F44336] animate-pulse'
+      ringStroke = 'stroke-[#F44336]'
     } else if (isCritical) {
-      cardBg = 'bg-orange-50'
-      cardBorder = 'border-orange-400 border-2'
-      timerUiColor = 'text-orange-600 animate-pulse'
-      ringStroke = 'stroke-orange-500'
+      cardBg = 'bg-[#fff3e0]'
+      cardBorder = 'border-[#FF9800] border-2 shadow-[0_0_12px_rgba(255,152,0,0.2)]'
+      timerUiColor = 'text-[#FF9800] animate-pulse'
+      ringStroke = 'stroke-[#FF9800]'
     } else {
       cardBg = 'bg-amber-50/70'
-      cardBorder = 'border-amber-300 border-2'
-      timerUiColor = 'text-blue-600'
-      ringStroke = 'stroke-blue-500'
+      cardBorder = 'border-amber-400 border-2'
+      timerUiColor = 'text-[#4CAF50]'
+      ringStroke = 'stroke-[#4CAF50]'
     }
   }
 
@@ -293,6 +306,9 @@ function GraphicEmployeeCard({
   const lastNameInitial = employee.last_name ? ` ${employee.last_name.charAt(0)}.` : ''
   const shortName = `${employee.first_name}${lastNameInitial}`
   const initials = `${employee.first_name.charAt(0)}${employee.last_name ? employee.last_name.charAt(0) : ''}`.toUpperCase()
+
+  // Dynamic Icon Setup
+  const IconComponent = IconMap[position.icon_name || 'Briefcase'] || Briefcase
 
   // SVG Circular progress calc
   const radius = isLarge ? 24 : 18
@@ -326,12 +342,12 @@ function GraphicEmployeeCard({
         </div>
         
         {/* Bio & Badge */}
-        <div className="flex flex-col overflow-hidden pt-0.5">
+        <div className="flex flex-col overflow-hidden w-full pt-0.5">
           <span className={`truncate font-black text-slate-900 leading-tight ${isLarge ? 'text-lg' : 'text-sm'}`}>
             {shortName}
           </span>
-          <div className="mt-1 flex items-center gap-1 opacity-70">
-            <Briefcase className="h-3 w-3 text-slate-600 shrink-0" />
+          <div className="mt-1 flex items-center gap-1.5 opacity-80">
+            <IconComponent className={`shrink-0 ${isLarge ? 'h-4 w-4' : 'h-3 w-3'} text-slate-600`} />
             <span className="truncate text-[10px] font-bold uppercase text-slate-600 leading-none">{position.name}</span>
           </div>
         </div>
@@ -344,10 +360,10 @@ function GraphicEmployeeCard({
         <button 
           onClick={handleAction}
           disabled={isOffline}
-          className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-bold shadow-sm backdrop-blur-sm transition active:scale-95 disabled:opacity-30 ${
+          className={`relative z-10 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-bold shadow-sm backdrop-blur-sm transition active:scale-95 disabled:opacity-30 ${
             isBreak 
               ? 'bg-slate-900/10 text-slate-900 hover:bg-slate-900/20' 
-              : 'bg-slate-900 text-white hover:bg-slate-800'
+              : 'bg-slate-900 text-white hover:bg-slate-800 focus:ring-4 focus:ring-slate-900/20'
           }`}
         >
           {isBreak ? (

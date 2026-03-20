@@ -26,7 +26,7 @@ export default async function NewContractPage() {
   // 4. Fetch job positions for the wizard
   const { data: jobPositions } = await supabase
     .from('job_positions')
-    .select('id, name, company_id')
+    .select('id, name, company_id, parent_id, icon_name')
     .eq('is_active', true)
 
   return (

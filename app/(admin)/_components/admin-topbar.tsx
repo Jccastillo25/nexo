@@ -127,29 +127,8 @@ export function AdminTopbar({
               {/* Vertical divider (Small) */}
               <div className="w-px h-4 bg-slate-700/50 hidden xs:block" />
 
-              {/* Company Selector */}
-              {companies.length > 0 ? (
-                <div className="relative flex items-center group">
-                  <div className="absolute left-2.5 pointer-events-none text-blue-400 group-focus-within:text-blue-300 transition-colors hidden sm:block">
-                    <Building2 size={12} strokeWidth={3} />
-                  </div>
-                  <select 
-                    value={currentCompanyId}
-                    onChange={(e) => handleCompanyChange(e.target.value)}
-                    className="appearance-none bg-slate-800/40 hover:bg-slate-700/50 border border-slate-700/50 hover:border-slate-500/50 rounded-lg pl-2 sm:pl-8 pr-7 py-1.5 text-[10px] md:text-xs font-black text-slate-300 hover:text-white transition-all outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer uppercase tracking-widest max-w-[140px] sm:max-w-[200px] truncate"
-                  >
-                    <option value="all">Todas las empresas</option>
-                    {companies.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-2 pointer-events-none text-slate-500 group-hover:text-slate-300 transition-colors">
-                    <ChevronDown size={12} strokeWidth={3} />
-                  </div>
-                </div>
-              ) : (
-                isDashboard && <span className="shrink-0 px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] md:text-[9px] font-black rounded uppercase border border-blue-500/20">ADMIN</span>
-              )}
+              {/* Company Identity (No Selector) */}
+              {isDashboard && <span className="shrink-0 px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] md:text-[9px] font-black rounded uppercase border border-blue-500/20">ADMIN</span>}
             </div>
           </div>
         </div>

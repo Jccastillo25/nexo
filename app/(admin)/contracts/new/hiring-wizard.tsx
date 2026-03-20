@@ -37,6 +37,8 @@ type JobPosition = {
   id: string
   name: string
   company_id: string
+  parent_id: string | null
+  icon_name: string | null
 }
 
 export function HiringWizard({ 
@@ -54,15 +56,16 @@ export function HiringWizard({
   const [shifts, setShifts] = useState<Shift[]>([])
   const [loadingShifts, setLoadingShifts] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState<string>('')
-  const [selectedCompany, setSelectedCompany] = useState<string>('')
   const [selectedBranch, setSelectedBranch] = useState<string>('')
   const [selectedPosition, setSelectedPosition] = useState<string>('')
   const [selectedShift, setSelectedShift] = useState<string>('')
   
+  const selectedJob = jobPositions.find(p => p.id === selectedPosition)
+  const autoCompanyId = selectedJob?.company_id || ''
+  
   const [state, action, pending] = useActionState<ContractActionState, FormData>(createContract, null)
 
-  const filteredBranches = branches.filter((b: Branch) => b.company_id === selectedCompany)
-  const filteredPositions = jobPositions.filter((p: JobPosition) => p.company_id === selectedCompany)
+  const filteredBranches = branches.filter((b: Branch) => b.company_id === autoCompanyId)
 
   useEffect(() => {
     async function loadShifts() {
@@ -150,45 +153,63 @@ export function HiringWizard({
           </div>
         </div>
 
-        {/* Step 2: Company & Branch Selection */}
+        {/* Step 2: Job Position & Branch Selection */}
         <div className={step === 2 ? 'space-y-6 animate-in fade-in slide-in-from-bottom-2' : 'hidden'}>
-          <h2 className="text-xl font-bold text-slate-900">Empresa y Sucursal</h2>
-          <p className="text-sm text-slate-500">Define dónde trabajará el colaborador.</p>
+          <h2 className="text-xl font-bold text-slate-900">Puesto y Ubicación</h2>
+          <p className="text-sm text-slate-500">Define el organigrama y la sucursal del colaborador.</p>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
+            {/* Auto-injected company context for form submission */}
+            <input type="hidden" name="company_id" value={autoCompanyId} />
+
             <div>
-              <label className="mb-2 block text-sm font-bold text-slate-900">Seleccionar Empresa</label>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {companies.map((co) => (
-                  <label 
-                    key={co.id}
-                    className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition ${
-                      selectedCompany === co.id ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <input 
-                      type="radio" 
-                      name="company_id" 
-                      value={co.id}
-                      checked={selectedCompany === co.id}
-                      onChange={() => {
-                        setSelectedCompany(co.id)
-                        setSelectedBranch('') // Reset branch when company changes
-                        setSelectedPosition('') // Reset position when company changes
-                      }}
-                      className="h-5 w-5 accent-slate-900" 
-                      required
-                    />
-                    <span className="font-bold text-slate-900">{co.display_name}</span>
-                  </label>
-                ))}
+              <label className="mb-2 block text-sm font-bold text-slate-900">Puesto de Trabajo</label>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 max-h-[300px] overflow-y-auto pr-2">
+                {jobPositions.map((p: JobPosition) => {
+                  const parentJob = jobPositions.find(parent => parent.id === p.parent_id)
+                  const isSelected = selectedPosition === p.id
+                  
+                  return (
+                    <label 
+                      key={p.id}
+                      className={`flex flex-col cursor-pointer gap-2 rounded-2xl border-2 p-4 transition ${
+                        isSelected ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="radio" 
+                          name="job_position_id" 
+                          value={p.id}
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedPosition(p.id)
+                            setSelectedBranch('') // Reset branch when position/company changes
+                          }}
+                          className="h-5 w-5 accent-slate-900 shrink-0" 
+                          required
+                        />
+                        <span className="font-bold text-slate-900 truncate">{p.name}</span>
+                      </div>
+                      
+                      {isSelected && parentJob && (
+                        <div className="ml-8 mt-1 flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-1.5 border border-indigo-100 animate-in fade-in">
+                          <svg className="h-3 w-3 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                          </svg>
+                          <span className="text-[10px] font-bold uppercase text-indigo-700">Reporta a: {parentJob.name}</span>
+                        </div>
+                      )}
+                    </label>
+                  )
+                })}
               </div>
             </div>
 
-            {selectedCompany && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+            {selectedPosition && filteredBranches.length > 0 && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2 pt-4 border-t border-slate-100">
                 <div>
-                  <label className="mb-2 block text-sm font-bold text-slate-900">Seleccionar Sucursal</label>
+                  <label className="mb-2 block text-sm font-bold text-slate-900">Seleccionar Sucursal (Filtrado por Puesto)</label>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {filteredBranches.map((br: Branch) => (
                       <label 
@@ -211,38 +232,6 @@ export function HiringWizard({
                     ))}
                   </div>
                 </div>
-
-                {filteredPositions.length > 0 ? (
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-slate-900">Puesto de Trabajo</label>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {filteredPositions.map((p: JobPosition) => (
-                        <label 
-                          key={p.id}
-                          className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition ${
-                            selectedPosition === p.id ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <input 
-                            type="radio" 
-                            name="job_position_id" 
-                            value={p.id}
-                            checked={selectedPosition === p.id}
-                            onChange={() => setSelectedPosition(p.id)}
-                            className="h-5 w-5 accent-slate-900" 
-                            required
-                          />
-                          <span className="font-bold text-slate-900">{p.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl bg-amber-50 p-4 border border-amber-200">
-                    <p className="text-sm font-bold text-amber-800">No hay puestos definidos para esta empresa.</p>
-                    <Link href="/organization/jobs/new" className="text-xs font-bold text-amber-900 underline mt-1 block">Configurar puestos ahora</Link>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -359,7 +348,7 @@ export function HiringWizard({
               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Empresa Contratante</p>
-                  <p className="text-sm font-bold text-slate-900">{companies.find(c => c.id === selectedCompany)?.display_name}</p>
+                  <p className="text-sm font-bold text-slate-900">{companies.find(c => c.id === autoCompanyId)?.display_name}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] text-slate-400 font-bold uppercase">PIN de Marcación</p>
@@ -391,7 +380,7 @@ export function HiringWizard({
               onClick={nextStep} 
               disabled={
                 (step === 1 && !selectedEmployee) || 
-                (step === 2 && (!selectedCompany || !selectedBranch || !selectedPosition)) || 
+                (step === 2 && (!selectedBranch || !selectedPosition)) || 
                 (step === 4 && !selectedShift)
               }
               className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-bold text-white shadow-xl transition hover:bg-slate-800 disabled:opacity-50 active:scale-95"

@@ -17,6 +17,7 @@ export async function createJobPosition(
   const level = parseFloat(formData.get('level') as string)
   const parent_id = formData.get('parent_id') as string || null
   const default_break_mins = parseInt(formData.get('default_break_mins') as string)
+  const icon_name = formData.get('icon_name') as string || 'Briefcase'
 
   if (!name || !company_id) {
     return { error: 'Nombre y empresa son requeridos.' }
@@ -28,6 +29,7 @@ export async function createJobPosition(
     level: isNaN(level) ? 1 : level,
     parent_id: parent_id === 'none' ? null : parent_id,
     default_break_mins: isNaN(default_break_mins) ? 60 : default_break_mins,
+    icon_name
   })
 
   if (error) {

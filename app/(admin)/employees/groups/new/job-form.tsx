@@ -81,6 +81,24 @@ export function JobPositionForm({
             ))}
           </select>
         </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-bold text-slate-900 text-left">Icono Representativo</label>
+          <select 
+            name="icon_name" 
+            className="h-12 w-full rounded-2xl border-2 border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
+          >
+            <option value="Briefcase">Maletín (Por defecto)</option>
+            <option value="Package">Caja / Inventario</option>
+            <option value="Banknote">Moneda / Caja</option>
+            <option value="Truck">Camión / Bodega</option>
+            <option value="Store">Tienda / Ventas</option>
+            <option value="Monitor">Computadora / IT</option>
+            <option value="Clipboard">Portapapeles / RRHH</option>
+            <option value="User">Usuario / General</option>
+            <option value="ShieldCheck">Escudo / Seguridad</option>
+          </select>
+        </div>
       </div>
 
       <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100">
