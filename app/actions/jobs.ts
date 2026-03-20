@@ -48,7 +48,7 @@ export async function deleteJobPosition(id: string) {
   return {}
 }
 
-export async function startEmployeeBreak(employeeId: string, breakMins: number = 60) {
+export async function startEmployeeBreak(employeeId: string, breakMins: number = 60): Promise<{ success?: boolean, error?: string }> {
   const supabase = await createClient()
 
   const startTime = new Date()
@@ -78,7 +78,7 @@ export async function endEmployeeBreak(
   employeeId: string, 
   logId: string, 
   isCompleteOverride: boolean
-) {
+): Promise<{ success?: boolean, error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

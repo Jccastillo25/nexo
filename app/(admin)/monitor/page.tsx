@@ -23,6 +23,12 @@ export default async function MonitorPage() {
     .select('*')
     .is('end_time_actual', null)
 
+  // 5. Fetch active employee shifts (mapped to shifts table)
+  const { data: employeeShifts } = await supabase
+    .from('employee_shifts')
+    .select('employee_id, shift_id, shifts(*)')
+    .eq('is_active', true)
+
   return (
     <div className="space-y-6">
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
@@ -35,6 +41,7 @@ export default async function MonitorPage() {
         initialPositions={positions || []}
         initialLogs={activeLogs || []}
         companies={companies || []}
+        activeShifts={employeeShifts || []}
       />
     </div>
   )
