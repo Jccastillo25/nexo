@@ -19,3 +19,8 @@ async function run() {
     .from('time_records')
     .update({ tardiness_minutes: 489 })
     .eq('id', id)
+    .select();
+
+  console.log('Update result:', data, 'Error:', error);
+}
+run();
