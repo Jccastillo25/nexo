@@ -109,6 +109,7 @@ export async function updateContract(
   const start_date = formData.get('start_date') as string
   const end_date = formData.get('end_date') as string
   const status = formData.get('status') as string
+  const job_position_id = formData.get('job_position_id') as string
 
   // 1. Update the contract
   const { data: contract, error: contractErr } = await supabase
@@ -146,6 +147,14 @@ export async function updateContract(
       start_date: start_date,
       is_active: true
     })
+
+  // 3. Update Job Position in Employee record
+  if (job_position_id) {
+    await supabase
+      .from('employees')
+      .update({ job_position_id })
+      .eq('id', employee_id)
+  }
 
   revalidatePath('/employees')
   revalidatePath(`/employees/${employee_id}`)

@@ -15,7 +15,7 @@ export default async function EditContractPage({
     .from('contracts')
     .select(`
       *,
-      employees (first_name, last_name)
+      employees (id, first_name, last_name, job_position_id)
     `)
     .eq('id', id)
     .single()
@@ -30,6 +30,12 @@ export default async function EditContractPage({
     .select('id, name, start_time, end_time')
     .eq('is_active', true)
 
+  // 3. Fetch Job Positions
+  const { data: jobPositions } = await supabase
+    .from('job_positions')
+    .select('id, name, company_id, parent_id')
+    .eq('is_active', true)
+
   return (
     <section className="space-y-6">
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
@@ -40,7 +46,12 @@ export default async function EditContractPage({
       </div>
 
       <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
-        <ContractForm id={id} initialData={contract} shifts={shifts || []} />
+        <ContractForm 
+          id={id} 
+          initialData={contract} 
+          shifts={shifts || []} 
+          jobPositions={jobPositions || []}
+        />
       </div>
     </section>
   )

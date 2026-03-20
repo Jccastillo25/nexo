@@ -1,6 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Briefcase, Plus, ChevronRight, TreePine } from 'lucide-react'
+import { 
+  Briefcase, 
+  Plus, 
+  ChevronRight, 
+  TreePine,
+  Package,
+  Banknote,
+  Truck,
+  Store,
+  Monitor,
+  Clipboard,
+  User,
+  ShieldCheck
+} from 'lucide-react'
+
+const IconMap: any = {
+  Briefcase, Package, Banknote, Truck, Store, Monitor, Clipboard, User, ShieldCheck
+}
 
 export default async function JobPositionsPage() {
   const supabase = await createClient()
@@ -45,7 +62,10 @@ export default async function JobPositionsPage() {
             >
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 transition group-hover:bg-slate-900 group-hover:text-white">
-                  <Briefcase className="h-6 w-6" />
+                  {(() => {
+                    const Icon = IconMap[job.icon_name || 'Briefcase'] || Briefcase
+                    return <Icon className="h-6 w-6" />
+                  })()}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">

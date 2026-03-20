@@ -13,13 +13,21 @@ type Shift = {
   end_time: string
 }
 
+type JobPosition = {
+  id: string
+  name: string
+  company_id: string
+  parent_id: string | null
+}
+
 interface ContractFormProps {
   id: string
   initialData: any
   shifts: Shift[]
+  jobPositions: JobPosition[]
 }
 
-export function ContractForm({ id, initialData, shifts }: ContractFormProps) {
+export function ContractForm({ id, initialData, shifts, jobPositions }: ContractFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [selectedShift, setSelectedShift] = useState<string>(initialData.schedule_id || '')
@@ -27,6 +35,10 @@ export function ContractForm({ id, initialData, shifts }: ContractFormProps) {
     updateContract.bind(null, id),
     null
   )
+
+  const [selectedPosition, setSelectedPosition] = useState<string>(initialData.employees?.job_position_id || '')
+  const selectedJob = jobPositions.find(p => p.id === selectedPosition)
+  const parentJob = jobPositions.find(p => p.id === selectedJob?.parent_id)
 
   const handleAnnul = async () => {
     if (!confirm('¿Estás seguro de anular este contrato? Esta acción lo marcará como no activo.')) return
@@ -93,6 +105,29 @@ export function ContractForm({ id, initialData, shifts }: ContractFormProps) {
                 <option value="expired">Vencido</option>
                 <option value="terminated">Terminado</option>
               </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-900 uppercase tracking-tight text-left">Puesto de Trabajo</label>
+              <select 
+                name="job_position_id" 
+                value={selectedPosition}
+                onChange={(e) => setSelectedPosition(e.target.value)}
+                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
+                required
+              >
+                <option value="">Seleccionar puesto</option>
+                {jobPositions.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              {selectedPosition && parentJob && (
+                <div className="mt-2 flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 border border-indigo-100 animate-in fade-in transition-all">
+                  <svg className="h-3 w-3 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                  </svg>
+                  <span className="text-[10px] font-bold uppercase text-indigo-700">Reporta a: {parentJob.name}</span>
+                </div>
+              )}
             </div>
           </div>
 
