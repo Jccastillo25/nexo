@@ -60,6 +60,9 @@ Empleados de la empresa, con perfil completo.
 | `social_security_id` | `text`      | Número de INSS                                 |
 | `tax_id`             | `text`      | NIT personal                                   |
 | `photo_url`          | `text`      | URL de foto en Storage                         |
+| `job_position_id`    | `uuid` FK   | Puesto de trabajo → `job_positions.id`         |
+| `current_status`     | `text`      | Estado actual: `active`, `on_break`, `offline` |
+| `last_status_change` | `timestamptz` | Fecha del cambio de estado                     |
 | `is_active`          | `bool`      | Estado activo/inactivo                         |
 | `created_at`         | `timestamptz` | Fecha de creación                            |
 
@@ -75,6 +78,38 @@ Historial de PINs asignados para auditoría de seguridad.
 | `pin`         | `text`    | PIN de 4 dígitos                       |
 | `is_active`   | `bool`    | Indica si el PIN está actualmente activo |
 | `created_at`  | `timestamptz` | Fecha de asignación                |
+
+---
+
+### `job_positions` (Jerarquía de Puestos)
+Define el árbol organizativo y reglas de descanso.
+
+| Columna              | Tipo        | Descripción                                      |
+|----------------------|-------------|--------------------------------------------------|
+| `id`                 | `uuid` PK   | Identificador único                              |
+| `company_id`         | `uuid` FK   | Empresa → `companies.id`                         |
+| `name`               | `text`      | Nombre del puesto (Ej. "Cajero")                 |
+| `level`              | `numeric`   | Nivel jerárquico (Ej. 1.0, 2.5)                  |
+| `parent_id`          | `uuid` FK   | Puesto supervisor → `job_positions.id`           |
+| `default_break_mins` | `int`       | Minutos reglamentarios de descanso               |
+| `is_active`          | `bool`      | Estado activo/inactivo                           |
+| `created_at`         | `timestamptz` | Fecha de creación                              |
+
+---
+
+### `employee_status_logs`
+Historial de estados y auditoría de los tiempos de descanso de los empleados.
+
+| Columna                | Tipo        | Descripción                                      |
+|------------------------|-------------|--------------------------------------------------|
+| `id`                   | `uuid` PK   | Identificador único                              |
+| `employee_id`          | `uuid` FK   | Empleado → `employees.id`                        |
+| `start_time`           | `timestamptz` | Hora exacta real a la que inicio la pausa      |
+| `end_time_scheduled`   | `timestamptz` | start_time + default_break_mins                |
+| `end_time_actual`      | `timestamptz` | Cierre real de la pausa                        |
+| `is_complete_override` | `bool`      | Supervisor validó "descanso completo"          |
+| `authorized_by`        | `uuid` FK   | Supervisor que autorizó la acción anticipada   |
+| `created_at`           | `timestamptz` | Fecha del registro                             |
 
 ---
 

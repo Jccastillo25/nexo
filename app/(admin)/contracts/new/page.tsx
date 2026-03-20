@@ -23,6 +23,12 @@ export default async function NewContractPage() {
     .select('id, name, code, company_id')
     .eq('is_active', true)
 
+  // 4. Fetch job positions for the wizard
+  const { data: jobPositions } = await supabase
+    .from('job_positions')
+    .select('id, name, company_id')
+    .eq('is_active', true)
+
   return (
     <section className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-4">
@@ -43,6 +49,7 @@ export default async function NewContractPage() {
           initialEmployees={employees || []} 
           companies={companies || []}
           branches={branches || []}
+          jobPositions={jobPositions || []}
         />
       </div>
     </section>

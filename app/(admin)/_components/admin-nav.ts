@@ -19,6 +19,13 @@ export const adminNav: NavSection[] = [
     ],
   },
   {
+    title: 'Monitor',
+    direct: true,
+    items: [
+      { href: '/monitor', label: 'Monitor Operativo' },
+    ],
+  },
+  {
     title: 'Empleados',
     items: [
       { href: '/employees', label: 'Directorio' },
@@ -75,6 +82,7 @@ export const adminNav: NavSection[] = [
       { href: '/organization', label: 'General' },
       { href: '/organization/companies', label: 'Empresas' },
       { href: '/organization/branches', label: 'Sucursales' },
+      { href: '/organization/jobs', label: 'Puestos' },
       { href: '/organization/memberships', label: 'Membresías' },
     ],
   },

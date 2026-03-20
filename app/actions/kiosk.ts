@@ -232,6 +232,7 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     .from('employees')
     .select(`
       id, first_name, last_name, is_active, employee_code, company_id,
+      job_positions!left(default_break_mins),
       contracts!left(
         status,
         shifts!left(
@@ -282,6 +283,41 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
       tardiness_minutes: tardinessMinutes,
       status: 'pending'
     })
+
+  if (!insertErr) {
+    // 3. Update Employee current_status and last_status_change
+    let nextStatus = 'offline'
+    if (eventType === 'clock_in' || eventType === 'break_end') nextStatus = 'active'
+    if (eventType === 'break_start') nextStatus = 'on_break'
+
+    await supabase
+      .from('employees')
+      .update({ 
+        current_status: nextStatus,
+        last_status_change: new Date().toISOString()
+      })
+      .eq('id', employee.id)
+
+    // 4. Handle employee_status_logs for breaks
+    if (eventType === 'break_start') {
+      const breakMins = (employee.job_positions as any)?.default_break_mins || 60
+      const startTime = new Date()
+      const endTimeScheduled = new Date(startTime.getTime() + breakMins * 60000)
+
+      await supabase.from('employee_status_logs').insert({
+        employee_id: employee.id,
+        start_time: startTime.toISOString(),
+        end_time_scheduled: endTimeScheduled.toISOString(),
+      })
+    } else if (eventType === 'break_end') {
+      // Find the last open break log and close it
+      await supabase
+        .from('employee_status_logs')
+        .update({ end_time_actual: new Date().toISOString() })
+        .eq('employee_id', employee.id)
+        .is('end_time_actual', null)
+    }
+  }
 
   if (insertErr) {
     console.error('Kiosk Clock-In Insert Error:', insertErr.message)

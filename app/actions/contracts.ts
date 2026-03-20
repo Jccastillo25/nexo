@@ -20,9 +20,10 @@ export async function createContract(
   const salary = parseFloat(formData.get('salary') as string)
   const start_date = formData.get('start_date') as string
   const end_date = formData.get('end_date') as string
+  const job_position_id = formData.get('job_position_id') as string
 
-  if (!employee_id || !schedule_id || !company_id || !branch_id) {
-    return { error: 'Empleado, turno, empresa y sucursal son requeridos.' }
+  if (!employee_id || !schedule_id || !company_id || !branch_id || !job_position_id) {
+    return { error: 'Empleado, turno, empresa, sucursal y puesto son requeridos.' }
   }
 
   // 1. Generate PIN (4 random digits)
@@ -49,7 +50,8 @@ export async function createContract(
       pin,
       employee_number,
       employee_code: pin, // Legacy support
-      hire_date: start_date
+      hire_date: start_date,
+      job_position_id
     })
     .eq('id', employee_id)
 

@@ -33,14 +33,22 @@ type Branch = {
   company_id: string
 }
 
+type JobPosition = {
+  id: string
+  name: string
+  company_id: string
+}
+
 export function HiringWizard({ 
   initialEmployees,
   companies,
-  branches
+  branches,
+  jobPositions
 }: { 
   initialEmployees: Employee[]
   companies: Company[]
   branches: Branch[]
+  jobPositions: JobPosition[]
 }) {
   const [step, setStep] = useState(1)
   const [shifts, setShifts] = useState<Shift[]>([])
@@ -48,11 +56,13 @@ export function HiringWizard({
   const [selectedEmployee, setSelectedEmployee] = useState<string>('')
   const [selectedCompany, setSelectedCompany] = useState<string>('')
   const [selectedBranch, setSelectedBranch] = useState<string>('')
+  const [selectedPosition, setSelectedPosition] = useState<string>('')
   const [selectedShift, setSelectedShift] = useState<string>('')
   
   const [state, action, pending] = useActionState<ContractActionState, FormData>(createContract, null)
 
-  const filteredBranches = branches.filter(b => b.company_id === selectedCompany)
+  const filteredBranches = branches.filter((b: Branch) => b.company_id === selectedCompany)
+  const filteredPositions = jobPositions.filter((p: JobPosition) => p.company_id === selectedCompany)
 
   useEffect(() => {
     async function loadShifts() {
@@ -164,6 +174,7 @@ export function HiringWizard({
                       onChange={() => {
                         setSelectedCompany(co.id)
                         setSelectedBranch('') // Reset branch when company changes
+                        setSelectedPosition('') // Reset position when company changes
                       }}
                       className="h-5 w-5 accent-slate-900" 
                       required
@@ -175,29 +186,63 @@ export function HiringWizard({
             </div>
 
             {selectedCompany && (
-              <div className="animate-in fade-in slide-in-from-top-2">
-                <label className="mb-2 block text-sm font-bold text-slate-900">Seleccionar Sucursal</label>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {filteredBranches.map((br) => (
-                    <label 
-                      key={br.id}
-                      className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition ${
-                        selectedBranch === br.id ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <input 
-                        type="radio" 
-                        name="branch_id" 
-                        value={br.id}
-                        checked={selectedBranch === br.id}
-                        onChange={() => setSelectedBranch(br.id)}
-                        className="h-5 w-5 accent-slate-900" 
-                        required
-                      />
-                      <span className="font-bold text-slate-900">{br.name}</span>
-                    </label>
-                  ))}
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-900">Seleccionar Sucursal</label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {filteredBranches.map((br: Branch) => (
+                      <label 
+                        key={br.id}
+                        className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition ${
+                          selectedBranch === br.id ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <input 
+                          type="radio" 
+                          name="branch_id" 
+                          value={br.id}
+                          checked={selectedBranch === br.id}
+                          onChange={() => setSelectedBranch(br.id)}
+                          className="h-5 w-5 accent-slate-900" 
+                          required
+                        />
+                        <span className="font-bold text-slate-900">{br.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
+
+                {filteredPositions.length > 0 ? (
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-900">Puesto de Trabajo</label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {filteredPositions.map((p: JobPosition) => (
+                        <label 
+                          key={p.id}
+                          className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition ${
+                            selectedPosition === p.id ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <input 
+                            type="radio" 
+                            name="job_position_id" 
+                            value={p.id}
+                            checked={selectedPosition === p.id}
+                            onChange={() => setSelectedPosition(p.id)}
+                            className="h-5 w-5 accent-slate-900" 
+                            required
+                          />
+                          <span className="font-bold text-slate-900">{p.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl bg-amber-50 p-4 border border-amber-200">
+                    <p className="text-sm font-bold text-amber-800">No hay puestos definidos para esta empresa.</p>
+                    <Link href="/organization/jobs/new" className="text-xs font-bold text-amber-900 underline mt-1 block">Configurar puestos ahora</Link>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -309,7 +354,7 @@ export function HiringWizard({
                 Yo, <span className="font-bold">GESTOR360 S.A.</span>, formalizo la contratación de <span className="font-bold text-slate-900 underline">{initialEmployees.find(e => e.id === selectedEmployee)?.first_name} {initialEmployees.find(e => e.id === selectedEmployee)?.last_name}</span> bajo la modalidad de <span className="font-bold">Contrato Laboral</span>.
               </p>
               <p>
-                El colaborador cumplirá sus funciones en <span className="font-bold text-slate-900">{branches.find(b => b.id === selectedBranch)?.name}</span> según lo establecido en el turno <span className="font-bold">{shifts.find(s => s.id === selectedShift)?.name || 'Seleccionado'}</span>.
+                El colaborador cumplirá las funciones de <span className="font-bold">{jobPositions.find((p: JobPosition) => p.id === selectedPosition)?.name}</span> en <span className="font-bold text-slate-900">{branches.find((b: Branch) => b.id === selectedBranch)?.name}</span> según lo establecido en el turno <span className="font-bold">{shifts.find((s: Shift) => s.id === selectedShift)?.name || 'Seleccionado'}</span>.
               </p>
               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between">
                 <div>
@@ -346,7 +391,7 @@ export function HiringWizard({
               onClick={nextStep} 
               disabled={
                 (step === 1 && !selectedEmployee) || 
-                (step === 2 && (!selectedCompany || !selectedBranch)) || 
+                (step === 2 && (!selectedCompany || !selectedBranch || !selectedPosition)) || 
                 (step === 4 && !selectedShift)
               }
               className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-bold text-white shadow-xl transition hover:bg-slate-800 disabled:opacity-50 active:scale-95"
