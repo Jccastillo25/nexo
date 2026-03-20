@@ -23,11 +23,17 @@ export default async function MonitorPage() {
     .select('*')
     .is('end_time_actual', null)
 
-  // 5. Fetch active employee shifts (mapped to shifts table)
-  const { data: employeeShifts } = await supabase
-    .from('employee_shifts')
-    .select('employee_id, shift_id, shifts(*)')
-    .eq('is_active', true)
+  // 5. Fetch active contracts to know their assigned shifts
+  const { data: activeContracts } = await supabase
+    .from('contracts')
+    .select('employee_id, schedule_id, shifts(name, start_time, end_time)')
+    .eq('status', 'active')
+
+  const employeeShifts = activeContracts?.map(c => ({
+    employee_id: c.employee_id,
+    shift_id: c.schedule_id,
+    shifts: c.shifts
+  })) || []
 
   return (
     <div className="space-y-6">

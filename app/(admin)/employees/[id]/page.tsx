@@ -30,7 +30,6 @@ export default async function EmployeeDetailPage({
     { data: employeeData },
     { data: recentRecords },
     { data: leaveRequests },
-    { data: shift },
     { data: contract },
   ] = await Promise.all([
     supabase
@@ -51,14 +50,8 @@ export default async function EmployeeDetailPage({
       .order('start_date', { ascending: false })
       .limit(5),
     supabase
-      .from('employee_shifts')
-      .select('id, is_active, start_date, created_at, shifts(name, start_time, end_time)')
-      .eq('employee_id', id)
-      .eq('is_active', true)
-      .maybeSingle(),
-    supabase
       .from('contracts')
-      .select('*, companies(display_name), branches(name)')
+      .select('*, companies(display_name), branches(name), shifts(name, start_time, end_time)')
       .eq('employee_id', id)
       .eq('status', 'active')
       .maybeSingle(),
@@ -69,8 +62,8 @@ export default async function EmployeeDetailPage({
   if (!employee) notFound()
 
   const branch    = employee.branches as unknown as { name: string } | null
-  const shiftData = shift?.shifts    as unknown as { name: string; start_time: string; end_time: string } | null
   const contractData = contract as any
+  const shiftData = contractData?.shifts as unknown as { name: string; start_time: string; end_time: string } | null
 
   const infoRows = [
     { label: 'N° Empleado',      value: employee.employee_number ?? 'PENDIENTE' },
@@ -100,11 +93,11 @@ export default async function EmployeeDetailPage({
     })
   }
   
-  if (shift) {
+  if (shiftData) {
     timelineEvents.push({
-      title: 'Cambio de turno asignado',
-      date: shift.created_at ? new Date(shift.created_at).toLocaleDateString('es-NI') : '—',
-      description: `Turno actual: ${shiftData?.name ?? '—'}`,
+      title: 'Turno asignado en Contrato Activo',
+      date: contractData?.start_date ? new Date(contractData.start_date).toLocaleDateString('es-NI') : '—',
+      description: `Turno actual: ${shiftData.name ?? '—'}`,
       icon: '⏱️'
     })
   }
