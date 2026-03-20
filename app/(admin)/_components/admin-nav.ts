@@ -82,7 +82,6 @@ export const adminNav: NavSection[] = [
       { href: '/organization', label: 'General' },
       { href: '/organization/companies', label: 'Empresas' },
       { href: '/organization/branches', label: 'Sucursales' },
-      { href: '/organization/jobs', label: 'Puestos' },
       { href: '/organization/memberships', label: 'Membresías' },
     ],
   },

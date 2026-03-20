@@ -34,16 +34,42 @@ export async function createJobPosition(
     return { error: error.message }
   }
 
-  revalidatePath('/organization/jobs')
-  redirect('/organization/jobs')
+  revalidatePath('/employees/groups')
+  redirect('/employees/groups')
 }
 
 export async function deleteJobPosition(id: string) {
   const supabase = await createClient()
   const { error } = await supabase.from('job_positions').delete().eq('id', id)
   if (error) return { error: error.message }
-  revalidatePath('/organization/jobs')
+  revalidatePath('/employees/groups')
   return {}
+}
+
+export async function startEmployeeBreak(employeeId: string, breakMins: number = 60) {
+  const supabase = await createClient()
+
+  const startTime = new Date()
+  const endTimeScheduled = new Date(startTime.getTime() + breakMins * 60000)
+
+  // 1. Insert the log
+  await supabase.from('employee_status_logs').insert({
+    employee_id: employeeId,
+    start_time: startTime.toISOString(),
+    end_time_scheduled: endTimeScheduled.toISOString(),
+  })
+
+  // 2. Update employee status
+  await supabase
+    .from('employees')
+    .update({ 
+      current_status: 'on_break',
+      last_status_change: startTime.toISOString()
+    })
+    .eq('id', employeeId)
+
+  revalidatePath('/monitor')
+  return { success: true }
 }
 
 export async function endEmployeeBreak(

@@ -2,10 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '../../../src/lib/supabase/client'
-import { endEmployeeBreak } from '../../actions/jobs'
-import { Clock, User, Coffee, LogOut, ChevronRight, ChevronDown, UserCheck, CheckCircle2, History } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { endEmployeeBreak, startEmployeeBreak } from '../../actions/jobs'
+import { Coffee, CheckCircle2, History, Play, Square } from 'lucide-react'
 
 type Employee = {
   id: string
@@ -45,8 +43,8 @@ export function OperationalMonitor({
 }) {
   const [employees, setEmployees] = useState(initialEmployees)
   const [activeLogs, setActiveLogs] = useState(initialLogs)
-  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({})
   const [selectedForEnd, setSelectedForEnd] = useState<{ empId: string, logId: string, name: string } | null>(null)
+  
   const supabase = createClient()
 
   // Realtime subscription
@@ -72,51 +70,34 @@ export function OperationalMonitor({
     }
   }, [supabase])
 
-  // Build the tree structure
+  // Build the tree structure for Employees grouped by Job Positions
   const treeData = useMemo(() => {
     const buildTree = (parentId: string | null = null): any[] => {
-      return initialPositions
+      // Sort positions by level
+      const positionsAtLevel = initialPositions
         .filter(p => p.parent_id === parentId)
-        .map(p => ({
-          ...p,
-          children: buildTree(p.id),
-          employees: employees.filter(e => e.job_position_id === p.id)
-        }))
+        .sort((a, b) => a.level - b.level)
+
+      return positionsAtLevel.map(p => ({
+        ...p,
+        children: buildTree(p.id),
+        employees: employees.filter(e => e.job_position_id === p.id)
+      }))
     }
     return buildTree(null)
   }, [initialPositions, employees])
 
-  const toggleExpand = (id: string) => {
-    setExpandedNodes(prev => ({ ...prev, [id]: !prev[id] }))
-  }
-
   return (
-    <div className="grid gap-6 lg:grid-cols-4">
-      {/* Sidebar: Hierarchy Tree */}
-      <div className="lg:col-span-1 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 h-fit">
-        <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-400">Jerarquía</h2>
-        <div className="space-y-1">
+    <div className="space-y-6">
+      {/* Cascading Hierarchy View */}
+      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+        <div className="space-y-8">
           {treeData.map(node => (
-            <TreeNode 
+            <HierarchyNode 
               key={node.id} 
               node={node} 
-              expandedNodes={expandedNodes} 
-              onToggle={toggleExpand} 
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Main: Monitor Grid */}
-      <div className="lg:col-span-3 space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {employees.map(emp => (
-            <EmployeeCard 
-              key={emp.id} 
-              employee={emp} 
-              position={initialPositions.find(p => p.id === emp.job_position_id)}
-              log={activeLogs.find(l => l.employee_id === emp.id)}
-              onEndBreak={(logId, name) => setSelectedForEnd({ empId: emp.id, logId, name })}
+              activeLogs={activeLogs}
+              onEndBreak={(logId: string, name: string, empId: string) => setSelectedForEnd({ empId, logId, name })}
             />
           ))}
         </div>
@@ -143,7 +124,7 @@ export function OperationalMonitor({
                 className="flex w-full items-center justify-between rounded-2xl border-2 border-slate-100 p-4 transition hover:border-slate-900 hover:bg-slate-50"
               >
                 <div className="text-left">
-                  <p className="text-sm font-bold text-slate-900">Registrar Tiempo Real</p>
+                  <p className="text-sm font-bold text-slate-900">Descanso Parcial (Tiempo Real)</p>
                   <p className="text-xs text-slate-500">Se guardará la duración exacta tomada.</p>
                 </div>
                 <History className="h-5 w-5 text-slate-400" />
@@ -157,8 +138,8 @@ export function OperationalMonitor({
                 className="flex w-full items-center justify-between rounded-2xl border-2 border-slate-100 p-4 transition hover:border-slate-900 hover:bg-slate-50"
               >
                 <div className="text-left">
-                  <p className="text-sm font-bold text-slate-900">Marcar como Completo</p>
-                  <p className="text-xs text-slate-500">Ignorar retorno temprano (No afecta métricas).</p>
+                  <p className="text-sm font-bold text-slate-900">Descanso Completo</p>
+                  <p className="text-xs text-slate-500">Ignorar retorno temprano (Llenar bloque).</p>
                 </div>
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
               </button>
@@ -177,43 +158,59 @@ export function OperationalMonitor({
   )
 }
 
-function TreeNode({ node, expandedNodes, onToggle }: any) {
-  const isExpanded = expandedNodes[node.id]
-  const hasEmployees = node.employees.length > 0
-  const hasChildren = node.children.length > 0
+function HierarchyNode({ node, activeLogs, onEndBreak }: any) {
+  // Determine margin or layout based on Level
+  const isGrid = node.level > 3
+  
+  let marginClass = 'ml-0'
+  if (node.level === 2) marginClass = 'ml-5'
+  else if (node.level === 3) marginClass = 'ml-10'
+  else if (node.level > 3) marginClass = 'ml-15'
 
   return (
-    <div className="space-y-1">
-      <div 
-        onClick={() => onToggle(node.id)}
-        className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-sm transition hover:bg-slate-50"
-      >
-        <div className="flex items-center gap-2">
-          {hasChildren ? (
-            isExpanded ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />
-          ) : (
-            <div className="w-4" />
-          )}
-          <span className="font-bold text-slate-700">{node.name}</span>
-        </div>
-        <span className="text-[10px] font-bold text-slate-400">
-          {node.employees.length}
+    <div className={`space-y-4 ${marginClass}`}>
+      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">{node.name}</h3>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
+          Nivel {node.level}
         </span>
       </div>
-      
-      {isExpanded && (
-        <div className="ml-4 border-l-2 border-slate-100 pl-2 space-y-1">
-          {node.children.map((child: any) => (
-            <TreeNode key={child.id} node={child} expandedNodes={expandedNodes} onToggle={onToggle} />
-          ))}
+
+      {isGrid ? (
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {node.employees.map((emp: any) => (
-            <div key={emp.id} className="flex items-center gap-2 px-3 py-1 text-xs text-slate-500">
-              <div className={`h-2 w-2 rounded-full ${
-                emp.current_status === 'active' ? 'bg-green-500' : 
-                emp.current_status === 'on_break' ? 'bg-amber-500' : 'bg-slate-300'
-              }`} />
-              <span className="truncate">{emp.first_name} {emp.last_name}</span>
-            </div>
+            <CompactEmployeeCard 
+              key={emp.id} 
+              employee={emp} 
+              position={node}
+              log={activeLogs.find((l: any) => l.employee_id === emp.id)}
+              onEndBreak={onEndBreak}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {node.employees.map((emp: any) => (
+            <CompactEmployeeCard 
+              key={emp.id} 
+              employee={emp} 
+              position={node}
+              log={activeLogs.find((l: any) => l.employee_id === emp.id)}
+              onEndBreak={onEndBreak}
+            />
+          ))}
+        </div>
+      )}
+
+      {node.children && node.children.length > 0 && (
+        <div className="pt-2 space-y-6">
+          {node.children.map((child: any) => (
+            <HierarchyNode 
+              key={child.id} 
+              node={child} 
+              activeLogs={activeLogs}
+              onEndBreak={onEndBreak}
+            />
           ))}
         </div>
       )}
@@ -221,108 +218,120 @@ function TreeNode({ node, expandedNodes, onToggle }: any) {
   )
 }
 
-function EmployeeCard({ 
+function CompactEmployeeCard({ 
   employee, 
   position, 
   log,
   onEndBreak
 }: { 
   employee: Employee, 
-  position?: JobPosition, 
+  position: JobPosition, 
   log?: StatusLog,
-  onEndBreak: (logId: string, name: string) => void
+  onEndBreak: (logId: string, name: string, empId: string) => void
 }) {
-  const [now, setNow] = useState(new Date())
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000)
+    const timer = setInterval(() => {
+      if (employee.current_status === 'on_break' && log) {
+        setElapsedSeconds(Math.floor((new Date().getTime() - new Date(log.start_time).getTime()) / 1000))
+      } else if (employee.current_status === 'active') {
+        setElapsedSeconds(Math.floor((new Date().getTime() - new Date(employee.last_status_change).getTime()) / 1000))
+      } else {
+        setElapsedSeconds(0)
+      }
+    }, 1000)
     return () => clearInterval(timer)
-  }, [])
+  }, [employee.current_status, employee.last_status_change, log])
 
-  const getStatusDisplay = () => {
-    switch(employee.current_status) {
-      case 'active': return { label: 'Activo', color: 'bg-green-100 text-green-700', icon: <UserCheck className="h-4 w-4" /> }
-      case 'on_break': return { label: 'En Descanso', color: 'bg-amber-100 text-amber-700', icon: <Coffee className="h-4 w-4" /> }
-      default: return { label: 'Fuera', color: 'bg-slate-100 text-slate-500', icon: <LogOut className="h-4 w-4" /> }
+  const mins = Math.floor(elapsedSeconds / 60)
+  const secs = elapsedSeconds % 60
+  const timeString = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+
+  const isBreak = employee.current_status === 'on_break'
+  const isOvertime = isBreak && position && mins >= position.default_break_mins
+  const isWarning = isBreak && position && mins >= (position.default_break_mins * 0.8) && !isOvertime
+  const isOffline = employee.current_status !== 'active' && !isBreak
+
+  let iconColor = 'bg-slate-300' // Offline
+  if (employee.current_status === 'active') iconColor = 'bg-green-500'
+  else if (isOvertime) iconColor = 'bg-red-500 animate-pulse'
+  else if (isWarning) iconColor = 'bg-amber-500'
+  else if (isBreak) iconColor = 'bg-blue-500'
+
+  let timeColor = 'text-slate-400'
+  if (isOvertime) timeColor = 'text-red-600 font-black'
+  else if (isWarning) timeColor = 'text-amber-600 font-bold'
+  else if (isBreak) timeColor = 'text-blue-600 font-bold'
+  else if (employee.current_status === 'active') timeColor = 'text-green-600 font-bold'
+
+  const handleAction = async () => {
+    if (isBreak && log) {
+      if (isOvertime || position.default_break_mins === 0) {
+        // Direct end if over time or no set limit, no validation needed usually, but user wants validation always.
+        // Actually, if they return *before* time, modal appears. Over time = no modal, just end.
+        if (!isOvertime) {
+          onEndBreak(log.id, `${employee.first_name} ${employee.last_name}`, employee.id)
+        } else {
+          await endEmployeeBreak(employee.id, log.id, false)
+        }
+      } else {
+        // Show modal for early return
+        onEndBreak(log.id, `${employee.first_name} ${employee.last_name}`, employee.id)
+      }
+    } else {
+      // Start break
+      await startEmployeeBreak(employee.id, position.default_break_mins)
     }
   }
 
-  const status = getStatusDisplay()
-
-  // Calculate break percentage
-  let percentage = 0
-  let overTime = false
-  if (log && position) {
-    const start = new Date(log.start_time).getTime()
-    const elapsedMins = (now.getTime() - start) / 60000
-    percentage = (elapsedMins / position.default_break_mins) * 100
-    if (elapsedMins > position.default_break_mins) overTime = true
-  }
-
   return (
-    <div className={`group relative flex flex-col rounded-3xl border-2 p-5 transition hover:shadow-2xl ${
-      overTime ? 'border-red-500 bg-red-50 shadow-red-100 animate-pulse' : 'border-slate-100 bg-white'
-    }`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className={`flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${status.color}`}>
-          {status.icon}
-          {status.label}
+    <div className={`flex items-center justify-between rounded-2xl border border-slate-100 p-3 shadow-sm transition-all hover:shadow-md ${isOvertime ? 'bg-red-50 border-red-200' : 'bg-white'}`}>
+      
+      {/* Left: Indicator, Name, Badge */}
+      <div className="flex items-center gap-3 overflow-hidden">
+        <div className="relative flex h-3 w-3 items-center justify-center">
+          {isOvertime && <div className="absolute h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></div>}
+          <div className={`relative h-2.5 w-2.5 rounded-full ${iconColor}`}></div>
         </div>
-        {overTime && <span className="text-[10px] font-black text-red-600 uppercase animate-bounce">¡TIMEOUT!</span>}
-      </div>
-
-      <div className="flex items-center gap-4">
-        <div className="h-14 w-14 overflow-hidden rounded-2xl bg-slate-100 shadow-inner">
-          {employee.photo_url ? (
-            <img src={employee.photo_url} alt="User" className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-slate-300">
-              <User className="h-8 w-8" />
-            </div>
-          )}
-        </div>
-        <div className="flex-1 overflow-hidden">
-          <h3 className="truncate font-bold text-slate-900">{employee.first_name} {employee.last_name}</h3>
-          <p className="truncate text-xs font-medium text-slate-500">{position?.name || 'Sin puesto'}</p>
+        
+        <div className="flex flex-col overflow-hidden">
+          <span className="truncate text-sm font-bold text-slate-900 leading-tight">
+            {employee.first_name} {employee.last_name}
+          </span>
+          <span className="truncate text-[10px] font-semibold text-slate-400">
+            {position.name}
+          </span>
         </div>
       </div>
 
-      {employee.current_status === 'on_break' && log && (
-        <div className="mt-6 space-y-2">
-          <div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-500">
-            <span>Uso de Descanso</span>
-            <span className={overTime ? 'text-red-600' : ''}>{Math.round(percentage)}%</span>
+      {/* Right: Timer & Action */}
+      <div className="flex items-center gap-4 pl-2 shrink-0">
+        {!isOffline && (
+          <div className="flex flex-col items-end">
+            <span className={`font-mono text-sm tracking-tighter ${timeColor}`}>
+              {timeString}
+            </span>
+            <span className="text-[9px] font-bold uppercase text-slate-400">
+              {isBreak ? 'Break' : 'Active'}
+            </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200">
-            <div 
-              style={{ width: `${Math.min(percentage, 100)}%` }} 
-              className={`h-full transition-all duration-1000 ${
-                percentage > 100 ? 'bg-red-500' : percentage > 80 ? 'bg-amber-500' : 'bg-slate-900'
-              }`} 
-            />
-          </div>
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
-            <Clock className="h-3 w-3" />
-            <span>{formatDistanceToNow(new Date(log.start_time), { locale: es, addSuffix: false })} transcurridos</span>
-          </div>
+        )}
 
-          <button 
-             onClick={() => onEndBreak(log.id, `${employee.first_name} ${employee.last_name}`)}
-             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white shadow-lg transition hover:bg-slate-800 active:scale-95"
-          >
-            Terminar Descanso
-          </button>
-        </div>
-      )}
+        <button 
+          onClick={handleAction}
+          disabled={isOffline}
+          className={`flex h-8 w-8 items-center justify-center rounded-xl transition active:scale-95 disabled:opacity-30 ${
+            isBreak 
+              ? 'bg-slate-900 text-white hover:bg-slate-800' 
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+          }`}
+          title={isBreak ? 'Terminar Descanso' : 'Iniciar Descanso'}
+        >
+          {isBreak ? <Square className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
+        </button>
+      </div>
 
-      {employee.current_status !== 'on_break' && (
-        <div className="mt-6 flex flex-col justify-center gap-1 opacity-40">
-           <p className="text-[10px] font-bold uppercase text-slate-400">Último cambio</p>
-           <p className="text-xs font-medium text-slate-500">
-             {formatDistanceToNow(new Date(employee.last_status_change), { locale: es, addSuffix: true })}
-           </p>
-        </div>
-      )}
     </div>
   )
 }

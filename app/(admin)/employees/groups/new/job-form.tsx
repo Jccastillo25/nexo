@@ -84,7 +84,7 @@ export function JobPositionForm({
       </div>
 
       <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100">
-        <Link href="/organization/jobs" className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-bold text-slate-500 transition hover:bg-slate-100">
+        <Link href="/employees/groups" className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-bold text-slate-500 transition hover:bg-slate-100">
           Cancelar
         </Link>
         <button 

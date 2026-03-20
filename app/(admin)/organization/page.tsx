@@ -23,7 +23,6 @@ export default async function OrganizationPage() {
   const subModules = [
     { title: 'Empresas',   href: '/organization/companies',    desc: 'Gestiona las empresas del grupo.' },
     { title: 'Sucursales', href: '/organization/branches',     desc: 'Administra sucursales y ubicaciones.' },
-    { title: 'Puestos',    href: '/organization/jobs',         desc: 'Define la jerarquía y tiempos de descanso.' },
     { title: 'Membresías', href: '/organization/memberships',  desc: 'Controla acceso y roles por empresa.' },
   ]
 

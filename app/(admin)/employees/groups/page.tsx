@@ -1,39 +1,68 @@
+import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { Briefcase, Plus, ChevronRight, TreePine } from 'lucide-react'
 
-export default function GroupsPage() {
+export default async function JobPositionsPage() {
+  const supabase = await createClient()
+
+  const { data: positions } = await supabase
+    .from('job_positions')
+    .select('*, companies(display_name)')
+    .order('level', { ascending: true })
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+      <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Empleados</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">Grupos y Equipos</h1>
-          <p className="mt-2 text-sm text-slate-500">Organiza a tus colaboradores por sucursales o proyectos.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Puestos de Trabajo</h1>
+          <p className="text-sm text-slate-500">Define la jerarquía y reglas de descanso de la organización.</p>
         </div>
+        <Link 
+          href="/employees/groups/new"
+          className="flex h-11 items-center gap-2 rounded-2xl bg-slate-900 px-6 text-sm font-bold text-white shadow-lg transition hover:bg-slate-800 active:scale-95"
+        >
+          <Plus className="h-4 w-4" />
+          Nuevo Puesto
+        </Link>
       </div>
 
-      <div className="rounded-3xl border-2 border-dashed border-slate-200 bg-white p-12 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 text-slate-400">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-        </div>
-        <h2 className="mt-4 text-lg font-bold text-slate-900">Módulo de Jerarquía Implementado</h2>
-        <p className="mt-2 text-sm text-slate-500">
-          La gestión de jerarquías y el monitoreo real-time se han movido a módulos dedicados para una mejor experiencia.
-        </p>
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link href="/monitor" className="flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-800">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
-            Ir al Monitor Real-Time
-          </Link>
-          <Link href="/organization/jobs" className="flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-6 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-900">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-            Gestionar Puestos y Niveles
-          </Link>
-        </div>
-        <Link href="/employees" className="mt-6 inline-block text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900">
-          Volver al directorio
-        </Link>
+      <div className="grid gap-4">
+        {!positions || positions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-200 bg-white p-12 text-center">
+            <div className="mb-4 rounded-full bg-slate-50 p-4">
+              <TreePine className="h-8 w-8 text-slate-400" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">No hay puestos definidos</h3>
+            <p className="mx-auto mt-2 max-w-xs text-sm text-slate-500">
+              Comienza creando los puestos de nivel 1 (Gerencia) para construir el organigrama.
+            </p>
+          </div>
+        ) : (
+          positions.map((job) => (
+            <div 
+              key={job.id}
+              className="group flex items-center justify-between rounded-3xl border-2 border-slate-100 bg-white p-5 transition hover:border-slate-900 hover:shadow-xl"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 transition group-hover:bg-slate-900 group-hover:text-white">
+                  <Briefcase className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900">{job.name}</h3>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                      Nivel {job.level}
+                    </span>
+                  </div>
+                  <p className="text-xs font-medium text-slate-500">
+                    {job.companies?.display_name} • {job.default_break_mins} min descanso
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-900" />
+            </div>
+          ))
+        )}
       </div>
     </div>
   )
