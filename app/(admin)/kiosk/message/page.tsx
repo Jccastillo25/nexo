@@ -1,4 +1,4 @@
-import { createClient } from '../../../../src/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { KioskSettingsForm } from '../../settings/_components/kiosk-settings-form'
 import { MessageSquare, Info } from 'lucide-react'
 
@@ -38,10 +38,10 @@ export default async function KioskMessagePage() {
               <Info className="w-4 h-4" /> Vista Previa
             </h3>
             <div className="bg-indigo-600/10 dark:bg-indigo-400/10 rounded-xl p-4 border border-indigo-200 dark:border-indigo-800 italic text-sm text-indigo-800 dark:text-indigo-300 text-center">
-              "{customMessage}"
+              &ldquo;{customMessage}&rdquo;
             </div>
             <p className="text-[11px] text-indigo-600/60 dark:text-indigo-400/60 mt-4 leading-relaxed">
-              Este mensaje aparecerá en la pantalla central del kiosko, justo después de que el empleado realice su marcación.
+              Este mensaje aparecerá en la pantalla central del kiosco, justo después de que el empleado realice su marcación.
             </p>
           </div>
         </div>

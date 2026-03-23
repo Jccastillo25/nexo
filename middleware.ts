@@ -11,13 +11,17 @@ const PROTECTED_PREFIXES = [
   '/reports',
   '/organization',
   '/settings',
+  '/security',
+  '/kiosk',
+  '/monitor',
+  '/contracts',
   '/onboarding',
 ]
 
 // Rutas de autenticación (redirigir si ya está autenticado)
 const AUTH_ROUTES = ['/login']
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   let supabaseResponse = NextResponse.next({ request })
@@ -77,7 +81,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Aplica proxy a todas las rutas excepto:
+     * Aplica middleware a todas las rutas excepto:
      * - _next/static (archivos estáticos)
      * - _next/image (optimización de imágenes)
      * - favicon.ico

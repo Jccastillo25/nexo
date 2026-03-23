@@ -1,5 +1,6 @@
+'use client'
+
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { ChevronDown, Building2 } from 'lucide-react'
 import { adminNav } from './admin-nav'
 
 interface AdminTopbarProps {
@@ -64,6 +65,8 @@ export function AdminTopbar({
     if (pathname.startsWith('/leave/')) return 'Permisos y Ausencias'
     if (pathname.startsWith('/settings/')) return 'Configuración'
     if (pathname.startsWith('/security/')) return 'Seguridad'
+    if (pathname.startsWith('/contracts/')) return 'Contrataciones'
+    if (pathname.startsWith('/monitor')) return 'Monitor Operativo'
 
     return 'Panel de Control'
   }
@@ -79,6 +82,7 @@ export function AdminTopbar({
     }
     router.push(`${pathname}?${params.toString()}`)
   }
+
   return (
     <header
       className="print:hidden sticky top-0 z-20 border-b transition-all duration-300"

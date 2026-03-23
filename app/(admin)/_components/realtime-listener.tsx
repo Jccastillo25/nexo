@@ -6,9 +6,10 @@ import { createClient } from '@/lib/supabase/client'
 
 export function RealtimeListener() {
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
+    const supabase = createClient()
+
     // Suscribirse a INSERTS en la tabla time_records
     const channel = supabase
       .channel('public:time_records')
@@ -17,16 +18,21 @@ export function RealtimeListener() {
         { event: 'INSERT', schema: 'public', table: 'time_records' },
         (payload) => {
           console.log('Realtime Event received:', payload)
-          // Refresca la ruta actual en el servidor, actualizando los Server Components automáticamente
+          // Refresca la ruta actual en el servidor
           router.refresh()
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error('Realtime channel error — retrying connection')
+        }
+      })
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [router, supabase])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  return null // Renderiza nada, solo funciona lógica en background
+  return null
 }

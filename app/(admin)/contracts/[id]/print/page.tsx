@@ -3,6 +3,26 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { PrintButton } from './print-button'
 
+/**
+ * Sanitiza HTML básico de templates — elimina scripts y atributos
+ * de eventos para prevenir XSS. Para producción considerar DOMPurify
+ * server-side o una librería dedicada como sanitize-html.
+ */
+function sanitizeTemplateHtml(html: string): string {
+  return html
+    // Eliminar tags <script> y su contenido
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    // Eliminar atributos de eventos inline (onclick, onerror, etc.)
+    .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/\s+on\w+\s*=\s*[^\s>]+/gi, '')
+    // Eliminar href javascript:
+    .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"')
+    // Eliminar tags <iframe>
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    // Eliminar tags <object>
+    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
+}
+
 export default async function PrintContractPage({
   params,
 }: {
@@ -42,7 +62,7 @@ export default async function PrintContractPage({
 
   // 3. Simple variable substitution
   let content = template.content
-  const replacements = {
+  const replacements: Record<string, string> = {
     '{{full_name}}': `${contract.employees.first_name} ${contract.employees.last_name}`,
     '{{salary}}': `$${contract.salary?.toLocaleString()}`,
     '{{shift_name}}': contract.shifts?.name || 'N/A',
@@ -53,8 +73,13 @@ export default async function PrintContractPage({
   }
 
   Object.entries(replacements).forEach(([key, value]) => {
-    content = content.replace(new RegExp(key, 'g'), value)
+    // Escapar el valor para prevenir inyección de variables anidadas
+    const safeValue = value.replace(/\{\{|\}\}/g, '')
+    content = content.replace(new RegExp(key.replace(/[{}]/g, '\\$&'), 'g'), safeValue)
   })
+
+  // 4. Sanitizar el HTML resultante antes de renderizarlo
+  const sanitizedContent = sanitizeTemplateHtml(content)
 
   return (
     <div className="min-h-screen bg-slate-100 py-12 px-4 flex flex-col items-center gap-8 print:bg-white print:py-0 print:px-0">
@@ -78,10 +103,10 @@ export default async function PrintContractPage({
           </div>
         </div>
 
-        {/* The Template Content (dangerouslySetInnerHTML because templates might have HTML from an editor) */}
+        {/* Contenido sanitizado del template */}
         <div 
           className="prose prose-slate max-w-none whitespace-pre-wrap text-[12pt]"
-          dangerouslySetInnerHTML={{ __html: content }}
+          dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
 
         {/* Signature Area */}
