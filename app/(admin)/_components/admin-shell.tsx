@@ -32,20 +32,27 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
     console.log(`[AdminShell] User: ${user.id}, Memberships: ${memberships?.length || 0}`)
 
     if (memberships && memberships.length > 0) {
+      console.log(`[AdminShell] Memberships for ${user.id}:`, JSON.stringify(memberships.map(m => ({ id: m.company_id, name: (m.companies as any)?.display_name })), null, 2))
+      
       const primary = memberships[0]
       userRole = primary.role
-      const co = primary.companies as unknown as { display_name: string } | null
+      const co = primary.companies as any
       if (co?.display_name) companyName = co.display_name
       
-      // Map all authorized companies
-      userCompanies = memberships.map(m => {
-        const c = m.companies as unknown as { id: string, display_name: string, slug: string }
-        return {
-          id: c.id,
-          name: c.display_name,
-          slug: c.slug
-        }
-      })
+      // Map all authorized companies defensively
+      userCompanies = memberships
+        .map(m => {
+          const c = m.companies as any
+          if (!c) return null
+          return {
+            id: c.id,
+            name: c.display_name || 'Sin nombre',
+            slug: c.slug || ''
+          }
+        })
+        .filter((c): c is { id: string, name: string, slug: string } => c !== null)
+      
+      console.log(`[AdminShell] Valid Companies mapped: ${userCompanies.length}`)
     }
   }
 

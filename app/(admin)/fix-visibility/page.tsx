@@ -11,21 +11,13 @@ export default async function FixVisibilityPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return <div className="p-10 text-center font-bold">Por favor, inicia sesión primero.</div>
 
-  // 2. Find ALL existing companies
-  const { data: companies, error: coErr } = await adminClient
-    .from('companies')
-    .select('id, display_name, slug')
+  // 2. Find ALL existing companies and memberships for this user
+  const [{ data: allCompanies }, { data: currentMemberships }] = await Promise.all([
+    adminClient.from('companies').select('id, display_name, slug'),
+    adminClient.from('company_memberships').select('company_id').eq('user_id', user.id)
+  ])
 
-  if (coErr) {
-    return (
-      <div className="p-10 text-center border-2 border-dashed border-red-200 rounded-3xl m-10">
-        <h1 className="text-xl font-bold text-red-600 mb-4">Error de Conexión Admin</h1>
-        <p className="text-slate-600">{coErr.message}</p>
-      </div>
-    )
-  }
-
-  if (!companies || companies.length === 0) {
+  if (!allCompanies || allCompanies.length === 0) {
     return (
         <div className="p-10 text-center space-y-4 max-w-lg mx-auto mt-20">
           <h1 className="text-2xl font-bold text-slate-900">No se encontraron empresas</h1>
@@ -36,29 +28,24 @@ export default async function FixVisibilityPage() {
 
   // 3. Create memberships and count employees
   const results = []
-  for (const co of companies) {
+  for (const co of allCompanies) {
     const { count: empCount } = await adminClient
       .from('employees')
       .select('id', { count: 'exact', head: true })
       .eq('company_id', co.id)
 
-    const { data: existing } = await adminClient
-      .from('company_memberships')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('company_id', co.id)
-      .maybeSingle()
+    const isMember = currentMemberships?.some(m => m.company_id === co.id)
 
-    if (!existing) {
+    if (!isMember) {
       await adminClient.from('company_memberships').insert({
         user_id: user.id,
         company_id: co.id,
         role: 'admin',
         is_active: true
       })
-      results.push({ name: co.display_name, slug: co.slug, count: empCount || 0, status: 'Acceso Restaurado' })
+      results.push({ name: co.display_name, slug: co.slug, count: empCount || 0, status: 'Vinculado Ahora' })
     } else {
-      results.push({ name: co.display_name, slug: co.slug, count: empCount || 0, status: 'Acceso Activo' })
+      results.push({ name: co.display_name, slug: co.slug, count: empCount || 0, status: 'Ya Vinculado' })
     }
   }
 
