@@ -60,10 +60,10 @@ Empleados de la empresa, con perfil completo.
 | `social_security_id` | `text`      | Número de INSS                                 |
 | `tax_id`             | `text`      | NIT personal                                   |
 | `photo_url`          | `text`      | URL de foto en Storage                         |
-| `job_position_id`    | `uuid` FK   | Puesto de trabajo → `job_positions.id`         |
-| `current_status`     | `text`      | Estado actual: `active`, `on_break`, `offline` |
-| `last_status_change` | `timestamptz` | Fecha del cambio de estado                     |
-| `is_active`          | `bool`      | Estado activo/inactivo                         |
+| `job_position_id`    | `uuid` FK   | Puesto de trabajo → `job_positions.id` (Nivel Jerárquico) |
+| `current_status`     | `text`      | Estado para Monitor: `active`, `on_break`, `offline`, `absent` |
+| `last_status_change` | `timestamptz` | Última actualización de estado para el Monitor |
+| `is_active`          | `bool`      | Estado administrativo (Habilitado/Baja)         |
 | `created_at`         | `timestamptz` | Fecha de creación                            |
 
 ---
@@ -144,7 +144,45 @@ Asignación de turno a un empleado. Solo puede haber una asignación activa por 
 
 ---
 
-### `time_records`
+### `attendance_logs`
+Maneja las marcaciones del sistema omnicanal (Kiosk + Monitor). **Sustituye a `time_records`**.
+
+| Columna       | Tipo        | Descripción                                      |
+|---------------|-------------|--------------------------------------------------|
+| `id`          | `uuid` PK   | Identificador único                              |
+| `company_id`  | `uuid` FK   | Empresa → `companies.id`                         |
+| `employee_id` | `uuid` FK   | Empleado → `employees.id`                        |
+| `action`      | `varchar`   | `CLOCK_IN`, `CLOCK_OUT`, `START_BREAK`, `END_BREAK` |
+| `status`      | `varchar`   | `CLOCKED_IN`, `CLOCKED_OUT`, `ON_BREAK`          |
+| `recorded_at` | `timestamptz` | Hora oficial de la acción (servidor)           |
+| `recorded_by` | `uuid` FK   | User ID del ejecutor (Kiosk o Supervisor)        |
+| `source`      | `enum`      | `KIOSK`, `MONITOR`, `API`, `IMPORT`              |
+| `notes`       | `text`      | Comentarios adicionales o justificaciones        |
+| `created_at`  | `timestamptz` | Fecha de registro                               |
+
+---
+
+### `audit_logs`
+Trazabilidad de cambios sensibles realizados por usuarios o procesos.
+
+| Columna        | Tipo        | Descripción                                      |
+|----------------|-------------|--------------------------------------------------|
+| `id`           | `bigint` PK | Identificador autonumérico                       |
+| `company_id`   | `uuid` FK   | Contexto de empresa                              |
+| `table_name`   | `text`      | Nombre de la tabla afectada                      |
+| `action`       | `text`      | Tipo de acción (`INSERT`, `UPDATE`, `DELETE`, `MARK_ATTENDANCE`) |
+| `record_id`    | `uuid`      | ID del registro afectado                         |
+| `user_id`      | `uuid`      | Usuario de Supabase Auth                         |
+| `performed_by_profile_id` | `uuid` | Perfil que realizó la acción                |
+| `source`       | `text`      | Fuente del cambio                                |
+| `details`      | `jsonb`     | Antes/Después de los datos                      |
+| `created_at`   | `timestamptz` | Fecha del log                                  |
+
+---
+
+### `time_records` (LEGACY)
+> [!WARNING]
+> Esta tabla está en proceso de depreciación. Favor usar `attendance_logs` para nuevos desarrollos.
 Registro de marcaciones (entradas y salidas).
 
 | Columna             | Tipo        | Descripción                                          |
@@ -187,6 +225,22 @@ Incidencias de asistencia (tardanzas graves, ausencias, horas extra, etc.).
 | `status`      | `text`      | `open`, `closed`                          |
 | `notes`       | `text`      | Notas descriptivas                        |
 | `created_at`  | `timestamptz` | Fecha de registro                       |
+
+---
+
+### `absence_logs`
+Almacena ausencias justificadas o no, con aprobación de supervisores.
+
+| Columna       | Tipo        | Descripción                                      |
+|---------------|-------------|--------------------------------------------------|
+| `id`          | `uuid` PK   | Identificador único                              |
+| `employee_id` | `uuid` FK   | Empleado → `employees.id`                        |
+| `start_date`  | `date`      | Inicio del periodo                               |
+| `end_date`    | `date`      | Fin del periodo                                  |
+| `reason`      | `text`      | Motivo (Enfermedad, Familiar, etc.)              |
+| `notes`       | `text`      | Comentarios adicionales                          |
+| `approved_by` | `uuid` FK   | Supervisor o RRHH que aprobó                     |
+| `created_at`  | `timestamptz` | Fecha de registro                               |
 
 ---
 
@@ -259,6 +313,12 @@ Configuración global de la aplicación en formato clave-valor.
 
 ## RPCs (Funciones PostgreSQL)
 
+### `rpc_mark_attendance_action(...)`
+Centraliza la lógica de marcación de asistencia. Valida transiciones de estado y genera registros de auditoría automáticamente.
+
+### `rpc_monitor_mark_attendance(...)`
+Permite a un supervisor marcar asistencia a un empleado bajo su cargo, inyectando el origen `MONITOR`.
+
 ### `create_company_with_owner(p_display_name, p_legal_name, p_slug, p_tax_id)`
 Crea una empresa y automáticamente asigna al usuario autenticado como `owner` en `company_memberships`. Retorna el `id` de la nueva empresa.
 
@@ -319,4 +379,4 @@ app_settings (global, sin FK)
 
 ---
 
-*Documentación de base de datos — Gestor360 v0.2.0 — 19 de marzo de 2026*
+*Documentación de base de datos — Gestor360 v0.3.0 — 24 de marzo de 2026*

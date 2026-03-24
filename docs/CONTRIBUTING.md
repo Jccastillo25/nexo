@@ -144,7 +144,7 @@ background: #ffffff;
 
 ### Tailwind CSS
 
-Se usa Tailwind v4. Para estilos específicos de layout o responsive, usar clases de Tailwind. Para el sistema de colores y tema, usar CSS Variables.
+Se usa Tailwind v4. Para estilos específicos de layout o responsive, usar clases de Tailwind. Para el sistema de colores y tema, usar CSS Variables. Se recomienda el uso de `@tailwindcss/postcss` para la integración.
 
 ---
 
@@ -152,6 +152,7 @@ Se usa Tailwind v4. Para estilos específicos de layout o responsive, usar clase
 
 - Todas las tablas deben tener **RLS habilitado** en Supabase.
 - El acceso se limita según el `company_id` del usuario autenticado (vía `company_memberships`).
+- Toda marcación de asistencia debe realizarse a través de las funciones RPC (`rpc_mark_attendance_action`) para garantizar la integridad y auditoría.
 - Los Server Actions verifican la sesión antes de cualquier operación sensible.
 - Los datos del cliente **solo** deben acceder con la `anon key`, nunca con la `service_role key`.
 
@@ -183,4 +184,4 @@ Si trabajas en uno de estos módulos, reemplaza el `ModulePlaceholder` con la im
 
 ---
 
-*Guía de contribución — Gestor360 v0.1.0*
+*Guía de contribución — Gestor360 v0.2.0 — 24 de marzo de 2026*

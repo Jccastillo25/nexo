@@ -37,14 +37,13 @@
 
 | Categoría        | Tecnología                              |
 |------------------|-----------------------------------------|
-| Framework        | [Next.js 16](https://nextjs.org/) (App Router) |
+| Framework        | [Next.js 16](https://nextjs.org/) (App Router + Turbopack) |
 | UI Library       | [React 19](https://react.dev/)          |
 | Lenguaje         | TypeScript 5                            |
 | Estilos          | Tailwind CSS v4                         |
 | Backend / DB     | [Supabase](https://supabase.com/) (PostgreSQL + Auth + Storage) |
 | Iconos           | [Lucide React](https://lucide.dev/), Material Symbols |
 | Gráficas         | [Recharts](https://recharts.org/)       |
-| Fuentes          | Geist Sans / Geist Mono + Inter         |
 | Monitoreo        | Vercel Speed Insights                   |
 | Linting          | ESLint 9 + eslint-config-next           |
 
@@ -65,66 +64,38 @@ web/
 │   │   ├── _components/        # Componentes del shell de administración
 │   │   │   ├── admin-nav.ts         # Definición tipada del menú de navegación
 │   │   │   ├── admin-shell.tsx      # Shell del panel (Server Component)
-│   │   │   ├── admin-shell-client.tsx  # Gestión de estado de sidebar (Client Component)
 │   │   │   ├── admin-sidebar.tsx    # Barra lateral colapsable
 │   │   │   ├── admin-topbar.tsx     # Barra superior con búsqueda y perfil
-│   │   │   └── module-placeholder.tsx  # Placeholder para módulos en construcción
+│   │   │   ├── module-placeholder.tsx  # Placeholder para módulos
+│   │   │   └── realtime-listener.tsx   # Escucha cambios en tiempo real (Supabase)
 │   │   │
 │   │   ├── dashboard/          # Panel principal con métricas y gráficas
 │   │   ├── employees/          # Gestión de empleados
-│   │   │   ├── page.tsx        # Listado maestro de empleados
-│   │   │   ├── [id]/           # Perfil detallado del empleado
-│   │   │   └── new/            # Formulario de nuevo empleado
-│   │   ├── attendance/         # Control de asistencia
-│   │   │   ├── page.tsx        # Resumen del día
-│   │   │   ├── records/        # Historial de registros
-│   │   │   ├── corrections/    # Correcciones de marcación
-│   │   │   └── incidents/      # Incidencias (tardanzas, ausencias, etc.)
-│   │   ├── schedules/          # Gestión de horarios
-│   │   │   ├── page.tsx        # Listado de turnos
-│   │   │   ├── new/            # Nuevo turno
-│   │   │   └── assignments/    # Asignación de turnos a empleados
-│   │   ├── leave/              # Permisos y ausencias (aprobaciones)
-│   │   ├── reports/            # Módulo de reportes
-│   │   ├── organization/       # Estructura organizacional
-│   │   │   ├── page.tsx        # Vista general
-│   │   │   ├── companies/      # Gestión de empresas
-│   │   │   ├── branches/       # Gestión de sucursales
-│   │   │   └── memberships/    # Membresías de usuarios
+│   │   ├── attendance/         # Control de asistencia (records, corrections, incidents)
+│   │   ├── schedules/          # Gestión de horarios y turnos
+│   │   ├── leave/              # Permisos y ausencias
+│   │   ├── reports/            # Módulo de reportes (asistencia, horas, incidencias)
+│   │   ├── organization/       # Empresas, sucursales y membresías
 │   │   ├── security/           # Seguridad del sistema
 │   │   ├── settings/           # Configuración de la aplicación
 │   │   └── kiosk/              # Administración de dispositivos kiosco
-│   │       ├── message/        # Mensaje personalizado del kiosco
-│   │       ├── devices/        # Listado y gestión de dispositivos
-│   │       ├── settings/       # Configuración de kioscos
-│   │       └── assign/         # Asignación de kioscos a sucursales
 │   │
-│   ├── (auth)/
-│   │   └── login/              # Página de inicio de sesión
-│   │
-│   ├── onboarding/             # Flujo de configuración inicial
-│   │
+│   ├── (auth)/                 # Login y recuperación
 │   ├── actions/                # Next.js Server Actions (lógica de negocio)
-│   │   ├── auth.ts             # signIn / signOut
-│   │   ├── employees.ts        # CRUD de empleados + toggle de estado
-│   │   ├── companies.ts        # CRUD de empresas (con upload de logo)
-│   │   ├── branches.ts         # CRUD de sucursales
-│   │   ├── schedules.ts        # Crear turnos y asignarlos
-│   │   ├── kiosk.ts            # CRUD de dispositivos kiosco
-│   │   ├── pins.ts             # Gestión de PINs de empleados
-│   │   ├── upload-photo.ts     # Subida de fotos de empleados
-│   │   └── appearance.ts       # Configuración de apariencia
-│   │
-│   └── types/
-│       └── kiosk.ts            # Tipos TypeScript para entidades del kiosco
+│   ├── api/                    # API Routes (webhooks, integraciones externas)
+│   ├── onboarding/             # Flujo de configuración inicial
+│   └── types/                  # Tipos TypeScript específicos de la App
 │
-└── src/
-    └── lib/
-        ├── supabase/
-        │   ├── client.ts       # Cliente Supabase para Client Components
-        │   ├── server.ts       # Cliente Supabase para Server Components/Actions
-        │   └── middleware.ts   # Middleware para refresco de sesión
-        └── utils.ts            # generateUniquePin()
+├── db/                         # Base de datos
+│   └── migrations/             # Historial de cambios SQL (DDL)
+│
+├── src/
+│   ├── components/             # UI Components atómicos y complejos
+│   ├── hooks/                  # React Hooks personalizados (useAttendanceRealtime, etc.)
+│   └── lib/
+│       ├── supabase/           # Clientes Supabase (server, client, admin, middleware)
+│       └── utils.ts            # Utilidades generales
+```
 ```
 
 ---
@@ -194,8 +165,6 @@ Se han incluido scripts auxiliares en la carpeta `web/` para tareas administrati
 
 Tablas principales en **Supabase (PostgreSQL)**:
 
-| Tabla                | Descripción                                              |
-|----------------------|----------------------------------------------------------|
 | `employees`          | Empleados con todos sus datos y `employee_code` (PIN)    |
 | `employee_pins`      | Historial de PINs por empleado                          |
 | `employee_shifts`    | Asignaciones de turno (una activa por empleado)          |
@@ -203,18 +172,21 @@ Tablas principales en **Supabase (PostgreSQL)**:
 | `branches`           | Sucursales vinculadas a empresas                         |
 | `companies`          | Empresas (multitenant)                                   |
 | `company_memberships`| Relación usuario-empresa con rol                         |
-| `time_records`       | Registros de entrada/salida con `event_type` y `tardiness_minutes` |
+| `attendance_logs`    | Marcaciones omnicanal (CLOCK_IN, BREAK, CLOCK_OUT)       |
+| `audit_logs`         | Auditoría de cambios en la base de datos                 |
 | `time_corrections`   | Solicitudes de corrección de marcaciones                 |
-| `incidents`          | Incidencias de asistencia                                |
-| `leave_requests`     | Solicitudes de permiso o ausencia                        |
-| `kiosk_devices`      | Dispositivos kiosco con `device_code` único              |
-| `app_settings`       | Configuración clave-valor (logo, favicon, mensaje, etc.) |
+| `incidents`          | Incidencias de asistencia (automáticas o manuales)       |
+| `absence_logs`       | Registro de faltas y permisos aprobados                 |
+| `kiosk_devices`      | Dispositivos kiosco autorizados                          |
+| `app_settings`       | Configuración dinámica (mensaje, logo, etc.)             |
 
 ### Funciones RPC
 
 | Función                      | Descripción                                             |
 |------------------------------|---------------------------------------------------------|
 | `create_company_with_owner`  | Crea una empresa y asigna al usuario actual como `owner`|
+| `rpc_mark_attendance_action` | Firma de marcación oficial con validación de estado     |
+| `rpc_monitor_mark_attendance`| Marcación remota por supervisor desde el Monitor        |
 
 ### Storage Buckets
 
@@ -282,18 +254,20 @@ Usuario autenticado (Supabase Auth)
         │
         ├─ company_memberships ─────► companies
         │        (rol: owner/admin/rrhh/supervisor/viewer)    │
-        │                                                      └─► branches
-        │                                                              │
-        │                                                              ├─► employees
-        │                                                              │       │
-        │                                                              │       ├─► employee_pins
-        │                                                              │       ├─► employee_shifts ─► shifts
-        │                                                              │       ├─► time_records
-        │                                                              │       ├─► time_corrections
-        │                                                              │       ├─► incidents
-        │                                                              │       └─► leave_requests
-        │                                                              │
-        │                                                              └─► kiosk_devices
+        │                                                      ├─► branches
+        │                                                      │       │
+        │                                                      │       ├─► employees
+        │                                                      │       │       │
+        │                                                      │       │       ├─► employee_pins
+        │                                                      │       │       ├─► employee_shifts ─► shifts
+        │                                                      │       │       ├─► attendance_logs (vía RPC)
+        │                                                      │       │       ├─► time_corrections
+        │                                                      │       │       ├─► incidents
+        │                                                      │       │       └─► absence_logs
+        │                                                      │       │
+        │                                                      │       └─► kiosk_devices
+        │                                                      │
+        │                                                      └─► audit_logs (Triggers)
         └─ app_settings (configuración global)
 ```
 
@@ -306,14 +280,13 @@ Empleado ingresa PIN en kiosco
 Server Action: processKioskEvent(branch_id, pin, event_type)
         │
         ▼
-Next.js valida PIN → busca employee_code en employees usando admin_client
-        │
+RPC: rpc_mark_attendance_action(...)
+        │ (Valida estado + calcula retrasos + auditoría)
         ▼
-Inserta registro en time_records (clock_in / clock_out)
-  + calcula tardiness_minutes según shift activo
-        │
+Actualiza employees.current_status
+        │ (Broadcast Realtime)
         ▼
-Kiosco muestra confirmación con nombre del empleado
+Kiosco muestra confirmación + Monitor se actualiza
 ```
 
 ---
