@@ -1,6 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
+import { CheckCircle2, RefreshCcw } from 'lucide-react'
 
 export default async function FixVisibilityPage() {
   const supabase = await createClient()
@@ -65,49 +66,77 @@ export default async function FixVisibilityPage() {
         name: co.display_name, 
         slug: co.slug,
         count: empCount || 0,
-        status: 'Vínculo creado' 
+        status: 'Acceso Restaurado' 
       })
     } else {
       results.push({ 
         name: co.display_name, 
         slug: co.slug,
         count: empCount || 0,
-        status: 'Acceso verificado' 
+        status: 'Acceso Activo' 
       })
     }
   }
 
+  // FORCE REVALIDATION
+  revalidatePath('/', 'layout')
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 p-6">
       <div className="w-full max-w-2xl rounded-[40px] bg-white p-10 shadow-2xl ring-1 ring-white/10">
-        <div className="mb-8">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white text-xl mb-4 shadow-lg">⚡</div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Restauración de Datos</h1>
-          <p className="mt-3 text-slate-500 leading-relaxed font-semibold">
-            Hemos sincronizado tu cuenta y analizado dónde están tus colaboradores.
+        <div className="mb-10 text-center">
+          <div className="inline-flex h-20 w-20 items-center justify-center rounded-[30%] bg-blue-600 text-white text-3xl mb-6 shadow-2xl shadow-blue-500/20 animate-bounce">
+            <CheckCircle2 size={40} />
+          </div>
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase">Sincronización Exitosa</h1>
+          <p className="mt-4 text-lg text-slate-500 leading-relaxed font-medium">
+            Tu cuenta ha sido vinculada como administrador en todas las organizaciones encontradas.
           </p>
         </div>
 
         <div className="space-y-4">
           {results.map((r, i) => (
-            <div key={i} className="group relative overflow-hidden rounded-3xl bg-slate-50 p-6 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-md">
+            <div key={i} className="group relative overflow-hidden rounded-[32px] bg-slate-50 p-6 border border-slate-100 transition hover:bg-white hover:shadow-xl hover:border-blue-100">
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-xl font-bold text-slate-900">{r.name}</h3>
-                    <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1 rounded uppercase tracking-tighter">slug: {r.slug}</span>
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold text-lg">
+                    {r.name[0]}
                   </div>
-                  <p className="text-sm font-medium text-slate-500">
-                    {r.count} colaboradores encontrados
-                  </p>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">{r.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                       <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{r.count} Colaboradores</span>
+                       <span className="text-slate-300">•</span>
+                       <span className="text-[10px] font-mono text-slate-400 uppercase">Slug: {r.slug}</span>
+                    </div>
+                  </div>
                 </div>
                 <div className="text-right">
-                   <span className="inline-block px-3 py-1 rounded-full bg-slate-900 text-[10px] font-black text-white uppercase tracking-widest">{r.status}</span>
+                   <div className="px-3 py-1 rounded-full bg-emerald-500/10 text-[10px] font-black text-emerald-600 uppercase tracking-widest border border-emerald-500/20">
+                     {r.status}
+                   </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
+
+        <div className="mt-12 space-y-4">
+          <a 
+            href="/dashboard"
+            className="flex h-16 w-full items-center justify-center rounded-2xl bg-slate-900 text-sm font-black uppercase tracking-[0.2em] text-white transition hover:scale-[1.02] hover:bg-slate-800 active:scale-[0.98] shadow-2xl"
+          >
+            Finalizar y Entrar al Panel
+          </a>
+          
+          <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+            ID de Usuario: {user.id}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
         <div className="mt-10 pt-8 border-t border-slate-100 italic text-[10px] text-slate-400 text-center font-medium">
           Identificador de Usuario activo: {user.id}
