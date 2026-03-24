@@ -277,8 +277,6 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
       .from('attendance_logs')
       .insert({
         employee_id: employee.id,
-        company_id: employee.company_id,
-        branch_id: branchId,
         clock_in: new Date().toISOString(),
         status: tardinessMinutes > 0 ? 'late' : 'on_time',
         source_origin: 'KIOSK'
