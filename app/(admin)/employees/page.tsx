@@ -59,6 +59,16 @@ export default async function EmployeesPage({
   }
 
   try {
+  // Helper to apply filters to head queries
+  const applyParams = (q: any) => {
+    let q2 = q
+    if (company_id && company_id !== 'all') {
+      q2 = q2.eq('company_id', company_id)
+    }
+    return q2
+  }
+
+  try {
     const [
       results,
       inactiveResult,
@@ -67,21 +77,16 @@ export default async function EmployeesPage({
       shiftsListResult,
     ] = await Promise.all([
       query.order('first_name'),
-      supabase
+      applyParams(supabase
         .from('employees')
         .select('id', { count: 'exact', head: true })
-        .eq('is_active', false),
-      supabase
+        .eq('is_active', false)),
+      applyParams(supabase
         .from('employees')
         .select('id', { count: 'exact', head: true })
         .eq('is_active', true)
-        .is('employee_code', null),
-      supabase
-        .from('branches')
-        .select('id, name')
-        .eq('is_active', true)
-        .eq('company_id', (company_id && company_id !== 'all') ? company_id : '') // Optional: filter branches by company if not all
-        .order('name'),
+        .is('employee_code', null)),
+      applyParams(supabase.from('branches').select('id, name').eq('is_active', true).order('name')),
       supabase.from('shifts').select('id, name').eq('is_active', true).order('name'),
     ])
 

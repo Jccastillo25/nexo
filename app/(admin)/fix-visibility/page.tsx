@@ -48,9 +48,9 @@ export default async function FixVisibilityPage() {
           is_active: true
         })
         if (insErr) throw new Error(`Insert Error: ${insErr.message}`)
-        results.push({ name: co.display_name, slug: co.slug, count: empCount || 0, status: 'Vinculado Ahora' })
+        results.push({ id: co.id, name: co.display_name, slug: co.slug, count: empCount || 0, status: 'Vinculado Ahora' })
       } else {
-        results.push({ name: co.display_name, slug: co.slug, count: empCount || 0, status: 'Ya Vinculado' })
+        results.push({ id: co.id, name: co.display_name, slug: co.slug, count: empCount || 0, status: 'Ya Vinculado' })
       }
     }
 
