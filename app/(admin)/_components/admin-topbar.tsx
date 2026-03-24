@@ -118,23 +118,30 @@ export function AdminTopbar({
 
           {/* Title Branding + Company Selector */}
           <div className="flex flex-col ml-0.5 min-w-0">
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] hidden sm:block truncate opacity-70">
+            <div className="flex items-center gap-1.5 mb-1.5 group">
+              <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] hidden sm:block truncate opacity-50">
                 Organización Actual:
               </span>
               {companies.length > 1 ? (
-                <select 
-                  value={companyId || ''} 
-                  onChange={(e) => handleCompanyChange(e.target.value)}
-                  className="bg-transparent text-[10px] font-black text-blue-400 uppercase tracking-widest outline-none cursor-pointer hover:text-blue-300 transition-colors"
-                >
-                   <option value="all" className="bg-slate-900 text-white">Todas las empresas</option>
-                   {companies.map(c => (
-                     <option key={c.id} value={c.id} className="bg-slate-900 text-white">{c.name}</option>
-                   ))}
-                </select>
+                <div className="relative flex items-center">
+                  <select 
+                    value={companyId || ''} 
+                    onChange={(e) => handleCompanyChange(e.target.value)}
+                    className="appearance-none bg-slate-800/10 hover:bg-slate-800/80 border border-slate-700/50 rounded-md px-2 py-0.5 pr-6 text-[9px] font-black text-blue-400 uppercase tracking-widest outline-none cursor-pointer transition-all hover:border-blue-500/50"
+                  >
+                     <option value="all" className="bg-slate-950 text-white">Todas las empresas</option>
+                     {companies.map(c => (
+                       <option key={c.id} value={c.id} className="bg-slate-950 text-white">{c.name}</option>
+                     ))}
+                  </select>
+                  <div className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-blue-500">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                  </div>
+                </div>
               ) : (
-                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest bg-blue-500/5 px-2 py-0.5 rounded border border-blue-500/10">
                   {companyName}
                 </span>
               )}
