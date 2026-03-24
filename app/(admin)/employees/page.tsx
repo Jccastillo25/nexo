@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Printer, Mail } from 'lucide-react'
 
 function StatusBadge({ active }: { active: boolean }) {
   return (
@@ -58,10 +57,9 @@ export default async function EmployeesPage({
     query = query.eq('company_id', company_id)
   }
 
-  try {
   // Helper to apply filters to head queries
-  const applyParams = (q: any) => {
-    let q2 = q
+  const applyParams = (qObj: any) => {
+    let q2 = qObj
     if (company_id && company_id !== 'all') {
       q2 = q2.eq('company_id', company_id)
     }
@@ -77,15 +75,8 @@ export default async function EmployeesPage({
       shiftsListResult,
     ] = await Promise.all([
       query.order('first_name'),
-      applyParams(supabase
-        .from('employees')
-        .select('id', { count: 'exact', head: true })
-        .eq('is_active', false)),
-      applyParams(supabase
-        .from('employees')
-        .select('id', { count: 'exact', head: true })
-        .eq('is_active', true)
-        .is('employee_code', null)),
+      applyParams(supabase.from('employees').select('id', { count: 'exact', head: true }).eq('is_active', false)),
+      applyParams(supabase.from('employees').select('id', { count: 'exact', head: true }).eq('is_active', true).is('employee_code', null)),
       applyParams(supabase.from('branches').select('id, name').eq('is_active', true).order('name')),
       supabase.from('shifts').select('id, name').eq('is_active', true).order('name'),
     ])
@@ -127,6 +118,21 @@ export default async function EmployeesPage({
           </div>
         </div>
 
+        {/* Stats */}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 relative overflow-hidden">
+              <p className="text-sm text-slate-500 relative z-10">{s.label}</p>
+              <p className={`mt-3 text-3xl font-bold relative z-10 ${s.label === 'Pendientes de PIN' && s.value > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
+                {s.value}
+              </p>
+              {s.label === 'Pendientes de PIN' && s.value > 0 && (
+                <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-amber-50 to-transparent"></div>
+              )}
+            </div>
+          ))}
+        </div>
+
         {/* Search and Filters */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <form className="relative flex-1 flex flex-col sm:flex-row gap-3">
@@ -136,7 +142,7 @@ export default async function EmployeesPage({
                 name="q"
                 defaultValue={q}
                 placeholder="Buscar por nombre o correo..."
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 text-slate-900"
               />
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -168,8 +174,8 @@ export default async function EmployeesPage({
             </select>
 
             {(q || branch || shift) && (
-              <Link href="/employees" className="h-11 flex items-center px-4 text-sm text-slate-400 hover:text-white">
-                Limpiar
+              <Link href="/employees" className="h-11 flex items-center px-4 text-sm text-slate-400 hover:text-slate-600 transition-colors">
+                Limpiar filtros
               </Link>
             )}
             <button type="submit" className="hidden">Buscar</button>
@@ -180,21 +186,6 @@ export default async function EmployeesPage({
             <span>•</span>
             <span className="text-green-400">{Math.max(0, total - inactive)} Activos</span>
           </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {stats.map((s) => (
-            <div key={s.label} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 relative overflow-hidden">
-              <p className="text-sm text-slate-500 relative z-10">{s.label}</p>
-              <p className={`mt-3 text-3xl font-bold relative z-10 ${s.label === 'Pendientes de PIN' && s.value > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
-                {s.value}
-              </p>
-              {s.label === 'Pendientes de PIN' && s.value > 0 && (
-                <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-amber-50 to-transparent"></div>
-              )}
-            </div>
-          ))}
         </div>
 
         {/* Tabla */}
@@ -245,7 +236,7 @@ export default async function EmployeesPage({
                           <StatusBadge active={emp.is_active} />
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-3">
+                          <div className="flex items-center justify-end gap-3 transition-opacity">
                             <Link href={`/employees/${emp.id}`} className="text-xs font-semibold text-slate-600 hover:text-slate-900">Ver</Link>
                             <Link href={`/employees/${emp.id}/edit`} className="text-xs font-semibold text-slate-900 hover:underline">Editar</Link>
                           </div>
@@ -258,7 +249,7 @@ export default async function EmployeesPage({
             </div>
           ) : (
             <div className="px-6 py-16 text-center text-slate-500">
-              No se encontraron empleados.
+              No se encontraron empleados para esta organización.
             </div>
           )}
         </div>
@@ -274,8 +265,8 @@ export default async function EmployeesPage({
           </svg>
         </div>
         <h2 className="text-lg font-bold text-slate-900">Error al cargar datos</h2>
-        <p className="mt-2 text-center text-sm text-slate-500">
-          Hubo un problema al consultar la base de datos. Por favor, intenta recargar la página.
+        <p className="mt-2 text-center text-sm text-slate-500 break-all">
+          {error instanceof Error ? error.message : 'Problema de conexión con la base de datos.'}
         </p>
         <Link href="/employees" className="mt-6 rounded-xl bg-slate-900 px-6 py-2 text-sm font-semibold text-white">
           Reintentar
@@ -284,4 +275,3 @@ export default async function EmployeesPage({
     )
   }
 }
-
