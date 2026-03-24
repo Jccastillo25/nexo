@@ -24,6 +24,9 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
       .select('role, company_id, companies(id, display_name, slug)')
       .eq('user_id', user.id)
       .eq('is_active', true)
+    
+    // DEBUG:
+    console.log(`[AdminShell] User: ${user.id}, Memberships: ${memberships?.length || 0}`)
 
     if (memberships && memberships.length > 0) {
       const primary = memberships[0]
