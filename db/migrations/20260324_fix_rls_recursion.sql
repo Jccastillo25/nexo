@@ -1,15 +1,13 @@
 -- Archivo: 20260324_fix_rls_recursion.sql
--- Propósito: Eliminar el bucle infinito de RLS causado por consultar `profiles` dentro de `profiles`.
+-- Propósito: Eliminar el bucle infinito de RLS y reestructurarlas de forma segura.
 
--- 1. Profiles
+-- 1. Profiles (Simplicada: Solo puede ver y editar el suyo propio por privacidad de la cuenta)
 DROP POLICY IF EXISTS "Users can view their own profile and company members" ON profiles;
-CREATE POLICY "Users can view their own profile and company members" ON profiles
-FOR SELECT USING (
-  auth.uid() = id OR 
-  company_id IN (SELECT company_id FROM public.company_memberships WHERE user_id = auth.uid() AND is_active = true)
-);
+DROP POLICY IF EXISTS "Users can view profiles in their companies" ON profiles;
+CREATE POLICY "Users can view their own profile" ON profiles
+FOR SELECT USING (auth.uid() = id);
 
--- 2. Employees
+-- 2. Employees (La tabla causante del fallo original)
 DROP POLICY IF EXISTS "Users can view employees from their company" ON employees;
 CREATE POLICY "Users can view employees from their company" ON employees
 FOR SELECT USING (
@@ -48,14 +46,7 @@ FOR INSERT WITH CHECK (
   company_id IN (SELECT company_id FROM public.company_memberships WHERE user_id = auth.uid() AND is_active = true)
 );
 
--- 5. Shift Templates
-DROP POLICY IF EXISTS "Users can view shift templates from their company" ON shift_templates;
-CREATE POLICY "Users can view shift templates from their company" ON shift_templates
-FOR SELECT USING (
-  company_id IN (SELECT company_id FROM public.company_memberships WHERE user_id = auth.uid() AND is_active = true)
-);
-
--- 6. Leave Requests
+-- 5. Leave Requests
 DROP POLICY IF EXISTS "Users can view their own leave requests" ON leave_requests;
 CREATE POLICY "Users can view their own leave requests" ON leave_requests
 FOR SELECT USING (
@@ -74,12 +65,3 @@ FOR SELECT USING (
   )
 );
 
--- 7. Employee Status
-DROP POLICY IF EXISTS "Users can view employee status from their company" ON employee_status;
-CREATE POLICY "Users can view employee status from their company" ON employee_status
-FOR SELECT USING (
-  employee_id IN (
-    SELECT id FROM public.employees 
-    WHERE company_id IN (SELECT company_id FROM public.company_memberships WHERE user_id = auth.uid() AND is_active = true)
-  )
-);
