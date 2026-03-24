@@ -33,9 +33,9 @@ function PinBadge({ hasPin }: { hasPin: boolean }) {
 export default async function EmployeesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; branch?: string; shift?: string }>
+  searchParams: Promise<{ q?: string; branch?: string; shift?: string; company_id?: string }>
 }) {
-  const { q, branch, shift } = await searchParams
+  const { q, branch, shift, company_id } = await searchParams
   const supabase = await createClient()
 
   let selectQuery = 'id, employee_code, first_name, last_name, is_active, hire_date, email, phone, photo_url, branches(id, name)'
@@ -53,6 +53,9 @@ export default async function EmployeesPage({
   }
   if (shift) {
     query = query.eq('employee_shifts.shift_id', shift).eq('employee_shifts.is_active', true)
+  }
+  if (company_id && company_id !== 'all') {
+    query = query.eq('company_id', company_id)
   }
 
   try {
@@ -73,7 +76,12 @@ export default async function EmployeesPage({
         .select('id', { count: 'exact', head: true })
         .eq('is_active', true)
         .is('employee_code', null),
-      supabase.from('branches').select('id, name').eq('is_active', true).order('name'),
+      supabase
+        .from('branches')
+        .select('id, name')
+        .eq('is_active', true)
+        .eq('company_id', (company_id && company_id !== 'all') ? company_id : '') // Optional: filter branches by company if not all
+        .order('name'),
       supabase.from('shifts').select('id, name').eq('is_active', true).order('name'),
     ])
 

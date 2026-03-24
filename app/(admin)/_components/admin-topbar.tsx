@@ -118,16 +118,30 @@ export function AdminTopbar({
 
           {/* Title Branding + Company Selector */}
           <div className="flex flex-col ml-0.5 min-w-0">
-            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-0.5 hidden sm:block truncate">
-              {companyName}
-            </span>
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] hidden sm:block truncate opacity-70">
+                Organización Actual:
+              </span>
+              {companies.length > 1 ? (
+                <select 
+                  value={companyId || ''} 
+                  onChange={(e) => handleCompanyChange(e.target.value)}
+                  className="bg-transparent text-[10px] font-black text-blue-400 uppercase tracking-widest outline-none cursor-pointer hover:text-blue-300 transition-colors"
+                >
+                   <option value="all" className="bg-slate-900 text-white">Todas las empresas</option>
+                   {companies.map(c => (
+                     <option key={c.id} value={c.id} className="bg-slate-900 text-white">{c.name}</option>
+                   ))}
+                </select>
+              ) : (
+                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                  {companyName}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2 md:gap-4 truncate">
               <h1 className="text-sm md:text-xl font-black text-white tracking-tight leading-none shrink-0">{pageTitle}</h1>
-              
-              {/* Vertical divider (Small) */}
               <div className="w-px h-4 bg-slate-700/50 hidden xs:block" />
-
-              {/* Company Identity (No Selector) */}
               {isDashboard && <span className="shrink-0 px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] md:text-[9px] font-black rounded uppercase border border-blue-500/20">ADMIN</span>}
             </div>
           </div>
