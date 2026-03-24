@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { revalidatePath } from 'next/cache'
 import { CheckCircle2, AlertTriangle } from 'lucide-react'
 
 export default async function FixVisibilityPage() {
@@ -11,7 +10,7 @@ export default async function FixVisibilityPage() {
     // 1. Get current user
     const { data: { user }, error: authErr } = await supabase.auth.getUser()
     if (authErr) throw new Error(`Auth Error: ${authErr.message}`)
-    if (!user) return <div className="p-10 text-center font-bold">Por favor, inicia sesión primero (No se detectó usuario).</div>
+    if (!user) return <div className="p-10 text-center font-bold">Por favor, inicia sesión primero.</div>
 
     // 2. Find ALL existing companies and memberships for this user
     const [{ data: allCompanies, error: coErr }, { data: currentMemberships, error: memErr }] = await Promise.all([
@@ -48,13 +47,11 @@ export default async function FixVisibilityPage() {
           role: 'admin',
           is_active: true
         })
-        if (insErr) throw new Error(`Insert Error for ${co.display_name}: ${insErr.message}`)
+        if (insErr) throw new Error(`Insert Error: ${insErr.message}`)
         results.push({ name: co.display_name, slug: co.slug, count: empCount || 0, status: 'Vinculado Ahora' })
       } else {
         results.push({ name: co.display_name, slug: co.slug, count: empCount || 0, status: 'Ya Vinculado' })
       }
-    }
-
     }
 
     return (
@@ -112,28 +109,15 @@ export default async function FixVisibilityPage() {
       </div>
     )
   } catch (error: any) {
-    console.error('CRITICAL ERROR in FixVisibility:', error)
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 p-6">
-        <div className="w-full max-w-2xl rounded-[40px] bg-white p-12 shadow-2xl ring-1 ring-red-500/20">
-          <div className="text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-100 text-red-600 mb-6">
-              <AlertTriangle size={40} />
-            </div>
-            <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Error de Sincronización</h1>
-            <div className="mt-6 rounded-2xl bg-red-50 p-6 text-left border border-red-100">
-               <p className="text-xs font-black text-red-800 uppercase tracking-widest mb-2">Detalles del Error:</p>
-               <p className="text-sm font-mono text-red-600 break-all bg-white p-4 rounded-xl shadow-inner italic">
-                 {error.message || 'Error desconocido'}
-               </p>
-            </div>
-            <p className="mt-6 text-slate-500 text-sm font-medium">
-              Esto suele ocurrir si el servidor no tiene configurada la <code className="bg-slate-100 px-1 rounded">SERVICE_ROLE_KEY</code> o si hay un problema con la estructura de la base de datos.
-            </p>
-            <a href="/dashboard" className="mt-8 inline-block text-sm font-bold text-slate-400 hover:text-slate-900 underline">
-              Volver al Dashboard
-            </a>
+        <div className="w-full max-w-2xl rounded-[40px] bg-white p-12 shadow-2xl ring-1 ring-red-500/20 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-100 text-red-600 mb-6">
+            <AlertTriangle size={40} />
           </div>
+          <h1 className="text-2xl font-black text-slate-900 uppercase">Error</h1>
+          <p className="mt-4 text-sm font-mono text-red-600 bg-red-50 p-4 rounded-xl">{error.message}</p>
+          <a href="/dashboard" className="mt-8 inline-block text-blue-600 font-bold underline">Volver al Dashboard</a>
         </div>
       </div>
     )
