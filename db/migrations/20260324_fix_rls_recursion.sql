@@ -4,6 +4,7 @@
 -- 1. Profiles (Simplicada: Solo puede ver y editar el suyo propio por privacidad de la cuenta)
 DROP POLICY IF EXISTS "Users can view their own profile and company members" ON profiles;
 DROP POLICY IF EXISTS "Users can view profiles in their companies" ON profiles;
+DROP POLICY IF EXISTS "Users can view their own profile" ON profiles;
 CREATE POLICY "Users can view their own profile" ON profiles
 FOR SELECT USING (auth.uid() = id);
 
