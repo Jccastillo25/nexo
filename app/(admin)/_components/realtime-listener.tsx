@@ -10,12 +10,12 @@ export function RealtimeListener() {
   useEffect(() => {
     const supabase = createClient()
 
-    // Suscribirse a INSERTS en la tabla time_records
+    // Suscribirse a cambios en la tabla attendance_logs
     const channel = supabase
-      .channel('public:time_records')
+      .channel('public:attendance_logs')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'time_records' },
+        { event: '*', schema: 'public', table: 'attendance_logs' },
         (payload) => {
           console.log('Realtime Event received:', payload)
           // Refresca la ruta actual en el servidor
