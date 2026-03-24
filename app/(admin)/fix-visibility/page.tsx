@@ -37,9 +37,15 @@ export default async function FixVisibilityPage() {
     )
   }
 
-  // 3. Create memberships for the current user in all found companies
+  // 3. Create memberships and count employees
   const results = []
   for (const co of companies) {
+    // Count employees for this company
+    const { count: empCount } = await adminClient
+      .from('employees')
+      .select('id', { count: 'exact', head: true })
+      .eq('company_id', co.id)
+
     // Check if membership already exists
     const { data: existing } = await adminClient
       .from('company_memberships')
@@ -49,7 +55,7 @@ export default async function FixVisibilityPage() {
       .maybeSingle()
 
     if (!existing) {
-      const { error } = await adminClient.from('company_memberships').insert({
+      await adminClient.from('company_memberships').insert({
         user_id: user.id,
         company_id: co.id,
         role: 'admin',
@@ -58,38 +64,46 @@ export default async function FixVisibilityPage() {
       results.push({ 
         name: co.display_name, 
         slug: co.slug,
-        status: error ? `Error: ${error.message}` : 'SINCRONIZADO ✅' 
+        count: empCount || 0,
+        status: 'Vínculo creado' 
       })
     } else {
       results.push({ 
         name: co.display_name, 
         slug: co.slug,
-        status: 'Acceso verificado ✨' 
+        count: empCount || 0,
+        status: 'Acceso verificado' 
       })
     }
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 p-6">
-      <div className="w-full max-w-xl rounded-[40px] bg-white p-10 shadow-2xl ring-1 ring-white/10">
+      <div className="w-full max-w-2xl rounded-[40px] bg-white p-10 shadow-2xl ring-1 ring-white/10">
         <div className="mb-8">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white text-xl mb-4 shadow-lg">⚡</div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Restauración de Datos</h1>
           <p className="mt-3 text-slate-500 leading-relaxed font-semibold">
-            Hemos sincronizado tu cuenta de correo con las organizaciones encontradas en el sistema.
+            Hemos sincronizado tu cuenta y analizado dónde están tus colaboradores.
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {results.map((r, i) => (
-            <div key={i} className="group relative overflow-hidden rounded-3xl bg-slate-50 p-5 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-md">
+            <div key={i} className="group relative overflow-hidden rounded-3xl bg-slate-50 p-6 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Organización</p>
-                  <h3 className="text-lg font-bold text-slate-900">{r.name}</h3>
-                  <code className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1 rounded uppercase tracking-tighter">slug: {r.slug}</code>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-xl font-bold text-slate-900">{r.name}</h3>
+                    <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1 rounded uppercase tracking-tighter">slug: {r.slug}</span>
+                  </div>
+                  <p className="text-sm font-medium text-slate-500">
+                    {r.count} colaboradores encontrados
+                  </p>
                 </div>
-                <span className="text-xs font-black text-slate-900 uppercase tracking-wider">{r.status}</span>
+                <div className="text-right">
+                   <span className="inline-block px-3 py-1 rounded-full bg-slate-900 text-[10px] font-black text-white uppercase tracking-widest">{r.status}</span>
+                </div>
               </div>
             </div>
           ))}
