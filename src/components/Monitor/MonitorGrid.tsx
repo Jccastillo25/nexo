@@ -79,13 +79,22 @@ export const MonitorGrid = ({ companyId, onOpenActionDrawer }: Props) => {
 
   const renderNode = (node: HierarchyNode, depth: number = 0) => {
     return (
-      <div key={node.employee.id} className="space-y-4">
-        <div style={{ marginLeft: `${depth * 40}px` }}>
+      <div key={node.employee.id} className="relative space-y-4">
+        {/* Hierarchical Line */}
+        {depth > 0 && (
+          <div 
+            className="absolute -left-6 top-10 bottom-0 w-px bg-gradient-to-b from-blue-500/30 to-transparent" 
+            style={{ left: `-${20}px` }}
+          />
+        )}
+        
+        <div style={{ marginLeft: `${depth * 32}px` }} className="relative">
           <EmployeeCard 
             employee={node.employee} 
             onOpenDrawer={onOpenActionDrawer} 
           />
         </div>
+        
         {node.children.length > 0 && (
           <div className="space-y-4">
             {node.children.map((child) => renderNode(child, depth + 1))}
@@ -96,13 +105,16 @@ export const MonitorGrid = ({ companyId, onOpenActionDrawer }: Props) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 rounded-[2.5rem] bg-slate-950/20 p-8 ring-1 ring-white/5 backdrop-blur-sm">
       <div className="flex items-center justify-between px-2">
-        <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">
-          Personal bajo supervisión
-        </h2>
-        <span className="text-xs font-medium text-slate-400">
-          {employees.length} colaboradores
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-1 bg-blue-600 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.5)]" />
+          <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">
+            Jerarquía de Personal
+          </h2>
+        </div>
+        <span className="rounded-full bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-blue-400 ring-1 ring-blue-500/20">
+          {employees.length} EN VIVO
         </span>
       </div>
       
