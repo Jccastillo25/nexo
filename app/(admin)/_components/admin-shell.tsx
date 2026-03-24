@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { AdminShellClient } from './admin-shell-client'
 
 export async function AdminShell({ children }: { children: React.ReactNode }) {
@@ -19,7 +20,9 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
       user.email?.split('@')[0] ||
       'Administrador'
 
-    const { data: memberships } = await supabase
+    // Use Admin Client to bypass RLS and ensure visibility
+    const adminClient = createAdminClient()
+    const { data: memberships } = await adminClient
       .from('company_memberships')
       .select('role, company_id, companies(id, display_name, slug)')
       .eq('user_id', user.id)
