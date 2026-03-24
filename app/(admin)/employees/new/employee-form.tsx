@@ -25,7 +25,7 @@ export function EmployeeForm({ branches }: { branches: { id: string; name: strin
             name="first_name"
             required
             placeholder="Ej. Juan Carlos"
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           />
         </div>
 
@@ -38,7 +38,7 @@ export function EmployeeForm({ branches }: { branches: { id: string; name: strin
             name="last_name"
             required
             placeholder="Ej. Pérez Gómez"
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           />
         </div>
         
@@ -50,7 +50,7 @@ export function EmployeeForm({ branches }: { branches: { id: string; name: strin
             type="email"
             name="email"
             placeholder="correo@empresa.com"
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           />
         </div>
 
