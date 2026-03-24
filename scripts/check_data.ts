@@ -1,10 +1,11 @@
-import { createAdminClient } from './src/lib/supabase/admin'
+import 'dotenv/config'
+import { createAdminClient } from '../src/lib/supabase/admin'
 
 async function checkDatabaseData() {
   const adminClient = createAdminClient()
 
   console.log('--- COMPROBANDO EMPRESAS ---')
-  const { data: companies, error: cErr } = await adminClient.from('companies').select('id, display_name, slug')
+  const { data: companies, error: cErr } = await adminClient.from('companies').select('id, display_name')
   if (cErr) console.error(cErr)
   console.log(companies)
 
@@ -15,16 +16,15 @@ async function checkDatabaseData() {
   console.log(`Total empleados encontrados: ${employees?.length || 0}`)
   
   if (employees && employees.length > 0) {
-    // Agrupar por company_id
-    const grouped = employees.reduce((acc, emp) => {
+    const grouped = employees.reduce((acc: any, emp: any) => {
       const cid = emp.company_id || 'SIN_COMPAÑIA'
       if (!acc[cid]) acc[cid] = 0
       acc[cid]++
       return acc
-    }, {} as Record<string, number>)
+    }, {})
     
     console.log('Empleados por company_id:', grouped)
-    console.log('Primeros 5 empleados:', employees.slice(0, 5))
+    console.log('Primeros 5:', employees.slice(0, 5))
   }
 }
 
