@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { AdminSidebar } from './admin-sidebar'
 import { AdminTopbar } from './admin-topbar'
+import { GlobalProvider } from '@/context/GlobalContext'
 
 interface AdminShellClientProps {
   companyName: string
@@ -25,7 +26,8 @@ export function AdminShellClient({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-app)' }}>
+    <GlobalProvider>
+      <div className="min-h-screen" style={{ background: 'var(--bg-app)' }}>
 
       {/* ── Desktop sidebar ── */}
       <div
@@ -94,5 +96,6 @@ export function AdminShellClient({
         </main>
       </div>
     </div>
+    </GlobalProvider>
   )
 }

@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { adminNav } from './admin-nav'
+import { useGlobalContext } from '@/context/GlobalContext'
 
 interface AdminTopbarProps {
   sidebarOpen: boolean
@@ -27,7 +28,7 @@ export function AdminTopbar({
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const currentCompanyId = searchParams.get('company_id') || 'all'
+  const { companyId, setCompanyId } = useGlobalContext()
 
   const isDashboard = pathname === '/dashboard'
   
@@ -73,14 +74,9 @@ export function AdminTopbar({
 
   const pageTitle = getDynamicTitle()
 
+  // Context-based company change (can be called from other components if selector is added back)
   const handleCompanyChange = (id: string) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (id === 'all') {
-      params.delete('company_id')
-    } else {
-      params.set('company_id', id)
-    }
-    router.push(`${pathname}?${params.toString()}`)
+    setCompanyId(id)
   }
 
   return (

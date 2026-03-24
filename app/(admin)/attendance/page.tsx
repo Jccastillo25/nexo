@@ -1,204 +1,103 @@
-import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
+'use client'
 
-export default async function AttendancePage() {
-  const supabase = await createClient()
+import React, { useState } from 'react'
+import { MonitorGrid } from '@/components/Monitor/MonitorGrid'
+import { ActionDrawer } from '@/components/Monitor/ActionDrawer'
+import { useGlobalContext } from '@/context/GlobalContext'
+import { AlertCircle, Clock, Users, ArrowUpRight } from 'lucide-react'
 
-  const todayStart = new Date()
-  todayStart.setHours(0, 0, 0, 0)
-  const todayISO = todayStart.toISOString()
+export default function AttendanceMonitorPage() {
+  const { companyId, isLoading: isContextLoading } = useGlobalContext()
+  const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
-  const [
-    { count: todayTotal },
-    { count: todayCheckins },
-    { count: todayCheckouts },
-    { count: pendingCorrections },
-    { count: openIncidents },
-    { data: recentRecords },
-  ] = await Promise.all([
-    supabase
-      .from('time_records')
-      .select('*', { count: 'exact', head: true })
-      .gte('recorded_at', todayISO),
-    supabase
-      .from('time_records')
-      .select('*', { count: 'exact', head: true })
-      .eq('event_type', 'clock_in')
-      .gte('recorded_at', todayISO),
-    supabase
-      .from('time_records')
-      .select('*', { count: 'exact', head: true })
-      .eq('event_type', 'clock_out')
-      .gte('recorded_at', todayISO),
-    supabase
-      .from('time_corrections')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending'),
-    supabase
-      .from('incidents')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'open'),
-    supabase
-      .from('time_records')
-      .select('id, event_type, recorded_at, tardiness_minutes, status, employees(first_name, last_name), branches(name)')
-      .gte('recorded_at', todayISO)
-      .order('recorded_at', { ascending: false })
-      .limit(10),
-  ])
+  const handleOpenDrawer = (employee: any) => {
+    setSelectedEmployee(employee)
+    setIsDrawerOpen(true)
+  }
 
-  const stats = [
-    { label: 'Marcaciones hoy', value: todayTotal ?? 0 },
-    { label: 'Entradas', value: todayCheckins ?? 0 },
-    { label: 'Salidas', value: todayCheckouts ?? 0 },
-    { label: 'Correcciones pendientes', value: pendingCorrections ?? 0 },
-  ]
+  if (isContextLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+      </div>
+    )
+  }
 
-  const modules = [
-    {
-      title: 'Registros',
-      desc: 'Historial completo de marcaciones por fecha, empleado y sucursal.',
-      href: '/attendance/records',
-      badge: null,
-    },
-    {
-      title: 'Correcciones',
-      desc: 'Solicitudes de corrección de marcaciones enviadas por empleados.',
-      href: '/attendance/corrections',
-      badge: pendingCorrections ? `${pendingCorrections} pendiente${pendingCorrections !== 1 ? 's' : ''}` : null,
-    },
-    {
-      title: 'Incidencias',
-      desc: 'Tardanzas, ausencias, horas extra y salidas fuera de turno.',
-      href: '/attendance/incidents',
-      badge: openIncidents ? `${openIncidents} abierta${openIncidents !== 1 ? 's' : ''}` : null,
-    },
-  ]
+  if (!companyId || companyId === 'all') {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-3xl bg-white p-20 shadow-sm ring-1 ring-slate-200">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+          <AlertCircle size={40} />
+        </div>
+        <h2 className="mt-6 text-xl font-bold text-slate-900">Selecciona una empresa</h2>
+        <p className="mt-2 max-w-xs text-center text-sm text-slate-500">
+          Para ver el Monitor Operativo, por favor selecciona una empresa específica en el buscador del Dashboard.
+        </p>
+      </div>
+    )
+  }
 
   return (
-    <section className="space-y-6">
-
-      {/* Header */}
-      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
-          Operación
-        </p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-900">Asistencia</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-          Monitoreo de marcaciones de hoy, correcciones pendientes e incidencias activas.
-        </p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map((s) => (
-          <div key={s.label} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm text-slate-500">{s.label}</p>
-            <p className="mt-3 text-3xl font-bold text-slate-900">{s.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Sub-módulos */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {modules.map((m) => (
-          <Link
-            key={m.href}
-            href={m.href}
-            className="group rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 transition hover:ring-slate-300"
-          >
-            <div className="flex items-start justify-between">
-              <h2 className="text-base font-semibold text-slate-900 group-hover:text-slate-700">
-                {m.title}
-              </h2>
-              {m.badge && (
-                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                  {m.badge}
-                </span>
-              )}
-            </div>
-            <p className="mt-2 text-sm text-slate-500">{m.desc}</p>
-            <p className="mt-4 text-xs font-semibold text-slate-400 group-hover:text-slate-600">
-              Ir al módulo →
-            </p>
-          </Link>
-        ))}
-      </div>
-
-      {/* Feed del día */}
-      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">
-            Marcaciones de hoy
-          </h2>
-          <Link
-            href="/attendance/records"
-            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200"
-          >
-            Ver historial
-          </Link>
+    <div className="space-y-8 pb-20">
+      {/* Header Section */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">
+            En Vivo
+          </p>
+          <h1 className="mt-1 text-4xl font-black tracking-tight text-slate-900">
+            Monitor Operativo <span className="text-blue-600">360°</span>
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Supervisión jerárquica y gestión de asistencia en tiempo real.
+          </p>
         </div>
 
-        {recentRecords && recentRecords.length > 0 ? (
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 text-left">
-                  <th className="pb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Empleado</th>
-                  <th className="pb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Tipo</th>
-                  <th className="pb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Hora</th>
-                  <th className="pb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Tardanza</th>
-                  <th className="pb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {recentRecords.map((r) => {
-                  const emp = r.employees as unknown as { first_name: string; last_name: string } | null
-                  const br = r.branches as unknown as { name: string } | null
-                  return (
-                    <tr key={r.id} className="hover:bg-slate-50">
-                      <td className="py-3 pr-4 font-medium text-slate-800">
-                        {emp ? `${emp.first_name} ${emp.last_name}` : '—'}
-                        {br && <span className="ml-2 text-xs text-slate-400">{br.name}</span>}
-                      </td>
-                      <td className="py-3 pr-4">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${r.event_type === 'clock_in' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
-                          {r.event_type === 'clock_in' ? 'Entrada' : 'Salida'}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4 text-slate-600">
-                        {new Intl.DateTimeFormat('es-NI', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Managua' }).format(new Date(r.recorded_at))}
-                      </td>
-                      <td className="py-3 pr-4">
-                        {r.tardiness_minutes > 0 ? (
-                          <span className="text-amber-600 font-medium">
-                            {r.tardiness_minutes} min
-                          </span>
-                        ) : (
-                          <span className="text-slate-300">—</span>
-                        )}
-                      </td>
-                      <td className="py-3">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          r.status === 'confirmed' ? 'bg-slate-100 text-slate-600' :
-                          r.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                          'bg-blue-100 text-blue-700'
-                        }`}>
-                          {r.status === 'confirmed' ? 'Confirmado' : r.status === 'pending' ? 'Pendiente' : 'Corregido'}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+        <div className="flex gap-3">
+          <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 shadow-sm ring-1 ring-slate-200">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+            </span>
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Servicio Activo</span>
           </div>
-        ) : (
-          <div className="mt-5 rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">
-            No hay marcaciones registradas hoy.
-          </div>
-        )}
+        </div>
       </div>
 
-    </section>
+      {/* Quick Stats Banner (Optional) */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard label="Presentes" value="--" icon={<Users size={20} />} color="text-green-600" />
+        <StatCard label="En Descanso" value="--" icon={<Clock size={20} />} color="text-amber-500" />
+        <StatCard label="Incidentes Hoy" value="0" icon={<AlertCircle size={20} />} color="text-red-500" />
+      </div>
+
+      {/* Main Grid */}
+      <MonitorGrid 
+        companyId={companyId} 
+        onOpenActionDrawer={handleOpenDrawer} 
+      />
+
+      {/* Action Drawer */}
+      <ActionDrawer 
+        employee={selectedEmployee} 
+        isOpen={isDrawerOpen} 
+        onClose={() => setIsDrawerOpen(false)} 
+      />
+    </div>
+  )
+}
+
+function StatCard({ label, value, icon, color }: any) {
+  return (
+    <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 transition-hover hover:ring-slate-300">
+      <div className="space-y-1">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
+        <p className="text-2xl font-black text-slate-900">{value}</p>
+      </div>
+      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 ${color}`}>
+        {icon}
+      </div>
+    </div>
   )
 }
