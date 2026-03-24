@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from '../../actions/auth'
 import { adminNav } from './admin-nav'
+import { useGlobalContext } from '@/context/GlobalContext'
 
 interface AdminSidebarProps {
   companyName?: string
@@ -109,6 +110,7 @@ export function AdminSidebar({
   onClose,
 }: AdminSidebarProps) {
   const pathname = usePathname()
+  const { companyId } = useGlobalContext()
 
   // Track which sections are expanded — open sections that have an active child by default
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
@@ -131,6 +133,11 @@ export function AdminSidebar({
     .map((w) => w[0])
     .join('')
     .toUpperCase()
+
+  const getHref = (href: string) => {
+    if (!companyId || companyId === 'all') return href
+    return href.includes('?') ? `${href}&company_id=${companyId}` : `${href}?company_id=${companyId}`
+  }
 
   return (
     <aside className="print:hidden flex h-full flex-col transition-colors border-r" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-soft)' }}>
@@ -178,7 +185,7 @@ export function AdminSidebar({
               return (
                 <Link
                   key={section.title}
-                  href={item.href}
+                  href={getHref(item.href)}
                   onClick={onClose}
                   className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-colors"
                   style={{
@@ -229,7 +236,7 @@ export function AdminSidebar({
                         return (
                           <Link
                             key={item.href}
-                            href={item.href}
+                            href={getHref(item.href)}
                             onClick={onClose}
                             className="block rounded-lg px-3 py-2 text-[13px] font-medium transition-colors"
                             style={{

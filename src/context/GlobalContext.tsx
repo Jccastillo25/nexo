@@ -26,14 +26,13 @@ export function GlobalProvider({ children }: { children: React.ReactNode }) {
     if (paramId) {
       setCompanyIdState(paramId)
       localStorage.setItem('last_company_id', paramId)
-    } else if (storedId) {
+    } else if (storedId && storedId !== 'all') {
       setCompanyIdState(storedId)
-      // Optional: sync URL with stored ID if on dashboard
-      // if (pathname === '/dashboard') {
-      //   const params = new URLSearchParams(searchParams.toString())
-      //   params.set('company_id', storedId)
-      //   router.replace(`${pathname}?${params.toString()}`)
-      // }
+      
+      // Sync URL with stored ID to ensure server components get the context
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('company_id', storedId)
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false })
     }
     setIsLoading(false)
   }, [searchParams])
