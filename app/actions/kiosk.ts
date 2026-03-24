@@ -271,63 +271,75 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     }
   }
 
-  // 2. Insert the time record directly using admin privileges
-  const { error: insertErr } = await supabase
-    .from('time_records')
-    .insert({
-      employee_id: employee.id,
-      branch_id: branchId,
-      company_id: employee.company_id,
-      event_type: eventType,
-      recorded_at: new Date().toISOString(),
-      tardiness_minutes: tardinessMinutes,
-      status: 'pending'
-    })
-
-  if (!insertErr) {
-    // 3. Update Employee current_status and last_status_change
-    let nextStatus = 'offline'
-    if (eventType === 'clock_in' || eventType === 'break_in') nextStatus = 'active'
-    if (eventType === 'break_out') nextStatus = 'on_break'
-
-    await supabase
-      .from('employees')
-      .update({ 
-        current_status: nextStatus,
-        last_status_change: new Date().toISOString()
-      })
-      .eq('id', employee.id)
-
-    // 4. Handle employee_status_logs for breaks
-    if (eventType === 'break_out') {
-      const breakMins = (employee.job_positions as any)?.default_break_mins || 60
-      const startTime = new Date()
-      const endTimeScheduled = new Date(startTime.getTime() + breakMins * 60000)
-
-      await supabase.from('employee_status_logs').insert({
+  // 2. Register the event in attendance_logs
+  if (eventType === 'clock_in') {
+    const { error: insertErr } = await supabase
+      .from('attendance_logs')
+      .insert({
         employee_id: employee.id,
-        start_time: startTime.toISOString(),
-        end_time_scheduled: endTimeScheduled.toISOString(),
+        company_id: employee.company_id,
+        branch_id: branchId,
+        clock_in: new Date().toISOString(),
+        status: tardinessMinutes > 0 ? 'late' : 'on_time',
+        source_origin: 'KIOSK'
       })
-    } else if (eventType === 'break_in') {
-      // Find the last open break log and close it
+    if (insertErr) return { success: false, error: `Error al registrar entrada: ${insertErr.message}` }
+  } else if (eventType === 'clock_out') {
+    // Find open session
+    const { data: openLog } = await supabase
+      .from('attendance_logs')
+      .select('id')
+      .eq('employee_id', employee.id)
+      .is('clock_out', null)
+      .order('clock_in', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (openLog) {
       await supabase
-        .from('employee_status_logs')
-        .update({ end_time_actual: new Date().toISOString() })
-        .eq('employee_id', employee.id)
-        .is('end_time_actual', null)
+        .from('attendance_logs')
+        .update({ clock_out: new Date().toISOString() })
+        .eq('id', openLog.id)
     }
   }
 
-  if (insertErr) {
-    console.error('Kiosk Clock-In Insert Error:', insertErr.message)
-    // If the database fails (e.g. schema changes), we provide a clearer message
-    return { success: false, error: `Error del sistema: ${insertErr.message}` }
+  // 3. Update Employee current_status and last_status_change
+  let nextStatus = 'offline'
+  if (eventType === 'clock_in' || eventType === 'break_in') nextStatus = 'active'
+  if (eventType === 'break_out') nextStatus = 'on_break'
+
+  await supabase
+    .from('employees')
+    .update({ 
+      current_status: nextStatus,
+      last_status_change: new Date().toISOString()
+    })
+    .eq('id', employee.id)
+
+  // 4. Handle employee_status_logs for breaks
+  if (eventType === 'break_out') {
+    const breakMins = (employee.job_positions as any)?.default_break_mins || 60
+    const startTime = new Date()
+    const endTimeScheduled = new Date(startTime.getTime() + breakMins * 60000)
+
+    await supabase.from('employee_status_logs').insert({
+      employee_id: employee.id,
+      start_time: startTime.toISOString(),
+      end_time_scheduled: endTimeScheduled.toISOString(),
+    })
+  } else if (eventType === 'break_in') {
+    // Find the last open break log and close it
+    await supabase
+      .from('employee_status_logs')
+      .update({ end_time_actual: new Date().toISOString() })
+      .eq('employee_id', employee.id)
+      .is('end_time_actual', null)
   }
 
   // 3. Revalidate path to update dashboards
   revalidatePath('/dashboard')
   revalidatePath('/attendance')
+  revalidatePath('/monitor')
 
   return {
     success: true,

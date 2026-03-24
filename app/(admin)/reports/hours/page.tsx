@@ -24,12 +24,13 @@ export default async function HoursReportPage({ searchParams }: HoursReportProps
   const { start: utcStart } = getNicaRange(filterStart)
   const { end: utcEnd } = getNicaRange(filterEnd)
 
+  // Use attendance_logs for much simpler calculation
   let query = supabase
-    .from('time_records')
-    .select('recorded_at, event_type, employee_id, employees(first_name, last_name, employee_code, branch_id), branches(name)')
-    .gte('recorded_at', utcStart)
-    .lte('recorded_at', utcEnd)
-    .order('recorded_at', { ascending: true })
+    .from('attendance_logs')
+    .select('clock_in, clock_out, employee_id, employees(first_name, last_name, employee_code, branch_id), branches(name)')
+    .gte('clock_in', utcStart)
+    .lte('clock_in', utcEnd)
+    .order('clock_in', { ascending: true })
 
   if (branch && branch !== 'all') {
     query = query.eq('branch_id', branch)
@@ -38,62 +39,42 @@ export default async function HoursReportPage({ searchParams }: HoursReportProps
   const { data: records } = await query
   const { data: branches } = await supabase.from('branches').select('id, name').order('name')
 
-  // Procesamiento de horas: Agrupar por Empleado -> Día
-  const rawGrouped: Record<string, any> = {}
+  // Procesamiento de horas: Mucho más simple ahora que son sesiones
+  const empMap: Record<string, any> = {}
 
   records?.forEach((r: any) => {
     const empId = r.employee_id
-    const date = r.recorded_at.split('T')[0]
-    
-    if (!rawGrouped[empId]) {
-      rawGrouped[empId] = { 
+    if (!empMap[empId]) {
+      empMap[empId] = { 
         name: `${r.employees.first_name} ${r.employees.last_name}`, 
         code: r.employees.employee_code,
         branch: r.branches?.name || '—',
-        days: {} 
+        totalMinutes: 0,
+        daysWorkedSet: new Set()
       }
     }
     
-    if (!rawGrouped[empId].days[date]) {
-      rawGrouped[empId].days[date] = { ins: [], outs: [] }
+    if (r.clock_in && r.clock_out) {
+      const diffMs = new Date(r.clock_out).getTime() - new Date(r.clock_in).getTime()
+      empMap[empId].totalMinutes += Math.max(0, diffMs / 60000)
     }
-    
-    if (r.event_type === 'clock_in') rawGrouped[empId].days[date].ins.push(new Date(r.recorded_at))
-    if (r.event_type === 'clock_out') rawGrouped[empId].days[date].outs.push(new Date(r.recorded_at))
+    empMap[empId].daysWorkedSet.add(r.clock_in.split('T')[0])
   })
 
-  // Calcular totales
-  const finalResults = Object.values(rawGrouped).map((emp: any) => {
-    let totalMinutes = 0
-    let daysWorked = 0
-
-    Object.keys(emp.days).forEach((date) => {
-      const dayData = emp.days[date]
-      if (dayData.ins.length > 0 && dayData.outs.length > 0) {
-        const firstIn = dayData.ins[0]
-        const lastOut = dayData.outs[dayData.outs.length - 1]
-        const diffMs = lastOut.getTime() - firstIn.getTime()
-        const diffMin = Math.max(0, diffMs / (1000 * 60))
-        totalMinutes += diffMin
-        daysWorked++
-      }
-    })
-
-    return {
-      ...emp,
-      totalHours: (totalMinutes / 60).toFixed(2),
-      daysWorked
-    }
-  })
+  const finalResults = Object.values(empMap).map((emp: any) => ({
+    ...emp,
+    totalHours: (emp.totalMinutes / 60).toFixed(2),
+    daysWorked: emp.daysWorkedSet.size
+  }))
 
   return (
     <section className="space-y-6">
       <div className="flex items-start justify-between gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Reportes</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">Horas Trabajadas</h1>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Reportes Unificados</p>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900">Horas Trabajadas (Monitor 360)</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Consolidado de tiempo laborado por colaborador en el rango seleccionado.
+            Consolidado de tiempo laborado basado en sesiones omnicanal.
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -161,7 +142,7 @@ export default async function HoursReportPage({ searchParams }: HoursReportProps
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">No hay datos para procesar en este periodo.</td>
+                <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">No hay datos de sesiones para procesar en este periodo.</td>
               </tr>
             )}
           </tbody>
@@ -169,7 +150,7 @@ export default async function HoursReportPage({ searchParams }: HoursReportProps
       </div>
 
       <p className="text-center text-[10px] text-slate-400 italic">
-        * El cálculo se basa en la diferencia entre la primera entrada y la última salida de cada día.
+        * El cálculo se basa en la suma de todas las sesiones cerradas (clock_in y clock_out) en la tabla unificada.
       </p>
     </section>
   )

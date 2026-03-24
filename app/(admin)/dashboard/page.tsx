@@ -81,12 +81,12 @@ function fmt(n: number | null | undefined): string {
     { data: realPendingRequests },
   ] = await Promise.all([
     applyFilter(supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true)),
-    applyFilter(supabase.from('time_records').select('*', { count: 'exact', head: true }).eq('event_type', 'clock_in').gte('recorded_at', todayISO)),
+    applyFilter(supabase.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('clock_in', todayISO)),
     applyFilter(supabase.from('time_corrections').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
     applyFilter(supabase.from('leave_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
-    applyFilter(supabase.from('time_records').select('id, event_type, recorded_at, tardiness_minutes, employees(first_name, last_name, photo_url)').order('recorded_at', { ascending: false }).limit(4)),
-    applyFilter(supabase.from('time_records').select('recorded_at').eq('event_type', 'clock_in').gte('recorded_at', sevenDaysAgoISO)),
-    applyFilter(supabase.from('time_records').select('employee_id, tardiness_minutes, employees(first_name, last_name)').gte('recorded_at', startOfMonthISO).gt('tardiness_minutes', 0)),
+    applyFilter(supabase.from('attendance_logs').select('id, clock_in, clock_out, status, employees(first_name, last_name, photo_url)').order('clock_in', { ascending: false }).limit(4)),
+    applyFilter(supabase.from('attendance_logs').select('clock_in').gte('clock_in', sevenDaysAgoISO)),
+    applyFilter(supabase.from('attendance_logs').select('employee_id, status, clock_in, clock_out, employees(first_name, last_name)').gte('clock_in', startOfMonthISO).eq('status', 'late')),
     applyFilter(supabase.from('branches').select('id, name')),
     applyFilter(supabase.from('employees').select('branch_id').eq('is_active', true)),
     applyFilter(supabase.from('leave_requests').select('id, type, status, employees(first_name, last_name)').eq('status', 'pending').limit(3)),
@@ -103,7 +103,7 @@ function fmt(n: number | null | undefined): string {
     date.setDate(date.getDate() - (6 - i))
     const label = dayLabels[date.getDay()]
     const nicaDay = getNicaISODate(date)
-    const count = wr?.filter((r: any) => getNicaISODate(new Date(r.recorded_at)) === nicaDay).length || 0
+    const count = wr?.filter((r: any) => getNicaISODate(new Date(r.clock_in)) === nicaDay).length || 0
     return { name: label, total: activeEmployees || 0, value: count }
   })
 
@@ -116,7 +116,8 @@ function fmt(n: number | null | undefined): string {
     if (!delayMap[r.employee_id]) {
         delayMap[r.employee_id] = { name, minutes: 0 }
     }
-    delayMap[r.employee_id].minutes += (r.tardiness_minutes || 0)
+    // approximate tardiness (we should probably add tardiness_minutes to attendance_logs too, for now we count occurrences)
+    delayMap[r.employee_id].minutes += (r.status === 'late' ? 1 : 0)
   })
   const topDelays = Object.values(delayMap)
     .sort((a: any, b: any) => b.minutes - a.minutes)
@@ -257,10 +258,11 @@ function fmt(n: number | null | undefined): string {
                    {recentRecords?.map((record: any, i: number) => {
                      const emp = record.employees as unknown as { first_name: string; last_name: string; photo_url?: string }
                      const name = emp ? `${emp.first_name} ${emp.last_name}` : 'Usuario'
-                     const isIn = record.event_type === 'clock_in'
-                     const action = isIn ? 'marcó entrada' : 'marcó salida'
-                     const color = isIn ? 'bg-emerald-500' : 'bg-blue-500'
-                     const diff = Math.floor((new Date().getTime() - new Date(record.recorded_at).getTime()) / 60000)
+                     // Since attendance_logs is a session, we show the clock_in as the event if it was recent
+                     const action = record.clock_out ? 'finalizó jornada' : 'marcó entrada'
+                     const color = record.clock_out ? 'bg-blue-500' : 'bg-emerald-500'
+                     const timestamp = record.clock_out || record.clock_in
+                     const diff = Math.floor((new Date().getTime() - new Date(timestamp).getTime()) / 60000)
                      const timeLabel = diff < 60 ? `HACE ${diff} MIN` : diff < 1440 ? `HACE ${Math.floor(diff/60)} HORAS` : 'HACE MUCHO'
                      return (
                         <div key={i} className="flex gap-4 group">
@@ -273,7 +275,7 @@ function fmt(n: number | null | undefined): string {
                                  <span className="text-white">{name}</span> {action}.
                                </p>
                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 opacity-60">
-                                 {formatInNica(record.recorded_at, { hour: '2-digit', minute: '2-digit' })}
+                                 {formatInNica(timestamp, { hour: '2-digit', minute: '2-digit' })}
                                </p>
                            </div>
                         </div>

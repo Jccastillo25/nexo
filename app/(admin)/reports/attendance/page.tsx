@@ -18,12 +18,13 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
   const filterDate = date || getNicaISODate()
   const { start, end: rangeEnd } = getNicaRange(filterDate)
   
+  // Fetch from attendance_logs instead of time_records
   const query = supabase
-    .from('time_records')
-    .select('id, event_type, recorded_at, tardiness_minutes, status, employees(first_name, last_name, employee_code), branches(name)')
-    .gte('recorded_at', start)
-    .lte('recorded_at', rangeEnd)
-    .order('recorded_at', { ascending: true })
+    .from('attendance_logs')
+    .select('id, clock_in, clock_out, status, source_origin, employees(first_name, last_name, employee_code), branches(name)')
+    .gte('clock_in', start)
+    .lte('clock_in', rangeEnd)
+    .order('clock_in', { ascending: true })
 
   if (branch && branch !== 'all') {
     query.eq('branch_id', branch)
@@ -32,20 +33,19 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
   const { data: records } = await query
   const { data: branches } = await supabase.from('branches').select('id, name').order('name')
 
-  // Cálculos rápidos para el resumen
-  const clockIns = records?.filter(r => r.event_type === 'clock_in') || []
-  const punctual = clockIns.filter(r => r.tardiness_minutes === 0).length
-  const late = clockIns.filter(r => r.tardiness_minutes > 0).length
+  // Cálculos rápidos para el resumen (Usando attendance_logs)
+  const punctual = records?.filter(r => r.status === 'on_time').length || 0
+  const late = records?.filter(r => r.status === 'late').length || 0
 
   return (
     <section className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Reportes</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">Asistencia Diaria</h1>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Reportes Unificados</p>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900">Asistencia Diaria (Monitor 360)</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Análisis de puntualidad y marcas registradas para el día seleccionado.
+            Análisis de puntualidad y jornadas registradas mediante el sistema omnicanal.
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -98,7 +98,7 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
       {/* Resumen */}
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 border-l-4 border-l-slate-900">
-          <p className="text-sm text-slate-500">Marcaciones totales</p>
+          <p className="text-sm text-slate-500">Jornadas totales</p>
           <p className="mt-2 text-3xl font-bold text-slate-900">{records?.length || 0}</p>
         </div>
         <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 border-l-4 border-l-emerald-500">
@@ -118,54 +118,53 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
             <tr className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
               <th className="px-6 py-4">Empleado</th>
               <th className="px-6 py-4">Sucursal</th>
-              <th className="px-6 py-4">Evento</th>
-              <th className="px-6 py-4">Hora Real</th>
-              <th className="px-6 py-4">Diferencia</th>
+              <th className="px-6 py-4">Entrada</th>
+              <th className="px-6 py-4">Salida</th>
               <th className="px-6 py-4">Estado</th>
+              <th className="px-6 py-4">Origen</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {records && records.length > 0 ? (
               records.map(r => {
                 const emp = r.employees as any
-                const time = new Date(r.recorded_at).toLocaleTimeString('es-NI', { 
+                const inTime = new Date(r.clock_in).toLocaleTimeString('es-NI', { 
                   hour: '2-digit', 
                   minute: '2-digit', 
                   hour12: true,
                   timeZone: 'America/Managua'
                 })
+                const outTime = r.clock_out ? new Date(r.clock_out).toLocaleTimeString('es-NI', { 
+                  hour: '2-digit', 
+                  minute: '2-digit', 
+                  hour12: true,
+                  timeZone: 'America/Managua'
+                }) : '---'
+
                 return (
                   <tr key={r.id} className="hover:bg-slate-50 transition">
-                    <td className="px-6 py-4 font-medium text-slate-900">
-                      {emp.first_name} {emp.last_name}
-                      <span className="block text-[10px] font-mono text-slate-400 capitalize">{emp.employee_code}</span>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-slate-900">{emp.first_name} {emp.last_name}</div>
+                      <div className="text-[10px] font-mono text-slate-400 uppercase tracking-tighter">{emp.employee_code}</div>
                     </td>
                     <td className="px-6 py-4 text-slate-600">{(r.branches as any)?.name}</td>
+                    <td className="px-6 py-4 font-mono text-slate-700 font-semibold">{inTime}</td>
+                    <td className="px-6 py-4 font-mono text-slate-700 font-semibold">{outTime}</td>
                     <td className="px-6 py-4">
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${r.event_type === 'clock_in' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                        {r.event_type === 'clock_in' ? 'Entrada' : 'Salida'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 font-mono text-slate-700 font-semibold">{time}</td>
-                    <td className="px-6 py-4">
-                      {r.tardiness_minutes > 0 ? (
-                        <span className="text-amber-600 font-bold">+{r.tardiness_minutes} min</span>
-                      ) : (
-                        <span className="text-emerald-500 italic">En hora</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {r.tardiness_minutes > 0 ? (
-                        <span className="flex items-center gap-1.5 text-amber-600 text-xs font-bold">
+                      {r.status === 'late' ? (
+                        <span className="flex items-center gap-1.5 text-amber-600 text-[10px] font-black tracking-widest uppercase">
                           <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
                           RETRASO
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold">
+                        <span className="flex items-center gap-1.5 text-emerald-600 text-[10px] font-black tracking-widest uppercase">
                           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          OK
+                          PUNTUAL
                         </span>
                       )}
+                    </td>
+                    <td className="px-6 py-4">
+                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{r.source_origin || 'KIOSKO'}</span>
                     </td>
                   </tr>
                 )
@@ -173,7 +172,7 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
             ) : (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
-                  No se encontraron marcas para este día y sucursal.
+                  No se encontraron jornadas para este día y sucursal en el nuevo sistema.
                 </td>
               </tr>
             )}
