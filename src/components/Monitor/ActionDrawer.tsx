@@ -27,11 +27,11 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
     try {
       // 1. Call RPC for marking attendance
       const { data, error } = await supabase.rpc('rpc_mark_attendance_action', {
+        p_company_id: employee.company_id,
         p_employee_id: employee.id,
         p_action: action,
-        p_notes: notes,
         p_source: 'MONITOR',
-        p_metadata: { source: 'MONITOR_DRAWER', recorded_by_monitor: true }
+        p_notes: notes || `Marcación manual desde Monitor por supervisor`
       })
 
       if (error) throw error
