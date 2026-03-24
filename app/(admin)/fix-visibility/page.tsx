@@ -1,17 +1,17 @@
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { CheckCircle2, RefreshCcw } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 
 export default async function FixVisibilityPage() {
   const supabase = await createClient()
   const adminClient = createAdminClient()
 
-  // 1. Get current user (using standard client to ensure session context)
+  // 1. Get current user
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return <div className="p-10 text-center font-bold">Por favor, inicia sesión primero.</div>
 
-  // 2. Find ALL existing companies (using ADMIN client to bypass RLS)
+  // 2. Find ALL existing companies
   const { data: companies, error: coErr } = await adminClient
     .from('companies')
     .select('id, display_name, slug')
@@ -21,33 +21,27 @@ export default async function FixVisibilityPage() {
       <div className="p-10 text-center border-2 border-dashed border-red-200 rounded-3xl m-10">
         <h1 className="text-xl font-bold text-red-600 mb-4">Error de Conexión Admin</h1>
         <p className="text-slate-600">{coErr.message}</p>
-        <p className="mt-4 text-xs text-slate-400 font-mono">Verifica que SUPABASE_SERVICE_ROLE_KEY esté configurada.</p>
       </div>
     )
   }
 
   if (!companies || companies.length === 0) {
     return (
-      <div className="p-10 text-center space-y-4 max-w-lg mx-auto mt-20">
-        <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-3xl mb-4">🔍</div>
-        <h1 className="text-2xl font-bold text-slate-900">No se encontraron empresas</h1>
-        <p className="text-slate-500">
-          Incluso con permisos de super-administrador, la base de datos de empresas parece estar vacía.
-        </p>
-      </div>
+        <div className="p-10 text-center space-y-4 max-w-lg mx-auto mt-20">
+          <h1 className="text-2xl font-bold text-slate-900">No se encontraron empresas</h1>
+          <p className="text-slate-500">La base de datos de empresas parece estar vacía.</p>
+        </div>
     )
   }
 
   // 3. Create memberships and count employees
   const results = []
   for (const co of companies) {
-    // Count employees for this company
     const { count: empCount } = await adminClient
       .from('employees')
       .select('id', { count: 'exact', head: true })
       .eq('company_id', co.id)
 
-    // Check if membership already exists
     const { data: existing } = await adminClient
       .from('company_memberships')
       .select('id')
@@ -62,19 +56,9 @@ export default async function FixVisibilityPage() {
         role: 'admin',
         is_active: true
       })
-      results.push({ 
-        name: co.display_name, 
-        slug: co.slug,
-        count: empCount || 0,
-        status: 'Acceso Restaurado' 
-      })
+      results.push({ name: co.display_name, slug: co.slug, count: empCount || 0, status: 'Acceso Restaurado' })
     } else {
-      results.push({ 
-        name: co.display_name, 
-        slug: co.slug,
-        count: empCount || 0,
-        status: 'Acceso Activo' 
-      })
+      results.push({ name: co.display_name, slug: co.slug, count: empCount || 0, status: 'Acceso Activo' })
     }
   }
 
@@ -85,7 +69,7 @@ export default async function FixVisibilityPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-950 p-6">
       <div className="w-full max-w-2xl rounded-[40px] bg-white p-10 shadow-2xl ring-1 ring-white/10">
         <div className="mb-10 text-center">
-          <div className="inline-flex h-20 w-20 items-center justify-center rounded-[30%] bg-blue-600 text-white text-3xl mb-6 shadow-2xl shadow-blue-500/20 animate-bounce">
+          <div className="inline-flex h-20 w-20 items-center justify-center rounded-[30%] bg-blue-600 text-white text-3xl mb-6 shadow-2xl shadow-blue-500/20">
             <CheckCircle2 size={40} />
           </div>
           <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase">Sincronización Exitosa</h1>
@@ -107,7 +91,7 @@ export default async function FixVisibilityPage() {
                     <div className="flex items-center gap-2 mt-1">
                        <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{r.count} Colaboradores</span>
                        <span className="text-slate-300">•</span>
-                       <span className="text-[10px] font-mono text-slate-400 uppercase">Slug: {r.slug}</span>
+                       <span className="text-[10px] font-mono text-slate-400 uppercase leading-none mt-0.5">Slug: {r.slug}</span>
                     </div>
                   </div>
                 </div>
@@ -121,33 +105,17 @@ export default async function FixVisibilityPage() {
           ))}
         </div>
 
-        <div className="mt-12 space-y-4">
+        <div className="mt-12 space-y-4 text-center">
           <a 
             href="/dashboard"
             className="flex h-16 w-full items-center justify-center rounded-2xl bg-slate-900 text-sm font-black uppercase tracking-[0.2em] text-white transition hover:scale-[1.02] hover:bg-slate-800 active:scale-[0.98] shadow-2xl"
           >
             Finalizar y Entrar al Panel
           </a>
-          
-          <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
             ID de Usuario: {user.id}
           </p>
         </div>
-      </div>
-    </div>
-  )
-}
-
-        <div className="mt-10 pt-8 border-t border-slate-100 italic text-[10px] text-slate-400 text-center font-medium">
-          Identificador de Usuario activo: {user.id}
-        </div>
-
-        <a 
-          href="/dashboard"
-          className="mt-8 flex h-14 w-full items-center justify-center rounded-2xl bg-slate-900 text-sm font-black uppercase tracking-[0.2em] text-white transition hover:scale-[1.02] hover:bg-slate-800 active:scale-[0.98] shadow-xl"
-        >
-          Ir al Panel de Control
-        </a>
       </div>
     </div>
   )
