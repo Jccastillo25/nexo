@@ -1,33 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { EmployeeTableRow } from './employee-table-row'
 
-function StatusBadge({ active }: { active: boolean }) {
-  return (
-    <span
-      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-        active
-          ? 'bg-green-100 text-green-700'
-          : 'bg-slate-100 text-slate-500'
-      }`}
-    >
-      {active ? 'Activo' : 'Inactivo'}
-    </span>
-  )
-}
-
-function PinBadge({ hasPin }: { hasPin: boolean }) {
-  return (
-    <span
-      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium border ${
-        hasPin
-          ? 'bg-blue-50 text-blue-700 border-blue-200'
-          : 'bg-amber-50 text-amber-700 border-amber-200'
-      }`}
-    >
-      {hasPin ? 'Sí' : 'No generado'}
-    </span>
-  )
-}
 
 export default async function EmployeesPage({
   searchParams,
@@ -37,7 +11,7 @@ export default async function EmployeesPage({
   const { q, branch, shift, company_id } = await searchParams
   const supabase = await createClient()
 
-  let selectQuery = 'id, employee_code, first_name, last_name, is_active, hire_date, email, phone, photo_url, branches(id, name)'
+  let selectQuery = 'id, employee_code, first_name, last_name, is_active, hire_date, email, phone, photo_url, job_position_id, branches(id, name), job_positions(id, name), contracts(id, status, end_date)'
   if (shift) {
     selectQuery += ', employee_shifts!inner(shift_id, is_active)'
   }
@@ -202,48 +176,18 @@ export default async function EmployeesPage({
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50 text-left">
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Nombre</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Puesto</th>
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Sucursal</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 text-center">Contrato</th>
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 text-center">PIN</th>
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 text-center">Estado</th>
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {employees.map((emp) => {
-                    const b = emp.branches as any
-                    return (
-                      <tr key={emp.id} className="transition hover:bg-slate-50 group">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            {emp.photo_url ? (
-                              <img src={emp.photo_url} alt="" className="h-8 w-8 rounded-full object-cover shadow-sm ring-1 ring-slate-200" />
-                            ) : (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500 uppercase">
-                                {emp.first_name?.[0] ?? ''}{emp.last_name?.[0] ?? ''}
-                              </div>
-                            )}
-                            <div>
-                              <div className="font-semibold text-slate-900">{emp.first_name} {emp.last_name}</div>
-                              <div className="text-xs text-slate-500">{emp.email}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-slate-600">{b?.name ?? '—'}</td>
-                        <td className="px-6 py-4 text-center">
-                          <PinBadge hasPin={!!emp.employee_code} />
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <StatusBadge active={emp.is_active} />
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-3 transition-opacity">
-                            <Link href={`/employees/${emp.id}`} className="text-xs font-semibold text-slate-600 hover:text-slate-900">Ver</Link>
-                            <Link href={`/employees/${emp.id}/edit`} className="text-xs font-semibold text-slate-900 hover:underline">Editar</Link>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
+                  {employees.map((emp) => (
+                    <EmployeeTableRow key={emp.id} emp={emp} />
+                  ))}
                 </tbody>
               </table>
             </div>

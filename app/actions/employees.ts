@@ -145,3 +145,37 @@ export async function toggleEmployeeStatus(id: string, currentStatus: boolean) {
   revalidatePath('/employees')
   revalidatePath(`/(admin)/employees/${id}`, 'page')
 }
+
+export async function deleteEmployee(id: string): Promise<ActionState> {
+  const supabase = await createClient()
+
+  // 1. Verificar si el empleado tiene contratos activos
+  const { data: activeContracts, error: contractError } = await supabase
+    .from('contracts')
+    .select('id')
+    .eq('employee_id', id)
+    .eq('status', 'active')
+
+  if (contractError) {
+    return { error: 'Error al verificar contratos.' }
+  }
+
+  if (activeContracts && activeContracts.length > 0) {
+    return {
+      error: '⚠️ No se puede eliminar este empleado.\n\nTiene un contrato ACTIVO. Debe:\n1. Anular o finalizar el contrato\n2. Luego podrá eliminar el empleado'
+    }
+  }
+
+  // 2. Si no hay contratos activos, proceder a eliminar
+  const { error } = await supabase
+    .from('employees')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    return { error: `Error al eliminar empleado: ${error.message}` }
+  }
+
+  revalidatePath('/employees')
+  return null
+}

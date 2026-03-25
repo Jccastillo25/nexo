@@ -49,10 +49,10 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
   const [photoState, photoAction, photoPending] = useActionState<UploadPhotoState, FormData>(uploadPhotoWithId, null)
 
   const tabs = [
-    { id: 'general', label: 'General' },
-    { id: 'identificacion', label: 'Legal (ID)' },
-    { id: 'seguridad', label: 'Seguridad y Kiosko' },
-    { id: 'ubicacion', label: 'Ubicación' },
+    { id: 'general', label: 'Información Personal' },
+    { id: 'identificacion', label: 'Datos Legales' },
+    { id: 'ubicacion', label: 'Ubicación y Puesto' },
+    { id: 'seguridad', label: 'Acceso y Kiosko' },
     { id: 'foto', label: 'Foto' },
   ] as { id: TabId; label: string }[]
 
