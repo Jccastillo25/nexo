@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { TabsQueryParam } from '@/components/ui/TabsQueryParam'
 
 const statusLabels: Record<string, { label: string; cls: string }> = {
   on_time: { label: 'Puntual', cls: 'bg-emerald-100 text-emerald-700' },
@@ -71,12 +72,11 @@ export default async function EmployeeDetailPage({
     { label: 'Cédula',           value: employee.national_id ?? '—' },
   ]
 
-  const tabClass = (currentTab: string) => 
-    `px-5 py-3 text-sm font-semibold transition-all border-b-2 whitespace-nowrap ${
-      tab === currentTab
-        ? 'border-white text-white'
-        : 'border-transparent text-slate-400 hover:text-white hover:border-slate-500'
-    }`
+  const tabs = [
+    { id: 'resumen', label: 'Resumen' },
+    { id: 'contrato', label: 'Contrato' },
+    { id: 'timeline', label: 'Línea de Vida' },
+  ]
 
   // Construir Timeline
   const timelineEvents = []
@@ -126,11 +126,13 @@ export default async function EmployeeDetailPage({
         </div>
       </div>
 
-      <div className="flex overflow-x-auto border-b border-slate-200 hide-scrollbar px-2">
-        <Link href={`/employees/${employee.id}?tab=resumen`} className={tabClass('resumen')}>Resumen</Link>
-        <Link href={`/employees/${employee.id}?tab=contrato`} className={tabClass('contrato')}>Contrato</Link>
-        <Link href={`/employees/${employee.id}?tab=timeline`} className={tabClass('timeline')}>Línea de Vida</Link>
-      </div>
+      <TabsQueryParam
+        tabs={tabs}
+        activeTab={tab}
+        basePath={`/employees/${employee.id}`}
+        variant="dark"
+        className="px-2 -mx-6"
+      />
 
       {tab === 'resumen' && (
         <div className="space-y-6 animate-in fade-in duration-300">

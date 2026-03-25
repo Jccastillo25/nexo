@@ -4,6 +4,7 @@ import { useState, useActionState, useRef } from 'react'
 import Link from 'next/link'
 import { updateEmployee, type ActionState } from '../../../../actions/employees'
 import { uploadEmployeePhoto, type UploadPhotoState } from '../../../../actions/upload-photo'
+import { TabsInternal } from '@/components/ui/TabsInternal'
 import { PinManager } from '../pin-manager'
 
 interface EmployeeEditFormProps {
@@ -30,10 +31,10 @@ interface EmployeeEditFormProps {
   hasActiveContract: boolean
 }
 
-type Tab = 'general' | 'identificacion' | 'ubicacion' | 'foto' | 'seguridad'
+type TabId = 'general' | 'identificacion' | 'ubicacion' | 'foto' | 'seguridad'
 
 export function EmployeeEditForm({ employee, branches, hasActiveContract }: EmployeeEditFormProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('general')
+  const [activeTab, setActiveTab] = useState<TabId>('general')
   const [previewUrl, setPreviewUrl] = useState<string | null>(employee.photo_url)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -47,12 +48,13 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
   const uploadPhotoWithId = uploadEmployeePhoto.bind(null, employee.id)
   const [photoState, photoAction, photoPending] = useActionState<UploadPhotoState, FormData>(uploadPhotoWithId, null)
 
-  const tabClass = (tab: Tab) =>
-    `px-5 py-3 text-sm font-semibold transition-all border-b-2 whitespace-nowrap ${
-      activeTab === tab
-        ? 'border-slate-900 text-slate-900'
-        : 'border-transparent text-slate-500 hover:text-slate-700'
-    }`
+  const tabs = [
+    { id: 'general', label: 'General' },
+    { id: 'identificacion', label: 'Legal (ID)' },
+    { id: 'seguridad', label: 'Seguridad y Kiosko' },
+    { id: 'ubicacion', label: 'Ubicación' },
+    { id: 'foto', label: 'Foto' },
+  ] as { id: TabId; label: string }[]
 
   const initials = `${employee.first_name[0] ?? ''}${employee.last_name[0] ?? ''}`.toUpperCase()
 
@@ -88,23 +90,12 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
   return (
     <div className="space-y-8">
       {/* Navegación de Pestañas */}
-      <div className="flex overflow-x-auto border-b border-slate-100 -mx-6 px-6 hide-scrollbar">
-        <button type="button" onClick={() => setActiveTab('general')} className={tabClass('general')}>
-          General
-        </button>
-        <button type="button" onClick={() => setActiveTab('identificacion')} className={tabClass('identificacion')}>
-          Legal (ID)
-        </button>
-        <button type="button" onClick={() => setActiveTab('seguridad')} className={tabClass('seguridad')}>
-          Seguridad y Kiosko
-        </button>
-        <button type="button" onClick={() => setActiveTab('ubicacion')} className={tabClass('ubicacion')}>
-          Ubicación
-        </button>
-        <button type="button" onClick={() => setActiveTab('foto')} className={tabClass('foto')}>
-          Foto
-        </button>
-      </div>
+      <TabsInternal
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        className="hide-scrollbar"
+      />
 
       {/* ===================== PESTAÑA: FOTO ===================== */}
       {activeTab === 'foto' && (
