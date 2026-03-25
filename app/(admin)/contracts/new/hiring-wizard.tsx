@@ -90,14 +90,14 @@ export function HiringWizard({
     <div className="space-y-8">
       {/* Progress Bar */}
       <div className="flex items-center justify-between px-2">
-        {[1, 2, 3, 4, 5].map((s) => (
+        {[1, 2, 3, 4, 5, 6].map((s) => (
           <div key={s} className="flex flex-1 items-center last:flex-none">
             <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition ${
               step >= s ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-100 text-slate-400'
             }`}>
               {s}
             </div>
-            {s < 5 && (
+            {s < 6 && (
               <div className={`h-1 flex-1 mx-2 rounded-full transition ${
                 step > s ? 'bg-slate-900' : 'bg-slate-100'
               }`} />
@@ -112,6 +112,12 @@ export function HiringWizard({
             {state.error}
           </div>
         )}
+
+        {/* Hidden fields for steps not visible */}
+        {step !== 1 && <input type="hidden" name="employee_id" value={selectedEmployee} />}
+        {step !== 2 && <input type="hidden" name="job_position_id" value={selectedPosition} />}
+        {step !== 2 && <input type="hidden" name="branch_id" value={selectedBranch} />}
+        {step !== 4 && <input type="hidden" name="schedule_id" value={selectedShift} />}
 
         {/* Step 1: Employee Selection */}
         <div className={step === 1 ? 'space-y-4 animate-in fade-in slide-in-from-bottom-2' : 'hidden'}>
@@ -237,9 +243,47 @@ export function HiringWizard({
           </div>
         </div>
 
-        {/* Step 3: Terms */}
-        <div className={step === 3 ? 'space-y-4 animate-in fade-in slide-in-from-bottom-2' : 'hidden'}>
-          <h2 className="text-xl font-bold text-slate-900">Términos del Contrato</h2>
+        {/* Step 3: Legal & Employment Info */}
+        <div className={step === 3 ? 'space-y-6 animate-in fade-in slide-in-from-bottom-2' : 'hidden'}>
+          <h2 className="text-xl font-bold text-slate-900">Información Legal y de Empleo</h2>
+          <p className="text-sm text-slate-500">Datos que dependen directamente de la configuración del contrato.</p>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-900">Número INSS</label>
+              <input
+                type="text"
+                name="social_security_number"
+                placeholder="Ej: 12345-67890-123K"
+                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
+              />
+              <p className="mt-1 text-xs text-slate-500">Número de afiliación al Instituto Nicaragüense de Seguridad Social</p>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-900">Fecha de Ingreso (Contrato)</label>
+              <input
+                type="date"
+                name="hire_date"
+                defaultValue={new Date().toISOString().split('T')[0]}
+                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
+              />
+              <p className="mt-1 text-xs text-slate-500">Fecha efectiva de inicio según este contrato</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-blue-50 border border-blue-200 p-4">
+            <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">Nota Importante</p>
+            <p className="mt-2 text-sm text-blue-600">
+              Estos datos son <span className="font-bold">específicos del contrato</span> y no de la ficha del empleado.
+              Si un empleado tiene múltiples contratos, el INSS y fecha de ingreso pueden variar según cada contrato.
+            </p>
+          </div>
+        </div>
+
+        {/* Step 4: Terms */}
+        <div className={step === 4 ? 'space-y-4 animate-in fade-in slide-in-from-bottom-2' : 'hidden'}>
+          <h2 className="text-xl font-bold text-slate-900">Términos del Contrato (Remuneración)</h2>
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm font-bold text-slate-900">Tipo de Contrato</label>
@@ -283,8 +327,8 @@ export function HiringWizard({
           </div>
         </div>
 
-        {/* Step 4: Shift Assignment */}
-        <div className={step === 4 ? 'space-y-4 animate-in fade-in slide-in-from-bottom-2' : 'hidden'}>
+        {/* Step 5: Shift Assignment */}
+        <div className={step === 5 ? 'space-y-4 animate-in fade-in slide-in-from-bottom-2' : 'hidden'}>
           <h2 className="text-xl font-bold text-slate-900">Asignación de Turno</h2>
           <p className="text-sm text-slate-500">Este vínculo es obligatorio para la marcación.</p>
           
@@ -322,8 +366,8 @@ export function HiringWizard({
           )}
         </div>
 
-        {/* Step 5: Finalize & Preview */}
-        <div className={step === 5 ? 'space-y-6 animate-in zoom-in-95' : 'hidden'}>
+        {/* Step 6: Finalize & Preview */}
+        <div className={step === 6 ? 'space-y-6 animate-in zoom-in-95' : 'hidden'}>
           <div className="text-center space-y-2">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl">
               <span className="text-2xl font-bold italic">G</span>
@@ -374,22 +418,22 @@ export function HiringWizard({
             </Link>
           )}
 
-          {step < 5 ? (
-            <button 
-              type="button" 
-              onClick={nextStep} 
+          {step < 6 ? (
+            <button
+              type="button"
+              onClick={nextStep}
               disabled={
-                (step === 1 && !selectedEmployee) || 
-                (step === 2 && (!selectedBranch || !selectedPosition)) || 
-                (step === 4 && !selectedShift)
+                (step === 1 && !selectedEmployee) ||
+                (step === 2 && (!selectedBranch || !selectedPosition)) ||
+                (step === 5 && !selectedShift)
               }
               className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-bold text-white shadow-xl transition hover:bg-slate-800 disabled:opacity-50 active:scale-95"
             >
               Siguiente
             </button>
           ) : (
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={pending}
               className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-10 text-sm font-bold text-white shadow-xl shadow-slate-300 transition hover:bg-slate-800 disabled:opacity-50 active:scale-95"
             >

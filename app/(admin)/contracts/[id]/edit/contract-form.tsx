@@ -69,7 +69,10 @@ export function ContractForm({ id, initialData, shifts, jobPositions }: Contract
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Basic Info */}
         <div className="space-y-6">
-          <h2 className="text-lg font-bold text-slate-900">Información General</h2>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Información General</h2>
+            <p className="mt-1 text-sm text-slate-500">Datos principales del contrato laboral</p>
+          </div>
           <div className="grid gap-4">
             <div>
               <label className="mb-2 block text-sm font-bold text-slate-900 uppercase tracking-tight">Tipo de Contrato</label>
@@ -134,21 +137,52 @@ export function ContractForm({ id, initialData, shifts, jobPositions }: Contract
           <div className="grid gap-4 sm:grid-cols-2 pt-2">
             <div>
               <label className="mb-2 block text-sm font-bold text-slate-900 uppercase tracking-tight">Fecha Inicio</label>
-              <input 
-                type="date" 
-                name="start_date" 
+              <input
+                type="date"
+                name="start_date"
                 defaultValue={initialData.start_date}
-                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900" 
+                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
               />
             </div>
             <div>
               <label className="mb-2 block text-sm font-bold text-slate-900 uppercase tracking-tight">Fecha Fin</label>
-              <input 
-                type="date" 
-                name="end_date" 
+              <input
+                type="date"
+                name="end_date"
                 defaultValue={initialData.end_date}
-                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900" 
+                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Legal & Employment Info */}
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Información Legal</h2>
+            <p className="mt-1 text-sm text-slate-500">Datos específicos del contrato</p>
+          </div>
+          <div className="grid gap-4">
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-900 uppercase tracking-tight">Número INSS</label>
+              <input
+                type="text"
+                name="social_security_number"
+                defaultValue={initialData.social_security_number || ''}
+                placeholder="Ej: 12345-67890-123K"
+                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
+              />
+              <p className="mt-1 text-xs text-slate-500">Número de afiliación INSS</p>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-900 uppercase tracking-tight">Fecha de Ingreso (Contrato)</label>
+              <input
+                type="date"
+                name="hire_date"
+                defaultValue={initialData.hire_date || ''}
+                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
+              />
+              <p className="mt-1 text-xs text-slate-500">Fecha efectiva de inicio por contrato</p>
             </div>
           </div>
         </div>

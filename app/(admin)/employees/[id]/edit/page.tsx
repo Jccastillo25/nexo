@@ -28,7 +28,7 @@ export default async function EditEmployeePage({
       .order('name'),
     supabase
       .from('contracts')
-      .select('id')
+      .select('id, social_security_number, hire_date')
       .eq('employee_id', id)
       .eq('status', 'active')
       .maybeSingle()
@@ -59,6 +59,7 @@ export default async function EditEmployeePage({
           employee={employee}
           branches={branches ?? []}
           hasActiveContract={hasActiveContract}
+          activeContract={contract || undefined}
         />
       </div>
     </section>

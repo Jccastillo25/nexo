@@ -28,18 +28,22 @@ interface EmployeeEditWizardProps {
   }
   branches: { id: string; name: string }[]
   hasActiveContract: boolean
+  activeContract?: {
+    id: string
+    social_security_number: string | null
+    hire_date: string | null
+  }
 }
 
 type Step = 1 | 2 | 3 | 4 | 5
 
-export function EmployeeEditWizard({ employee, branches, hasActiveContract }: EmployeeEditWizardProps) {
+export function EmployeeEditWizard({ employee, branches, hasActiveContract, activeContract }: EmployeeEditWizardProps) {
   const [step, setStep] = useState<Step>(1)
   const [previewUrl, setPreviewUrl] = useState<string | null>(employee.photo_url)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [nationalId, setNationalId] = useState(employee.national_id ?? '')
   const [taxId, setTaxId] = useState(employee.tax_id ?? '')
-  const [inss, setInss] = useState(employee.social_security_id ?? '')
 
   const updateEmployeeWithId = updateEmployee.bind(null, employee.id)
   const [state, action, pending] = useActionState<ActionState, FormData>(updateEmployeeWithId, null)
@@ -69,11 +73,6 @@ export function EmployeeEditWizard({ employee, branches, hasActiveContract }: Em
     setTaxId(val.slice(0, 14))
   }
 
-  const handleInssChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/[^0-9]/g, '')
-    if (val.length > 8) val = val.slice(0, 8) + '-' + val.slice(8, 9)
-    setInss(val.slice(0, 10))
-  }
 
   const nextStep = () => setStep((s) => (s === 5 ? 5 : (s + 1) as Step))
   const prevStep = () => setStep((s) => (s === 1 ? 1 : (s - 1) as Step))
@@ -226,6 +225,43 @@ export function EmployeeEditWizard({ employee, branches, hasActiveContract }: Em
                 </select>
               </div>
             </div>
+            {hasActiveContract && activeContract && (
+              <div className="mt-6 space-y-4 pt-4 border-t border-slate-100">
+                <h3 className="font-semibold text-slate-900">Información del Contrato Activo</h3>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-500 uppercase tracking-tight">Número INSS (Solo Lectura)</label>
+                    <div className="h-12 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 flex items-center text-sm font-semibold text-slate-700">
+                      {activeContract.social_security_number || '—'}
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">Proviene del contrato activo</p>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-500 uppercase tracking-tight">Fecha de Ingreso (Solo Lectura)</label>
+                    <div className="h-12 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 flex items-center text-sm font-semibold text-slate-700">
+                      {activeContract.hire_date ? new Date(activeContract.hire_date).toLocaleDateString('es-NI') : '—'}
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">Proviene del contrato activo</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!hasActiveContract && (
+              <div className="mt-6 p-4 rounded-2xl bg-amber-50 border border-amber-200">
+                <p className="text-sm text-amber-700">
+                  <strong>Sin contrato activo:</strong> Los datos de INSS y Fecha de Ingreso se mostrarán aquí cuando se vincule un contrato activo.
+                </p>
+              </div>
+            )}
+
+            {hasActiveContract && !activeContract && (
+              <div className="mt-6 p-4 rounded-2xl bg-blue-50 border border-blue-100">
+                <p className="text-sm text-blue-700">
+                  <strong>Nota:</strong> Este colaborador tiene un contrato activo. Los datos de INSS y Fecha de Ingreso se configuran en el <strong>Contrato</strong>, no en el perfil.
+                </p>
+              </div>
+            )}
           </div>
         </form>
       )}

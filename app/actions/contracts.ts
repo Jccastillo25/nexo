@@ -21,6 +21,8 @@ export async function createContract(
   const start_date = formData.get('start_date') as string
   const end_date = formData.get('end_date') as string
   const job_position_id = formData.get('job_position_id') as string
+  const social_security_number = formData.get('social_security_number') as string
+  const hire_date = formData.get('hire_date') as string
 
   if (!employee_id || !schedule_id || !company_id || !branch_id || !job_position_id) {
     return { error: 'Empleado, turno, empresa, sucursal y puesto son requeridos.' }
@@ -70,6 +72,8 @@ export async function createContract(
     status: 'active',
     start_date: start_date || new Date().toISOString().split('T')[0],
     end_date: end_date || null,
+    social_security_number: social_security_number || null,
+    hire_date: hire_date || null,
   })
 
   if (contractErr) {
@@ -110,6 +114,8 @@ export async function updateContract(
   const end_date = formData.get('end_date') as string
   const status = formData.get('status') as string
   const job_position_id = formData.get('job_position_id') as string
+  const social_security_number = formData.get('social_security_number') as string
+  const hire_date = formData.get('hire_date') as string
 
   // 1. Update the contract
   const { data: contract, error: contractErr } = await supabase
@@ -120,7 +126,9 @@ export async function updateContract(
       salary: isNaN(salary) ? 0 : salary,
       start_date,
       end_date: end_date || null,
-      status: status || 'active'
+      status: status || 'active',
+      social_security_number: social_security_number || null,
+      hire_date: hire_date || null,
     })
     .eq('id', id)
     .select()
