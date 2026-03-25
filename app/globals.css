@@ -40,7 +40,7 @@
 
   /* ── Sidebar ── */
   --sidebar-width: 280px;
-  --sidebar-collapsed-width: 0px;
+  --sidebar-collapsed-width: 80px;
   --sidebar-bg: #1e293b;
   --sidebar-border: #334155;
   --sidebar-item-hover: #334155;

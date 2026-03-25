@@ -33,17 +33,19 @@ export function AdminShellClient({
       <div
         className="fixed inset-y-0 left-0 z-30 hidden lg:block sidebar-transition border-r"
         style={{
-          width: sidebarOpen ? 'var(--sidebar-width)' : '0px',
-          borderColor: sidebarOpen ? 'var(--border-soft)' : 'transparent',
+          width: sidebarOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed-width)',
+          borderColor: 'var(--border-soft)',
           overflow: 'hidden',
         }}
       >
-        <div style={{ width: 'var(--sidebar-width)' }} className="h-full">
+        <div style={{ width: sidebarOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed-width)' }} className="h-full">
           <AdminSidebar
             companyName={companyName}
             userName={userName}
             userRole={userRole}
             logoUrl={logoUrl}
+            collapsed={!sidebarOpen}
+            onExpand={() => setSidebarOpen(true)}
           />
         </div>
       </div>
@@ -77,9 +79,8 @@ export function AdminShellClient({
 
       {/* ── Main content area ── */}
       <div
-        className={`flex min-h-screen flex-col sidebar-transition w-full transition-all duration-300 ${
-          sidebarOpen ? 'lg:pl-[280px]' : ''
-        }`}
+        className="flex min-h-screen flex-col w-full transition-all duration-300"
+        style={{ paddingLeft: sidebarOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed-width)' }}
       >
         <AdminTopbar
           sidebarOpen={sidebarOpen}
