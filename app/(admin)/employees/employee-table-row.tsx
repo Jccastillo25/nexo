@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { deleteEmployee } from '@/app/actions/employees'
+import { deleteEmployee } from '../../actions/employees'
 
 interface EmployeeTableRowProps {
   emp: any
