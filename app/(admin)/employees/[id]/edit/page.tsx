@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { EmployeeEditForm } from './employee-edit-form'
+import { EmployeeEditWizard } from './employee-edit-wizard'
 
 export default async function EditEmployeePage({
   params,
@@ -55,9 +55,9 @@ export default async function EditEmployeePage({
       </div>
 
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
-        <EmployeeEditForm 
-          employee={employee} 
-          branches={branches ?? []} 
+        <EmployeeEditWizard
+          employee={employee}
+          branches={branches ?? []}
           hasActiveContract={hasActiveContract}
         />
       </div>
