@@ -36,7 +36,7 @@ export function ContractForm({ id, initialData, shifts, jobPositions }: Contract
     null
   )
 
-  const [selectedPosition, setSelectedPosition] = useState<string>(initialData.employees?.job_position_id || '')
+  const [selectedPosition, setSelectedPosition] = useState<string>(initialData.job_position_id || '')
   const selectedJob = jobPositions.find(p => p.id === selectedPosition)
   const parentJob = jobPositions.find(p => p.id === selectedJob?.parent_id)
 

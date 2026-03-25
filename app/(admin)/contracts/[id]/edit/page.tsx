@@ -42,7 +42,7 @@ export default async function EditContractPage({
     .from('employees')
     .select('id, first_name, last_name, job_position_id')
     .eq('id', contract.employee_id)
-    .single()
+    .maybeSingle()
 
   // 3. Fetch all shifts for the selector
   const { data: shifts } = await supabase
@@ -61,7 +61,7 @@ export default async function EditContractPage({
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <h1 className="text-2xl font-bold text-slate-900">Editar Contratación</h1>
         <p className="mt-2 text-sm text-slate-500">
-          Modificando contrato de <span className="font-bold text-slate-900">{employee?.first_name} {employee?.last_name}</span>.
+          Modificando contrato {employee ? `de ${employee.first_name} ${employee.last_name}` : '(Empleado no disponible)'}.
         </p>
       </div>
 
