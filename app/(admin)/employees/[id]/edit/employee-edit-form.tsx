@@ -93,7 +93,7 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
       <TabsInternal
         tabs={tabs}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tabId) => setActiveTab(tabId as TabId)}
         className="hide-scrollbar"
       />
 
