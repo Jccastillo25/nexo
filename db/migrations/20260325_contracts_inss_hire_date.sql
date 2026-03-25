@@ -12,4 +12,5 @@ CREATE INDEX IF NOT EXISTS contracts_social_security_idx ON public.contracts(soc
 
 -- Add comment to clarify column purpose
 COMMENT ON COLUMN public.contracts.social_security_number IS 'INSS/Social Security number - contract specific identifier';
-COMMENT ON COLUMN public.contracts.hire_date IS 'Employment start date per contract - may differ from employee.hire_date if multiple contracts';
+COMMENT ON COLUMN public.contracts.hire_date IS 'Employment start date per contract';
+

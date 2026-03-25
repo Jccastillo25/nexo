@@ -10,8 +10,8 @@ export default async function EditContractPage({
   const { id } = await params
   const supabase = await createClient()
 
-  // 1. Fetch contract (without relations to avoid JSON coercion issues)
-  const { data: contract } = await supabase
+  // 1. Fetch contract with explicit error handling
+  const { data: contract, error: contractError } = await supabase
     .from('contracts')
     .select(`
       id,
@@ -32,6 +32,20 @@ export default async function EditContractPage({
     `)
     .eq('id', id)
     .maybeSingle()
+
+  if (contractError) {
+    console.error('[EditContractPage] Error fetching contract:', contractError)
+    // If it's a "column does not exist" error, it's likely a missing migration
+    if (contractError.code === '42703') {
+       return (
+         <div className="p-10 bg-red-50 border border-red-200 rounded-2xl text-red-800">
+           <h2 className="text-lg font-bold">Error de Base de Datos</h2>
+           <p className="mt-2">Parece que faltan columnas en la tabla de contratos. Por favor, asegúrate de ejecutar la migración <code>20260325_contracts_inss_hire_date.sql</code> en el panel de Supabase.</p>
+           <pre className="mt-4 p-4 bg-red-100 rounded text-xs overflow-auto">{JSON.stringify(contractError, null, 2)}</pre>
+         </div>
+       )
+    }
+  }
 
   if (!contract) {
     notFound()
