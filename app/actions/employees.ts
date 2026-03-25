@@ -39,11 +39,16 @@ export async function createEmployee(
     return { error: 'No se encontró una empresa asociada a tu cuenta.' }
   }
 
+  // Generar un employee_code único usando UUID
+  // Formato: EMP-[UUID corta de 8 caracteres]
+  const crypto = await import('crypto')
+  const employee_code = `EMP-${crypto.randomUUID().substring(0, 8).toUpperCase()}`
+
   // Se omite la generación del PIN aquí.
   // El PIN se genera posteriormente desde la pestaña de "Seguridad y Kiosko"
   // una vez que el empleado tiene un turno asignado.
   const { error } = await supabase.from('employees').insert({
-    employee_code: null, // No PIN yet
+    employee_code,
     first_name,
     last_name,
     email: email || null,

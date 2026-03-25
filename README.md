@@ -49,6 +49,34 @@
 
 ---
 
+## Cambios Recientes & Fixes
+
+### 🐛 Fix: Auto-generación de `employee_code` (2026-03-24)
+
+**Problema**: Al crear empleados en "Altas Rápidas", se generaba error: `null value in column "employee_code" violates not-null constraint`
+
+**Solución**:
+- Se agregó auto-generación de código único usando UUID (formato: `EMP-XXXXXXXX`)
+- Archivo modificado: `app/actions/employees.ts`
+- El código se genera automáticamente al crear un empleado, satisfaciendo la restricción NOT NULL
+
+**Commit**: `b61bfdc` — "Fix: Auto-generate employee_code to satisfy NOT NULL constraint"
+
+**Referencias**:
+- Detalles técnicos en `DEBUG_SESSION_REPORT.md`
+- Explicación del fix en `EMPLOYEE_CODE_FIX.md`
+
+### 🔐 RLS Policies Optimizadas (2026-03-24)
+
+**Cambios**:
+- Consolidadas políticas de Row-Level Security en `employees` table
+- Eliminada política circular que causaba "infinite recursion"
+- Implementado patrón de autorización mediante lookup table `company_memberships`
+
+**Beneficio**: Mayor seguridad y performance en operaciones de empleados
+
+---
+
 ## Estructura del proyecto
 
 ```
@@ -343,4 +371,5 @@ Cerrar sesión ──► signOut (Server Action)
 
 ---
 
-*Documentación actualizada el 19 de marzo de 2026 — Gestor360 v0.1.0*
+*Documentación actualizada el 24 de marzo de 2026 — Gestor360 v0.1.0*
+- Última actualización: Fix de auto-generación de employee_code y optimización de RLS policies
