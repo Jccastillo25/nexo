@@ -70,7 +70,9 @@ export default async function EmployeeDetailPage({
     { label: 'Sucursal',         value: branch?.name ?? '—' },
     { label: 'Ingreso',          value: employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('es-NI') : '—' },
     { label: 'Cédula',           value: employee.national_id ?? '—' },
+    { label: 'PIN Acceso (Kiosko)', value: employee.employee_code ?? 'NO ASIGNADO', isPin: true },
   ]
+
 
   const tabs = [
     { id: 'resumen', label: 'Resumen' },
@@ -141,8 +143,15 @@ export default async function EmployeeDetailPage({
               {infoRows.map((row) => (
                 <div key={row.label} className="px-6 py-4">
                   <dt className="text-xs font-medium uppercase tracking-wider text-slate-500">{row.label}</dt>
-                  <dd className="mt-1 text-sm font-medium text-slate-900">{row.value}</dd>
+                  <dd className="mt-1 text-sm font-medium text-slate-900">
+                    {(row as any).isPin ? (
+                       <code className="bg-slate-100 px-2 py-1 rounded font-mono text-indigo-600 font-bold tracking-widest">{row.value}</code>
+                    ) : (
+                      row.value
+                    )}
+                  </dd>
                 </div>
+
               ))}
             </dl>
           </div>

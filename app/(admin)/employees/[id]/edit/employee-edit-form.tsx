@@ -42,7 +42,7 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
   const [taxId, setTaxId] = useState(employee.tax_id ?? '')
   const [inss, setInss] = useState(employee.social_security_id ?? '')
 
-  const updateEmployeeWithId = updateEmployee.bind(null, employee.id)
+  const updateEmployeeWithId = updateEmployee.bind(null, employee.id, true) // shouldRedirect = true
   const [state, action, pending] = useActionState<ActionState, FormData>(updateEmployeeWithId, null)
 
   const uploadPhotoWithId = uploadEmployeePhoto.bind(null, employee.id)

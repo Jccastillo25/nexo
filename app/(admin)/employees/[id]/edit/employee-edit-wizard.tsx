@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { updateEmployee, type ActionState } from '../../../../actions/employees'
 import { uploadEmployeePhoto, type UploadPhotoState } from '../../../../actions/upload-photo'
 import { PinManager } from '../pin-manager'
+import { useEffect } from 'react'
+
 
 interface EmployeeEditWizardProps {
   employee: {
@@ -45,8 +47,16 @@ export function EmployeeEditWizard({ employee, branches, hasActiveContract, acti
   const [nationalId, setNationalId] = useState(employee.national_id ?? '')
   const [taxId, setTaxId] = useState(employee.tax_id ?? '')
 
-  const updateEmployeeWithId = updateEmployee.bind(null, employee.id)
-  const [state, action, pending] = useActionState<ActionState, FormData>(updateEmployeeWithId, null)
+  const updateEmployeeWithId = updateEmployee.bind(null, employee.id, false) // shouldRedirect = false
+  const [state, action, pending] = useActionState<any, FormData>(updateEmployeeWithId, null)
+
+  // Avanzar automáticamente al paso 4 tras guardar en el paso 3
+  useEffect(() => {
+    if (state?.success && step === 3) {
+      nextStep()
+    }
+  }, [state, step])
+
 
   const uploadPhotoWithId = uploadEmployeePhoto.bind(null, employee.id)
   const [photoState, photoAction, photoPending] = useActionState<UploadPhotoState, FormData>(uploadPhotoWithId, null)

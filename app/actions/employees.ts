@@ -70,9 +70,11 @@ export async function createEmployee(
 
 export async function updateEmployee(
   id: string,
+  shouldRedirect: boolean,
   _prevState: ActionState,
   formData: FormData,
-): Promise<ActionState> {
+): Promise<ActionState & { success?: boolean }> {
+
   const supabase = await createClient()
 
   const first_name = formData.get('first_name') as string
@@ -131,8 +133,12 @@ export async function updateEmployee(
   revalidatePath('/employees')
   revalidatePath(`/(admin)/employees/${id}`, 'page')
   revalidatePath(`/(admin)/employees/${id}/edit`, 'page')
-  redirect(`/employees/${id}`)
+  if (shouldRedirect) {
+    redirect(`/employees/${id}`)
+  }
+  return { success: true } as any
 }
+
 
 export async function toggleEmployeeStatus(id: string, currentStatus: boolean) {
   const supabase = await createClient()
