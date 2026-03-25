@@ -39,11 +39,13 @@ export const adminNav: NavSection[] = [
     title: 'Marcaciones',
     items: [
       { href: '/attendance', label: 'Resumen' },
-      { href: '/attendance/records', label: 'Registros' },
-      { href: '/attendance/corrections', label: 'Correcciones' },
-      { href: '/attendance/incidents', label: 'Incidencias' },
+      { href: '/attendance/records', label: 'Registro Maestro (CRUD)' },
+      { href: '/reports/attendance', label: 'Reporte Diario (PDF)' },
+      { href: '/reports/hours', label: 'Horas Trabajadas (PDF)' },
+      { href: '/reports/incidents', label: 'Incidencias (PDF)' },
     ],
   },
+
   {
     title: 'Contrataciones',
     items: [
