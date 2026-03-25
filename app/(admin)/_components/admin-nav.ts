@@ -69,15 +69,7 @@ export const adminNav: NavSection[] = [
       { href: '/leave', label: 'Permisos y ausencias' },
     ],
   },
-  {
-    title: 'Reportes',
-    items: [
-      { href: '/reports', label: 'General' },
-      { href: '/reports/attendance', label: 'Asistencia' },
-      { href: '/reports/hours', label: 'Horas trabajadas' },
-      { href: '/reports/incidents', label: 'Incidencias' },
-    ],
-  },
+
   {
     title: 'Organización',
     items: [
