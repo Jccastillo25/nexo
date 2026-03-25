@@ -18,7 +18,7 @@ export default async function EditContractPage({
       employees (id, first_name, last_name, job_position_id)
     `)
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
   if (!contract) {
     notFound()

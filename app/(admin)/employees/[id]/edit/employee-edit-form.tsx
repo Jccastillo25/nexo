@@ -204,7 +204,7 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-slate-900">Nombres *</label>
-                  <input type="text" name="first_name" defaultValue={employee.first_name} required className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200" />
+                  <input type="text" name="first_name" defaultValue={employee.first_name} required className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200" />
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-slate-900">Apellidos *</label>

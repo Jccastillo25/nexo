@@ -5,11 +5,26 @@ import { HiringWizard } from './hiring-wizard'
 export default async function NewContractPage() {
   const supabase = await createClient()
 
-  // 1. Fetch employees that might need a contract
-  const { data: employees } = await supabase
+  // 1a. First, fetch IDs of employees with active contracts
+  const { data: activeContractEmployees } = await supabase
+    .from('contracts')
+    .select('employee_id')
+    .eq('status', 'active')
+
+  const activeEmployeeIds = activeContractEmployees?.map((c: any) => c.employee_id) || []
+
+  // 1b. Fetch employees WITHOUT active contracts
+  let employeesQuery = supabase
     .from('employees')
     .select('id, first_name, last_name, email, is_active')
     .order('first_name')
+
+  // Apply filter only if there are active contracts
+  if (activeEmployeeIds.length > 0) {
+    employeesQuery = employeesQuery.not('id', 'in', `(${activeEmployeeIds.join(',')})`)
+  }
+
+  const { data: employees } = await employeesQuery
 
   // 2. Fetch companies for the wizard
   const { data: companies } = await supabase
