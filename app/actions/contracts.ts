@@ -72,9 +72,11 @@ export async function createContract(
     status: 'active',
     start_date: start_date || new Date().toISOString().split('T')[0],
     end_date: end_date || null,
+    job_position_id,
     social_security_number: social_security_number || null,
     hire_date: hire_date || null,
   })
+
 
   if (contractErr) {
     return { error: `Error al crear contrato: ${contractErr.message}` }
@@ -127,9 +129,11 @@ export async function updateContract(
       start_date,
       end_date: end_date || null,
       status: status || 'active',
+      job_position_id: job_position_id || null,
       social_security_number: social_security_number || null,
       hire_date: hire_date || null,
     })
+
     .eq('id', id)
     .select()
     .single()
