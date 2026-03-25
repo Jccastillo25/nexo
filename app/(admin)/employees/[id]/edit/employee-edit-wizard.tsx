@@ -101,7 +101,7 @@ export function EmployeeEditWizard({ employee, branches, hasActiveContract, acti
 
       {/* Step 1: Información Personal */}
       {step === 1 && (
-        <form className="space-y-6 animate-in fade-in duration-300">
+        <div className="space-y-6 animate-in fade-in duration-300">
           <div>
             <h2 className="text-lg font-bold text-slate-900 mb-4">Información Personal</h2>
             <div className="grid gap-6 sm:grid-cols-2">
@@ -172,12 +172,12 @@ export function EmployeeEditWizard({ employee, branches, hasActiveContract, acti
               </div>
             </div>
           </div>
-        </form>
+        </div>
       )}
 
       {/* Step 2: Datos Legales */}
       {step === 2 && (
-        <form className="space-y-6 animate-in fade-in duration-300">
+        <div className="space-y-6 animate-in fade-in duration-300">
           <div>
             <h2 className="text-lg font-bold text-slate-900 mb-4">Datos Legales</h2>
             <div className="grid gap-6 sm:grid-cols-2">
@@ -263,12 +263,12 @@ export function EmployeeEditWizard({ employee, branches, hasActiveContract, acti
               </div>
             )}
           </div>
-        </form>
+        </div>
       )}
 
       {/* Step 3: Ubicación */}
       {step === 3 && (
-        <form className="space-y-6 animate-in fade-in duration-300">
+        <div className="space-y-6 animate-in fade-in duration-300">
           <div>
             <h2 className="text-lg font-bold text-slate-900 mb-4">Ubicación</h2>
             <div>
@@ -282,7 +282,7 @@ export function EmployeeEditWizard({ employee, branches, hasActiveContract, acti
               />
             </div>
           </div>
-        </form>
+        </div>
       )}
 
       {/* Step 4: Acceso y Kiosko */}
@@ -392,74 +392,75 @@ export function EmployeeEditWizard({ employee, branches, hasActiveContract, acti
         <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-200">{state.error}</div>
       )}
 
-      {/* Form: Steps 1-3 */}
-      {(step === 1 || step === 2 || step === 3) && (
+      {/* Form: Only for Step 3 (saving) */}
+      {step === 3 && (
         <form action={action} className="space-y-6">
           {state?.error && (
             <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-200">{state.error}</div>
           )}
 
           {/* Hidden fields from other steps */}
-          {step !== 1 && (
-            <>
-              <input type="hidden" name="first_name" defaultValue={employee.first_name} />
-              <input type="hidden" name="last_name" defaultValue={employee.last_name} />
-              <input type="hidden" name="email" defaultValue={employee.email ?? ''} />
-              <input type="hidden" name="phone" defaultValue={employee.phone ?? ''} />
-              <input type="hidden" name="branch_id" defaultValue={employee.branch_id} />
-              <input type="hidden" name="is_active" defaultValue={employee.is_active ? 'on' : ''} />
-            </>
-          )}
+          <input type="hidden" name="first_name" defaultValue={employee.first_name} />
+          <input type="hidden" name="last_name" defaultValue={employee.last_name} />
+          <input type="hidden" name="email" defaultValue={employee.email ?? ''} />
+          <input type="hidden" name="phone" defaultValue={employee.phone ?? ''} />
+          <input type="hidden" name="branch_id" defaultValue={employee.branch_id} />
+          <input type="hidden" name="is_active" defaultValue={employee.is_active ? 'on' : ''} />
+          <input type="hidden" name="national_id" value={nationalId} />
+          <input type="hidden" name="tax_id" value={taxId} />
+          <input type="hidden" name="birth_date" defaultValue={employee.birth_date ?? ''} />
+          <input type="hidden" name="gender" defaultValue={employee.gender ?? ''} />
+          <input type="hidden" name="address" defaultValue={employee.address ?? ''} />
 
-          {step !== 2 && (
-            <>
-              <input type="hidden" name="national_id" value={nationalId} />
-              <input type="hidden" name="tax_id" value={taxId} />
-              <input type="hidden" name="birth_date" defaultValue={employee.birth_date ?? ''} />
-              <input type="hidden" name="gender" defaultValue={employee.gender ?? ''} />
-            </>
-          )}
-
-          {step !== 3 && <input type="hidden" name="address" defaultValue={employee.address ?? ''} />}
-
-          {/* Navigation */}
+          {/* Navigation for Step 3 */}
           <div className="flex items-center justify-between pt-6 border-t border-slate-100">
-            {step > 1 ? (
-              <button
-                type="button"
-                onClick={prevStep}
-                className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
-              >
-                ← Atrás
-              </button>
-            ) : (
-              <Link
-                href={`/employees/${employee.id}`}
-                className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
-              >
-                Cancelar
-              </Link>
-            )}
+            <button
+              type="button"
+              onClick={prevStep}
+              className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+            >
+              ← Atrás
+            </button>
 
-            {step < 3 ? (
-              <button
-                type="button"
-                onClick={nextStep}
-                className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-bold text-white shadow-xl transition hover:bg-slate-800 active:scale-95"
-              >
-                Siguiente →
-              </button>
-            ) : step === 3 ? (
-              <button
-                type="submit"
-                disabled={pending}
-                className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-bold text-white shadow-xl transition hover:bg-slate-800 disabled:opacity-50 active:scale-95"
-              >
-                {pending ? 'Guardando...' : 'Guardar y Continuar'}
-              </button>
-            ) : null}
+            <button
+              type="submit"
+              disabled={pending}
+              className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-bold text-white shadow-xl transition hover:bg-slate-800 disabled:opacity-50 active:scale-95"
+            >
+              {pending ? 'Guardando...' : 'Guardar y Continuar'}
+            </button>
           </div>
         </form>
+      )}
+
+      {/* Navigation for Steps 1 & 2 (non-form navigation) */}
+      {(step === 1 || step === 2) && (
+        <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+          {step > 1 ? (
+            <button
+              type="button"
+              onClick={prevStep}
+              className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+            >
+              ← Atrás
+            </button>
+          ) : (
+            <Link
+              href={`/employees/${employee.id}`}
+              className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+            >
+              Cancelar
+            </Link>
+          )}
+
+          <button
+            type="button"
+            onClick={nextStep}
+            className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-bold text-white shadow-xl transition hover:bg-slate-800 active:scale-95"
+          >
+            Siguiente →
+          </button>
+        </div>
       )}
 
       {/* Navigation for Step 4 & 5 */}

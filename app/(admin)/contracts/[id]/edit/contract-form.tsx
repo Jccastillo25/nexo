@@ -179,7 +179,7 @@ export function ContractForm({ id, initialData, shifts, jobPositions }: Contract
               <input
                 type="date"
                 name="hire_date"
-                defaultValue={initialData.hire_date || ''}
+                defaultValue={initialData.hire_date ? (typeof initialData.hire_date === 'string' ? initialData.hire_date.split('T')[0] : initialData.hire_date) : ''}
                 className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
               />
               <p className="mt-1 text-xs text-slate-500">Fecha efectiva de inicio por contrato</p>
