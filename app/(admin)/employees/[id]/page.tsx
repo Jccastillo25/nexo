@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { TabsQueryParam } from '@/components/ui/TabsQueryParam'
+import { EmployeePinRow } from './employee-pin-row'
+
 
 const statusLabels: Record<string, { label: string; cls: string }> = {
   on_time: { label: 'Puntual', cls: 'bg-emerald-100 text-emerald-700' },
@@ -64,14 +66,17 @@ export default async function EmployeeDetailPage({
   const shiftData = contractData?.shifts as unknown as { name: string; start_time: string; end_time: string } | null
 
   const infoRows = [
-    { label: 'N° Empleado',      value: employee.employee_number ?? 'PENDIENTE' },
+    { label: 'ID de Empleado',   value: `ID: ${id.substring(0, 5).toUpperCase()}` },
+    { label: 'N° de Referencia', value: employee.employee_number ?? '—' },
     { label: 'Correo',           value: employee.email ?? '—' },
+
     { label: 'Teléfono',         value: employee.phone ?? '—' },
     { label: 'Sucursal',         value: branch?.name ?? '—' },
     { label: 'Ingreso',          value: employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('es-NI') : '—' },
     { label: 'Cédula',           value: employee.national_id ?? '—' },
-    { label: 'PIN Acceso (Kiosko)', value: employee.employee_code ?? 'NO ASIGNADO', isPin: true },
+    { label: 'PIN Acceso (Kiosko)', value: employee.employee_code ?? '0000', isPin: true },
   ]
+
 
 
   const tabs = [
@@ -145,11 +150,12 @@ export default async function EmployeeDetailPage({
                   <dt className="text-xs font-medium uppercase tracking-wider text-slate-500">{row.label}</dt>
                   <dd className="mt-1 text-sm font-medium text-slate-900">
                     {(row as any).isPin ? (
-                       <code className="bg-slate-100 px-2 py-1 rounded font-mono text-indigo-600 font-bold tracking-widest">{row.value}</code>
+                       <EmployeePinRow pin={row.value} />
                     ) : (
                       row.value
                     )}
                   </dd>
+
                 </div>
 
               ))}

@@ -589,10 +589,11 @@ function UniversalActionCard({
           <span className={`truncate font-black text-slate-900 leading-tight ${isLarge ? 'text-lg' : 'text-sm'}`}>
             {shortName}
           </span>
-          <div className="mt-1 flex items-center gap-1.5 opacity-80">
+          <div className="mt-1 flex items-center gap-1.5 opacity-80 overflow-hidden">
             <IconComponent className={`shrink-0 ${isLarge ? 'h-4 w-4' : 'h-3 w-3'} text-slate-600`} />
-            <span className="truncate text-[10px] font-bold uppercase text-slate-600 leading-none">{position.name}</span>
+            <span className="truncate text-[10px] font-bold uppercase text-slate-600 leading-none">ID: {employee.id.substring(0, 5).toUpperCase()} • {position.name}</span>
           </div>
+
           {isOffline && empShift && (
             <span className="mt-1.5 truncate text-[9px] font-mono text-slate-400">
               {empShift.shifts.start_time.substring(0,5)} - {empShift.shifts.end_time.substring(0,5)}
