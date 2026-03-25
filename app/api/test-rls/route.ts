@@ -12,7 +12,7 @@ export async function GET() {
   
   const { data: myEmployees, error: empErr } = await supabase
     .from('employees')
-    .select('*')
+    .select('id, first_name, last_name, email, is_active, company_id')
     .eq('company_id', company_id)
     
   return Response.json({

@@ -30,7 +30,7 @@ async function isAuthorizedToMark(supabase: any, targetEmployeeId: string) {
   // Find if user is linked to an employee profile via email
   const { data: actingEmployee } = await supabase
     .from('employees')
-    .select('*, job_positions(level)')
+    .select('id, email, job_position_id, job_positions(id, level, parent_id)')
     .eq('email', user.email)
     .single()
   
@@ -40,7 +40,7 @@ async function isAuthorizedToMark(supabase: any, targetEmployeeId: string) {
   // Get target employee level
   const { data: targetEmployee } = await supabase
     .from('employees')
-    .select('*, job_positions(level)')
+    .select('id, job_position_id, job_positions(id, level, parent_id)')
     .eq('id', targetEmployeeId)
     .single()
   
@@ -62,7 +62,7 @@ export async function markEntry(employeeId: string, shiftId: string): Promise<{ 
   // if (!authorized) return { error: 'No tienes los permisos jerárquicos para marcar a este colaborador.' }
 
   // 2. Fetch Shift details
-  const { data: shift } = await supabase.from('shifts').select('*').eq('id', shiftId).single()
+  const { data: shift } = await supabase.from('shifts').select('id, name, start_time, end_time, break_minutes, tolerance_in, tolerance_out').eq('id', shiftId).single()
   if (!shift) return { error: 'Shift no encontrado.' }
 
   // 3. Time Validation (max 15 mins early)

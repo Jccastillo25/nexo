@@ -16,8 +16,10 @@ export function useAttendanceRealtime(companyId: string) {
       const { data, error } = await supabase
         .from('employees')
         .select(`
-          *,
-          job_positions(*)
+          id, first_name, last_name, email, phone, photo_url,
+          employee_code, is_active, job_position_id, current_status,
+          company_id, branch_id, last_status_change,
+          job_positions(id, name, level, parent_id)
         `)
         .eq('company_id', companyId)
         .eq('is_active', true)

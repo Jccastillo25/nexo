@@ -35,7 +35,7 @@ export async function createContract(
   
   const { count } = await supabase
     .from('employees')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
     .eq('company_id', company_id)
 
   const seq = (count || 0) + 1

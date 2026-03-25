@@ -4,8 +4,8 @@ import { JobPositionForm } from './job-form'
 export default async function NewJobPositionPage() {
   const supabase = await createClient()
 
-  const { data: companies } = await supabase.from('companies').select('*').eq('is_active', true)
-  const { data: positions } = await supabase.from('job_positions').select('*').eq('is_active', true)
+  const { data: companies } = await supabase.from('companies').select('id, display_name, legal_name, slug, tax_id, is_active').eq('is_active', true)
+  const { data: positions } = await supabase.from('job_positions').select('id, name, code, level, parent_id, icon_name, is_active, company_id').eq('is_active', true)
 
   return (
     <section className="mx-auto max-w-2xl space-y-6 text-center">
