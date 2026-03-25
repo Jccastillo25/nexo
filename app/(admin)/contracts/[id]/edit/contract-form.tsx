@@ -31,6 +31,9 @@ export function ContractForm({ id, initialData, shifts, jobPositions }: Contract
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [selectedShift, setSelectedShift] = useState<string>(initialData.schedule_id || '')
+  const [startDate, setStartDate] = useState<string>(initialData.start_date || '')
+  const [hireDate, setHireDate] = useState<string>(initialData.hire_date ? (typeof initialData.hire_date === 'string' ? initialData.hire_date.split('T')[0] : initialData.hire_date) : '')
+  
   const [state, action, pending] = useActionState<ContractActionState, FormData>(
     updateContract.bind(null, id),
     null
@@ -136,11 +139,19 @@ export function ContractForm({ id, initialData, shifts, jobPositions }: Contract
 
           <div className="grid gap-4 sm:grid-cols-2 pt-2">
             <div>
-              <label className="mb-2 block text-sm font-bold text-slate-900 uppercase tracking-tight">Fecha Inicio</label>
+              <label className="mb-2 block text-sm font-bold text-slate-900 uppercase tracking-tight">Fecha Inicio (Vínculo)</label>
               <input
                 type="date"
                 name="start_date"
-                defaultValue={initialData.start_date}
+                value={startDate}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setStartDate(val)
+                  // Auto-sync hire_date if it was empty or matching previous start_date
+                  if (!hireDate || hireDate === startDate) {
+                    setHireDate(val)
+                  }
+                }}
                 className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
               />
             </div>
@@ -175,14 +186,15 @@ export function ContractForm({ id, initialData, shifts, jobPositions }: Contract
               <p className="mt-1 text-xs text-slate-500">Número de afiliación INSS</p>
             </div>
             <div>
-              <label className="mb-2 block text-sm font-bold text-slate-900 uppercase tracking-tight">Fecha de Ingreso (Contrato)</label>
+              <label className="mb-2 block text-sm font-bold text-slate-900 uppercase tracking-tight">Fecha de Ingreso / Alta</label>
               <input
                 type="date"
                 name="hire_date"
-                defaultValue={initialData.hire_date ? (typeof initialData.hire_date === 'string' ? initialData.hire_date.split('T')[0] : initialData.hire_date) : ''}
-                className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
+                value={hireDate}
+                onChange={(e) => setHireDate(e.target.value)}
+                className="h-12 w-full rounded-2xl border-2 border-indigo-200 bg-indigo-50/30 px-4 text-sm font-bold text-slate-900 outline-none focus:border-indigo-500 shadow-sm"
               />
-              <p className="mt-1 text-xs text-slate-500">Fecha efectiva de inicio por contrato</p>
+              <p className="mt-1 text-[10px] text-indigo-500 font-bold uppercase tracking-wider italic">✓ Debe coincidir con el inicio del contrato</p>
             </div>
           </div>
         </div>
