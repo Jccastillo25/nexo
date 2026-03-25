@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { ReportActions } from '../_components/report-actions'
+import { ReportActionsIncidents } from '../_components/report-actions-incidents'
 import { getNicaISODate, getNicaRange, formatInNica } from '@/lib/date-utils'
+
 
 interface IncidentsReportProps {
   searchParams: Promise<{
@@ -64,8 +65,19 @@ export default async function IncidentsReportPage({ searchParams }: IncidentsRep
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <ReportActions />
+          <ReportActionsIncidents 
+            data={incidents || []}
+            summary={sortedStats}
+            filters={{
+              start: filterStart,
+              end: filterEnd,
+              employee: employees?.find(e => e.id === employee)?.first_name 
+                        ? `${employees.find(e => e.id === employee)?.first_name} ${employees.find(e => e.id === employee)?.last_name}` 
+                        : 'Todos'
+            }}
+          />
           <Link href="/reports" className="rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+
             ← Volver
           </Link>
         </div>

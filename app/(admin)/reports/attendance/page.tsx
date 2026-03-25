@@ -49,8 +49,13 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <ReportActions />
+          <ReportActions
+             data={records || []}
+             summary={{ total: records?.length || 0, punctual, late }}
+             filters={{ date: filterDate, branch: branches?.find(b => b.id === branch)?.name || 'Todas' }}
+          />
           <Link
+
             href="/reports"
             className="rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >

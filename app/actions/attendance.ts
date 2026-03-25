@@ -186,3 +186,36 @@ export async function endAbsence(employeeId: string): Promise<{ success?: boolea
   revalidatePath('/monitor')
   return { success: true }
 }
+
+export async function updateAttendanceLog(
+  id: string, 
+  data: { clock_in?: string, clock_out?: string, status?: string }
+): Promise<{ success?: boolean, error?: string }> {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('attendance_logs')
+    .update(data)
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/attendance/records')
+  revalidatePath('/reports/attendance')
+  return { success: true }
+}
+
+export async function deleteAttendanceLog(id: string): Promise<{ success?: boolean, error?: string }> {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('attendance_logs')
+    .delete()
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/attendance/records')
+  revalidatePath('/reports/attendance')
+  return { success: true }
+}

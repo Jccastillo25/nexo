@@ -4,66 +4,73 @@ import { Printer, Download } from 'lucide-react'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 
-// Add type for autotable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF
-  }
-}
-
-interface ReportActionsProps {
+interface ReportActionsIncidentsProps {
   data: any[]
-  summary: { total: number; punctual: number; late: number }
-  filters: { date: string; branch: string }
+  summary: any[]
+  filters: { start: string; end: string; employee: string }
 }
 
-export function ReportActions({ data, summary, filters }: ReportActionsProps) {
+export function ReportActionsIncidents({ data, summary, filters }: ReportActionsIncidentsProps) {
   
   const generatePDF = () => {
     const doc = new jsPDF()
-    
-    // Configuración inicial
     const pageWidth = doc.internal.pageSize.width
     
-    // Título Principal
+    // Título
     doc.setFont("helvetica", "bold")
     doc.setFontSize(18)
-    doc.text("Reporte de Asistencia Diaria", pageWidth / 2, 20, { align: "center" })
+    doc.text("Reporte de Tardanzas y Ausencias", pageWidth / 2, 20, { align: "center" })
     
-    // Subtítulo / Filtros
+    // Subtítulo
     doc.setFontSize(10)
     doc.setFont("helvetica", "normal")
-    doc.text(`Fecha: ${filters.date} | Sucursal: ${filters.branch}`, pageWidth / 2, 28, { align: "center" })
+    doc.text(`Desde: ${filters.start} | Hasta: ${filters.end} | Empleado: ${filters.employee}`, pageWidth / 2, 28, { align: "center" })
 
-    // Resumen (Cajas)
-    doc.setDrawColor(200)
-    doc.setFillColor(245, 245, 245)
-    doc.rect(14, 38, pageWidth - 28, 20, 'F')
-    
+    // Top Retrasos
     doc.setFont("helvetica", "bold")
-    doc.text(`Jornadas Totales: ${summary.total}`, 20, 50)
-    doc.setTextColor(34, 197, 94) // Verde
-    doc.text(`Puntuales: ${summary.punctual}`, pageWidth / 2 - 20, 50)
-    doc.setTextColor(245, 158, 11) // Ambar
-    doc.text(`Tardanzas: ${summary.late}`, pageWidth - 50, 50)
-    doc.setTextColor(0, 0, 0) // Reset a negro para la tabla
+    doc.text("Top de Retrasos", 14, 40)
+    
+    const summaryBody = summary.slice(0, 5).map((s, index) => [
+      (index + 1).toString(),
+      s.name,
+      `${s.count} incidencia(s)`,
+      `${s.totalMinutes} min`
+    ])
 
-    // Preparar Data para Tabla
-    const tableBody = data.map((r, index) => {
-      const empName = `${r.employees?.first_name} ${r.employees?.last_name}` || 'N/A'
-      const branchName = r.branches?.name || 'N/A'
-      const inTime = new Date(r.clock_in).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/Managua' })
-      const outTime = r.clock_out ? new Date(r.clock_out).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/Managua' }) : '---'
-      const status = r.status === 'on_time' ? 'Puntual' : 'Retraso'
-      const origin = r.source_origin || 'KIOSKO'
-      
-      return [(index + 1).toString(), empName, branchName, inTime, outTime, status, origin]
+    doc.autoTable({
+      startY: 45,
+      head: [['#', 'Empleado', 'Frecuencia', 'Total Minutos']],
+      body: summaryBody,
+      theme: 'grid',
+      headStyles: { fillColor: [245, 158, 11], textColor: [255, 255, 255] }, // Amber
+      margin: { left: 14, right: 14 }
     })
 
-    // Generar Tabla
+    const finalY = (doc as any).lastAutoTable.finalY || 45
+
+    // Detalle de Incidencias
+    doc.setFont("helvetica", "bold")
+    doc.text("Detalle Cronológico", 14, finalY + 15)
+
+    const tableBody = data.map((inc) => {
+      const dateStr = new Date(inc.recorded_at).toLocaleDateString('es-NI', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true
+      })
+      const empName = `${inc.employees?.first_name} ${inc.employees?.last_name}`
+      const empCode = inc.employees?.employee_code || 'N/A'
+      
+      return [
+        dateStr,
+        empName,
+        empCode,
+        `+${inc.tardiness_minutes} min`
+      ]
+    })
+
     doc.autoTable({
-      startY: 65,
-      head: [['#', 'Empleado', 'Sucursal', 'Entrada', 'Salida', 'Estado', 'Origen']],
+      startY: finalY + 20,
+      head: [['Fecha y Hora', 'Empleado', 'Código', 'Tardanza']],
       body: tableBody,
       theme: 'grid',
       headStyles: { fillColor: [15, 23, 42], fontSize: 9 }, // Slate-900
@@ -86,8 +93,7 @@ export function ReportActions({ data, summary, filters }: ReportActionsProps) {
         )
     }
 
-    // Guardar / Descargar
-    doc.save(`Asistencia_Diaria_${filters.date}.pdf`)
+    doc.save(`Incidencias_${filters.start}_al_${filters.end}.pdf`)
   }
 
   const handlePrint = () => {
@@ -114,4 +120,3 @@ export function ReportActions({ data, summary, filters }: ReportActionsProps) {
     </div>
   )
 }
-

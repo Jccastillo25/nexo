@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { RecordActions } from './_components/record-actions'
+
 
 export default async function RecordsPage() {
   const supabase = await createClient()
@@ -47,7 +49,9 @@ export default async function RecordsPage() {
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Salida</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Origen</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-right uppercase tracking-wider text-slate-500">Acciones</th>
                 </tr>
+
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {records.map((r) => {
@@ -91,7 +95,17 @@ export default async function RecordsPage() {
                       <td className="px-6 py-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                         {r.source_origin || 'KIOSKO'}
                       </td>
+                      <td className="px-6 py-3.5 text-right flex justify-end">
+                        <RecordActions record={{
+                          id: r.id,
+                          clockInOrigin: r.clock_in,
+                          clockOutOrigin: r.clock_out,
+                          statusOrigin: r.status,
+                          employeeName: emp ? `${emp.first_name} ${emp.last_name}` : 'Desconocido'
+                        }} />
+                      </td>
                     </tr>
+
                   )
                 })}
               </tbody>

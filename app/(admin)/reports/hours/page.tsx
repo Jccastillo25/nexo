@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { ReportActions } from '../_components/report-actions'
+import { ReportActionsHours } from '../_components/report-actions-hours'
 import { getNicaISODate, getNicaRange, formatInNica } from '@/lib/date-utils'
+
 
 interface HoursReportProps {
   searchParams: Promise<{
@@ -78,8 +79,16 @@ export default async function HoursReportPage({ searchParams }: HoursReportProps
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <ReportActions />
+          <ReportActionsHours 
+            data={finalResults}
+            filters={{
+              start: filterStart,
+              end: filterEnd,
+              branch: branches?.find(b => b.id === branch)?.name || 'Todas'
+            }}
+          />
           <Link href="/reports" className="rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+
             ← Volver
           </Link>
         </div>
