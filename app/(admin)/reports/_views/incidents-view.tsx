@@ -1,22 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
 import { ReportActionsIncidents } from '../_components/report-actions-incidents'
 import { getNicaISODate, getNicaRange, formatInNica } from '@/lib/date-utils'
 
-
-interface IncidentsReportProps {
-  searchParams: Promise<{
-    start?: string
-    end?: string
-    employee?: string
-  }>
+interface IncidentsViewProps {
+  start?: string
+  end?: string
+  employee?: string
 }
 
-export default async function IncidentsReportPage({ searchParams }: IncidentsReportProps) {
-  const { start, end, employee } = await searchParams
+export async function IncidentsView({ start, end, employee }: IncidentsViewProps) {
   const supabase = await createClient()
 
-  // Rango por defecto (últimos 30 días)
   const defaultEnd = getNicaISODate()
   const defaultStart = getNicaISODate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
 
@@ -41,7 +35,6 @@ export default async function IncidentsReportPage({ searchParams }: IncidentsRep
   const { data: incidents } = await query
   const { data: employees } = await supabase.from('employees').select('id, first_name, last_name').order('first_name')
 
-  // Agrupación por empleado para el resumen
   const statsByEmployee = incidents?.reduce((acc: any, curr: any) => {
     const id = curr.employees.id
     if (!acc[id]) {
@@ -58,10 +51,10 @@ export default async function IncidentsReportPage({ searchParams }: IncidentsRep
     <section className="space-y-6">
       <div className="flex items-start justify-between gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Reportes</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Hub de Reportes</p>
           <h1 className="mt-2 text-3xl font-bold text-slate-900">Tardanzas y Ausencias</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Análisis acumulativo de retrasos por periodo y colaborador.
+            Análisis acumulativo de retrasos por periodo.
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -76,15 +69,12 @@ export default async function IncidentsReportPage({ searchParams }: IncidentsRep
                         : 'Todos'
             }}
           />
-          <Link href="/reports" className="rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-
-            ← Volver
-          </Link>
         </div>
       </div>
 
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 print:hidden">
         <form className="grid gap-4 sm:grid-cols-4">
+          <input type="hidden" name="type" value="incidents" />
           <div>
             <label className="mb-2 block text-xs font-bold uppercase text-slate-400">Desde</label>
             <input type="date" name="start" defaultValue={filterStart} className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:ring-2 focus:ring-slate-100" />
@@ -104,7 +94,7 @@ export default async function IncidentsReportPage({ searchParams }: IncidentsRep
           </div>
           <div className="flex items-end">
             <button type="submit" className="h-10 w-full rounded-xl bg-slate-900 text-sm font-bold text-white transition hover:bg-slate-800">
-              Generar Reporte
+              Cargar Reporte
             </button>
           </div>
         </form>
@@ -129,7 +119,7 @@ export default async function IncidentsReportPage({ searchParams }: IncidentsRep
                 </div>
               ))
             ) : (
-              <p className="text-center py-8 text-sm text-slate-400 italic">Sin registros en el periodo.</p>
+              <p className="text-center py-8 text-sm text-slate-400 italic">Sin registros.</p>
             )}
           </div>
         </div>

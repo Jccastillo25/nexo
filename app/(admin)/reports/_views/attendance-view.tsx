@@ -1,24 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
 import { ReportActions } from '../_components/report-actions'
 import { getNicaISODate, getNicaRange } from '@/lib/date-utils'
 
-interface AttendanceReportProps {
-  searchParams: Promise<{
-    date?: string
-    branch?: string
-  }>
+interface AttendanceViewProps {
+  date?: string
+  branch?: string
 }
 
-export default async function AttendanceReportPage({ searchParams }: AttendanceReportProps) {
-  const { date, branch } = await searchParams
+export async function AttendanceView({ date, branch }: AttendanceViewProps) {
   const supabase = await createClient()
 
-  // Filtros
   const filterDate = date || getNicaISODate()
   const { start, end: rangeEnd } = getNicaRange(filterDate)
   
-  // Fetch from attendance_logs instead of time_records
   const query = supabase
     .from('attendance_logs')
     .select('id, clock_in, clock_out, status, source_origin, employees(first_name, last_name, employee_code), branches(name)')
@@ -33,7 +27,6 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
   const { data: records } = await query
   const { data: branches } = await supabase.from('branches').select('id, name').order('name')
 
-  // Cálculos rápidos para el resumen (Usando attendance_logs)
   const punctual = records?.filter(r => r.status === 'on_time').length || 0
   const late = records?.filter(r => r.status === 'late').length || 0
 
@@ -42,10 +35,10 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
       {/* Header */}
       <div className="flex items-start justify-between gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Reportes Unificados</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">Asistencia Diaria (Monitor 360)</h1>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Hub de Reportes</p>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900">Histórico de Cierres (Asistencia Diaria)</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Análisis de puntualidad y jornadas registradas mediante el sistema omnicanal.
+            Análisis de asistencia y jornadas registradas.
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -54,19 +47,13 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
              summary={{ total: records?.length || 0, punctual, late }}
              filters={{ date: filterDate, branch: branches?.find(b => b.id === branch)?.name || 'Todas' }}
           />
-          <Link
-
-            href="/reports"
-            className="rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            ← Volver
-          </Link>
         </div>
       </div>
 
       {/* Filtros */}
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 print:hidden">
         <form className="grid gap-4 sm:grid-cols-3">
+          <input type="hidden" name="type" value="attendance" />
           <div>
             <label className="mb-2 block text-xs font-bold uppercase text-slate-400">Fecha</label>
             <input
@@ -94,7 +81,7 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
               type="submit"
               className="h-10 w-full rounded-xl bg-slate-900 text-sm font-bold text-white transition hover:bg-slate-800"
             >
-              Filtrar Reporte
+              Actualizar Filtros
             </button>
           </div>
         </form>
@@ -177,7 +164,7 @@ export default async function AttendanceReportPage({ searchParams }: AttendanceR
             ) : (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
-                  No se encontraron jornadas para este día y sucursal en el nuevo sistema.
+                  No se encontraron jornadas para estos filtros.
                 </td>
               </tr>
             )}

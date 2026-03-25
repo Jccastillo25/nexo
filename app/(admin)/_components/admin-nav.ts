@@ -37,8 +37,8 @@ export const adminNav: NavSection[] = [
   {
     title: 'Nómina y Cierres',
     items: [
-      { href: '/reports/hours', label: 'Pre-nómina (Cálculos)' },
-      { href: '/reports/attendance', label: 'Histórico de Cierres' },
+      { href: '/reports?type=hours', label: 'Pre-nómina (Cálculos)' },
+      { href: '/reports?type=attendance', label: 'Histórico de Cierres' },
     ],
   },
   {

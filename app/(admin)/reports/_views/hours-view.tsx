@@ -1,19 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
 import { ReportActionsHours } from '../_components/report-actions-hours'
-import { getNicaISODate, getNicaRange, formatInNica } from '@/lib/date-utils'
+import { getNicaISODate, getNicaRange } from '@/lib/date-utils'
 
-
-interface HoursReportProps {
-  searchParams: Promise<{
-    start?: string
-    end?: string
-    branch?: string
-  }>
+interface HoursViewProps {
+  start?: string
+  end?: string
+  branch?: string
 }
 
-export default async function HoursReportPage({ searchParams }: HoursReportProps) {
-  const { start, end, branch } = await searchParams
+export async function HoursView({ start, end, branch }: HoursViewProps) {
   const supabase = await createClient()
 
   const defaultEnd = getNicaISODate()
@@ -25,7 +20,6 @@ export default async function HoursReportPage({ searchParams }: HoursReportProps
   const { start: utcStart } = getNicaRange(filterStart)
   const { end: utcEnd } = getNicaRange(filterEnd)
 
-  // Use attendance_logs for much simpler calculation
   let query = supabase
     .from('attendance_logs')
     .select('clock_in, clock_out, employee_id, employees(first_name, last_name, employee_code, branch_id), branches(name)')
@@ -40,7 +34,6 @@ export default async function HoursReportPage({ searchParams }: HoursReportProps
   const { data: records } = await query
   const { data: branches } = await supabase.from('branches').select('id, name').order('name')
 
-  // Procesamiento de horas: Mucho más simple ahora que son sesiones
   const empMap: Record<string, any> = {}
 
   records?.forEach((r: any) => {
@@ -72,10 +65,10 @@ export default async function HoursReportPage({ searchParams }: HoursReportProps
     <section className="space-y-6">
       <div className="flex items-start justify-between gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Reportes Unificados</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">Horas Trabajadas (Monitor 360)</h1>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Hub de Reportes</p>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900">Pre-nómina (Cálculo de Horas)</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Consolidado de tiempo laborado basado en sesiones omnicanal.
+            Consolidado de tiempo laborado para cálculo de nómina.
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -87,15 +80,12 @@ export default async function HoursReportPage({ searchParams }: HoursReportProps
               branch: branches?.find(b => b.id === branch)?.name || 'Todas'
             }}
           />
-          <Link href="/reports" className="rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-
-            ← Volver
-          </Link>
         </div>
       </div>
 
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 print:hidden">
         <form className="grid gap-4 sm:grid-cols-4">
+          <input type="hidden" name="type" value="hours" />
           <div>
             <label className="mb-2 block text-xs font-bold uppercase text-slate-400">Desde</label>
             <input type="date" name="start" defaultValue={filterStart} className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:ring-2 focus:ring-slate-100" />
@@ -151,16 +141,12 @@ export default async function HoursReportPage({ searchParams }: HoursReportProps
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">No hay datos de sesiones para procesar en este periodo.</td>
+                <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">No hay datos de sesiones para procesar.</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-
-      <p className="text-center text-[10px] text-slate-400 italic">
-        * El cálculo se basa en la suma de todas las sesiones cerradas (clock_in y clock_out) en la tabla unificada.
-      </p>
     </section>
   )
 }
