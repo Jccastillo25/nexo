@@ -27,15 +27,17 @@ export async function createEmployee(
     return { error: 'No tienes una sesión activa.' }
   }
 
-  const { data: membership } = await supabase
+  const { data: membership, error: membershipError } = await supabase
     .from('company_memberships')
     .select('company_id')
     .eq('user_id', user.id)
     .eq('is_active', true)
+    .order('created_at', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
 
-  if (!membership?.company_id) {
+  if (membershipError || !membership?.company_id) {
+    console.error('Membership error:', membershipError)
     return { error: 'No se encontró una empresa asociada a tu cuenta.' }
   }
 
