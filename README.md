@@ -49,31 +49,41 @@
 
 ---
 
-## Cambios Recientes & Fixes
+## Cambios Recientes
+
+### ⚡ Optimizaciones de Performance (2026-03-26)
+
+**Base de datos — 9 índices nuevos en Supabase:**
+- `attendance_logs (employee_id, clock_in DESC)` — lookup de log abierto en clock-out
+- `attendance_logs (company_id, clock_in DESC)` — queries del dashboard por empresa y fecha
+- `employees (employee_code, branch_id)` — PIN lookup del kiosco
+- `employee_status_logs (employee_id)` — tracking de descansos (tabla sin índices secundarios)
+- `employee_status_logs (employee_id, end_time_actual) WHERE end_time_actual IS NULL` — búsqueda de breaks abiertos
+
+**Nuevas funciones RPC en PostgreSQL:**
+- `get_weekly_attendance_counts(company_ids, since)` — agrega asistencia semanal en el servidor
+- `get_monthly_top_delays(company_ids, since, limit)` — top tardanzas agregadas en el servidor
+
+**Código — 5 archivos optimizados:**
+
+| Archivo | Mejora |
+|---|---|
+| `app/actions/kiosk.ts` | `verifyKioskPin`: de 2 queries a 1 con join. `processKioskEvent`: operaciones independientes en `Promise.all` |
+| `src/lib/utils.ts` | `generateUniquePin`: de hasta 100 queries en loop a 1 query + filtrado en memoria |
+| `app/(admin)/monitor/monitor-client.tsx` | `createClient()` memoizado. Fix de merge en realtime (preserva campos join). Un solo `setInterval` global reemplaza el timer por tarjeta |
+| `src/hooks/useAttendanceRealtime.ts` | `createClient()` memoizado. Fix de pérdida de `job_positions` en UPDATE de realtime. INSERTs traen solo el empleado nuevo en lugar de refetch completo. Cancellation flag anti-memory-leak |
+| `app/(admin)/dashboard/page.tsx` | `weeklyRecords` y `monthlyDelaysData` reemplazados por RPCs — elimina fetch de miles de filas para procesar en cliente |
 
 ### 🐛 Fix: Auto-generación de `employee_code` (2026-03-24)
 
-**Problema**: Al crear empleados en "Altas Rápidas", se generaba error: `null value in column "employee_code" violates not-null constraint`
-
-**Solución**:
 - Se agregó auto-generación de código único usando UUID (formato: `EMP-XXXXXXXX`)
-- Archivo modificado: `app/actions/employees.ts`
-- El código se genera automáticamente al crear un empleado, satisfaciendo la restricción NOT NULL
-
-**Commit**: `b61bfdc` — "Fix: Auto-generate employee_code to satisfy NOT NULL constraint"
-
-**Referencias**:
-- Detalles técnicos en `DEBUG_SESSION_REPORT.md`
-- Explicación del fix en `EMPLOYEE_CODE_FIX.md`
+- Archivo: `app/actions/employees.ts`
 
 ### 🔐 RLS Policies Optimizadas (2026-03-24)
 
-**Cambios**:
-- Consolidadas políticas de Row-Level Security en `employees` table
+- Consolidadas políticas de Row-Level Security en tabla `employees`
 - Eliminada política circular que causaba "infinite recursion"
-- Implementado patrón de autorización mediante lookup table `company_memberships`
-
-**Beneficio**: Mayor seguridad y performance en operaciones de empleados
+- Implementado patrón de autorización mediante `company_memberships`
 
 ---
 
@@ -210,11 +220,13 @@ Tablas principales en **Supabase (PostgreSQL)**:
 
 ### Funciones RPC
 
-| Función                      | Descripción                                             |
-|------------------------------|---------------------------------------------------------|
-| `create_company_with_owner`  | Crea una empresa y asigna al usuario actual como `owner`|
-| `rpc_mark_attendance_action` | Firma de marcación oficial con validación de estado     |
-| `rpc_monitor_mark_attendance`| Marcación remota por supervisor desde el Monitor        |
+| Función                        | Descripción                                             |
+|--------------------------------|---------------------------------------------------------|
+| `create_company_with_owner`    | Crea una empresa y asigna al usuario actual como `owner`|
+| `rpc_mark_attendance_action`   | Firma de marcación oficial con validación de estado     |
+| `rpc_monitor_mark_attendance`  | Marcación remota por supervisor desde el Monitor        |
+| `get_weekly_attendance_counts` | Agrega asistencia por día (últimos 7 días) en servidor  |
+| `get_monthly_top_delays`       | Top N empleados con más tardanzas en el mes             |
 
 ### Storage Buckets
 
@@ -371,5 +383,5 @@ Cerrar sesión ──► signOut (Server Action)
 
 ---
 
-*Documentación actualizada el 24 de marzo de 2026 — Gestor360 v0.1.0*
-- Última actualización: Fix de auto-generación de employee_code y optimización de RLS policies
+*Documentación actualizada el 26 de marzo de 2026 — Gestor360 v0.2.0*
+- Última actualización: Performance pass — índices DB, RPCs de agregación, optimizaciones de realtime y timer global del monitor

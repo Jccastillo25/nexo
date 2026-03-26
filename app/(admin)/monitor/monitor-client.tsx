@@ -1,7 +1,26 @@
 'use client'
 
-import { useState, useEffect, useMemo, useTransition } from 'react'
+import { useState, useEffect, useMemo, useTransition, useRef, createContext, useContext } from 'react'
 import { createClient } from '../../../src/lib/supabase/client'
+
+// ─── Global tick context ──────────────────────────────────────────────────────
+// A single setInterval drives all break timers. Each card reads the shared
+// "now" value from context instead of running its own interval.
+const NowContext = createContext<number>(Date.now())
+
+function NowProvider({ children }: { children: React.ReactNode }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  return <NowContext.Provider value={now}>{children}</NowContext.Provider>
+}
+
+function useNow() {
+  return useContext(NowContext)
+}
+// ─────────────────────────────────────────────────────────────────────────────
 import { endEmployeeBreak, startEmployeeBreak } from '../../actions/jobs'
 import { markEntry, markExit, registerAbsence, endAbsence } from '../../actions/attendance'
 import { 
@@ -75,8 +94,9 @@ export function OperationalMonitor({
   const [selectedForEndBreak, setSelectedForEndBreak] = useState<{ empId: string, logId: string, name: string } | null>(null)
   const [absenceModal, setAbsenceModal] = useState<{ empId: string, name: string } | null>(null)
   const [exitModal, setExitModal] = useState<{ empId: string, name: string } | null>(null)
-  
-  const supabase = createClient()
+
+  // Memoize supabase client so it is only created once, not on every render
+  const supabase = useMemo(() => createClient(), [])
 
   // Realtime subscription
   useEffect(() => {
@@ -84,7 +104,21 @@ export function OperationalMonitor({
       .channel('monitor-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, (payload: any) => {
         if (payload.eventType === 'UPDATE') {
-          setEmployees(prev => prev.map(emp => emp.id === payload.new.id ? { ...emp, ...payload.new } : emp))
+          // Realtime payload.new does NOT include joined relations (e.g. job_positions).
+          // Merge only the scalar fields so we don't silently drop join data.
+          setEmployees(prev => prev.map(emp =>
+            emp.id === payload.new.id
+              ? {
+                  ...emp,
+                  current_status: payload.new.current_status,
+                  last_status_change: payload.new.last_status_change,
+                  is_active: payload.new.is_active,
+                  first_name: payload.new.first_name,
+                  last_name: payload.new.last_name,
+                  photo_url: payload.new.photo_url,
+                }
+              : emp
+          ))
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_status_logs' }, (payload: any) => {
@@ -145,6 +179,7 @@ export function OperationalMonitor({
   }
 
   return (
+    <NowProvider>
     <div className="space-y-6">
       <div className="rounded-3xl bg-slate-50 p-6 shadow-inner ring-1 ring-slate-200">
         <div className="space-y-12 overflow-x-auto">
@@ -301,6 +336,7 @@ export function OperationalMonitor({
         </div>
       )}
     </div>
+    </NowProvider>
   )
 }
 
@@ -387,20 +423,15 @@ function UniversalActionCard({
   onOpenExit: (empId: string, name: string) => void,
   isLarge: boolean
 }) {
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (employee.current_status === 'on_break' && log) {
-        setElapsedSeconds(Math.floor((new Date().getTime() - new Date(log.start_time).getTime()) / 1000))
-      } else {
-        setElapsedSeconds(0)
-      }
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [employee.current_status, log])
+  // Use the shared global ticker instead of a per-card setInterval
+  const now = useNow()
+  const elapsedSeconds =
+    employee.current_status === 'on_break' && log
+      ? Math.floor((now - new Date(log.start_time).getTime()) / 1000)
+      : 0
 
   // Timer Calcs
   const maxMins = position?.default_break_mins || 60

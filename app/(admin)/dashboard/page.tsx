@@ -74,8 +74,8 @@ function fmt(n: number | null | undefined): string {
     { count: pendingCorrections },
     { count: pendingLeave },
     { data: recentRecords },
-    { data: weeklyRecords },
-    { data: monthlyDelaysData },
+    { data: weeklyCountsRaw },
+    { data: topDelaysRaw },
     { data: branches },
     { data: employeesWithBranch },
     { data: realPendingRequests },
@@ -84,9 +84,19 @@ function fmt(n: number | null | undefined): string {
     applyFilter(supabase.from('attendance_logs').select('id', { count: 'exact', head: true }).gte('clock_in', todayISO)),
     applyFilter(supabase.from('time_corrections').select('id', { count: 'exact', head: true }).eq('status', 'pending')),
     applyFilter(supabase.from('leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending')),
-    applyFilter(supabase.from('attendance_logs').select('id, clock_in, clock_out, status, employees(first_name, last_name, photo_url)').order('clock_in', { ascending: false }).limit(4)),
-    applyFilter(supabase.from('attendance_logs').select('clock_in').gte('clock_in', sevenDaysAgoISO)),
-    applyFilter(supabase.from('attendance_logs').select('employee_id, status, clock_in, clock_out, employees(first_name, last_name)').gte('clock_in', startOfMonthISO).eq('status', 'late')),
+    // Recent activity: only the 4 columns we need (no photo_url in the join to reduce payload)
+    applyFilter(supabase.from('attendance_logs').select('id, clock_in, clock_out, status, employees(first_name, last_name)').order('clock_in', { ascending: false }).limit(4)),
+    // Weekly counts aggregated server-side via RPC instead of fetching all rows
+    supabase.rpc('get_weekly_attendance_counts', {
+      p_company_ids: authorizedIds,
+      p_since: sevenDaysAgoISO
+    }),
+    // Monthly top delays aggregated server-side via RPC
+    supabase.rpc('get_monthly_top_delays', {
+      p_company_ids: authorizedIds,
+      p_since: startOfMonthISO,
+      p_limit: 3
+    }),
     applyFilter(supabase.from('branches').select('id, name')),
     applyFilter(supabase.from('employees').select('branch_id').eq('is_active', true)),
     applyFilter(supabase.from('leave_requests').select('id, type, status, employees(first_name, last_name)').eq('status', 'pending').limit(3)),
@@ -96,33 +106,27 @@ function fmt(n: number | null | undefined): string {
   const role = (user.user_metadata?.role || 'Administrador').toUpperCase()
 
   // --- TRANSFORMATION: Weekly Attendance ---
+  // RPC now returns pre-aggregated { day, cnt } rows — just map them to chart format
   const dayLabels = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
-  const wr: any = weeklyRecords
+  const weeklyCountMap: Record<string, number> = {}
+  ;(weeklyCountsRaw as any[] || []).forEach((r: any) => {
+    weeklyCountMap[r.day] = Number(r.cnt)
+  })
   const weeklyChartData = Array.from({ length: 7 }, (_, i) => {
     const date = new Date()
     date.setDate(date.getDate() - (6 - i))
     const label = dayLabels[date.getDay()]
     const nicaDay = getNicaISODate(date)
-    const count = wr?.filter((r: any) => getNicaISODate(new Date(r.clock_in)) === nicaDay).length || 0
-    return { name: label, total: activeEmployees || 0, value: count }
+    return { name: label, total: activeEmployees || 0, value: weeklyCountMap[nicaDay] || 0 }
   })
 
   // --- TRANSFORMATION: Top Delays ---
-  const delayMap: Record<string, { name: string; minutes: number }> = {}
-  const mdd: any = monthlyDelaysData
-  mdd?.forEach((r: any) => {
-    const emp = r.employees
-    const name = emp ? `${emp.first_name} ${emp.last_name}` : 'Empleado'
-    if (!delayMap[r.employee_id]) {
-        delayMap[r.employee_id] = { name, minutes: 0 }
-    }
-    // approximate tardiness (we should probably add tardiness_minutes to attendance_logs too, for now we count occurrences)
-    delayMap[r.employee_id].minutes += (r.status === 'late' ? 1 : 0)
-  })
-  const topDelays = Object.values(delayMap)
-    .sort((a: any, b: any) => b.minutes - a.minutes)
-    .slice(0, 3)
-    .map((d: any, i: number) => ({ ...d, color: i === 0 ? '#ef4444' : i === 1 ? '#f59e0b' : '#fcd34d' }))
+  // RPC returns pre-aggregated { employee_id, full_name, late_count } rows
+  const topDelays = (topDelaysRaw as any[] || []).map((d: any, i: number) => ({
+    name: d.full_name,
+    minutes: Number(d.late_count),
+    color: i === 0 ? '#ef4444' : i === 1 ? '#f59e0b' : '#fcd34d'
+  }))
 
   // --- TRANSFORMATION: Branch Distribution ---
   const branchMap: Record<string, number> = {}

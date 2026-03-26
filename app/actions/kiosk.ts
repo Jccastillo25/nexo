@@ -180,12 +180,12 @@ export async function verifyKioskPin(pin: string, branchId: string): Promise<{ s
   // Use admin client to ensure we can read employee and shift data even from a public kiosk
   const supabase = createAdminClient()
 
-  // Find the employee by PIN and branch_id directly
+  // Single query: fetch the employee by PIN with their branch info included.
+  // We fetch both branch_id and the branch name in one shot so we never need a second query.
   const { data: employee, error: empErr } = await supabase
     .from('employees')
-    .select('id, first_name, last_name, company_id, branch_id, is_active')
+    .select('id, first_name, last_name, company_id, branch_id, is_active, employee_code, employee_shifts(is_active), branches(name)')
     .eq('employee_code', pin)
-    .eq('branch_id', branchId)
     .maybeSingle()
 
   if (empErr) {
@@ -194,33 +194,26 @@ export async function verifyKioskPin(pin: string, branchId: string): Promise<{ s
   }
 
   if (!employee) {
-    // If not found in this branch, maybe the employee is in the company but another branch?
-    // We check globally just to provide a better error message (diagnostics)
-    const { data: globalCheck } = await supabase
-      .from('employees')
-      .select('id, branches(name)')
-      .eq('employee_code', pin)
-      .maybeSingle()
-
-    if (globalCheck) {
-      const branchName = (globalCheck.branches as any)?.name || 'otra sucursal'
-      return { success: false, error: `PIN correcto pero el empleado está asignado a: ${branchName}.` }
-    }
-
-    return { success: false, error: 'PIN incorrecto o empleado no encontrado en esta sucursal.' }
+    return { success: false, error: 'PIN incorrecto o empleado no encontrado.' }
   }
 
-  // Import and run checkAttendanceReady
-  const { checkAttendanceReady } = await import('@/lib/utils')
-  const { ready, reason } = await checkAttendanceReady(supabase, employee.id)
-
-  if (!ready) {
-    return { success: false, error: reason }
+  // Check if the employee belongs to this branch
+  if (employee.branch_id !== branchId) {
+    const branchName = (employee.branches as any)?.name || 'otra sucursal'
+    return { success: false, error: `PIN correcto pero el empleado está asignado a: ${branchName}.` }
   }
 
-  return { 
-    success: true, 
-    employeeName: `${employee.first_name} ${employee.last_name}` 
+  if (!employee.is_active) {
+    return { success: false, reason: 'El empleado está inactivo.' } as any
+  }
+
+  if (!employee.employee_code) {
+    return { success: false, error: 'El empleado no tiene un PIN configurado.' }
+  }
+
+  return {
+    success: true,
+    employeeName: `${employee.first_name} ${employee.last_name}`
   }
 }
 
@@ -271,19 +264,31 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     }
   }
 
-  // 2. Register the event in attendance_logs
+  const now = new Date().toISOString()
+
+  // Determine next employee status upfront
+  let nextStatus = 'offline'
+  if (eventType === 'clock_in' || eventType === 'break_in') nextStatus = 'active'
+  if (eventType === 'break_out') nextStatus = 'on_break'
+
+  // 2 & 3. Run attendance log write + employee status update in parallel
   if (eventType === 'clock_in') {
-    const { error: insertErr } = await supabase
-      .from('attendance_logs')
-      .insert({
+    const [{ error: insertErr }] = await Promise.all([
+      supabase.from('attendance_logs').insert({
         employee_id: employee.id,
-        clock_in: new Date().toISOString(),
+        clock_in: now,
         status: tardinessMinutes > 0 ? 'late' : 'on_time',
         source_origin: 'KIOSK'
-      })
+      }),
+      supabase.from('employees').update({
+        current_status: nextStatus,
+        last_status_change: now
+      }).eq('id', employee.id)
+    ])
     if (insertErr) return { success: false, error: `Error al registrar entrada: ${insertErr.message}` }
+
   } else if (eventType === 'clock_out') {
-    // Find open session
+    // Find open session first (needs the id), then update log + employee status in parallel
     const { data: openLog } = await supabase
       .from('attendance_logs')
       .select('id')
@@ -291,50 +296,51 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
       .is('clock_out', null)
       .order('clock_in', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
-    if (openLog) {
-      await supabase
-        .from('attendance_logs')
-        .update({ clock_out: new Date().toISOString() })
-        .eq('id', openLog.id)
-    }
-  }
+    await Promise.all([
+      openLog
+        ? supabase.from('attendance_logs').update({ clock_out: now }).eq('id', openLog.id)
+        : Promise.resolve(),
+      supabase.from('employees').update({
+        current_status: nextStatus,
+        last_status_change: now
+      }).eq('id', employee.id)
+    ])
 
-  // 3. Update Employee current_status and last_status_change
-  let nextStatus = 'offline'
-  if (eventType === 'clock_in' || eventType === 'break_in') nextStatus = 'active'
-  if (eventType === 'break_out') nextStatus = 'on_break'
-
-  await supabase
-    .from('employees')
-    .update({ 
-      current_status: nextStatus,
-      last_status_change: new Date().toISOString()
-    })
-    .eq('id', employee.id)
-
-  // 4. Handle employee_status_logs for breaks
-  if (eventType === 'break_out') {
+  } else if (eventType === 'break_out') {
+    // Start break: insert status log + update employee status in parallel
     const breakMins = (employee.job_positions as any)?.default_break_mins || 60
     const startTime = new Date()
     const endTimeScheduled = new Date(startTime.getTime() + breakMins * 60000)
 
-    await supabase.from('employee_status_logs').insert({
-      employee_id: employee.id,
-      start_time: startTime.toISOString(),
-      end_time_scheduled: endTimeScheduled.toISOString(),
-    })
+    await Promise.all([
+      supabase.from('employee_status_logs').insert({
+        employee_id: employee.id,
+        start_time: startTime.toISOString(),
+        end_time_scheduled: endTimeScheduled.toISOString(),
+      }),
+      supabase.from('employees').update({
+        current_status: nextStatus,
+        last_status_change: now
+      }).eq('id', employee.id)
+    ])
+
   } else if (eventType === 'break_in') {
-    // Find the last open break log and close it
-    await supabase
-      .from('employee_status_logs')
-      .update({ end_time_actual: new Date().toISOString() })
-      .eq('employee_id', employee.id)
-      .is('end_time_actual', null)
+    // End break: close open break log + update employee status in parallel
+    await Promise.all([
+      supabase.from('employee_status_logs')
+        .update({ end_time_actual: now })
+        .eq('employee_id', employee.id)
+        .is('end_time_actual', null),
+      supabase.from('employees').update({
+        current_status: nextStatus,
+        last_status_change: now
+      }).eq('id', employee.id)
+    ])
   }
 
-  // 3. Revalidate path to update dashboards
+  // Revalidate paths to update dashboards
   revalidatePath('/dashboard')
   revalidatePath('/attendance')
   revalidatePath('/monitor')

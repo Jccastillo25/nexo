@@ -19,42 +19,40 @@ function isConsecutive(pin: string): boolean {
 /**
  * Generates a unique 4-digit PIN that doesn't exist in the employees table for a given company,
  * and ensures it's not a weak PIN (like 1111, 1234).
+ *
+ * Uses a single DB query to fetch all existing PINs, then picks a candidate in memory.
+ * This replaces the previous loop of up to 100 individual DB queries.
  */
 export async function generateUniquePin(supabase: SupabaseClient, companyId: string): Promise<string> {
-  let pin = ''
-  let isUnique = false
-  let attempts = 0
-  const maxAttempts = 100
+  // Fetch all active employee_codes for this company in one query
+  const { data: existing, error } = await supabase
+    .from('employees')
+    .select('employee_code')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
 
-  while (!isUnique && attempts < maxAttempts) {
-    // Generate a 4-digit PIN (1000-9999)
-    pin = Math.floor(1000 + Math.random() * 9000).toString()
-    attempts++
+  if (error) {
+    throw new Error('No se pudo consultar los PINs existentes.')
+  }
 
-    // Skip weak PINs
-    if (isRepetitive(pin) || isConsecutive(pin)) {
-      continue
-    }
+  const takenPins = new Set((existing || []).map((e: any) => e.employee_code))
 
-    // Check if this PIN already exists for active employees in the company
-    const { count, error } = await supabase
-      .from('employees')
-      .select('*', { count: 'exact', head: true })
-      .eq('company_id', companyId)
-      .eq('employee_code', pin)
-      .eq('is_active', true)
-
-    if (!error && count === 0) {
-      isUnique = true
+  // Build candidate list: all 4-digit numbers that are not weak and not taken
+  const candidates: string[] = []
+  for (let n = 1000; n <= 9999; n++) {
+    const candidate = n.toString()
+    if (!isRepetitive(candidate) && !isConsecutive(candidate) && !takenPins.has(candidate)) {
+      candidates.push(candidate)
     }
   }
 
-  if (!isUnique) {
-    // Fallback or error if we couldn't find a unique PIN after many attempts
-    throw new Error('No se pudo generar un PIN único y seguro después de varios intentos.')
+  if (candidates.length === 0) {
+    throw new Error('No se pudo generar un PIN único y seguro: espacio de PINs agotado.')
   }
 
-  return pin
+  // Pick a random candidate from the available list
+  const randomIndex = Math.floor(Math.random() * candidates.length)
+  return candidates[randomIndex]
 }
 
 /**
