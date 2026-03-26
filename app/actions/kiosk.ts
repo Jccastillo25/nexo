@@ -217,6 +217,75 @@ export async function verifyKioskPin(pin: string, branchId: string): Promise<{ s
   }
 }
 
+/**
+ * Get the correct shift for today based on the current day of week.
+ * Handles different shifts for different days (e.g., Saturday has different hours).
+ */
+async function getTodayShift(
+  supabase: any,
+  employeeId: string,
+  companyId: string
+): Promise<{ start_time: string; tolerance_in: number } | null> {
+  // Get today's day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+  // But our system uses (1 = Monday, ..., 6 = Saturday, so we need to adjust)
+  const today = new Date()
+  const dayOfWeek = today.getDay() === 0 ? 6 : today.getDay() // Convert Sunday (0) to 6, keep 1-5 as is
+
+  // Fetch employee's shift assignment
+  const { data: employeeShift, error: shiftErr } = await supabase
+    .from('employee_shifts')
+    .select(`
+      shift_id,
+      shifts!left(
+        id, start_time, tolerance_in, days_of_week
+      )
+    `)
+    .eq('employee_id', employeeId)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (shiftErr || !employeeShift?.shifts) {
+    return null
+  }
+
+  const shift = employeeShift.shifts
+
+  // Check if the assigned shift applies to today
+  if (shift.days_of_week && Array.isArray(shift.days_of_week)) {
+    if (shift.days_of_week.includes(dayOfWeek)) {
+      return {
+        start_time: shift.start_time,
+        tolerance_in: shift.tolerance_in || 0
+      }
+    }
+  }
+
+  // If the assigned shift doesn't apply today, find any shift for this day
+  const { data: allShifts, error: allErr } = await supabase
+    .from('shifts')
+    .select('id, start_time, tolerance_in, days_of_week')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+
+  if (allErr || !allShifts) {
+    return null
+  }
+
+  // Find a shift that applies to today's day of week
+  const todayShift = allShifts.find((s: any) =>
+    s.days_of_week && Array.isArray(s.days_of_week) && s.days_of_week.includes(dayOfWeek)
+  )
+
+  if (todayShift) {
+    return {
+      start_time: todayShift.start_time,
+      tolerance_in: todayShift.tolerance_in || 0
+    }
+  }
+
+  return null
+}
+
 export async function processKioskEvent(branchId: string, pin: string, eventType: EventType): Promise<KioskResult> {
   const supabase = createAdminClient()
 
@@ -225,13 +294,7 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     .from('employees')
     .select(`
       id, first_name, last_name, is_active, employee_code, company_id,
-      job_positions!left(default_break_mins),
-      contracts!left(
-        status,
-        shifts!left(
-          start_time, tolerance_in
-        )
-      )
+      job_positions!left(default_break_mins)
     `)
     .eq('employee_code', pin)
     .eq('branch_id', branchId)
@@ -243,21 +306,18 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
 
   // Tardiness Calculation Logic
   let tardinessMinutes = 0
-  if (eventType === 'clock_in' && employee.contracts) {
-    const activeContract = employee.contracts.find((c: any) => c.status === 'active' && c.shifts)
-    
-    // Supabase TS bindings might type it as an array if it cannot infer the uniqueness
-    const shiftRaw = activeContract?.shifts
-    const shift = Array.isArray(shiftRaw) ? shiftRaw[0] : shiftRaw
+  if (eventType === 'clock_in') {
+    // Get the correct shift for today (handles Saturday vs weekday)
+    const todayShift = await getTodayShift(supabase, employee.id, employee.company_id)
 
-    if (shift && shift.start_time) {
+    if (todayShift && todayShift.start_time) {
       const { hour, minute } = getNicaTimeParts()
       const currentTotalMins = hour * 60 + minute
-      
-      const [shiftHours, shiftMins] = shift.start_time.split(':').map(Number)
+
+      const [shiftHours, shiftMins] = todayShift.start_time.split(':').map(Number)
       const shiftTotalMins = shiftHours * 60 + shiftMins
-      const tolerance = shift.tolerance_in || 0
-      
+      const tolerance = todayShift.tolerance_in || 0
+
       if (currentTotalMins > shiftTotalMins + tolerance) {
         tardinessMinutes = currentTotalMins - shiftTotalMins
       }
