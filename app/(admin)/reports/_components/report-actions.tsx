@@ -1,93 +1,62 @@
 'use client'
 
-import { Printer, Download } from 'lucide-react'
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
-
-// Add type for autotable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF
-  }
-}
+import { Printer, Download, Loader2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useState } from 'react'
 
 interface ReportActionsProps {
-  data: any[]
-  summary: { total: number; punctual: number; late: number }
-  filters: { date: string; branch: string }
+  data?: any[]
+  summary?: { total: number; punctual: number; late: number }
+  filters: { 
+    date?: string; 
+    start?: string; 
+    end?: string; 
+    branch?: string; 
+    company_id?: string;
+    type?: string;
+  }
+  canExport?: boolean
 }
 
-export function ReportActions({ data, summary, filters }: ReportActionsProps) {
-  
-  const generatePDF = () => {
-    const doc = new jsPDF()
-    
-    // Configuración inicial
-    const pageWidth = doc.internal.pageSize.width
-    
-    // Título Principal
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(18)
-    doc.text("Reporte de Asistencia Diaria", pageWidth / 2, 20, { align: "center" })
-    
-    // Subtítulo / Filtros
-    doc.setFontSize(10)
-    doc.setFont("helvetica", "normal")
-    doc.text(`Fecha: ${filters.date} | Sucursal: ${filters.branch}`, pageWidth / 2, 28, { align: "center" })
+export function ReportActions({ data, summary, filters, canExport = false }: ReportActionsProps) {
+  const [isGenerating, setIsGenerating] = useState(false)
+  const supabase = createClient()
 
-    // Resumen (Cajas)
-    doc.setDrawColor(200)
-    doc.setFillColor(245, 245, 245)
-    doc.rect(14, 38, pageWidth - 28, 20, 'F')
-    
-    doc.setFont("helvetica", "bold")
-    doc.text(`Jornadas Totales: ${summary.total}`, 20, 50)
-    doc.setTextColor(34, 197, 94) // Verde
-    doc.text(`Puntuales: ${summary.punctual}`, pageWidth / 2 - 20, 50)
-    doc.setTextColor(245, 158, 11) // Ambar
-    doc.text(`Tardanzas: ${summary.late}`, pageWidth - 50, 50)
-    doc.setTextColor(0, 0, 0) // Reset a negro para la tabla
+  const generateProfessionalPDF = async () => {
+    if (!canExport) return
 
-    // Preparar Data para Tabla
-    const tableBody = data.map((r, index) => {
-      const empName = `${r.employees?.first_name} ${r.employees?.last_name}` || 'N/A'
-      const branchName = r.branches?.name || 'N/A'
-      const inTime = new Date(r.clock_in).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/Managua' })
-      const outTime = r.clock_out ? new Date(r.clock_out).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/Managua' }) : '---'
-      const status = r.status === 'on_time' ? 'Puntual' : 'Retraso'
-      const origin = r.source_origin || 'KIOSKO'
-      
-      return [(index + 1).toString(), empName, branchName, inTime, outTime, status, origin]
-    })
+    setIsGenerating(true)
+    try {
+      // 1. Call the Supabase Edge Function
+      const { data: response, error } = await supabase.functions.invoke('generate-report', {
+        body: {
+          start: filters.start || filters.date,
+          end: filters.end || filters.date,
+          branch_id: filters.branch,
+          company_id: filters.company_id,
+          type: filters.type || 'attendance'
+        }
+      })
 
-    // Generar Tabla
-    doc.autoTable({
-      startY: 65,
-      head: [['#', 'Empleado', 'Sucursal', 'Entrada', 'Salida', 'Estado', 'Origen']],
-      body: tableBody,
-      theme: 'grid',
-      headStyles: { fillColor: [15, 23, 42], fontSize: 9 }, // Slate-900
-      bodyStyles: { fontSize: 8 },
-      alternateRowStyles: { fillColor: [248, 250, 252] }, // Slate-50
-      margin: { left: 14, right: 14 }
-    })
+      if (error) throw error
 
-    // Pie de página
-    const pageCount = doc.getNumberOfPages()
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i)
-        doc.setFontSize(8)
-        doc.setTextColor(150)
-        doc.text(
-            `Generado el ${new Date().toLocaleString('es-NI')} - Página ${i} de ${pageCount}`,
-            pageWidth / 2, 
-            doc.internal.pageSize.height - 10,
-            { align: 'center' }
-        )
+      // 2. Handle the Blob and trigger download
+      // Note: invoke returns { data, error }. data is the blob/buffer
+      const blob = new Blob([response], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Reporte_Gestor360_${filters.date || filters.start}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error('Error generating PDF:', err)
+      alert('Error al generar el reporte profesional. Verifique la consola para más detalles.')
+    } finally {
+      setIsGenerating(false)
     }
-
-    // Guardar / Descargar
-    doc.save(`Asistencia_Diaria_${filters.date}.pdf`)
   }
 
   const handlePrint = () => {
@@ -105,13 +74,21 @@ export function ReportActions({ data, summary, filters }: ReportActionsProps) {
       </button>
 
       <button
-        onClick={generatePDF}
-        className="flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-800 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 active:bg-slate-900"
+        onClick={generateProfessionalPDF}
+        disabled={!canExport || isGenerating}
+        className={`flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold shadow-sm transition focus:outline-none ${
+          !canExport 
+            ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' 
+            : 'bg-slate-900 text-white hover:bg-slate-800'
+        }`}
       >
-        <Download className="w-4 h-4" />
-        <span className="hidden sm:inline">Guardar PDF</span>
+        {isGenerating ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Download className="w-4 h-4" />
+        )}
+        <span className="hidden sm:inline">Descargar Reporte Legal</span>
       </button>
     </div>
   )
 }
-

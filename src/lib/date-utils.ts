@@ -18,12 +18,13 @@ export function getNicaISODate(date: Date = new Date()) {
 }
 
 /**
- * Convierte un string de fecha local (YYYY-MM-DD) a un rango UTC para Supabase
+ * Convierte strings de fecha local (YYYY-MM-DD) a un rango UTC para Supabase
  * Nica es UTC-6, por lo que 00:00 local es 06:00 UTC.
  */
-export function getNicaRange(dateStr: string) {
-  const start = new Date(`${dateStr}T00:00:00-06:00`).toISOString();
-  const end = new Date(`${dateStr}T23:59:59-06:00`).toISOString();
+export function getNicaRange(startStr: string, endStr?: string) {
+  const finalEndStr = endStr || startStr;
+  const start = new Date(`${startStr}T00:00:00-06:00`).toISOString();
+  const end = new Date(`${finalEndStr}T23:59:59-06:00`).toISOString();
   return { start, end };
 }
 

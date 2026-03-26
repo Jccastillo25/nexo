@@ -14,16 +14,15 @@ export const adminNav: NavSection[] = [
   {
     title: 'Centro de Control',
     items: [
-      { href: '/dashboard', label: 'Dashboard' },
-      { href: '/monitor', label: 'Monitor 360°' }
+      { href: '/dashboard', label: 'Dashboard (Métricas)' },
+      { href: '/monitor', label: 'Monitor 360° (Operación)' }
     ],
   },
   {
     title: 'Gestión de Talento',
     items: [
-      { href: '/employees', label: 'Directorio Maestro' },
+      { href: '/employees', label: 'Directorio (Expediente)' },
       { href: '/contracts', label: 'Gestión Contractual' },
-      { href: '/employees/groups', label: 'Estructura Corporativa' },
     ],
   },
   {
@@ -37,16 +36,16 @@ export const adminNav: NavSection[] = [
   {
     title: 'Nómina y Cierres',
     items: [
-      { href: '/reports?type=hours', label: 'Pre-nómina (Cálculos)' },
-      { href: '/reports?type=attendance', label: 'Histórico de Cierres' },
+      { href: '/reports', label: 'Hub de Reportes Legales' },
+      { href: '/security', label: 'Auditoría / Sistema' },
     ],
   },
   {
     title: 'Configuración',
     items: [
-      { href: '/organization', label: 'Organización (Empresa/Sucursal)' },
+      { href: '/organization', label: 'Estructura Orgánica' },
       { href: '/kiosk/devices', label: 'Red de Kioskos (Hardware)' },
-      { href: '/security', label: 'Seguridad (Roles/Auditoría)' },
+      { href: '/settings', label: 'Seguridad / Roles' },
     ],
   },
 ]
