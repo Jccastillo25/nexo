@@ -72,7 +72,9 @@ export class ShiftResolver {
       const result: ShiftResolution = {
         shiftTemplateId: override.shift_template_id,
         source: 'override',
-        template: override.shift_templates,
+        template: override.shift_templates && override.shift_templates.length > 0
+          ? override.shift_templates[0]
+          : null,
       }
       this.cacheResult(cacheKey, result)
       return result
@@ -88,7 +90,9 @@ export class ShiftResolver {
       const result: ShiftResolution = {
         shiftTemplateId: global.shift_template_id,
         source: 'global',
-        template: global.shift_templates,
+        template: global.shift_templates && global.shift_templates.length > 0
+          ? global.shift_templates[0]
+          : null,
       }
       this.cacheResult(cacheKey, result)
       return result
@@ -104,7 +108,9 @@ export class ShiftResolver {
       const result: ShiftResolution = {
         shiftTemplateId: branchDefault.shift_template_id,
         source: 'branch_default',
-        template: branchDefault.shift_templates,
+        template: branchDefault.shift_templates && branchDefault.shift_templates.length > 0
+          ? branchDefault.shift_templates[0]
+          : null,
       }
       this.cacheResult(cacheKey, result)
       return result
