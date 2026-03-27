@@ -45,9 +45,6 @@ export class ShiftResolver {
 
   /**
    * Resuelve el turno para un empleado en una fecha específica.
-   * @param employeeId UUID del empleado
-   * @param scheduledDate Fecha a resolver (Date object)
-   * @param companyId UUID de la compañía
    */
   async resolveShiftForDate(
     employeeId: string,
@@ -62,55 +59,52 @@ export class ShiftResolver {
       return this.cache[cacheKey]!
     }
 
-    // NIVEL 1: Override Individual (máxima prioridad)
-    const override = await this.checkIndividualOverride(
+    // NIVEL 1: Override Individual
+    let override = await this.checkIndividualOverride(
       employeeId,
       dateStr,
       companyId
     )
-    if (override) {
+    if (override?.shift_template_id) {
+      const template = await this.fetchShiftTemplate(override.shift_template_id)
       const result: ShiftResolution = {
         shiftTemplateId: override.shift_template_id,
         source: 'override',
-        template: override.shift_templates && override.shift_templates.length > 0
-          ? override.shift_templates[0]
-          : null,
+        template,
       }
       this.cacheResult(cacheKey, result)
       return result
     }
 
     // NIVEL 2: Turno Global por Puesto
-    const global = await this.checkGlobalSchedule(
+    let global = await this.checkGlobalSchedule(
       employeeId,
       scheduledDate,
       companyId
     )
-    if (global) {
+    if (global?.shift_template_id) {
+      const template = await this.fetchShiftTemplate(global.shift_template_id)
       const result: ShiftResolution = {
         shiftTemplateId: global.shift_template_id,
         source: 'global',
-        template: global.shift_templates && global.shift_templates.length > 0
-          ? global.shift_templates[0]
-          : null,
+        template,
       }
       this.cacheResult(cacheKey, result)
       return result
     }
 
     // NIVEL 3: Turno por Defecto de Sucursal
-    const branchDefault = await this.checkBranchDefault(
+    let branchDefault = await this.checkBranchDefault(
       employeeId,
       scheduledDate,
       companyId
     )
-    if (branchDefault) {
+    if (branchDefault?.shift_template_id) {
+      const template = await this.fetchShiftTemplate(branchDefault.shift_template_id)
       const result: ShiftResolution = {
         shiftTemplateId: branchDefault.shift_template_id,
         source: 'branch_default',
-        template: branchDefault.shift_templates && branchDefault.shift_templates.length > 0
-          ? branchDefault.shift_templates[0]
-          : null,
+        template,
       }
       this.cacheResult(cacheKey, result)
       return result
@@ -127,171 +121,113 @@ export class ShiftResolver {
   }
 
   /**
-   * Obtener override individual (NIVEL 1)
+   * Obtener template de turno por ID
+   */
+  private async fetchShiftTemplate(templateId: string): Promise<ShiftTemplate | null> {
+    const { data } = await this.supabase
+      .from('shift_templates')
+      .select('id, company_id, name, start_time, end_time, color_code, is_active')
+      .eq('id', templateId)
+      .maybeSingle()
+    return data as ShiftTemplate | null
+  }
+
+  /**
+   * NIVEL 1: Verifica si hay override individual
    */
   private async checkIndividualOverride(
     employeeId: string,
     dateStr: string,
     companyId: string
   ) {
-    const { data, error } = await this.supabase
+    const { data } = await this.supabase
       .from('employee_shift_overrides')
-      .select(`
-        shift_template_id,
-        shift_templates (
-          id,
-          company_id,
-          name,
-          start_time,
-          end_time,
-          color_code,
-          is_active
-        )
-      `)
+      .select('id, shift_template_id')
+      .eq('company_id', companyId)
       .eq('employee_id', employeeId)
       .eq('scheduled_date', dateStr)
-      .eq('company_id', companyId)
       .is('deleted_at', null)
-      .single()
-
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116 = no rows found (expected)
-      console.error('Error checking individual override:', error)
-    }
+      .maybeSingle()
 
     return data
   }
 
   /**
-   * Obtener turno global por puesto (NIVEL 2)
+   * NIVEL 2: Buscar en global_schedules
    */
   private async checkGlobalSchedule(
     employeeId: string,
     scheduledDate: Date,
     companyId: string
   ) {
-    const dayOfWeek = scheduledDate.getDay()
-
-    // Obtener puesto del empleado
-    const { data: employee, error: empError } = await this.supabase
+    const { data: employee } = await this.supabase
       .from('employees')
-      .select('job_position_id, branch_id')
+      .select('job_position_id')
       .eq('id', employeeId)
-      .single()
+      .maybeSingle()
 
-    if (empError || !employee?.job_position_id) {
-      console.error('Error fetching employee:', empError)
-      return null
-    }
+    if (!employee?.job_position_id) return null
 
-    // Obtener turno global
-    const { data, error } = await this.supabase
+    const dayOfWeek = scheduledDate.getDay()
+    const { data } = await this.supabase
       .from('global_schedules')
-      .select(`
-        shift_template_id,
-        shift_templates (
-          id,
-          company_id,
-          name,
-          start_time,
-          end_time,
-          color_code,
-          is_active
-        )
-      `)
+      .select('id, shift_template_id')
+      .eq('company_id', companyId)
       .eq('job_position_id', employee.job_position_id)
       .eq('day_of_week', dayOfWeek)
-      .eq('company_id', companyId)
       .is('deleted_at', null)
-      .single()
-
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error checking global schedule:', error)
-    }
+      .maybeSingle()
 
     return data
   }
 
   /**
-   * Obtener turno por defecto de sucursal (NIVEL 3)
+   * NIVEL 3: Buscar branch default
    */
   private async checkBranchDefault(
     employeeId: string,
     scheduledDate: Date,
     companyId: string
   ) {
-    const dayOfWeek = scheduledDate.getDay()
-
-    // Obtener sucursal del empleado
-    const { data: employee, error: empError } = await this.supabase
+    const { data: employee } = await this.supabase
       .from('employees')
       .select('branch_id')
       .eq('id', employeeId)
-      .single()
+      .maybeSingle()
 
-    if (empError || !employee?.branch_id) {
-      console.error('Error fetching employee branch:', empError)
-      return null
-    }
+    if (!employee?.branch_id) return null
 
-    // Obtener turno por defecto de sucursal
-    const { data, error } = await this.supabase
+    const dayOfWeek = scheduledDate.getDay()
+    const { data } = await this.supabase
       .from('branch_default_shifts')
-      .select(`
-        shift_template_id,
-        shift_templates (
-          id,
-          company_id,
-          name,
-          start_time,
-          end_time,
-          color_code,
-          is_active
-        )
-      `)
+      .select('id, shift_template_id')
+      .eq('company_id', companyId)
       .eq('branch_id', employee.branch_id)
       .eq('day_of_week', dayOfWeek)
-      .eq('company_id', companyId)
-      .single()
-
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error checking branch default:', error)
-    }
+      .maybeSingle()
 
     return data
   }
 
-  /**
-   * Valida que el caché no haya expirado
-   */
   private isCacheValid(key: string): boolean {
     const timestamp = this.cacheTimestamps[key]
     if (!timestamp) return false
     return Date.now() - timestamp < this.cacheMaxAge
   }
 
-  /**
-   * Almacena un resultado en caché
-   */
   private cacheResult(key: string, result: ShiftResolution): void {
     this.cache[key] = result
     this.cacheTimestamps[key] = Date.now()
   }
 
-  /**
-   * Limpia la caché completa
-   */
   clearCache(): void {
     this.cache = {}
     this.cacheTimestamps = {}
   }
 
-  /**
-   * Limpia la caché de un empleado específico
-   */
   clearEmployeeCache(employeeId: string): void {
     Object.keys(this.cache).forEach((key) => {
-      if (key.startsWith(employeeId)) {
+      if (key.startsWith(`${employeeId}:`)) {
         delete this.cache[key]
         delete this.cacheTimestamps[key]
       }
