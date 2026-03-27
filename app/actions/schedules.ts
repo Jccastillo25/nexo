@@ -18,17 +18,29 @@ export async function createShiftTemplate(
   const name = formData.get('name') as string
   const start_time = formData.get('start_time') as string
   const end_time = formData.get('end_time') as string
-  const lunch_duration_minutes = parseInt(formData.get('lunch_duration_minutes') as string, 10)
+  const lunch_duration = parseInt(formData.get('lunch_duration') as string, 10)
   const tolerance_in = parseInt(formData.get('tolerance_in') as string, 10)
   const tolerance_out = parseInt(formData.get('tolerance_out') as string, 10)
   const company_id = formData.get('company_id') as string
+
+  // Validación de duración total vs pausa
+  const [sh, sm] = start_time.split(':').map(Number)
+  const [eh, em] = end_time.split(':').map(Number)
+  let startMinutes = sh * 60 + sm
+  let endMinutes = eh * 60 + em
+  if (endMinutes <= startMinutes) endMinutes += 1440
+  const totalShiftMinutes = endMinutes - startMinutes
+
+  if (!isNaN(lunch_duration) && lunch_duration >= totalShiftMinutes) {
+    return { error: `La pausa (${lunch_duration}m) no puede ser mayor o igual a la duración total del turno (${totalShiftMinutes}m).` }
+  }
 
   const { error } = await supabase.from('shift_templates').insert({
     name,
     start_time,
     end_time,
     company_id,
-    lunch_duration_minutes: isNaN(lunch_duration_minutes) ? 0 : lunch_duration_minutes,
+    lunch_duration: isNaN(lunch_duration) ? 0 : lunch_duration,
     tolerance_in: isNaN(tolerance_in) ? 5 : tolerance_in,
     tolerance_out: isNaN(tolerance_out) ? 0 : tolerance_out,
     is_active: true,

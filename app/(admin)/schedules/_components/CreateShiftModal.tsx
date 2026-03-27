@@ -23,7 +23,7 @@ export default function CreateShiftModal({
     name: '',
     start_time: '08:00',
     end_time: '17:00',
-    lunch_duration_minutes: 60,
+    lunch_duration: 60,
   })
 
   const [effectiveHours, setEffectiveHours] = useState<number>(0)
@@ -51,7 +51,7 @@ export default function CreateShiftModal({
     }
     
     const totalMinutes = endMinutes - startMinutes
-    const effective = (totalMinutes - formData.lunch_duration_minutes) / 60
+    const effective = (totalMinutes - formData.lunch_duration) / 60
     setEffectiveHours(Math.max(0, effective))
   }
 
@@ -140,12 +140,13 @@ export default function CreateShiftModal({
             </label>
             <input
               type="number"
-              name="lunch_duration_minutes"
+              name="lunch_duration"
               required
               min="0"
+              placeholder="Ej: 60"
               className="w-full h-12 rounded-2xl border-2 border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 outline-none transition-all focus:border-slate-900"
-              value={formData.lunch_duration_minutes}
-              onChange={(e) => setFormData({ ...formData, lunch_duration_minutes: parseInt(e.target.value) || 0 })}
+              value={formData.lunch_duration}
+              onChange={(e) => setFormData({ ...formData, lunch_duration: parseInt(e.target.value) || 0 })}
             />
           </div>
 
@@ -153,7 +154,7 @@ export default function CreateShiftModal({
           <div className="p-5 rounded-3xl bg-slate-50 ring-1 ring-slate-200 space-y-2">
             <div className="flex justify-between items-center text-xs font-semibold uppercase tracking-wider text-slate-400">
               <span>Cálculo de Jornada</span>
-              <span className="text-slate-900 font-bold tracking-normal">{effectiveHours.toFixed(1)} Horas</span>
+              <span className="text-slate-900 font-bold tracking-normal">Jornada efectiva: {effectiveHours.toFixed(1)} horas</span>
             </div>
             <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
               <div 
