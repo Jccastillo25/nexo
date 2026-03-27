@@ -6,6 +6,27 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/) y el 
 
 ---
 
+## [0.2.0] — 2026-03-26
+
+### Added
+
+#### 🚀 Performance Optimization (Database & API)
+- **Database Indices**: Added 9 new indices to `attendance_logs`, `employees`, and `employee_status_logs` to optimize common search patterns.
+- **SQL Functions (RPC)**:
+  - `get_weekly_attendance_counts`: Aggregates attendance data on the server for the dashboard.
+  - `get_monthly_top_delays`: Calculates top employee delays on the server.
+- **Improved Realtime**: Optimized `useAttendanceRealtime` hook to reduce memory leaks and unnecessary refetches.
+
+### Changed
+
+#### ⚡ Code & UI Enhancements
+- **Kiosk Logic**: Refactored `verifyKioskPin` to use a single query with JOIN, and parallelized operations in `processKioskEvent`.
+- **Dashboard**: Replaced client-side processing of thousands of records with efficient server-side RPC calls.
+- **Monitor**: Memoized Supabase client creation and implemented a single global timer for all monitoring cards.
+- **Utilities**: Optimized `generateUniquePin` to use a single database query instead of a loop.
+
+---
+
 ## [0.1.0] — 2026-03-24
 
 ### Fixed

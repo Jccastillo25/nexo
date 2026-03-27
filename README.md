@@ -91,49 +91,23 @@
 
 ```
 web/
-├── app/
-│   ├── layout.tsx              # Layout raíz (fuentes, favicon dinámico, SpeedInsights)
-│   ├── page.tsx                # Página del kiosco (ruta /)
-│   ├── globals.css             # Variables CSS globales y estilos base
-│   ├── favicon.ico
-│   │
-│   ├── (admin)/                # Grupo de rutas protegidas del panel administrativo
-│   │   ├── layout.tsx          # Envuelve con <AdminShell>
-│   │   ├── _components/        # Componentes del shell de administración
-│   │   │   ├── admin-nav.ts         # Definición tipada del menú de navegación
-│   │   │   ├── admin-shell.tsx      # Shell del panel (Server Component)
-│   │   │   ├── admin-sidebar.tsx    # Barra lateral colapsable
-│   │   │   ├── admin-topbar.tsx     # Barra superior con búsqueda y perfil
-│   │   │   ├── module-placeholder.tsx  # Placeholder para módulos
-│   │   │   └── realtime-listener.tsx   # Escucha cambios en tiempo real (Supabase)
-│   │   │
-│   │   ├── dashboard/          # Panel principal con métricas y gráficas
-│   │   ├── employees/          # Gestión de empleados
-│   │   ├── attendance/         # Control de asistencia (records, corrections, incidents)
-│   │   ├── schedules/          # Gestión de horarios y turnos
-│   │   ├── leave/              # Permisos y ausencias
-│   │   ├── reports/            # Módulo de reportes (asistencia, horas, incidencias)
-│   │   ├── organization/       # Empresas, sucursales y membresías
-│   │   ├── security/           # Seguridad del sistema
-│   │   ├── settings/           # Configuración de la aplicación
-│   │   └── kiosk/              # Administración de dispositivos kiosco
-│   │
-│   ├── (auth)/                 # Login y recuperación
-│   ├── actions/                # Next.js Server Actions (lógica de negocio)
-│   ├── api/                    # API Routes (webhooks, integraciones externas)
-│   ├── onboarding/             # Flujo de configuración inicial
-│   └── types/                  # Tipos TypeScript específicos de la App
+├── app/                        # Aplicación Next.js (App Router)
+│   ├── (admin)/                # Panel administrativo
+│   ├── (auth)/                 # Autenticación
+│   ├── actions/                # Server Actions
+│   └── ...
 │
-├── db/                         # Base de datos
-│   └── migrations/             # Historial de cambios SQL (DDL)
+├── docs/                       # Documentación técnica
+│   ├── archive/                # Reportes históricos y resúmenes de sesiones
+│   ├── CONTRIBUTING.md         # Guía para contribuyentes
+│   └── DATABASE.md             # Diccionario de datos y esquema
 │
-├── src/
-│   ├── components/             # UI Components atómicos y complejos
-│   ├── hooks/                  # React Hooks personalizados (useAttendanceRealtime, etc.)
-│   └── lib/
-│       ├── supabase/           # Clientes Supabase (server, client, admin, middleware)
-│       └── utils.ts            # Utilidades generales
-```
+├── public/                     # Activos estáticos
+├── scripts/                    # Scripts de mantenimiento y utilidades
+├── src/                        # Código fuente (components, hooks, lib)
+├── supabase/                   # Configuración de Supabase
+├── tsconfig.json               # Configuración de TypeScript
+└── next.config.ts              # Configuración de Next.js
 ```
 
 ---
@@ -177,10 +151,13 @@ Pantalla principal del panel. Muestra:
 - *(Módulo en expansión activa)*
 
 ### 🛠️ Herramientas de Mantenimiento
-Se han incluido scripts auxiliares en la carpeta `web/` para tareas administrativas específicas:
-- `fix_bryan.js`: Corrige minutos de tardanza para registros específicos mediante la API de Supabase (Service Role).
-- `get_rpc_def.mjs`: Utilidad para obtener definiciones de funciones RPC de la base de datos.
-- `test_shift.mjs`: Script de prueba para lógica de turnos y tolerancias.
+Se han incluido scripts auxiliares en la carpeta `scripts/` para tareas administrativas específicas:
+- `scripts/db-diag.mjs`: Diagnóstico de salud de la base de datos.
+- `scripts/get_rpc_def.mjs`: Utilidad para obtener definiciones de funciones RPC de la base de datos.
+- `scripts/check_data.ts`: Validación de integridad de datos de asistencia.
+
+> [!NOTE]
+> Reportes detallados de sesiones previas, auditorías de seguridad y análisis de arquitectura se encuentran archivados en `docs/archive/`.
 
 ### 🏢 Organización
 - **Empresas**: multitenant — cada empresa tiene su slug único, nombre legal, RUC/NIT, dirección, teléfono y logo de reportes. Se usa el RPC `create_company_with_owner`.
