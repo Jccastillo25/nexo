@@ -18,7 +18,7 @@ export async function createShiftTemplate(
   const name = formData.get('name') as string
   const start_time = formData.get('start_time') as string
   const end_time = formData.get('end_time') as string
-  const break_minutes = parseInt(formData.get('break_minutes') as string, 10)
+  const lunch_duration_minutes = parseInt(formData.get('lunch_duration_minutes') as string, 10)
   const tolerance_in = parseInt(formData.get('tolerance_in') as string, 10)
   const tolerance_out = parseInt(formData.get('tolerance_out') as string, 10)
   const company_id = formData.get('company_id') as string
@@ -28,7 +28,7 @@ export async function createShiftTemplate(
     start_time,
     end_time,
     company_id,
-    break_minutes: isNaN(break_minutes) ? 60 : break_minutes,
+    lunch_duration_minutes: isNaN(lunch_duration_minutes) ? 0 : lunch_duration_minutes,
     tolerance_in: isNaN(tolerance_in) ? 5 : tolerance_in,
     tolerance_out: isNaN(tolerance_out) ? 0 : tolerance_out,
     is_active: true,

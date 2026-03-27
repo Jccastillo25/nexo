@@ -176,6 +176,7 @@ export default function ScheduleGrid({
         {/* Shift Library (Sidebar) */}
         <div className="lg:col-span-1">
           <ShiftLibrary
+            companyId={companyId}
             templates={shiftTemplates}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
