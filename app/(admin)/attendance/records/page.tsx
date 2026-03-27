@@ -62,8 +62,8 @@ export default async function RecordsPage() {
                   const dtOut = r.clock_out ? new Date(r.clock_out) : null
                   
                   const dateStr = dtIn.toLocaleDateString('es-NI', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Managua' })
-                  const inStr = dtIn.toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Managua' })
-                  const outStr = dtOut ? dtOut.toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Managua' }) : '---'
+                  const inStr = dtIn.toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/Managua' })
+                  const outStr = dtOut ? dtOut.toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/Managua' }) : '---'
 
                   return (
                     <tr key={r.id} className="hover:bg-slate-50">

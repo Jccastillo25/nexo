@@ -5,7 +5,7 @@ function fmtTime(t: string) {
   const [h, m] = t.split(':')
   const date = new Date()
   date.setHours(Number(h), Number(m))
-  return new Intl.DateTimeFormat('es-NI', { hour: '2-digit', minute: '2-digit' }).format(date)
+  return new Intl.DateTimeFormat('es-NI', { hour: '2-digit', minute: '2-digit', hour12: true }).format(date)
 }
 
 export default async function SchedulesPage() {
@@ -50,6 +50,12 @@ export default async function SchedulesPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            href="/schedules/matrix"
+            className="shrink-0 rounded-2xl border-2 border-slate-900 bg-white px-5 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
+          >
+            Matriz de Diagnóstico
+          </Link>
           <Link
             href="/schedules/assignments"
             className="shrink-0 rounded-2xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"

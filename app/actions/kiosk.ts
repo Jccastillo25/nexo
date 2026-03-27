@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { resolveShift } from '@/lib/shift-resolver'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getNicaTimeParts } from '@/lib/date-utils'
 import { revalidatePath } from 'next/cache'
@@ -218,69 +219,32 @@ export async function verifyKioskPin(pin: string, branchId: string): Promise<{ s
 }
 
 /**
- * Get the correct shift for today based on the current day of week.
- * Handles different shifts for different days (e.g., Saturday has different hours).
- * Uses shift_schedules table for per-day hour variations within a single shift.
+ * getTodayShift - Resolves the correct shift using a 4-level hierarchy:
+ * 1. Override: Specific date-based change (Level 1)
+ * 2. Manual: Fixed assignment on employee (Level 2)
+ * 3. Global: Job Position + Day of Week (Level 3)
+ * 4. Branch: Branch Default + Day of Week (Level 4)
  */
 async function getTodayShift(
   supabase: any,
   employeeId: string,
-  companyId: string
-): Promise<{ start_time: string; tolerance_in: number } | null> {
-  // Get today's day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-  // Our system uses (1 = Monday, ..., 6 = Saturday), so we need to adjust
-  const today = new Date()
-  const dayOfWeek = today.getDay() === 0 ? 6 : today.getDay() // Convert Sunday (0) to 6, keep 1-5 as is
+  companyId: string,
+  branchId: string,
+  jobPositionId: string | null
+): Promise<{ start_time: string; tolerance_in: number; break_minutes: number } | null> {
+  const resolved = await resolveShift(supabase, employeeId, new Date(), {
+    companyId,
+    branchId,
+    jobPositionId
+  })
 
-  // Fetch employee's shift assignment
-  const { data: employeeShift, error: shiftErr } = await supabase
-    .from('employee_shifts')
-    .select(`
-      shift_id,
-      shifts!left(id)
-    `)
-    .eq('employee_id', employeeId)
-    .eq('is_active', true)
-    .maybeSingle()
+  if (!resolved || !resolved.start_time) return null
 
-  if (shiftErr || !employeeShift?.shifts) {
-    return null
+  return {
+    start_time: resolved.start_time,
+    tolerance_in: resolved.tolerance_in,
+    break_minutes: resolved.break_minutes
   }
-
-  const shiftId = employeeShift.shifts.id
-
-  // Try to find specific schedule for this shift on this day of week
-  const { data: daySchedule, error: schedErr } = await supabase
-    .from('shift_schedules')
-    .select('start_time, tolerance_in')
-    .eq('shift_id', shiftId)
-    .eq('day_of_week', dayOfWeek)
-    .maybeSingle()
-
-  if (!schedErr && daySchedule) {
-    return {
-      start_time: daySchedule.start_time,
-      tolerance_in: daySchedule.tolerance_in || 0
-    }
-  }
-
-  // Fallback: If no specific schedule found, try the shift's default hours
-  const { data: shift } = await supabase
-    .from('shifts')
-    .select('start_time, tolerance_in, days_of_week')
-    .eq('id', shiftId)
-    .maybeSingle()
-
-  if (shift && shift.days_of_week && Array.isArray(shift.days_of_week)) {
-    if (shift.days_of_week.includes(dayOfWeek)) {
-      return {
-        start_time: shift.start_time,
-        tolerance_in: shift.tolerance_in || 0
-      }
-    }
-  }
-
-  return null
 }
 
 export async function processKioskEvent(branchId: string, pin: string, eventType: EventType): Promise<KioskResult> {
@@ -290,7 +254,7 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
   const { data: employee, error: empErr } = await supabase
     .from('employees')
     .select(`
-      id, first_name, last_name, is_active, employee_code, company_id,
+      id, first_name, last_name, is_active, employee_code, company_id, branch_id, job_position_id,
       job_positions!left(default_break_mins)
     `)
     .eq('employee_code', pin)
@@ -304,16 +268,22 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
   // Tardiness Calculation Logic
   let tardinessMinutes = 0
   if (eventType === 'clock_in') {
-    // Get the correct shift for today (handles Saturday vs weekday)
-    const todayShift = await getTodayShift(supabase, employee.id, employee.company_id)
+    // Get the correct shift using inheritance hierarchy (Levels 1-4)
+    const resolvedShift = await getTodayShift(
+      supabase, 
+      employee.id, 
+      employee.company_id, 
+      employee.branch_id, 
+      employee.job_position_id
+    )
 
-    if (todayShift && todayShift.start_time) {
+    if (resolvedShift && resolvedShift.start_time) {
       const { hour, minute } = getNicaTimeParts()
       const currentTotalMins = hour * 60 + minute
 
-      const [shiftHours, shiftMins] = todayShift.start_time.split(':').map(Number)
+      const [shiftHours, shiftMins] = resolvedShift.start_time.split(':').map(Number)
       const shiftTotalMins = shiftHours * 60 + shiftMins
-      const tolerance = todayShift.tolerance_in || 0
+      const tolerance = resolvedShift.tolerance_in || 0
 
       if (currentTotalMins > shiftTotalMins + tolerance) {
         tardinessMinutes = currentTotalMins - shiftTotalMins

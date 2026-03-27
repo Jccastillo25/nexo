@@ -44,3 +44,21 @@ export function getNicaTimeParts(date: Date = new Date()) {
   
   return { hour, minute };
 }
+
+/**
+ * Convierte una hora (HH:mm:ss o HH:mm) a formato 12h (AM/PM)
+ */
+export function formatTo12h(time: string | null | undefined): string {
+  if (!time) return '--:--';
+  
+  // Manejar formatos HH:mm:ss o HH:mm
+  const [hoursStr, minutesStr] = time.split(':');
+  let hours = parseInt(hoursStr, 10);
+  const minutes = minutesStr || '00';
+  
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // la hora '0' debe ser '12'
+  
+  return `${hours}:${minutes.padStart(2, '0')} ${ampm}`;
+}

@@ -11,7 +11,7 @@ export default async function NewAssignmentPage() {
     { data: branches }
   ] = await Promise.all([
     supabase.from('employees').select('id, first_name, last_name, branch_id').eq('is_active', true).order('first_name'),
-    supabase.from('shifts').select('id, name').eq('is_active', true).order('name'),
+    supabase.from('shifts').select('id, name, start_time, end_time').eq('is_active', true).order('name'),
     supabase.from('branches').select('id, name').order('name')
   ])
 

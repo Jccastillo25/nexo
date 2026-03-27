@@ -6,6 +6,7 @@
  */
 
 import React from 'react'
+import { formatTo12h } from '@/lib/date-utils'
 
 interface ShiftTemplate {
   id: string
@@ -21,15 +22,6 @@ interface ShiftLibraryProps {
   onDragEnd: () => void
 }
 
-const formatTime = (time: string): string => {
-  const [h, m] = time.split(':')
-  const date = new Date()
-  date.setHours(Number(h), Number(m))
-  return new Intl.DateTimeFormat('es-NI', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
-}
 
 export default function ShiftLibrary({
   templates,
@@ -118,7 +110,7 @@ function ShiftPill({ template, onDragStart, onDragEnd }: ShiftPillProps) {
     >
       <p className="font-bold">{template.name}</p>
       <p className="text-xs opacity-90 mt-1">
-        {formatTime(template.start_time)} - {formatTime(template.end_time)}
+        {formatTo12h(template.start_time)} - {formatTo12h(template.end_time)}
       </p>
     </div>
   )

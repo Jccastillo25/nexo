@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { formatTo12h } from '@/lib/date-utils'
 
 type EmployeeShift = {
   id: string
@@ -113,7 +114,7 @@ export default async function AssignmentsPage() {
                         <p className="font-medium text-slate-900">{shift?.name ?? '—'}</p>
                         {shift && (
                           <p className="text-xs text-slate-400">
-                            {shift.start_time.slice(0, 5)} – {shift.end_time.slice(0, 5)}
+                            {formatTo12h(shift.start_time)} – {formatTo12h(shift.end_time)}
                           </p>
                         )}
                       </td>

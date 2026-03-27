@@ -26,11 +26,10 @@ export const adminNav: NavSection[] = [
     ],
   },
   {
-    title: 'Tiempo y Asistencia',
+    title: 'Gestión de Turnos',
     items: [
-      { href: '/attendance/records', label: 'Registro Maestro (CRUD)' },
-      { href: '/schedules', label: 'Planificación (Turnos)' },
-      { href: '/schedules/global-planning', label: 'Planilla Maestra (Gestor360)' },
+      { href: '/schedules/global-planning', label: 'Planilla Maestra' },
+      { href: '/attendance/records', label: 'Asistencia Diaria' },
       { href: '/leave', label: 'Permisos y Ausencias' },
     ],
   },

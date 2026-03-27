@@ -2,10 +2,11 @@
 
 import { useActionState, useState } from 'react'
 import { assignShift, type ActionState } from '../../../actions/schedules'
+import { formatTo12h } from '@/lib/date-utils'
 
 interface AssignmentFormProps {
   employees: { id: string; first_name: string; last_name: string; branch_id: string }[]
-  shifts: { id: string; name: string }[]
+  shifts: { id: string; name: string; start_time: string; end_time: string }[]
   branches: { id: string; name: string }[]
 }
 
@@ -19,7 +20,7 @@ export function AssignmentForm({ employees, shifts, branches }: AssignmentFormPr
 
   return (
     <form action={action} className="space-y-6">
-      {state?.error && (
+      {state && 'error' in state && (
         <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-200">
           {state.error}
         </div>
@@ -69,7 +70,9 @@ export function AssignmentForm({ employees, shifts, branches }: AssignmentFormPr
           >
             <option value="">Seleccionar turno...</option>
             {shifts.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
+              <option key={s.id} value={s.id}>
+                {s.name} ({formatTo12h(s.start_time)} - {formatTo12h(s.end_time)})
+              </option>
             ))}
           </select>
         </div>
