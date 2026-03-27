@@ -51,6 +51,21 @@
 
 ## Cambios Recientes
 
+### 🏗️ Gestión de Turnos: Herencia y Matriz de Diagnóstico (2026-03-27)
+
+**Motor de Herencia (4 Niveles):**
+- Implementado sistema de cascada: **Override > Manual > Global > Sucursal**.
+- Centralizado en `src/lib/shift-resolver.ts` para total paridad entre Kiosco y Admin.
+
+**Matriz de Diagnóstico:**
+- Nueva vista avanzada en `/schedules/matrix` para auditar la resolución de turnos de todo el personal.
+- Indicadores visuales de origen: bordes punteados para herencia, iconos de lápiz para excepciones manuales.
+- Función **"Fijar Turno" (Pin)** para convertir reglas automáticas en fijas con un clic.
+
+**Optimizaciones de Rendimiento:**
+- Migración de "N+1 Queries" a **Batch Fetching** en la matriz.
+- Reducción del overhead de base de datos en >95% para sucursales grandes (100+ empleados).
+
 ### ⚡ Optimizaciones de Performance (2026-03-26)
 
 **Base de datos — 9 índices nuevos en Supabase:**

@@ -16,7 +16,7 @@ export function ShiftForm({
 
   return (
     <form action={action} className="space-y-6">
-      {state?.error && (
+      {state && 'error' in state && (
         <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-200">
           {state.error}
         </div>

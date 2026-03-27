@@ -20,7 +20,7 @@ export function AssignmentForm({ employees, shifts, branches }: AssignmentFormPr
 
   return (
     <form action={action} className="space-y-6">
-      {state && 'error' in state && (
+      {state && 'error' in state && state.error && (
         <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-200">
           {state.error}
         </div>
