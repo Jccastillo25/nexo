@@ -5,10 +5,9 @@
  * Los usuarios pueden arrastrar turnos de aquí a las celdas del grid.
  */
 
-import React, { useState } from 'react'
+import React from 'react'
 import { formatTo12h } from '@/lib/date-utils'
 import { Plus } from 'lucide-react'
-import CreateShiftModal from './CreateShiftModal'
 
 interface ShiftTemplate {
   id: string
@@ -23,6 +22,7 @@ interface ShiftLibraryProps {
   templates: ShiftTemplate[]
   onDragStart: (templateId: string) => void
   onDragEnd: () => void
+  onOpenCreateModal: () => void
 }
 
 
@@ -31,9 +31,8 @@ export default function ShiftLibrary({
   templates,
   onDragStart,
   onDragEnd,
+  onOpenCreateModal,
 }: ShiftLibraryProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-
   const handleDragStart = (
     e: React.DragEvent<HTMLDivElement>,
     templateId: string
@@ -57,19 +56,13 @@ export default function ShiftLibrary({
           </p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={onOpenCreateModal}
           className="p-2 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors group"
           title="Crear nueva plantilla"
         >
           <Plus size={20} className="transition-transform group-hover:rotate-90" />
         </button>
       </div>
-
-      <CreateShiftModal 
-        companyId={companyId}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
 
       <div className="px-4 py-4 space-y-3">
         {templates && templates.length > 0 ? (

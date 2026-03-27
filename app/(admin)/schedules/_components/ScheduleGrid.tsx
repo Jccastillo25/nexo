@@ -9,10 +9,11 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useScheduleGrid } from '../_hooks/useScheduleGrid'
 import ShiftCell from './ShiftCell'
 import ShiftLibrary from './ShiftLibrary'
+import CreateShiftModal from './CreateShiftModal'
 import { ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react'
 
 interface ScheduleGridProps {
@@ -59,6 +60,7 @@ export default function ScheduleGrid({
   const [draggedTemplate, setDraggedTemplate] = useState<string | null>(null)
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set())
   const [bulkTemplateId, setBulkTemplateId] = useState<string | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   const handleDragStart = (templateId: string) => {
     setDraggedTemplate(templateId)
@@ -180,6 +182,7 @@ export default function ScheduleGrid({
             templates={shiftTemplates}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onOpenCreateModal={() => setIsCreateModalOpen(true)}
           />
         </div>
 
@@ -293,6 +296,12 @@ export default function ScheduleGrid({
           )}
         </div>
       </div>
+
+      <CreateShiftModal
+        companyId={companyId}
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
     </div>
   )
 }
