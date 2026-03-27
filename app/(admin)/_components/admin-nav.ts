@@ -30,6 +30,7 @@ export const adminNav: NavSection[] = [
     items: [
       { href: '/attendance/records', label: 'Registro Maestro (CRUD)' },
       { href: '/schedules', label: 'Planificación (Turnos)' },
+      { href: '/schedules/global-planning', label: 'Planilla Maestra (Gestor360)' },
       { href: '/leave', label: 'Permisos y Ausencias' },
     ],
   },
