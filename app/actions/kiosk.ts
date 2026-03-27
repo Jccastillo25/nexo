@@ -220,6 +220,7 @@ export async function verifyKioskPin(pin: string, branchId: string): Promise<{ s
 /**
  * Get the correct shift for today based on the current day of week.
  * Handles different shifts for different days (e.g., Saturday has different hours).
+ * Uses shift_schedules table for per-day hour variations within a single shift.
  */
 async function getTodayShift(
   supabase: any,
@@ -227,7 +228,7 @@ async function getTodayShift(
   companyId: string
 ): Promise<{ start_time: string; tolerance_in: number } | null> {
   // Get today's day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-  // But our system uses (1 = Monday, ..., 6 = Saturday, so we need to adjust)
+  // Our system uses (1 = Monday, ..., 6 = Saturday), so we need to adjust
   const today = new Date()
   const dayOfWeek = today.getDay() === 0 ? 6 : today.getDay() // Convert Sunday (0) to 6, keep 1-5 as is
 
@@ -236,9 +237,7 @@ async function getTodayShift(
     .from('employee_shifts')
     .select(`
       shift_id,
-      shifts!left(
-        id, start_time, tolerance_in, days_of_week
-      )
+      shifts!left(id)
     `)
     .eq('employee_id', employeeId)
     .eq('is_active', true)
@@ -248,38 +247,36 @@ async function getTodayShift(
     return null
   }
 
-  const shift = employeeShift.shifts
+  const shiftId = employeeShift.shifts.id
 
-  // Check if the assigned shift applies to today
-  if (shift.days_of_week && Array.isArray(shift.days_of_week)) {
+  // Try to find specific schedule for this shift on this day of week
+  const { data: daySchedule, error: schedErr } = await supabase
+    .from('shift_schedules')
+    .select('start_time, tolerance_in')
+    .eq('shift_id', shiftId)
+    .eq('day_of_week', dayOfWeek)
+    .maybeSingle()
+
+  if (!schedErr && daySchedule) {
+    return {
+      start_time: daySchedule.start_time,
+      tolerance_in: daySchedule.tolerance_in || 0
+    }
+  }
+
+  // Fallback: If no specific schedule found, try the shift's default hours
+  const { data: shift } = await supabase
+    .from('shifts')
+    .select('start_time, tolerance_in, days_of_week')
+    .eq('id', shiftId)
+    .maybeSingle()
+
+  if (shift && shift.days_of_week && Array.isArray(shift.days_of_week)) {
     if (shift.days_of_week.includes(dayOfWeek)) {
       return {
         start_time: shift.start_time,
         tolerance_in: shift.tolerance_in || 0
       }
-    }
-  }
-
-  // If the assigned shift doesn't apply today, find any shift for this day
-  const { data: allShifts, error: allErr } = await supabase
-    .from('shifts')
-    .select('id, start_time, tolerance_in, days_of_week')
-    .eq('company_id', companyId)
-    .eq('is_active', true)
-
-  if (allErr || !allShifts) {
-    return null
-  }
-
-  // Find a shift that applies to today's day of week
-  const todayShift = allShifts.find((s: any) =>
-    s.days_of_week && Array.isArray(s.days_of_week) && s.days_of_week.includes(dayOfWeek)
-  )
-
-  if (todayShift) {
-    return {
-      start_time: todayShift.start_time,
-      tolerance_in: todayShift.tolerance_in || 0
     }
   }
 
