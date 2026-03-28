@@ -75,7 +75,7 @@ export default async function GlobalPlanningPage({
   // Cargar plantillas de turnos
   const { data: templates, error: templatesError } = await supabase
     .from('shift_templates')
-    .select('id, name, start_time, end_time, color_code, is_active')
+    .select('id, name, start_time, end_time, color_code, is_active, days_config')
     .eq('company_id', companyId)
     .eq('is_active', true)
     .order('name')

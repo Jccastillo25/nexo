@@ -219,11 +219,7 @@ export async function verifyKioskPin(pin: string, branchId: string): Promise<{ s
 }
 
 /**
- * getTodayShift - Resolves the correct shift using a 4-level hierarchy:
- * 1. Override: Specific date-based change (Level 1)
- * 2. Manual: Fixed assignment on employee (Level 2)
- * 3. Global: Job Position + Day of Week (Level 3)
- * 4. Branch: Branch Default + Day of Week (Level 4)
+ * getTodayShift - Resolves the correct shift using a 4-level hierarchy
  */
 async function getTodayShift(
   supabase: any,
@@ -231,19 +227,40 @@ async function getTodayShift(
   companyId: string,
   branchId: string,
   jobPositionId: string | null
-): Promise<{ start_time: string; tolerance_in: number; break_minutes: number } | null> {
+) {
   const resolved = await resolveShift(supabase, employeeId, new Date(), {
     companyId,
     branchId,
     jobPositionId
   })
 
-  if (!resolved || !resolved.start_time) return null
+  if (!resolved) return null
+
+  // Resolving specific daily schedule based on Weekly Matrix (days_config)
+  const todayDow = new Date().getDay()
+  let dailyStartTime = resolved.start_time
+  let isSeventhDay = false
+
+  if (resolved.days_config && Array.isArray(resolved.days_config)) {
+    const dayConfig = resolved.days_config.find((d: any) => d.dayOfWeek === todayDow)
+    if (dayConfig) {
+      if (dayConfig.isSeventhDay || !dayConfig.isActive) {
+        isSeventhDay = true
+        dailyStartTime = '00:00' // Placeholder effectively
+      } else {
+        dailyStartTime = dayConfig.startTime
+      }
+    }
+  }
 
   return {
-    start_time: resolved.start_time,
-    tolerance_in: resolved.tolerance_in,
-    break_minutes: resolved.break_minutes
+    shift_id: resolved.shift_id,
+    start_time: dailyStartTime,
+    late_entry_tolerance: resolved.late_entry_tolerance,
+    early_exit_tolerance: resolved.early_exit_tolerance,
+    lunch_duration: resolved.lunch_duration,
+    is_seventh_day: isSeventhDay,
+    days_config: resolved.days_config
   }
 }
 
@@ -265,33 +282,32 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     return { success: false, error: 'PIN incorrecto o empleado no encontrado en esta sucursal.' }
   }
 
+  const now = new Date()
+  const nowISO = now.toISOString()
+  
+  // Resolve today's shift configuration
+  const resolvedShift = await getTodayShift(
+    supabase, 
+    employee.id, 
+    employee.company_id, 
+    employee.branch_id, 
+    employee.job_position_id
+  )
+
   // Tardiness Calculation Logic
   let tardinessMinutes = 0
-  if (eventType === 'clock_in') {
-    // Get the correct shift using inheritance hierarchy (Levels 1-4)
-    const resolvedShift = await getTodayShift(
-      supabase, 
-      employee.id, 
-      employee.company_id, 
-      employee.branch_id, 
-      employee.job_position_id
-    )
+  if (eventType === 'clock_in' && resolvedShift && !resolvedShift.is_seventh_day && resolvedShift.start_time) {
+    const { hour, minute } = getNicaTimeParts()
+    const currentTotalMins = hour * 60 + minute
 
-    if (resolvedShift && resolvedShift.start_time) {
-      const { hour, minute } = getNicaTimeParts()
-      const currentTotalMins = hour * 60 + minute
+    const [shiftHours, shiftMins] = resolvedShift.start_time.split(':').map(Number)
+    const shiftTotalMins = shiftHours * 60 + shiftMins
+    const tolerance = resolvedShift.late_entry_tolerance || 0
 
-      const [shiftHours, shiftMins] = resolvedShift.start_time.split(':').map(Number)
-      const shiftTotalMins = shiftHours * 60 + shiftMins
-      const tolerance = resolvedShift.tolerance_in || 0
-
-      if (currentTotalMins > shiftTotalMins + tolerance) {
-        tardinessMinutes = currentTotalMins - shiftTotalMins
-      }
+    if (currentTotalMins > shiftTotalMins + tolerance) {
+      tardinessMinutes = currentTotalMins - shiftTotalMins
     }
   }
-
-  const now = new Date().toISOString()
 
   // Determine next employee status upfront
   let nextStatus = 'offline'
@@ -303,40 +319,76 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     const [{ error: insertErr }] = await Promise.all([
       supabase.from('attendance_logs').insert({
         employee_id: employee.id,
-        clock_in: now,
+        shift_id: resolvedShift?.shift_id,
+        clock_in: nowISO,
         status: tardinessMinutes > 0 ? 'late' : 'on_time',
         source_origin: 'KIOSK'
       }),
       supabase.from('employees').update({
         current_status: nextStatus,
-        last_status_change: now
+        last_status_change: nowISO
       }).eq('id', employee.id)
     ])
     if (insertErr) return { success: false, error: `Error al registrar entrada: ${insertErr.message}` }
 
   } else if (eventType === 'clock_out') {
-    // Find open session first (needs the id), then update log + employee status in parallel
+    // Find open session first
     const { data: openLog } = await supabase
       .from('attendance_logs')
-      .select('id')
+      .select('id, clock_in')
       .eq('employee_id', employee.id)
       .is('clock_out', null)
       .order('clock_in', { ascending: false })
       .limit(1)
       .maybeSingle()
 
+    let calcFlags = {}
+
+    if (openLog && resolvedShift) {
+      // Import payroll engine dynamically or statically at top
+      // Wait, we can't top-level import without adding it there. We just compute it here explicitly to avoid missing imports.
+      // Wait actually I need to call the engine. It's better to just inline it or import it.
+      // We will assume importing it at the top later, but for now I will inline the import or just calculate it directly.
+      const { calculatePayableHours } = await import('@/lib/payroll-engine')
+      
+      const clockInDate = new Date(openLog.clock_in)
+      const clockOutDate = now
+      const todayDow = now.getDay()
+      
+      const payrollFlags = calculatePayableHours(
+        clockInDate,
+        clockOutDate,
+        {
+          lunch_duration: resolvedShift.lunch_duration || 0,
+          late_entry_tolerance: resolvedShift.late_entry_tolerance || 15,
+          early_exit_tolerance: resolvedShift.early_exit_tolerance || 15,
+          days_config: resolvedShift.days_config || []
+        },
+        todayDow
+      )
+
+      calcFlags = {
+        is_late: payrollFlags.is_late,
+        minutes_deducted: payrollFlags.minutes_deducted,
+        overtime_minutes: payrollFlags.overtime_minutes,
+        is_seventh_day_overtime: payrollFlags.is_seventh_day_overtime
+      }
+    }
+
     await Promise.all([
       openLog
-        ? supabase.from('attendance_logs').update({ clock_out: now }).eq('id', openLog.id)
+        ? supabase.from('attendance_logs').update({ 
+            clock_out: nowISO,
+            ...calcFlags
+          }).eq('id', openLog.id)
         : Promise.resolve(),
       supabase.from('employees').update({
         current_status: nextStatus,
-        last_status_change: now
+        last_status_change: nowISO
       }).eq('id', employee.id)
     ])
 
   } else if (eventType === 'break_out') {
-    // Start break: insert status log + update employee status in parallel
     const breakMins = (employee.job_positions as any)?.default_break_mins || 60
     const startTime = new Date()
     const endTimeScheduled = new Date(startTime.getTime() + breakMins * 60000)
@@ -349,20 +401,19 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
       }),
       supabase.from('employees').update({
         current_status: nextStatus,
-        last_status_change: now
+        last_status_change: nowISO
       }).eq('id', employee.id)
     ])
 
   } else if (eventType === 'break_in') {
-    // End break: close open break log + update employee status in parallel
     await Promise.all([
       supabase.from('employee_status_logs')
-        .update({ end_time_actual: now })
+        .update({ end_time_actual: nowISO })
         .eq('employee_id', employee.id)
         .is('end_time_actual', null),
       supabase.from('employees').update({
         current_status: nextStatus,
-        last_status_change: now
+        last_status_change: nowISO
       }).eq('id', employee.id)
     ])
   }

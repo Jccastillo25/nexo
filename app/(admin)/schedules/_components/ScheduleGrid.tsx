@@ -28,6 +28,7 @@ interface ScheduleGridProps {
     start_time: string
     end_time: string
     color_code: string
+    days_config?: any[]
   }>
 }
 

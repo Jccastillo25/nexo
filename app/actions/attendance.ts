@@ -110,7 +110,7 @@ export async function markExit(employeeId: string, isEarly: boolean, notes?: str
   // 1. Find today's open attendance log
   const { data: openLog } = await supabase
     .from('attendance_logs')
-    .select('id')
+    .select('id, clock_in, shift_id')
     .eq('employee_id', employeeId)
     .is('clock_out', null)
     .order('clock_in', { ascending: false })
@@ -118,16 +118,54 @@ export async function markExit(employeeId: string, isEarly: boolean, notes?: str
     .single()
 
   if (openLog) {
+    let calcFlags = {}
+
+    // 2. Fetch Shift details for engine
+    if (openLog.shift_id) {
+      const { data: st } = await supabase
+        .from('shift_templates')
+        .select('lunch_duration, late_entry_tolerance, early_exit_tolerance, days_config')
+        .eq('id', openLog.shift_id)
+        .single()
+      
+      if (st) {
+        const { calculatePayableHours } = await import('@/lib/payroll-engine')
+        const clockInDate = new Date(openLog.clock_in)
+        const clockOutDate = now
+        const todayDow = now.getDay()
+        
+        const payrollFlags = calculatePayableHours(
+          clockInDate,
+          clockOutDate,
+          {
+            lunch_duration: st.lunch_duration || 0,
+            late_entry_tolerance: st.late_entry_tolerance || 15,
+            early_exit_tolerance: st.early_exit_tolerance || 15,
+            days_config: st.days_config || []
+          },
+          todayDow
+        )
+
+        calcFlags = {
+          is_late: payrollFlags.is_late,
+          minutes_deducted: payrollFlags.minutes_deducted,
+          overtime_minutes: payrollFlags.overtime_minutes,
+          is_seventh_day_overtime: payrollFlags.is_seventh_day_overtime
+        }
+      }
+    }
+
     await supabase
       .from('attendance_logs')
       .update({ 
         clock_out: now.toISOString(),
-        notes: isEarly ? `Salida Anticipada: ${notes || ''}` : notes
+        notes: isEarly ? `Salida Anticipada: ${notes || ''}` : notes,
+        ...calcFlags
       })
       .eq('id', openLog.id)
   }
 
-  // 2. Update Employee Status
+  // 3. Update Employee Status
   await supabase
     .from('employees')
     .update({ 

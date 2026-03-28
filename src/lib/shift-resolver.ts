@@ -10,9 +10,10 @@ export interface ResolvedShift {
   color_code: string
   source_level: ShiftSourceLevel
   source_name: string
-  tolerance_in: number
-  tolerance_out: number
-  break_minutes: number
+  lunch_duration: number
+  late_entry_tolerance: number
+  early_exit_tolerance: number
+  days_config?: any[]
 }
 
 /**
@@ -32,7 +33,6 @@ export function resolveShiftInMemory(
   const dateISO = date.toISOString().split('T')[0]
   const dayOfWeek = date.getDay()
 
-  // LEVEL 1: OVERRIDE
   const overrideKey = `${employee.id}_${dateISO}`
   const override = data.overrides.get(overrideKey)
   if (override?.shift_templates) {
@@ -45,13 +45,14 @@ export function resolveShiftInMemory(
       color_code: st.color_code || '#64748b',
       source_level: 1,
       source_name: 'Excepción de Día',
-      tolerance_in: st.tolerance_in || 0,
-      tolerance_out: st.tolerance_out || 0,
-      break_minutes: st.break_minutes || 60
+      lunch_duration: st.lunch_duration || 0,
+      late_entry_tolerance: st.late_entry_tolerance || 15,
+      early_exit_tolerance: st.early_exit_tolerance || 15,
+      days_config: st.days_config
     }
   }
 
-  // LEVEL 2: MANUAL FIXED
+  // LEVEL 2: MANUAL FIXED - LEGACY IGNORED OR ADAPTED
   const manual = data.manuals.get(employee.id)
   if (manual?.shifts) {
     const s = manual.shifts
@@ -64,9 +65,10 @@ export function resolveShiftInMemory(
         color_code: s.color_code || '#64748b',
         source_level: 2,
         source_name: 'Asignación Fija',
-        tolerance_in: s.tolerance_in || 0,
-        tolerance_out: s.tolerance_out || 0,
-        break_minutes: s.break_minutes || 60
+        lunch_duration: s.break_minutes || 60,
+        late_entry_tolerance: s.tolerance_in || 15,
+        early_exit_tolerance: s.tolerance_out || 15,
+        days_config: s.days_config || []
       }
     }
   }
@@ -85,9 +87,10 @@ export function resolveShiftInMemory(
         color_code: st.color_code || '#64748b',
         source_level: 3,
         source_name: 'Planilla Global',
-        tolerance_in: st.tolerance_in || 0,
-        tolerance_out: st.tolerance_out || 0,
-        break_minutes: st.break_minutes || 60
+        lunch_duration: st.lunch_duration || 0,
+        late_entry_tolerance: st.late_entry_tolerance || 15,
+        early_exit_tolerance: st.early_exit_tolerance || 15,
+        days_config: st.days_config
       }
     }
   }
@@ -106,9 +109,10 @@ export function resolveShiftInMemory(
         color_code: st.color_code || '#64748b',
         source_level: 4,
         source_name: 'Predeterminado de Sucursal',
-        tolerance_in: st.tolerance_in || 0,
-        tolerance_out: st.tolerance_out || 0,
-        break_minutes: st.break_minutes || 60
+        lunch_duration: st.lunch_duration || 0,
+        late_entry_tolerance: st.late_entry_tolerance || 15,
+        early_exit_tolerance: st.early_exit_tolerance || 15,
+        days_config: st.days_config
       }
     }
   }
@@ -138,7 +142,7 @@ export async function resolveShift(
     .from('employee_shift_overrides')
     .select(`
       shift_template_id, 
-      shift_templates(id, name, start_time, end_time, color_code, tolerance_in, tolerance_out, break_minutes)
+      shift_templates(id, name, start_time, end_time, color_code, lunch_duration, late_entry_tolerance, early_exit_tolerance, days_config)
     `)
     .eq('employee_id', employeeId)
     .eq('scheduled_date', dateISO)
@@ -154,13 +158,14 @@ export async function resolveShift(
       color_code: st.color_code || '#64748b',
       source_level: 1,
       source_name: 'Excepción de Día',
-      tolerance_in: st.tolerance_in || 0,
-      tolerance_out: st.tolerance_out || 0,
-      break_minutes: st.break_minutes || 60
+      lunch_duration: st.lunch_duration || 0,
+      late_entry_tolerance: st.late_entry_tolerance || 15,
+      early_exit_tolerance: st.early_exit_tolerance || 15,
+      days_config: st.days_config
     }
   }
 
-  // LEVEL 2: MANUAL FIXED
+  // LEVEL 2: MANUAL FIXED - Legacy Shifts Fallback
   const { data: manualAssignment } = await supabase
     .from('employee_shifts')
     .select(`
@@ -182,9 +187,10 @@ export async function resolveShift(
         color_code: s.color_code || '#64748b',
         source_level: 2,
         source_name: 'Asignación Fija',
-        tolerance_in: s.tolerance_in || 0,
-        tolerance_out: s.tolerance_out || 0,
-        break_minutes: s.break_minutes || 60
+        lunch_duration: s.break_minutes || 60,
+        late_entry_tolerance: s.tolerance_in || 15,
+        early_exit_tolerance: s.tolerance_out || 15,
+        days_config: []
       }
     }
   }
@@ -195,7 +201,7 @@ export async function resolveShift(
       .from('global_schedules')
       .select(`
         shift_template_id, 
-        shift_templates(id, name, start_time, end_time, color_code, tolerance_in, tolerance_out, break_minutes)
+        shift_templates(id, name, start_time, end_time, color_code, lunch_duration, late_entry_tolerance, early_exit_tolerance, days_config)
       `)
       .eq('job_position_id', context.jobPositionId)
       .eq('day_of_week', dayOfWeek)
@@ -211,9 +217,10 @@ export async function resolveShift(
         color_code: st.color_code || '#64748b',
         source_level: 3,
         source_name: 'Planilla Global',
-        tolerance_in: st.tolerance_in || 0,
-        tolerance_out: st.tolerance_out || 0,
-        break_minutes: st.break_minutes || 60
+        lunch_duration: st.lunch_duration || 0,
+        late_entry_tolerance: st.late_entry_tolerance || 15,
+        early_exit_tolerance: st.early_exit_tolerance || 15,
+        days_config: st.days_config
       }
     }
   }
@@ -223,7 +230,7 @@ export async function resolveShift(
     .from('branch_default_shifts')
     .select(`
       shift_template_id, 
-      shift_templates(id, name, start_time, end_time, color_code, tolerance_in, tolerance_out, break_minutes)
+      shift_templates(id, name, start_time, end_time, color_code, lunch_duration, late_entry_tolerance, early_exit_tolerance, days_config)
     `)
     .eq('branch_id', context.branchId)
     .eq('day_of_week', dayOfWeek)
@@ -239,9 +246,10 @@ export async function resolveShift(
       color_code: st.color_code || '#64748b',
       source_level: 4,
       source_name: 'Predeterminado de Sucursal',
-      tolerance_in: st.tolerance_in || 0,
-      tolerance_out: st.tolerance_out || 0,
-      break_minutes: st.break_minutes || 60
+      lunch_duration: st.lunch_duration || 0,
+      late_entry_tolerance: st.late_entry_tolerance || 15,
+      early_exit_tolerance: st.early_exit_tolerance || 15,
+      days_config: st.days_config
     }
   }
 

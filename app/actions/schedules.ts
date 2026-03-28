@@ -16,23 +16,49 @@ export async function createShiftTemplate(
   const supabase = await createClient()
 
   const name = formData.get('name') as string
-  const start_time = formData.get('start_time') as string
-  const end_time = formData.get('end_time') as string
   const lunch_duration = parseInt(formData.get('lunch_duration') as string, 10)
-  const tolerance_in = parseInt(formData.get('tolerance_in') as string, 10)
-  const tolerance_out = parseInt(formData.get('tolerance_out') as string, 10)
   const company_id = formData.get('company_id') as string
+  
+  const branch_id = formData.get('branch_id') as string
+  const late_entry_tolerance = parseInt(formData.get('late_entry_tolerance') as string, 10) || 15
+  const early_exit_tolerance = parseInt(formData.get('early_exit_tolerance') as string, 10) || 15
+  
+  const days_config_str = formData.get('days_config') as string
+  let days_config = []
+  
+  try {
+    if (days_config_str) {
+      days_config = JSON.parse(days_config_str)
+    }
+  } catch (e) {
+    return { error: 'Configuración de días inválida.' }
+  }
 
-  // Validación de duración total vs pausa
-  const [sh, sm] = start_time.split(':').map(Number)
-  const [eh, em] = end_time.split(':').map(Number)
-  let startMinutes = sh * 60 + sm
-  let endMinutes = eh * 60 + em
-  if (endMinutes <= startMinutes) endMinutes += 1440
-  const totalShiftMinutes = endMinutes - startMinutes
+  // Validación de Séptimo Día (Backend)
+  const activeDays = days_config.filter((d: any) => d.isActive && !d.isSeventhDay).length
+  const restingDays = days_config.filter((d: any) => d.isSeventhDay).length
 
-  if (!isNaN(lunch_duration) && lunch_duration >= totalShiftMinutes) {
-    return { error: `La pausa (${lunch_duration}m) no puede ser mayor o igual a la duración total del turno (${totalShiftMinutes}m).` }
+  if (restingDays < 1 || activeDays > 6) {
+    return { error: 'Por ley laboral, es obligatorio asignar al menos 1 día de descanso (Séptimo Día) por cada 6 días trabajados.' }
+  }
+
+  // Extraer un start/end time base para retrocompatibilidad
+  const firstActive = days_config.find((d: any) => d.isActive && !d.isSeventhDay)
+  const start_time = firstActive ? firstActive.startTime : null
+  const end_time = firstActive ? firstActive.endTime : null
+
+  // Validación de duración en el primer día activo
+  if (start_time && end_time) {
+    const [sh, sm] = start_time.split(':').map(Number)
+    const [eh, em] = end_time.split(':').map(Number)
+    let startMinutes = sh * 60 + sm
+    let endMinutes = eh * 60 + em
+    if (endMinutes <= startMinutes) endMinutes += 1440
+    const totalShiftMinutes = endMinutes - startMinutes
+
+    if (!isNaN(lunch_duration) && lunch_duration >= totalShiftMinutes) {
+      return { error: `La pausa no puede ser mayor o igual a la duración total del turno.` }
+    }
   }
 
   const { error } = await supabase.from('shift_templates').insert({
@@ -40,9 +66,11 @@ export async function createShiftTemplate(
     start_time,
     end_time,
     company_id,
+    branch_id: branch_id || null,
     lunch_duration: isNaN(lunch_duration) ? 0 : lunch_duration,
-    tolerance_in: isNaN(tolerance_in) ? 5 : tolerance_in,
-    tolerance_out: isNaN(tolerance_out) ? 0 : tolerance_out,
+    late_entry_tolerance,
+    early_exit_tolerance,
+    days_config,
     is_active: true,
   })
 

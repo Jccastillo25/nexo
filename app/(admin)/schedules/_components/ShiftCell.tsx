@@ -18,6 +18,7 @@ interface ShiftTemplate {
   start_time: string
   end_time: string
   color_code: string
+  days_config?: any[]
 }
 
 interface ShiftCellProps {
@@ -118,6 +119,27 @@ export default function ShiftCell({
   const isInherited = sourceLevel === 3 || sourceLevel === 4
   const isOverride = sourceLevel === 1
 
+  // Resolve config for specific day
+  let displayStartTime = template?.start_time
+  let displayEndTime = template?.end_time
+  let isRestingDay = false
+  let isActiveDay = true
+
+  if (template?.days_config) {
+    const dayConfig = template.days_config.find((d: any) => d.dayOfWeek === dayOfWeek)
+    if (dayConfig) {
+      if (dayConfig.isSeventhDay) {
+        isRestingDay = true
+        isActiveDay = false
+      } else if (!dayConfig.isActive) {
+        isActiveDay = false
+      } else {
+        displayStartTime = dayConfig.startTime
+        displayEndTime = dayConfig.endTime
+      }
+    }
+  }
+
   return (
     <div
       onDragOver={handleDragOver}
@@ -133,15 +155,15 @@ export default function ShiftCell({
       `}
     >
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-2xl">
+        <div className="absolute inset-0 flex items-center justify-center rounded-2xl z-10">
           <div className="animate-spin h-4 w-4 border-2 border-slate-300 border-t-slate-900 rounded-full" />
         </div>
       )}
 
       {template ? (
         <div
-          className={`h-full p-3 flex flex-col justify-between rounded-2xl text-white text-xs font-semibold relative overflow-hidden transition-all duration-300 ${isInherited ? 'border-dashed border-white/40 border-2' : ''} ${showMenu ? 'scale-[0.98]' : ''}`}
-          style={{ backgroundColor: template.color_code }}
+          className={`h-full p-3 flex flex-col justify-between rounded-2xl text-white text-xs font-semibold relative overflow-hidden transition-all duration-300 ${isInherited ? 'border-dashed border-white/40 border-2' : ''} ${showMenu ? 'scale-[0.98]' : ''} ${isRestingDay ? 'bg-amber-500' : (!isActiveDay ? 'bg-slate-400' : '')}`}
+          style={{ backgroundColor: (isRestingDay || !isActiveDay) ? undefined : template.color_code }}
           onMouseEnter={() => !showMenu && setShowMenu(true)}
           onMouseLeave={() => setShowMenu(false)}
         >
@@ -153,9 +175,19 @@ export default function ShiftCell({
           
           <div>
             <p className="font-bold truncate pr-3">{template.name}</p>
-            <p className="text-[10px] opacity-90 mt-1">
-              {formatTo12h(template.start_time)} - {formatTo12h(template.end_time)}
-            </p>
+            {isRestingDay ? (
+              <p className="text-[10px] uppercase font-black tracking-widest mt-1 bg-white/20 inline-block px-2 py-0.5 rounded-md">
+                Descanso
+              </p>
+            ) : !isActiveDay ? (
+              <p className="text-[10px] uppercase font-black tracking-widest mt-1 bg-white/20 inline-block px-2 py-0.5 rounded-md">
+                Inactivo
+              </p>
+            ) : (
+              <p className="text-[10px] opacity-90 mt-1 font-mono tracking-tight">
+                {formatTo12h(displayStartTime || '')} - {formatTo12h(displayEndTime || '')}
+              </p>
+            )}
           </div>
 
           {/* Popover de Acción Rápida */}
