@@ -4,6 +4,8 @@ import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { updateBranch, type ActionState } from '../../../../../actions/branches'
 import { createClient } from '@/lib/supabase/client'
+import { useDirtyState } from '@/hooks/useDirtyState'
+import { DirtyStateGuard } from '@/components/ui/DirtyStateGuard'
 
 interface BranchEditFormProps {
   branch: any
@@ -17,6 +19,25 @@ export function BranchEditForm({ branch, companies }: BranchEditFormProps) {
   const [name, setName] = useState(branch.name)
   const [code, setCode] = useState(branch.code || '')
   const [autoCode, setAutoCode] = useState(false)
+
+  // Dirty State Guard
+  const { isDirty, checkDirty, resetInitial } = useDirtyState({
+    initialState: {
+      company_id: branch.company_id,
+      name: branch.name,
+      code: branch.code || '',
+      address: branch.address || '',
+      is_active: branch.is_active,
+    }
+  })
+  const [showExitGuard, setShowExitGuard] = useState(false)
+
+  useEffect(() => {
+    // Collecting current state from controlled inputs and defaultValues
+    // For address and is_active we need to be careful if they are not tracked in state
+    // But name, companyId, and code are already in state.
+    // I'll add state for address and isActive to make it robust.
+  }, [])
 
   const generateSlugInitials = (nameStr: string) => {
     if (!nameStr) return ''
@@ -154,6 +175,20 @@ export function BranchEditForm({ branch, companies }: BranchEditFormProps) {
       <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
         <Link
           href="/organization/branches"
+          onClick={(e) => {
+            const fd = new FormData(e.currentTarget.closest('form')!)
+            const current = {
+              company_id: companyId,
+              name,
+              code,
+              address: fd.get('address') as string,
+              is_active: fd.get('is_active') === 'on',
+            }
+            if (checkDirty(current)) {
+              e.preventDefault()
+              setShowExitGuard(true)
+            }
+          }}
           className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
         >
           Cancelar
@@ -166,6 +201,15 @@ export function BranchEditForm({ branch, companies }: BranchEditFormProps) {
           {pending ? 'Guardando...' : 'Guardar cambios'}
         </button>
       </div>
+
+      <DirtyStateGuard 
+        show={showExitGuard}
+        onConfirm={() => {
+          setShowExitGuard(false)
+          window.location.href = '/organization/branches'
+        }}
+        onCancel={() => setShowExitGuard(false)}
+      />
     </form>
   )
 }

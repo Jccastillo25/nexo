@@ -5,6 +5,8 @@ import { X, Clock, Utensils, Save, AlertCircle, Calendar, ShieldAlert } from 'lu
 import { createShiftTemplate, updateShiftTemplate, type ActionState } from '../../../actions/schedules'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useDirtyState } from '@/hooks/useDirtyState'
+import { DirtyStateGuard } from '@/components/ui/DirtyStateGuard'
 
 interface CreateShiftModalProps {
   companyId: string
@@ -60,6 +62,31 @@ export default function CreateShiftModal({
     }))
   )
 
+  // Dirty State Guard
+  const { isDirty, checkDirty, resetInitial } = useDirtyState({ 
+    initialState: { formData: initialData ? {
+      name: initialData.name || '',
+      branch_id: initialData.branch_id || '',
+      lunch_duration: initialData.lunch_duration ?? 60,
+      late_entry_tolerance: initialData.late_entry_tolerance ?? 15,
+      early_exit_tolerance: initialData.early_exit_tolerance ?? 15,
+    } : {
+      name: '',
+      branch_id: '',
+      lunch_duration: 60,
+      late_entry_tolerance: 15,
+      early_exit_tolerance: 15,
+    }, daysConfig: initialData?.days_config || DAYS_OF_WEEK.map(day => ({
+      dayOfWeek: day.id,
+      label: day.label,
+      isActive: day.id !== 0,
+      isSeventhDay: day.id === 0,
+      startTime: '08:00',
+      endTime: '17:00'
+    })) }
+  })
+  const [showExitGuard, setShowExitGuard] = useState(false)
+
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
@@ -92,7 +119,14 @@ export default function CreateShiftModal({
         })))
       }
     }
-  }, [isOpen, initialData])
+  }, [isOpen, initialData, resetInitial])
+
+  // Sync dirty state
+  useEffect(() => {
+    if (isOpen) {
+      checkDirty({ formData, daysConfig })
+    }
+  }, [formData, daysConfig, isOpen, checkDirty])
 
   useEffect(() => {
     if (isOpen && companyId) {
@@ -112,10 +146,19 @@ export default function CreateShiftModal({
 
   useEffect(() => {
     if (state && 'success' in state && state.success) {
+      resetInitial({ formData, daysConfig }) // Mark as clean
       onClose()
       router.refresh()
     }
-  }, [state, onClose, router])
+  }, [state, onClose, router, resetInitial, formData, daysConfig])
+
+  const handleAttemptClose = () => {
+    if (isDirty) {
+      setShowExitGuard(true)
+    } else {
+      onClose()
+    }
+  }
 
   // Validations
   const { restingDaysCount, activeDaysCount, goldenRuleMet, effectiveHoursStr } = useMemo(() => {
@@ -191,7 +234,8 @@ export default function CreateShiftModal({
             </div>
           </div>
           <button 
-            onClick={onClose}
+            onClick={handleAttemptClose}
+            type="button"
             className="h-12 w-12 flex items-center justify-center rounded-2xl text-slate-300 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200"
           >
             <X size={28} />
@@ -423,7 +467,7 @@ export default function CreateShiftModal({
             <div className="flex items-center gap-4">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleAttemptClose}
                 className="px-8 h-14 rounded-2xl text-[14px] font-black text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
               >
                 DESCARTAR
@@ -447,6 +491,15 @@ export default function CreateShiftModal({
 
         </form>
       </div>
+
+      <DirtyStateGuard 
+        show={showExitGuard}
+        onConfirm={() => {
+          setShowExitGuard(false)
+          onClose()
+        }}
+        onCancel={() => setShowExitGuard(false)}
+      />
     </div>
   )
 }

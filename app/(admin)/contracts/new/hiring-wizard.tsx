@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { createContract, type ContractActionState } from '../../../actions/contracts'
+import { useDirtyState } from '@/hooks/useDirtyState'
+import { DirtyStateGuard } from '@/components/ui/DirtyStateGuard'
 
 type Shift = {
   id: string
@@ -59,6 +61,26 @@ export function HiringWizard({
   const [selectedBranch, setSelectedBranch] = useState<string>('')
   const [selectedPosition, setSelectedPosition] = useState<string>('')
   const [selectedShift, setSelectedShift] = useState<string>('')
+
+  // Dirty State Guard
+  const { isDirty, checkDirty, resetInitial } = useDirtyState({
+    initialState: {
+      selectedEmployee: '',
+      selectedBranch: '',
+      selectedPosition: '',
+      selectedShift: '',
+    }
+  })
+  const [showExitGuard, setShowExitGuard] = useState(false)
+
+  useEffect(() => {
+    checkDirty({
+      selectedEmployee,
+      selectedBranch,
+      selectedPosition,
+      selectedShift,
+    })
+  }, [selectedEmployee, selectedBranch, selectedPosition, selectedShift, checkDirty])
   
   const selectedJob = jobPositions.find(p => p.id === selectedPosition)
   const autoCompanyId = selectedJob?.company_id || ''
@@ -413,7 +435,16 @@ export function HiringWizard({
               Atrás
             </button>
           ) : (
-            <Link href="/contracts" className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-100">
+            <Link 
+              href="/contracts" 
+              onClick={(e) => {
+                if (isDirty) {
+                  e.preventDefault()
+                  setShowExitGuard(true)
+                }
+              }}
+              className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+            >
               Cancelar
             </Link>
           )}
@@ -442,6 +473,15 @@ export function HiringWizard({
           )}
         </div>
       </form>
+
+      <DirtyStateGuard 
+        show={showExitGuard}
+        onConfirm={() => {
+          setShowExitGuard(false)
+          window.location.href = '/contracts'
+        }}
+        onCancel={() => setShowExitGuard(false)}
+      />
     </div>
   )
 }

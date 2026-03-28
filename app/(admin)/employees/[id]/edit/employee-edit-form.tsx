@@ -6,6 +6,8 @@ import { updateEmployee, type ActionState } from '../../../../actions/employees'
 import { uploadEmployeePhoto, type UploadPhotoState } from '../../../../actions/upload-photo'
 import { TabsInternal } from '@/components/ui/TabsInternal'
 import { PinManager } from '../pin-manager'
+import { useDirtyState } from '@/hooks/useDirtyState'
+import { DirtyStateGuard } from '@/components/ui/DirtyStateGuard'
 
 interface EmployeeEditFormProps {
   employee: {
@@ -44,6 +46,54 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
 
   const updateEmployeeWithId = updateEmployee.bind(null, employee.id, true) // shouldRedirect = true
   const [state, action, pending] = useActionState<ActionState, FormData>(updateEmployeeWithId, null)
+
+  const formRef = useRef<HTMLFormElement>(null)
+  const { isDirty, checkDirty, resetInitial } = useDirtyState({ 
+    initialState: {
+      first_name: employee.first_name,
+      last_name: employee.last_name,
+      email: employee.email ?? '',
+      phone: employee.phone ?? '',
+      branch_id: employee.branch_id,
+      is_active: employee.is_active,
+      national_id: employee.national_id ?? '',
+      social_security_id: employee.social_security_id ?? '',
+      tax_id: employee.tax_id ?? '',
+      birth_date: employee.birth_date ?? '',
+      gender: employee.gender ?? '',
+      hire_date: employee.hire_date ? new Date(employee.hire_date).toISOString().split('T')[0] : '',
+      address: employee.address ?? '',
+    }
+  })
+  const [showExitGuard, setShowExitGuard] = useState(false)
+
+  const getFormValues = () => {
+    if (!formRef.current) return {}
+    const fd = new FormData(formRef.current)
+    return {
+      first_name: fd.get('first_name') as string,
+      last_name: fd.get('last_name') as string,
+      email: fd.get('email') as string,
+      phone: fd.get('phone') as string,
+      branch_id: fd.get('branch_id') as string,
+      is_active: fd.get('is_active') === 'on',
+      national_id: fd.get('national_id') as string,
+      social_security_id: fd.get('social_security_id') as string,
+      tax_id: fd.get('tax_id') as string,
+      birth_date: fd.get('birth_date') as string,
+      gender: fd.get('gender') as string,
+      hire_date: fd.get('hire_date') as string,
+      address: fd.get('address') as string,
+    }
+  }
+
+  const handleAttemptClose = (e: React.MouseEvent) => {
+    const current = getFormValues()
+    if (checkDirty(current)) {
+      e.preventDefault()
+      setShowExitGuard(true)
+    }
+  }
 
   const uploadPhotoWithId = uploadEmployeePhoto.bind(null, employee.id)
   const [photoState, photoAction, photoPending] = useActionState<UploadPhotoState, FormData>(uploadPhotoWithId, null)
@@ -191,7 +241,11 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
 
       {/* ===================== RESTO DE PESTAÑAS (FORMULARIO PRINCIPAL) ===================== */}
       {(activeTab === 'general' || activeTab === 'identificacion' || activeTab === 'ubicacion') && (
-        <form action={action} className="space-y-8 animate-in fade-in duration-300">
+        <form 
+          ref={formRef}
+          action={action} 
+          className="space-y-8 animate-in fade-in duration-300"
+        >
           {state?.error && (
             <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-200">
               {state.error}
@@ -275,7 +329,11 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
           </div>
 
           <div className="pt-8 flex justify-end gap-3 border-t border-slate-100">
-             <Link href={`/employees/${employee.id}`} className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+             <Link 
+               href={`/employees/${employee.id}`} 
+               onClick={handleAttemptClose}
+               className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+             >
               Cancelar
             </Link>
             <button type="submit" disabled={pending} className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
@@ -284,6 +342,15 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
           </div>
         </form>
       )}
+
+      <DirtyStateGuard 
+        show={showExitGuard}
+        onConfirm={() => {
+          setShowExitGuard(false)
+          window.location.href = `/employees/${employee.id}`
+        }}
+        onCancel={() => setShowExitGuard(false)}
+      />
     </div>
   )
 }
