@@ -29,7 +29,8 @@ export const adminNav: NavSection[] = [
   {
     title: 'Gestión de Turnos',
     items: [
-      { href: '/schedules/global-planning', label: 'Planilla Maestra' },
+      { href: '/schedules/templates', label: 'Catálogo de Turnos' },
+      { href: '/schedules/global-planning', label: 'Planificación de Personal' },
       { href: '/attendance/records', label: 'Asistencia Diaria' },
       { href: '/leave', label: 'Permisos y Ausencias' },
     ],

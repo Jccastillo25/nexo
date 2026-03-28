@@ -141,42 +141,33 @@ export default function ScheduleGrid({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       {/* Header */}
-      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
-              Operación
-            </p>
-            <h1 className="mt-2 text-3xl font-bold text-slate-900">
-              Planilla Maestra
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-              Asigna turnos globales por puesto y día de la semana. Los
-              empleados heredarán estos turnos a menos que tengan un override
-              individual.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {isDirty && (
-              <button
-                onClick={() => revert()}
-                disabled={isSyncing}
-                className="shrink-0 rounded-2xl border border-amber-200 px-5 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-amber-50 disabled:opacity-50"
-              >
-                ↶ Deshacer
-              </button>
-            )}
-            {error && (
-              <button
-                onClick={() => clearError()}
-                className="shrink-0 rounded-2xl border border-red-200 px-5 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-              >
-                Limpiar error
-              </button>
-            )}
-          </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-black tracking-tight" style={{ color: 'var(--text-strong)' }}>Planilla Maestra</h1>
+          <p style={{ color: 'var(--text-muted)' }} className="font-medium text-lg">Asignación dinámica de patrones semanales por personal.</p>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {isDirty && (
+            <button
+              onClick={() => revert()}
+              disabled={isSyncing}
+              className="h-14 px-8 rounded-2xl font-black transition-all flex items-center gap-2 border-2 disabled:opacity-50"
+              style={{ borderColor: 'var(--border-soft)', color: 'var(--text-strong)', background: 'var(--bg-surface)' }}
+            >
+              ↶ Deshacer Cambios
+            </button>
+          )}
+          {error && (
+            <button
+              onClick={() => clearError()}
+              className="h-14 px-8 rounded-2xl font-black bg-red-500 text-white shadow-xl shadow-red-500/20 transition-all"
+            >
+              Limpiar Error
+            </button>
+          )}
         </div>
       </div>
 
