@@ -44,6 +44,7 @@ export const adminNav: NavSection[] = [
     title: 'Configuración',
     items: [
       { href: '/organization', label: 'Estructura Orgánica' },
+      { href: '/employees/groups', label: 'Puestos de Trabajo' },
       { href: '/kiosk/devices', label: 'Red de Kioskos (Hardware)' },
       { href: '/settings', label: 'Seguridad / Roles' },
     ],

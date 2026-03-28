@@ -108,8 +108,10 @@ function ShiftCard({ template, onDragStart, onDragEnd }: ShiftCardProps) {
     onDragEnd()
   }
 
-  const daysLabels = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
-  const daysConfig = template.days_config || []
+  const firstActive = (template.days_config || []).find((c: any) => c.isActive && !c.isSeventhDay)
+  const displayTime = firstActive 
+    ? `${formatTo12h(firstActive.startTime)} - ${formatTo12h(firstActive.endTime)}`
+    : (template.start_time ? `${formatTo12h(template.start_time)} - ${formatTo12h(template.end_time)}` : 'Horario Variable')
 
   return (
     <div
@@ -122,44 +124,18 @@ function ShiftCard({ template, onDragStart, onDragEnd }: ShiftCardProps) {
         ${isDragging ? 'opacity-50 scale-95 rotate-2 cursor-grabbing' : 'hover:shadow-md hover:-translate-y-1'}
       `}
     >
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-center gap-3">
         <div 
           className="h-3 w-3 rounded-full shrink-0" 
           style={{ backgroundColor: template.color_code }} 
         />
-        <p className="font-bold text-slate-900 truncate text-sm">{template.name}</p>
-      </div>
-
-      {/* Mini Matrix View */}
-      <div className="grid grid-cols-7 gap-1">
-        {[1, 2, 3, 4, 5, 6, 0].map((d) => {
-          const config = daysConfig.find((c: any) => c.dayOfWeek === d)
-          const isRest = config?.isSeventhDay
-          const isActive = config?.isActive
-          
-          return (
-            <div 
-              key={d}
-              className={`
-                h-7 flex flex-col items-center justify-center rounded-lg text-[10px] font-black
-                ${isRest ? 'bg-amber-100 text-amber-700' : (isActive ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-300')}
-              `}
-              title={config ? `${config.startTime || ''} - ${config.endTime || ''}` : ''}
-            >
-              <span>{daysLabels[d]}</span>
-              {isActive && !isRest && <div className="h-0.5 w-2 bg-white/40 rounded-full mt-0.5" />}
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-          {daysConfig.filter((c: any) => c.isActive && !c.isSeventhDay).length} días laborales
-        </p>
-        <div className="h-5 w-5 rounded-lg bg-slate-50 flex items-center justify-center">
-          <ChevronRight size={10} className="text-slate-400" />
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-slate-900 truncate text-sm">{template.name}</p>
+          <p className="text-[10px] font-medium text-slate-500 mt-0.5">
+            {displayTime}
+          </p>
         </div>
+        <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-900 transition-colors shrink-0" />
       </div>
     </div>
   )

@@ -147,7 +147,7 @@ export default function ShiftCell({
       onDrop={handleDrop}
       onClick={handleClick}
       className={`
-        relative min-h-[80px] rounded-2xl border-2 transition cursor-pointer
+        relative min-h-[64px] rounded-xl border-2 transition cursor-pointer
         ${isInherited ? 'border-dashed border-slate-300 opacity-90' : (isSelected ? 'border-slate-900 ring-2 ring-slate-900/20' : 'border-slate-200')}
         ${isSelected ? 'bg-slate-50' : 'bg-white'}
         ${dragOver && isDraggedOver ? 'border-slate-900 bg-slate-100' : ''}
@@ -155,37 +155,33 @@ export default function ShiftCell({
       `}
     >
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-2xl z-10">
+        <div className="absolute inset-0 flex items-center justify-center rounded-xl z-10">
           <div className="animate-spin h-4 w-4 border-2 border-slate-300 border-t-slate-900 rounded-full" />
         </div>
       )}
 
       {template ? (
         <div
-          className={`h-full p-3 flex flex-col justify-between rounded-2xl text-white text-xs font-semibold relative overflow-hidden transition-all duration-300 ${isInherited ? 'border-dashed border-white/40 border-2' : ''} ${showMenu ? 'scale-[0.98]' : ''} ${isRestingDay ? 'bg-amber-500' : (!isActiveDay ? 'bg-slate-400' : '')}`}
+          className={`h-full p-2 flex flex-col justify-center rounded-xl text-white text-[10px] font-bold relative overflow-hidden transition-all duration-300 ${isInherited ? 'border-dashed border-white/40 border-2' : ''} ${showMenu ? 'scale-[0.98]' : ''} ${isRestingDay ? 'bg-amber-500' : (!isActiveDay ? 'bg-slate-400' : '')}`}
           style={{ backgroundColor: (isRestingDay || !isActiveDay) ? undefined : template.color_code }}
           onMouseEnter={() => !showMenu && setShowMenu(true)}
           onMouseLeave={() => setShowMenu(false)}
         >
           {isOverride && (
-            <div className="absolute top-1.5 right-1.5 opacity-50">
-              <Pencil size={10} />
+            <div className="absolute top-1 right-1 opacity-50">
+              <Pencil size={8} />
             </div>
           )}
           
-          <div>
-            <p className="font-bold truncate pr-3">{template.name}</p>
+          <div className="space-y-0.5 mt-auto">
+            <p className="font-black truncate block leading-tight">{template.name}</p>
             {isRestingDay ? (
-              <p className="text-[10px] uppercase font-black tracking-widest mt-1 bg-white/20 inline-block px-2 py-0.5 rounded-md">
-                Descanso
-              </p>
+              <p className="text-[9px] opacity-90 font-medium">Descanso</p>
             ) : !isActiveDay ? (
-              <p className="text-[10px] uppercase font-black tracking-widest mt-1 bg-white/20 inline-block px-2 py-0.5 rounded-md">
-                Inactivo
-              </p>
+              <p className="text-[9px] opacity-90 font-medium">Inactivo</p>
             ) : (
-              <p className="text-[10px] opacity-90 mt-1 font-mono tracking-tight">
-                {formatTo12h(displayStartTime || '')} - {formatTo12h(displayEndTime || '')}
+              <p className="text-[9px] opacity-80 font-mono">
+                {formatTo12h(displayStartTime || '').replace(' ', '')} - {formatTo12h(displayEndTime || '').replace(' ', '')}
               </p>
             )}
           </div>

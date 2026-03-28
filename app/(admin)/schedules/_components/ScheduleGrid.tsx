@@ -203,15 +203,15 @@ export default function ScheduleGrid({
             )}
 
             {/* Grid Header (Days of Week) */}
-            <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
-              <div className="grid grid-cols-[200px_repeat(7,1fr)] gap-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <div className="border-b border-slate-100 bg-slate-50 px-6 py-2">
+              <div className="grid grid-cols-[200px_repeat(7,1fr)] gap-2">
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                   Puesto
                 </div>
                 {DAYS_OF_WEEK.map((day) => (
                   <div
                     key={day.value}
-                    className="text-center text-xs font-semibold uppercase tracking-wider text-slate-500"
+                    className="text-center text-[10px] font-black uppercase tracking-wider text-slate-400"
                   >
                     {day.label}
                   </div>
@@ -221,13 +221,13 @@ export default function ScheduleGrid({
 
             {/* Grid Body (Positions × Days) */}
             <div className="overflow-x-auto">
-              <div className="px-6 py-4 space-y-4">
+              <div className="px-6 py-2 space-y-1">
                 {positions.map((position) => (
                   <div
                     key={position.id}
-                    className="grid grid-cols-[200px_repeat(7,1fr)] gap-4"
+                    className="grid grid-cols-[200px_repeat(7,1fr)] gap-2"
                   >
-                    <div className="text-sm font-semibold text-slate-900 py-2">
+                    <div className="text-xs font-bold text-slate-900 py-1 flex items-center truncate pr-2">
                       {position.name}
                     </div>
                     {DAYS_OF_WEEK.map((day) => {
