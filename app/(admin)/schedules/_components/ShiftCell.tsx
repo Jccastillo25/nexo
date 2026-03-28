@@ -59,7 +59,7 @@ export default function ShiftCell({
 }: ShiftCellProps) {
   const [dragOver, setDragOver] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [showTooltip, setShowTooltip] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -98,6 +98,8 @@ export default function ShiftCell({
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault()
       onSelect(positionId, dayOfWeek, !isSelected)
+    } else if (template) {
+      setShowMenu(!showMenu)
     }
   }
 
@@ -109,7 +111,7 @@ export default function ShiftCell({
       await onPin()
     } finally {
       setIsLoading(false)
-      setShowTooltip(false)
+      setShowMenu(false)
     }
   }
 
@@ -138,10 +140,10 @@ export default function ShiftCell({
 
       {template ? (
         <div
-          className={`h-full p-3 flex flex-col justify-between rounded-2xl text-white text-xs font-semibold relative overflow-hidden ${isInherited ? 'border-dashed border-white/40 border-2' : ''}`}
+          className={`h-full p-3 flex flex-col justify-between rounded-2xl text-white text-xs font-semibold relative overflow-hidden transition-all duration-300 ${isInherited ? 'border-dashed border-white/40 border-2' : ''} ${showMenu ? 'scale-[0.98]' : ''}`}
           style={{ backgroundColor: template.color_code }}
-          onMouseEnter={() => setShowTooltip(true)}
-          onMouseLeave={() => setShowTooltip(false)}
+          onMouseEnter={() => !showMenu && setShowMenu(true)}
+          onMouseLeave={() => setShowMenu(false)}
         >
           {isOverride && (
             <div className="absolute top-1.5 right-1.5 opacity-50">
@@ -156,24 +158,24 @@ export default function ShiftCell({
             </p>
           </div>
 
-          {/* Tooltip Overlay */}
-          {showTooltip && (
-            <div className="absolute inset-0 bg-slate-900/95 p-2 flex flex-col justify-center items-center text-center animate-in fade-in duration-200 z-20">
-              <p className="text-[9px] uppercase tracking-widest text-slate-400 font-black mb-1">Origen</p>
-              <p className="text-[10px] font-bold text-white mb-3 leading-tight">{sourceName || 'Manual'}</p>
+          {/* Action Menu Overlay */}
+          {showMenu && (
+            <div className="absolute inset-0 bg-slate-900/95 p-2 flex flex-col justify-center items-center text-center animate-in fade-in zoom-in-95 duration-200 z-20">
+              <p className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-black mb-1">Planificado</p>
+              <p className="text-[10px] font-bold text-white mb-3 truncate w-full px-2">{sourceName || 'Global'}</p>
               
               <div className="flex gap-2">
                 {isInherited && (
                   <button
                     onClick={handlePin}
-                    className="flex items-center gap-1 bg-white text-slate-900 px-2.5 py-1 rounded-full text-[9px] font-black uppercase hover:bg-slate-100 transition"
+                    className="flex items-center gap-1 bg-white text-slate-900 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase hover:bg-slate-100 transition shadow-lg"
                   >
                     <Pin size={10} /> Fijar
                   </button>
                 )}
                 <button
                   onClick={handleRemove}
-                  className="flex items-center gap-1 bg-red-500 text-white px-2.5 py-1 rounded-full text-[9px] font-black uppercase hover:bg-red-600 transition"
+                  className="flex items-center gap-1 bg-red-500 text-white px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase hover:bg-red-600 transition shadow-lg"
                 >
                   <X size={10} /> Borrar
                 </button>
@@ -181,13 +183,13 @@ export default function ShiftCell({
             </div>
           )}
 
-          {!showTooltip && (
+          {!showMenu && (
             <button
               onClick={handleRemove}
-              className="self-end opacity-0 group-hover:opacity-70 hover:opacity-100 transition"
+              className="self-end opacity-0 group-hover:opacity-100 transition p-1 hover:bg-white/20 rounded-lg"
               title="Eliminar"
             >
-              <X size={16} />
+              <X size={14} />
             </button>
           )}
         </div>

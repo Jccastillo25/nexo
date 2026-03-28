@@ -111,7 +111,7 @@ export async function upsertGlobalSchedule(
         shift_template_id: shiftTemplateId,
         company_id: companyId,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'job_position_id,day_of_week' })
+      }, { onConflict: 'company_id,job_position_id,day_of_week' })
     
     if (error) return { error: error.message }
   }
@@ -146,7 +146,7 @@ export async function upsertBranchDefaultShift(
         shift_template_id: shiftTemplateId,
         company_id: companyId,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'branch_id,day_of_week' })
+      }, { onConflict: 'company_id,branch_id,day_of_week' })
     if (error) return { error: error.message }
   }
 

@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import { upsertGlobalSchedule } from '../../../actions/schedules'
 
 export interface GridCell {
   positionId: string
@@ -134,40 +135,22 @@ export function useScheduleGrid(
   )
 
   /**
-   * Persiste un cambio de celda en Supabase (UPSERT o DELETE)
+   * Persiste un cambio de celda usando Server Action (UPSERT o DELETE)
    */
   const persistCellChange = async (
     positionId: string,
     dayOfWeek: number,
     shiftTemplateId: string | null
   ) => {
-    if (!shiftTemplateId) {
-      // DELETE
-      const { error } = await supabase
-        .from('global_schedules')
-        .delete()
-        .eq('company_id', companyId)
-        .eq('job_position_id', positionId)
-        .eq('day_of_week', dayOfWeek)
+    const result = await upsertGlobalSchedule(
+      positionId,
+      dayOfWeek,
+      shiftTemplateId,
+      companyId
+    )
 
-      if (error) throw error
-    } else {
-      // UPSERT
-      const { error } = await supabase
-        .from('global_schedules')
-        .upsert(
-          {
-            company_id: companyId,
-            job_position_id: positionId,
-            day_of_week: dayOfWeek,
-            shift_template_id: shiftTemplateId,
-          },
-          {
-            onConflict: 'company_id,job_position_id,day_of_week',
-          }
-        )
-
-      if (error) throw error
+    if (result && 'error' in result) {
+      throw new Error(result.error)
     }
   }
 
@@ -199,39 +182,17 @@ export function useScheduleGrid(
           return { ...prev, grid: newGrid, isDirty: true }
         })
 
-        // Preparar batch de upserts
-        const upserts = []
+        // Enviar en lotes de 20 (más seguro para Server Actions)
         for (const positionId of positionIds) {
           for (const dayOfWeek of daysOfWeek) {
-            if (shiftTemplateId) {
-              upserts.push({
-                company_id: companyId,
-                job_position_id: positionId,
-                day_of_week: dayOfWeek,
-                shift_template_id: shiftTemplateId,
-              })
-            } else {
-              // Para DELETE, usamos delete() después
-              await supabase
-                .from('global_schedules')
-                .delete()
-                .eq('company_id', companyId)
-                .eq('job_position_id', positionId)
-                .eq('day_of_week', dayOfWeek)
-            }
+            const result = await upsertGlobalSchedule(
+              positionId,
+              dayOfWeek,
+              shiftTemplateId,
+              companyId
+            )
+            if (result && 'error' in result) throw new Error(result.error)
           }
-        }
-
-        // Enviar en lotes de 500
-        for (let i = 0; i < upserts.length; i += 500) {
-          const batch = upserts.slice(i, i + 500)
-          const { error } = await supabase
-            .from('global_schedules')
-            .upsert(batch, {
-              onConflict: 'company_id,job_position_id,day_of_week',
-            })
-
-          if (error) throw error
         }
 
         // Refrescar grid después del batch
