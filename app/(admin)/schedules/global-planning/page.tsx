@@ -9,10 +9,11 @@ import { createClient } from '@/lib/supabase/server'
 import ScheduleGrid from '../_components/ScheduleGrid'
 import { AlertCircle, Lock } from 'lucide-react'
 import Link from 'next/link'
+import { getGlobalPlanningData } from '../../../actions/schedules'
 
 export const metadata = {
   title: 'Planilla Maestra | Gestor360',
-  description: 'Planificación global de turnos por puesto y día de la semana',
+  description: 'Planificación de turnos por empleado y puesto',
 }
 
 export default async function GlobalPlanningPage({
@@ -72,35 +73,21 @@ export default async function GlobalPlanningPage({
     return <AccessDeniedMessage message={`Su rol [${membershipData.role}] no tiene permisos para editar la Planilla Maestra.`} />
   }
 
-  // Cargar plantillas de turnos
-  const { data: templates, error: templatesError } = await supabase
-    .from('shift_templates')
-    .select('id, name, start_time, end_time, color_code, is_active, days_config')
-    .eq('company_id', companyId)
-    .eq('is_active', true)
-    .order('name')
-
-  if (templatesError) {
-    console.error('Error loading templates:', templatesError)
+  // Cargar datos de la planilla (Asignaciones y Plantillas)
+  const result = await getGlobalPlanningData(companyId)
+  
+  if ('error' in result) {
+    console.error('Error loading planning data:', result.error)
+    return <AccessDeniedMessage message="Error al cargar los datos de planificación." />
   }
 
-  // Cargar puestos de trabajo
-  const { data: positions, error: positionsError } = await supabase
-    .from('job_positions')
-    .select('id, name')
-    .eq('company_id', companyId)
-    .eq('is_active', true)
-    .order('name')
-
-  if (positionsError) {
-    console.error('Error loading positions:', positionsError)
-  }
+  const { assignments, templates } = result.data
 
   return (
     <section className="space-y-6">
       <ScheduleGrid
         companyId={companyId}
-        positions={positions || []}
+        assignments={assignments || []}
         shiftTemplates={templates || []}
       />
     </section>

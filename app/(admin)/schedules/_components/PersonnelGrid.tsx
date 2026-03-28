@@ -13,7 +13,7 @@ interface Employee {
   last_name: string
   employee_code: string | null
   branch_id: string | null
-  job_position_id: string | null
+  job_position_id?: string | null
 }
 
 interface PersonnelGridProps {
@@ -131,7 +131,7 @@ export default function PersonnelGrid({
                 return (
                   <td key={dateStr} className="p-2 border-b border-slate-100">
                     <ShiftCell
-                      positionId={emp.id} // Reusing as empId
+                      entityId={emp.id} // Reusing as empId
                       dayOfWeek={new Date(dateStr).getDay()}
                       template={resolved ? {
                         id: resolved.shift_id,

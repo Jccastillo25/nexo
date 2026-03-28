@@ -22,11 +22,11 @@ interface ShiftTemplate {
 }
 
 interface ShiftCellProps {
-  positionId: string
+  entityId: string
   dayOfWeek: number
   template: ShiftTemplate | null
   onDrop: (
-    positionId: string,
+    entityId: string,
     dayOfWeek: number,
     templateId: string | null
   ) => Promise<void>
@@ -34,7 +34,7 @@ interface ShiftCellProps {
   draggedTemplate: string | null
   isSelected: boolean
   onSelect: (
-    positionId: string,
+    entityId: string,
     dayOfWeek: number,
     isSelected: boolean
   ) => void
@@ -47,7 +47,7 @@ interface ShiftCellProps {
 
 
 export default function ShiftCell({
-  positionId,
+  entityId,
   dayOfWeek,
   template,
   onDrop,
@@ -80,7 +80,7 @@ export default function ShiftCell({
     if (templateId) {
       setIsLoading(true)
       try {
-        await onDrop(positionId, dayOfWeek, templateId)
+        await onDrop(entityId, dayOfWeek, templateId)
       } finally {
         setIsLoading(false)
       }
@@ -91,7 +91,7 @@ export default function ShiftCell({
     e.stopPropagation()
     setIsLoading(true)
     try {
-      await onDrop(positionId, dayOfWeek, null)
+      await onDrop(entityId, dayOfWeek, null)
     } finally {
       setIsLoading(false)
     }
@@ -100,7 +100,7 @@ export default function ShiftCell({
   const handleClick = (e: React.MouseEvent) => {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault()
-      onSelect(positionId, dayOfWeek, !isSelected)
+      onSelect(entityId, dayOfWeek, !isSelected)
     } else if (template) {
       setShowMenu(!showMenu)
     }

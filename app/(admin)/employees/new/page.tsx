@@ -5,8 +5,23 @@ import { EmployeeForm } from './employee-form'
 export default async function NewEmployeePage() {
   const supabase = await createClient()
 
+  // 1. Fetch Branches
   const { data: branches } = await supabase
     .from('branches')
+    .select('id, name')
+    .eq('is_active', true)
+    .order('name')
+
+  // 2. Fetch Job Positions
+  const { data: positions } = await supabase
+    .from('job_positions')
+    .select('id, name')
+    .eq('is_active', true)
+    .order('name')
+
+  // 3. Fetch Shift Templates
+  const { data: templates } = await supabase
+    .from('shift_templates')
     .select('id, name')
     .eq('is_active', true)
     .order('name')
@@ -27,7 +42,11 @@ export default async function NewEmployeePage() {
       </div>
 
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
-        <EmployeeForm branches={branches ?? []} />
+        <EmployeeForm 
+          branches={branches ?? []} 
+          positions={positions ?? []}
+          templates={templates ?? []}
+        />
       </div>
     </section>
   )

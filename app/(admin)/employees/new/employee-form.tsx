@@ -4,7 +4,15 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { createEmployee, type ActionState } from '../../../actions/employees'
 
-export function EmployeeForm({ branches }: { branches: { id: string; name: string }[] }) {
+export function EmployeeForm({ 
+  branches,
+  positions,
+  templates
+}: { 
+  branches: { id: string; name: string }[],
+  positions: { id: string; name: string }[],
+  templates: { id: string; name: string }[]
+}) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createEmployee, null)
 
   return (
@@ -81,8 +89,42 @@ export function EmployeeForm({ branches }: { branches: { id: string; name: strin
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+           <label className="mb-2 block text-sm font-semibold text-slate-900">
+            Puesto de Trabajo
+          </label>
+          <select
+            name="job_position_id"
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+          >
+            <option value="">Selecciona un puesto</option>
+            {positions.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="sm:col-span-2">
+           <label className="mb-2 block text-sm font-semibold text-slate-900">
+            Turno / Horario Base
+          </label>
+          <select
+            name="shift_template_id"
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+          >
+            <option value="">Sin turno asignado (Personalizable)</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
           <p className="mt-2 text-xs text-slate-500">
-            Puedes asignarla ahora o dejarla pendiente hasta la contratación.
+            El turno seleccionado aplicará como patrón base para todos los días laborales.
           </p>
         </div>
       </div>

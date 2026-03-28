@@ -15,7 +15,9 @@ export async function createEmployee(
   const first_name = formData.get('first_name') as string
   const last_name = formData.get('last_name') as string
   const email = formData.get('email') as string
-  const branch_id = formData.get('branch_id') as string // Now optional
+  const branch_id = formData.get('branch_id') as string 
+  const job_position_id = formData.get('job_position_id') as string
+  const shift_template_id = formData.get('shift_template_id') as string
 
   if (!first_name || !last_name) {
     return { error: 'Nombre y apellido son requeridos.' }
@@ -41,27 +43,38 @@ export async function createEmployee(
     return { error: 'No se encontró una empresa asociada a tu cuenta.' }
   }
 
+  const company_id = membership.company_id
+
   // Generar un employee_code único usando UUID
-  // Formato: EMP-[UUID corta de 8 caracteres]
   const crypto = await import('crypto')
   const employee_code = `EMP-${crypto.randomUUID().substring(0, 8).toUpperCase()}`
 
-  // Se omite la generación del PIN aquí.
-  // El PIN se genera posteriormente desde la pestaña de "Seguridad y Kiosko"
-  // una vez que el empleado tiene un turno asignado.
-  const { error } = await supabase.from('employees').insert({
+  // 1. Insertar Empleado
+  const { data: employee, error: empError } = await supabase.from('employees').insert({
     employee_code,
     first_name,
     last_name,
     email: email || null,
     branch_id: branch_id || null,
-    company_id: membership?.company_id || null,
+    company_id,
     is_active: true,
-  })
+  }).select('id').single()
 
-  if (error) {
-    return { error: error.message }
+  if (empError) return { error: empError.message }
+
+  // 2. Crear Asignación (Job + Shift)
+  if (job_position_id) {
+    const { error: assError } = await supabase.from('employee_assignments').insert({
+      employee_id: employee.id,
+      job_position_id,
+      shift_template_id: shift_template_id || null,
+      branch_id: branch_id || null, // Se asume que branches existen
+      company_id,
+      is_active: true
+    })
+    if (assError) console.error('Error creating assignment:', assError)
   }
+
 
   revalidatePath('/employees')
   revalidatePath('/(admin)/employees', 'page')
@@ -82,7 +95,7 @@ export async function updateEmployee(
   const email = formData.get('email') as string
   const phone = formData.get('phone') as string
   const hire_date = formData.get('hire_date') as string
-  const branch_id = formData.get('branch_id') as string // Optional
+  const branch_id = formData.get('branch_id') as string
   const national_id = formData.get('national_id') as string
   const social_security_id = formData.get('social_security_id') as string
   const tax_id = formData.get('tax_id') as string
@@ -91,22 +104,29 @@ export async function updateEmployee(
   const address = formData.get('address') as string
   const is_active = formData.get('is_active') === 'on'
 
+  const job_position_id = formData.get('job_position_id') as string
+  const shift_template_id = formData.get('shift_template_id') as string
+
   if (!first_name || !last_name) {
     return { error: 'Nombre y apellido son requeridos.' }
   }
 
-  // If branch is provided, sync company_id. If not, keep nulls or existing
+  // Sync company_id from branch or employee record
   let company_id = null
+  const { data: empData } = await supabase.from('employees').select('company_id').eq('id', id).single()
+  company_id = empData?.company_id
+
   if (branch_id) {
     const { data: branchData } = await supabase
       .from('branches')
       .select('company_id')
       .eq('id', branch_id)
       .single()
-    company_id = branchData?.company_id || null
+    if (branchData) company_id = branchData.company_id
   }
 
-  const { error } = await supabase
+  // 1. Update Employee
+  const { error: empUpdateError } = await supabase
     .from('employees')
     .update({
       first_name,
@@ -115,7 +135,7 @@ export async function updateEmployee(
       phone: phone || null,
       hire_date: hire_date || null,
       branch_id: branch_id || null,
-      company_id: company_id,
+      company_id,
       is_active,
       national_id: national_id || null,
       social_security_id: social_security_id || null,
@@ -126,8 +146,23 @@ export async function updateEmployee(
     })
     .eq('id', id)
 
-  if (error) {
-    return { error: error.message }
+  if (empUpdateError) return { error: empUpdateError.message }
+
+  // 2. Update/Upsert Assignment
+  if (job_position_id && company_id && branch_id) {
+    const { error: assError } = await supabase
+      .from('employee_assignments')
+      .upsert({
+        employee_id: id,
+        job_position_id,
+        shift_template_id: shift_template_id || null,
+        branch_id,
+        company_id,
+        is_active: true,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'employee_id,is_active' })
+    
+    if (assError) console.error('Error syncing assignment:', assError)
   }
 
   revalidatePath('/employees')

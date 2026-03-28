@@ -18,9 +18,19 @@ import { ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react'
 
 interface ScheduleGridProps {
   companyId: string
-  positions: Array<{
+  assignments: Array<{
     id: string
-    name: string
+    employee: {
+      id: string
+      first_name: string
+      last_name: string
+      employee_code: string
+    }
+    position: {
+      id: string
+      name: string
+    }
+    shift_template_id: string | null
   }>
   shiftTemplates: Array<{
     id: string
@@ -44,7 +54,7 @@ const DAYS_OF_WEEK = [
 
 export default function ScheduleGrid({
   companyId,
-  positions,
+  assignments,
   shiftTemplates,
 }: ScheduleGridProps) {
   const {
@@ -73,19 +83,19 @@ export default function ScheduleGrid({
   }
 
   const handleCellDrop = async (
-    positionId: string,
+    assignmentId: string,
     dayOfWeek: number,
     templateId: string | null
   ) => {
-    await updateCell(positionId, dayOfWeek, templateId)
+    await updateCell(assignmentId, dayOfWeek, templateId)
   }
 
   const handleCellSelect = (
-    positionId: string,
+    assignmentId: string,
     dayOfWeek: number,
     isSelected: boolean
   ) => {
-    const key = `${positionId}_${dayOfWeek}`
+    const key = `${assignmentId}_${dayOfWeek}`
     const newSelected = new Set(selectedCells)
     if (isSelected) {
       newSelected.add(key)
@@ -107,8 +117,8 @@ export default function ScheduleGrid({
     const daysOfWeek = new Set<number>()
 
     selectedCells.forEach((key) => {
-      const [posId, dow] = key.split('_')
-      positionIds.add(posId)
+      const [assId, dow] = key.split('_')
+      positionIds.add(assId)
       daysOfWeek.add(Number(dow))
     })
 
@@ -225,19 +235,20 @@ export default function ScheduleGrid({
               </div>
             </div>
 
-            {/* Grid Body (Positions × Days) */}
+            {/* Grid Body (Employees × Days) */}
             <div className="overflow-x-auto">
               <div className="px-6 py-2 space-y-0.5">
-                {positions.map((position) => (
+                {assignments.map((ass) => (
                   <div
-                    key={position.id}
+                    key={ass.id}
                     className="grid grid-cols-[200px_repeat(7,1fr)] gap-1.5"
                   >
-                    <div className="text-xs font-bold text-slate-900 py-1 flex items-center truncate pr-2">
-                      {position.name}
+                    <div className="text-[11px] font-bold text-slate-900 py-1 flex flex-col justify-center truncate pr-2 leading-tight">
+                      <span className="truncate">{ass.employee.first_name} {ass.employee.last_name}</span>
+                      <span className="text-[9px] font-medium text-slate-400 truncate">{ass.position.name}</span>
                     </div>
                     {DAYS_OF_WEEK.map((day) => {
-                      const key = `${position.id}_${day.value}`
+                      const key = `${ass.id}_${day.value}`
                       const shiftId = grid.get(key)
                       const template = shiftTemplates.find(
                         (t) => t.id === shiftId
@@ -247,7 +258,7 @@ export default function ScheduleGrid({
                       return (
                         <ShiftCell
                           key={key}
-                          positionId={position.id}
+                          entityId={ass.id} 
                           dayOfWeek={day.value}
                           template={template || null}
                           onDrop={handleCellDrop}

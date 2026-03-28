@@ -11,11 +11,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import { upsertGlobalSchedule } from '../../../actions/schedules'
-import { upsertGlobalSchedules } from '../../../actions/assignments'
+import { updateAssignmentShift, bulkUpdateAssignmentsShift } from '../../../actions/schedules'
 
 export interface GridCell {
-  positionId: string
+  assignmentId: string
   dayOfWeek: number
   shiftTemplateId: string | null
 }
@@ -51,24 +50,29 @@ export function useScheduleGrid(
   }, [companyId])
 
   /**
-   * Carga todos los global_schedules para la compañía
+   * Carga todos los employee_assignments para la compañía
    */
   const loadScheduleData = useCallback(async () => {
     try {
       setState((prev) => ({ ...prev, isSyncing: true, error: null }))
 
-      const { data: schedules, error } = await supabase
-        .from('global_schedules')
-        .select('id, job_position_id, day_of_week, shift_template_id')
+      const { data: assignments, error } = await supabase
+        .from('employee_assignments')
+        .select('id, shift_template_id')
         .eq('company_id', companyId)
-        .is('deleted_at', null)
+        .eq('is_active', true)
 
       if (error) throw error
 
       const gridMap = new Map<string, string | null>()
-      schedules?.forEach((schedule) => {
-        const key = `${schedule.job_position_id}_${schedule.day_of_week}`
-        gridMap.set(key, schedule.shift_template_id)
+      assignments?.forEach((ass) => {
+        // En este nuevo modelo, cada día de la columna para esta persona 
+        // muestra el mismo shift_template_id (que luego el componente visual
+        // resuelve usando su days_config interno para ese día específico).
+        for (let dow = 0; dow <= 6; dow++) {
+          const key = `${ass.id}_${dow}`
+          gridMap.set(key, ass.shift_template_id)
+        }
       })
 
       setState((prev) => ({
@@ -89,39 +93,45 @@ export function useScheduleGrid(
   }, [companyId, supabase])
 
   /**
-   * Actualiza una celda individual con optimistic update
+   * Actualiza un turno para una persona (aplica a todos los días de su patrón)
    */
   const updateCell = useCallback(
     async (
-      positionId: string,
-      dayOfWeek: number,
+      assignmentId: string,
+      dayOfWeek: number, // Recibido por compatibilidad de UI, pero afecta a toda la fila
       shiftTemplateId: string | null
     ) => {
-      const key = `${positionId}_${dayOfWeek}`
+      // Snapshot del estado actual de toda la fila para rollback
+      const oldRowValues = new Map<number, string | null>()
+      for (let d = 0; d <= 6; d++) {
+        oldRowValues.set(d, state.grid.get(`${assignmentId}_${d}`) || null)
+      }
 
-      // Optimistic update (UI responde al instante)
-      const oldValue = state.grid.get(key)
+      // Optimistic update: Actualizar TODA la fila del empleado
       setState((prev) => {
         const newGrid = new Map(prev.grid)
-        if (shiftTemplateId) {
-          newGrid.set(key, shiftTemplateId)
-        } else {
-          newGrid.delete(key)
+        for (let d = 0; d <= 6; d++) {
+          const key = `${assignmentId}_${d}`
+          if (shiftTemplateId) {
+            newGrid.set(key, shiftTemplateId)
+          } else {
+            newGrid.set(key, null)
+          }
         }
         return { ...prev, grid: newGrid, isDirty: true }
       })
 
       try {
-        // Persistencia en background
-        await persistCellChange(positionId, dayOfWeek, shiftTemplateId)
+        const { updateAssignmentShift } = await import('../../../actions/schedules')
+        const result = await updateAssignmentShift(assignmentId, shiftTemplateId)
+        if (result && 'error' in result) throw new Error(result.error)
       } catch (error) {
-        // Rollback si falla
+        // Rollback de la fila completa
         setState((prev) => {
           const newGrid = new Map(prev.grid)
-          if (oldValue !== undefined) {
-            newGrid.set(key, oldValue)
-          } else {
-            newGrid.delete(key)
+          for (let d = 0; d <= 6; d++) {
+            const key = `${assignmentId}_${d}`
+            newGrid.set(key, oldRowValues.get(d) || null)
           }
           return {
             ...prev,
@@ -129,31 +139,11 @@ export function useScheduleGrid(
             error: error instanceof Error ? error.message : 'Update failed',
           }
         })
-        console.error('Error updating cell:', error)
       }
     },
-    [state.grid, supabase, companyId]
+    [state.grid, companyId]
   )
 
-  /**
-   * Persiste un cambio de celda usando Server Action (UPSERT o DELETE)
-   */
-  const persistCellChange = async (
-    positionId: string,
-    dayOfWeek: number,
-    shiftTemplateId: string | null
-  ) => {
-    const result = await upsertGlobalSchedule(
-      positionId,
-      dayOfWeek,
-      shiftTemplateId,
-      companyId
-    )
-
-    if (result && 'error' in result) {
-      throw new Error(result.error)
-    }
-  }
 
   /**
    * Aplica un turno a múltiples posiciones y días (BULK ACTION)
@@ -187,18 +177,11 @@ export function useScheduleGrid(
         })
 
         // 2. Batch Server Execution
-        // We process by position to keep the Server Action signature simple and performant
-        for (const positionId of positionIds) {
-          const result = await upsertGlobalSchedules(
-            positionId,
-            daysOfWeek,
-            shiftTemplateId,
-            companyId
-          )
+        const { bulkUpdateAssignmentsShift } = await import('../../../actions/schedules')
+        const result = await bulkUpdateAssignmentsShift(positionIds, shiftTemplateId)
 
-          if (result && 'error' in result) {
-            throw new Error(`Error en el puesto ${positionId}: ${result.error}`)
-          }
+        if (result && 'error' in result) {
+          throw new Error(result.error)
         }
 
         // Final sync

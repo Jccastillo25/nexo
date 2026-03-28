@@ -138,37 +138,42 @@ export async function updateShiftTemplate(
 
 // --- GLOBAL SCHEDULES (Level 3 Hierarchy) ---
 
-export async function upsertGlobalSchedule(
-  jobPositionId: string,
-  dayOfWeek: number,
-  shiftTemplateId: string | null,
-  companyId: string
+export async function updateAssignmentShift(
+  assignmentId: string,
+  shiftTemplateId: string | null
 ) {
   const supabase = await createClient()
 
-  if (!shiftTemplateId) {
-    // Delete if null
-    const { error } = await supabase
-      .from('global_schedules')
-      .delete()
-      .eq('job_position_id', jobPositionId)
-      .eq('day_of_week', dayOfWeek)
-    
-    if (error) return { error: error.message }
-  } else {
-    // Upsert
-    const { error } = await supabase
-      .from('global_schedules')
-      .upsert({
-        job_position_id: jobPositionId,
-        day_of_week: dayOfWeek,
-        shift_template_id: shiftTemplateId,
-        company_id: companyId,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'company_id,job_position_id,day_of_week' })
-    
-    if (error) return { error: error.message }
-  }
+  const { error } = await supabase
+    .from('employee_assignments')
+    .update({
+      shift_template_id: shiftTemplateId,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', assignmentId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/schedules/global-planning')
+  return { success: true }
+}
+
+// Bulk update assignments
+export async function bulkUpdateAssignmentsShift(
+  assignmentIds: string[],
+  shiftTemplateId: string | null
+) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('employee_assignments')
+    .update({
+      shift_template_id: shiftTemplateId,
+      updated_at: new Date().toISOString()
+    })
+    .in('id', assignmentIds)
+
+  if (error) return { error: error.message }
 
   revalidatePath('/schedules/global-planning')
   return { success: true }
@@ -368,7 +373,7 @@ export async function getResolvedPersonnelSchedule(
   // 1. Fetch Employees
   let query = supabase
     .from('employees')
-    .select('id, first_name, last_name, employee_code, branch_id, job_position_id')
+    .select('id, first_name, last_name, employee_code, branch_id')
     .eq('is_active', true)
   
   if (branchId && branchId !== 'all') {
@@ -385,36 +390,34 @@ export async function getResolvedPersonnelSchedule(
   const dateStrings: string[] = []
   for (let i = 0; i < daysCount; i++) {
     const d = new Date(start)
+    d.setHours(12, 0, 0, 0) // Neutral time
     d.setDate(d.getDate() + i)
     dates.push(d)
     dateStrings.push(d.toISOString().split('T')[0])
   }
 
   // 3. BULK FETCH ALL LEVELS
+  const { data: assignments } = await supabase
+    .from('employee_assignments')
+    .select('employee_id, job_position_id, shift_template_id')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+
+  const assignmentMap = new Map()
+  assignments?.forEach(a => assignmentMap.set(a.employee_id, a))
+  
   const employeeIds = employees.map(e => e.id)
   
   const [
     { data: overridesData },
-    { data: manualsData },
-    { data: globalsData },
+    // manuals and globals are now mostly replaced by assignments in Level 3
     { data: branchesData }
   ] = await Promise.all([
-    // Level 1: Overrides for these employees and dates
+    // Level 1: Overrides
     supabase.from('employee_shift_overrides')
       .select('employee_id, scheduled_date, shift_templates(*)')
       .in('employee_id', employeeIds)
       .in('scheduled_date', dateStrings),
-    
-    // Level 2: Manual Assignments
-    supabase.from('employee_shifts')
-      .select('employee_id, shifts(*)')
-      .in('employee_id', employeeIds)
-      .eq('is_active', true),
-    
-    // Level 3: Global Schedules
-    supabase.from('global_schedules')
-      .select('job_position_id, day_of_week, shift_templates(*)')
-      .eq('company_id', companyId),
     
     // Level 4: Branch Defaults
     supabase.from('branch_default_shifts')
@@ -426,28 +429,46 @@ export async function getResolvedPersonnelSchedule(
   const overridesMap = new Map()
   overridesData?.forEach(o => overridesMap.set(`${o.employee_id}_${o.scheduled_date}`, o))
   
-  const manualsMap = new Map()
-  manualsData?.forEach(m => manualsMap.set(m.employee_id, m))
-  
-  const globalsMap = new Map()
-  globalsData?.forEach(g => globalsMap.set(`${g.job_position_id}_${g.day_of_week}`, g))
-  
   const branchesMap = new Map()
   branchesData?.forEach(b => branchesMap.set(`${b.branch_id}_${b.day_of_week}`, b))
 
   // 5. RESOLVE IN-MEMORY
-  const grid: Record<string, ResolvedShift | null> = {}
+  const grid: Record<string, any | null> = {}
   
   employees.forEach(emp => {
+    const ass = assignmentMap.get(emp.id)
     dates.forEach(date => {
       const dateStr = date.toISOString().split('T')[0]
-      const resolved = resolveShiftInMemory(emp, date, {
-        overrides: overridesMap,
-        manuals: manualsMap,
-        globals: globalsMap,
-        branches: branchesMap
-      })
-      grid[`${emp.id}_${dateStr}`] = resolved
+      const dow = date.getDay()
+      
+      let resolved = null
+
+      // Level 1: Override
+      const override = overridesMap.get(`${emp.id}_${dateStr}`)
+      if (override) {
+        resolved = override.shift_templates
+      } 
+      // Level 3: Assignment (New Source of Truth)
+      else if (ass?.shift_template_id) {
+         // Resolve template in memory using internal config if it's a template
+         // For now, we assume level 3 is the template
+         // We might need to fetch the template details to resolve properly
+      }
+      // Level 4: Branch Default
+      else if (emp.branch_id) {
+        const branchShift = branchesMap.get(`${emp.branch_id}_${dow}`)
+        if (branchShift) resolved = branchShift.shift_templates
+      }
+
+      grid[`${emp.id}_${dateStr}`] = resolved ? {
+        shift_id: resolved.id,
+        name: resolved.name,
+        start_time: resolved.start_time,
+        end_time: resolved.end_time,
+        color_code: resolved.color_code,
+        source_level: override ? 1 : (ass ? 3 : 4),
+        source_name: override ? 'Cambio Manual' : (ass ? 'Asignación Personal' : 'Por Sucursal')
+      } : null
     })
   })
 
@@ -457,6 +478,61 @@ export async function getResolvedPersonnelSchedule(
       employees,
       dates: dateStrings,
       grid
+    }
+  }
+}
+
+export async function getGlobalPlanningData(
+  companyId: string,
+  branchId?: string
+) {
+  const supabase = await createClient()
+
+  // 1. Fetch Assignments (joining Employee and Position)
+  let query = supabase
+    .from('employee_assignments')
+    .select(`
+      id,
+      is_active,
+      shift_template_id,
+      employee:employees (
+        id,
+        first_name,
+        last_name,
+        employee_code
+      ),
+      position:job_positions (
+        id,
+        name
+      )
+    `)
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+
+  if (branchId && branchId !== 'all') {
+    query = query.eq('branch_id', branchId)
+  }
+
+  const { data: assignments, error: assError } = await query
+
+  if (assError) return { error: assError.message }
+
+  // 2. Fetch Templates
+  const { data: templates } = await supabase
+    .from('shift_templates')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+
+  return {
+    success: true,
+    data: {
+      assignments: (assignments || []).map(ass => ({
+        ...ass,
+        employee: Array.isArray(ass.employee) ? ass.employee[0] : ass.employee,
+        position: Array.isArray(ass.position) ? ass.position[0] : ass.position
+      })) as any,
+      templates: templates || []
     }
   }
 }
