@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { upsertGlobalSchedule } from '../../../actions/schedules'
+import { upsertGlobalSchedules } from '../../../actions/assignments'
 
 export interface GridCell {
   positionId: string
@@ -163,10 +164,13 @@ export function useScheduleGrid(
       daysOfWeek: number[],
       shiftTemplateId: string | null
     ) => {
+      // Snapshot for rollback
+      const previousGrid = new Map(state.grid)
+
       try {
         setState((prev) => ({ ...prev, isSyncing: true, error: null }))
 
-        // Optimistic update
+        // 1. Optimistic Multi-Update
         setState((prev) => {
           const newGrid = new Map(prev.grid)
           for (const positionId of positionIds) {
@@ -182,33 +186,39 @@ export function useScheduleGrid(
           return { ...prev, grid: newGrid, isDirty: true }
         })
 
-        // Enviar en lotes de 20 (más seguro para Server Actions)
+        // 2. Batch Server Execution
+        // We process by position to keep the Server Action signature simple and performant
         for (const positionId of positionIds) {
-          for (const dayOfWeek of daysOfWeek) {
-            const result = await upsertGlobalSchedule(
-              positionId,
-              dayOfWeek,
-              shiftTemplateId,
-              companyId
-            )
-            if (result && 'error' in result) throw new Error(result.error)
+          const result = await upsertGlobalSchedules(
+            positionId,
+            daysOfWeek,
+            shiftTemplateId,
+            companyId
+          )
+
+          if (result && 'error' in result) {
+            throw new Error(`Error en el puesto ${positionId}: ${result.error}`)
           }
         }
 
-        // Refrescar grid después del batch
+        // Final sync
         await loadScheduleData()
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Batch failed'
+        const errorMsg = error instanceof Error ? error.message : 'Error en la sincronización masiva'
+        
+        // ROLLBACK
         setState((prev) => ({
           ...prev,
+          grid: previousGrid,
           isSyncing: false,
-          error: errorMsg,
+          error: `Sincronización Fallida: ${errorMsg}. Se restauró el estado anterior.`,
         }))
-        console.error('Error in bulk action:', error)
+        
+        console.error('Bulk sync failed, rolled back:', error)
         throw error
       }
     },
-    [companyId, supabase, loadScheduleData]
+    [companyId, state.grid, loadScheduleData]
   )
 
   /**

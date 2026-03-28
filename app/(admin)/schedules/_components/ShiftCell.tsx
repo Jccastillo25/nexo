@@ -158,28 +158,33 @@ export default function ShiftCell({
             </p>
           </div>
 
-          {/* Action Menu Overlay */}
+          {/* Popover de Acción Rápida */}
           {showMenu && (
-            <div className="absolute inset-0 bg-slate-900/95 p-2 flex flex-col justify-center items-center text-center animate-in fade-in zoom-in-95 duration-200 z-20">
-              <p className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-black mb-1">Planificado</p>
-              <p className="text-[10px] font-bold text-white mb-3 truncate w-full px-2">{sourceName || 'Global'}</p>
+            <div className="absolute inset-x-0 bottom-full mb-2 bg-white rounded-2xl shadow-[0_20px_40px_-12px_rgba(0,0,0,0.2)] ring-1 ring-slate-200 p-2.5 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200 z-[110] min-w-[200px]">
+              <div className="px-2 py-1.5 border-b border-slate-50 mb-2">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Acciones del Turno</p>
+                <p className="text-xs font-bold text-slate-900 truncate mt-0.5">{template.name}</p>
+              </div>
               
-              <div className="flex gap-2">
-                {isInherited && (
-                  <button
-                    onClick={handlePin}
-                    className="flex items-center gap-1 bg-white text-slate-900 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase hover:bg-slate-100 transition shadow-lg"
-                  >
-                    <Pin size={10} /> Fijar
-                  </button>
-                )}
+              <div className="space-y-1">
                 <button
                   onClick={handleRemove}
-                  className="flex items-center gap-1 bg-red-500 text-white px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase hover:bg-red-600 transition shadow-lg"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
                 >
-                  <X size={10} /> Borrar
+                  <X size={14} />
+                  Borrar Asignación
+                </button>
+                <button
+                  onClick={() => setShowMenu(false)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  <Pencil size={14} />
+                  Cambiar Plantilla
                 </button>
               </div>
+
+              {/* Arrow */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-8 border-transparent border-t-white drop-shadow-sm" />
             </div>
           )}
 
