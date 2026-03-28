@@ -213,7 +213,7 @@ export default function ScheduleGrid({
             <div className="border-b border-slate-100 bg-slate-50 px-6 py-2">
               <div className="grid grid-cols-[200px_repeat(7,1fr)] gap-2">
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  Puesto
+                  Empleado
                 </div>
                 {DAYS_OF_WEEK.map((day) => (
                   <div
@@ -234,9 +234,8 @@ export default function ScheduleGrid({
                     key={ass.id}
                     className="grid grid-cols-[200px_repeat(7,1fr)] gap-1.5"
                   >
-                    <div className="text-[11px] font-bold text-slate-900 py-1 flex flex-col justify-center truncate pr-2 leading-tight">
+                    <div className="text-[13px] font-black text-slate-900 py-1 flex flex-col justify-center truncate pr-4 leading-tight">
                       <span className="truncate">{ass.employee.first_name} {ass.employee.last_name}</span>
-                      <span className="text-[9px] font-medium text-slate-400 truncate">{ass.position.name}</span>
                     </div>
                     {DAYS_OF_WEEK.map((day) => {
                       const key = `${ass.id}_${day.value}`
