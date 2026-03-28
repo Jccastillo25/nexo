@@ -79,8 +79,10 @@ export function AdminShellClient({
 
       {/* ── Main content area ── */}
       <div
-        className="flex min-h-screen flex-col w-full transition-all duration-300"
-        style={{ paddingLeft: sidebarOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed-width)' }}
+        className="flex min-h-screen flex-col w-full transition-all duration-300 ease-in-out"
+        style={{ 
+          paddingLeft: sidebarOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed-width)',
+        }}
       >
         <AdminTopbar
           sidebarOpen={sidebarOpen}
@@ -92,8 +94,8 @@ export function AdminShellClient({
           logoUrl={logoUrl}
           companies={companies}
         />
-        <main className="flex-1 p-4 md:p-6">
-          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        <main className="flex-1 p-4 md:p-6 transition-all duration-300">
+          <div className="w-full">{children}</div>
         </main>
       </div>
     </div>
