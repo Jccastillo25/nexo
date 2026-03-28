@@ -62,6 +62,7 @@ export default function ScheduleGrid({
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set())
   const [bulkTemplateId, setBulkTemplateId] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<any>(null)
 
   const handleDragStart = (templateId: string) => {
     setDraggedTemplate(templateId)
@@ -92,6 +93,11 @@ export default function ScheduleGrid({
       newSelected.delete(key)
     }
     setSelectedCells(newSelected)
+  }
+
+  const handleEditTemplate = (template: any) => {
+    setEditingTemplate(template)
+    setIsCreateModalOpen(true)
   }
 
   const handleBulkApply = async () => {
@@ -221,11 +227,11 @@ export default function ScheduleGrid({
 
             {/* Grid Body (Positions × Days) */}
             <div className="overflow-x-auto">
-              <div className="px-6 py-2 space-y-1">
+              <div className="px-6 py-2 space-y-0.5">
                 {positions.map((position) => (
                   <div
                     key={position.id}
-                    className="grid grid-cols-[200px_repeat(7,1fr)] gap-2"
+                    className="grid grid-cols-[200px_repeat(7,1fr)] gap-1.5"
                   >
                     <div className="text-xs font-bold text-slate-900 py-1 flex items-center truncate pr-2">
                       {position.name}
@@ -249,6 +255,7 @@ export default function ScheduleGrid({
                           isSelected={isSelected}
                           onSelect={handleCellSelect}
                           draggedTemplate={draggedTemplate}
+                          onEditTemplate={handleEditTemplate}
                         />
                       )
                     })}
@@ -301,7 +308,11 @@ export default function ScheduleGrid({
       <CreateShiftModal
         companyId={companyId}
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false)
+          setEditingTemplate(null)
+        }}
+        initialData={editingTemplate}
       />
     </div>
   )

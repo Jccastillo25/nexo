@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useActionState, useMemo } from 'react'
 import { X, Clock, Utensils, Save, AlertCircle, Calendar, ShieldAlert } from 'lucide-react'
-import { createShiftTemplate, type ActionState } from '../../../actions/schedules'
+import { createShiftTemplate, updateShiftTemplate, type ActionState } from '../../../actions/schedules'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -10,6 +10,7 @@ interface CreateShiftModalProps {
   companyId: string
   isOpen: boolean
   onClose: () => void
+  initialData?: any
 }
 
 const DAYS_OF_WEEK = [
@@ -26,10 +27,16 @@ export default function CreateShiftModal({
   companyId,
   isOpen,
   onClose,
+  initialData,
 }: CreateShiftModalProps) {
   const router = useRouter()
   const supabase = createClient()
-  const [state, action, pending] = useActionState<ActionState, FormData>(createShiftTemplate as any, null)
+  
+  const currentAction = initialData 
+    ? updateShiftTemplate.bind(null, initialData.id)
+    : createShiftTemplate
+
+  const [state, action, pending] = useActionState<ActionState, FormData>(currentAction as any, null)
 
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([])
   
@@ -52,6 +59,40 @@ export default function CreateShiftModal({
       endTime: '17:00'
     }))
   )
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        setFormData({
+          name: initialData.name || '',
+          branch_id: initialData.branch_id || '',
+          lunch_duration: initialData.lunch_duration ?? 60,
+          late_entry_tolerance: initialData.late_entry_tolerance ?? 15,
+          early_exit_tolerance: initialData.early_exit_tolerance ?? 15,
+        })
+        if (initialData.days_config) {
+          setDaysConfig(initialData.days_config)
+        }
+      } else {
+        // Reset to defaults if not editing
+        setFormData({
+          name: '',
+          branch_id: '',
+          lunch_duration: 60,
+          late_entry_tolerance: 15,
+          early_exit_tolerance: 15,
+        })
+        setDaysConfig(DAYS_OF_WEEK.map(day => ({
+          dayOfWeek: day.id,
+          label: day.label,
+          isActive: day.id !== 0,
+          isSeventhDay: day.id === 0,
+          startTime: '08:00',
+          endTime: '17:00'
+        })))
+      }
+    }
+  }, [isOpen, initialData])
 
   useEffect(() => {
     if (isOpen && companyId) {
@@ -141,8 +182,12 @@ export default function CreateShiftModal({
               <Calendar size={24} />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Arquitecto de Turnos</h2>
-              <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Configurador Semanal Inteligente</p>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                {initialData ? 'Editar Patrón' : 'Arquitecto de Turnos'}
+              </h2>
+              <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">
+                {initialData ? 'Modificando configuración semanal' : 'Configurador Semanal Inteligente'}
+              </p>
             </div>
           </div>
           <button 
@@ -156,6 +201,7 @@ export default function CreateShiftModal({
         <form action={action} className="flex-1 overflow-y-auto overflow-x-hidden p-8 flex flex-col gap-8 bg-slate-50/50">
           <input type="hidden" name="company_id" value={companyId} />
           <input type="hidden" name="days_config" value={JSON.stringify(daysConfig)} />
+          {initialData && <input type="hidden" name="id" value={initialData.id} />}
 
           {state && 'error' in state && (
             <div className="flex gap-3 p-4 rounded-2xl bg-red-50/80 border border-red-200 text-red-700 text-sm animate-in slide-in-from-top-1 shadow-sm">

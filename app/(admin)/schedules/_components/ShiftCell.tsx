@@ -42,6 +42,7 @@ interface ShiftCellProps {
   sourceLevel?: 1 | 2 | 3 | 4
   sourceName?: string
   onPin?: () => Promise<void>
+  onEditTemplate?: (template: ShiftTemplate) => void
 }
 
 
@@ -57,6 +58,7 @@ export default function ShiftCell({
   sourceLevel,
   sourceName,
   onPin,
+  onEditTemplate,
 }: ShiftCellProps) {
   const [dragOver, setDragOver] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -104,6 +106,14 @@ export default function ShiftCell({
     }
   }
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (template && onEditTemplate) {
+      onEditTemplate(template)
+      setShowMenu(false)
+    }
+  }
+
   const handlePin = async (e: React.MouseEvent) => {
     e.stopPropagation()
     if (!onPin) return
@@ -147,7 +157,7 @@ export default function ShiftCell({
       onDrop={handleDrop}
       onClick={handleClick}
       className={`
-        relative min-h-[64px] rounded-xl border-2 transition cursor-pointer
+        relative min-h-[44px] rounded-xl border-2 transition cursor-pointer
         ${isInherited ? 'border-dashed border-slate-300 opacity-90' : (isSelected ? 'border-slate-900 ring-2 ring-slate-900/20' : 'border-slate-200')}
         ${isSelected ? 'bg-slate-50' : 'bg-white'}
         ${dragOver && isDraggedOver ? 'border-slate-900 bg-slate-100' : ''}
@@ -156,31 +166,27 @@ export default function ShiftCell({
     >
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center rounded-xl z-10">
-          <div className="animate-spin h-4 w-4 border-2 border-slate-300 border-t-slate-900 rounded-full" />
+          <div className="animate-spin h-3 w-3 border-2 border-slate-300 border-t-slate-900 rounded-full" />
         </div>
       )}
 
       {template ? (
         <div
-          className={`h-full p-2 flex flex-col justify-center rounded-xl text-white text-[10px] font-bold relative overflow-hidden transition-all duration-300 ${isInherited ? 'border-dashed border-white/40 border-2' : ''} ${showMenu ? 'scale-[0.98]' : ''} ${isRestingDay ? 'bg-amber-500' : (!isActiveDay ? 'bg-slate-400' : '')}`}
+          className={`h-full p-2 flex flex-col justify-center rounded-xl text-white font-bold relative overflow-hidden transition-all duration-300 ${isInherited ? 'border-dashed border-white/40 border-2' : ''} ${showMenu ? 'scale-[0.98]' : ''} ${isRestingDay ? 'bg-amber-500' : (!isActiveDay ? 'bg-slate-400' : '')}`}
           style={{ backgroundColor: (isRestingDay || !isActiveDay) ? undefined : template.color_code }}
           onMouseEnter={() => !showMenu && setShowMenu(true)}
           onMouseLeave={() => setShowMenu(false)}
         >
-          {isOverride && (
-            <div className="absolute top-1 right-1 opacity-50">
-              <Pencil size={8} />
-            </div>
-          )}
+          {isOverride && <div className="absolute top-1 right-1 opacity-50"><Pencil size={8} /></div>}
           
-          <div className="space-y-0.5 mt-auto">
-            <p className="font-black truncate block leading-tight">{template.name}</p>
+          <div className="space-y-0.5">
+            <p className="text-[10px] font-black truncate leading-tight uppercase tracking-tight">{template.name}</p>
             {isRestingDay ? (
               <p className="text-[9px] opacity-90 font-medium">Descanso</p>
             ) : !isActiveDay ? (
               <p className="text-[9px] opacity-90 font-medium">Inactivo</p>
             ) : (
-              <p className="text-[9px] opacity-80 font-mono">
+              <p className="text-[9px] opacity-80 font-mono tracking-tighter">
                 {formatTo12h(displayStartTime || '').replace(' ', '')} - {formatTo12h(displayEndTime || '').replace(' ', '')}
               </p>
             )}
@@ -188,58 +194,40 @@ export default function ShiftCell({
 
           {/* Popover de Acción Rápida */}
           {showMenu && (
-            <div className="absolute inset-x-0 bottom-full mb-2 bg-white rounded-2xl shadow-[0_20px_40px_-12px_rgba(0,0,0,0.2)] ring-1 ring-slate-200 p-2.5 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200 z-[110] min-w-[200px]">
-              <div className="px-2 py-1.5 border-b border-slate-50 mb-2">
-                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Acciones del Turno</p>
-                <p className="text-xs font-bold text-slate-900 truncate mt-0.5">{template.name}</p>
+            <div className="absolute inset-x-0 bottom-full mb-2 bg-white rounded-2xl shadow-[0_20px_40px_-12px_rgba(0,0,0,0.3)] ring-1 ring-slate-200 p-2 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200 z-[110] min-w-[180px]">
+              <div className="px-2 py-1 border-b border-slate-50 mb-1">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Patrón Semanal</p>
+                <p className="text-[11px] font-bold text-slate-900 truncate">{template.name}</p>
               </div>
               
-              <div className="space-y-1">
+              <div className="space-y-0.5">
+                <button
+                  onClick={handleEdit}
+                  className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-left text-xs font-bold text-slate-900 hover:bg-slate-50 transition-colors"
+                >
+                  <Pencil size={12} />
+                  Editar Patrón
+                </button>
                 <button
                   onClick={handleRemove}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-left text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
                 >
-                  <X size={14} />
-                  Borrar Asignación
-                </button>
-                <button
-                  onClick={() => setShowMenu(false)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
-                >
-                  <Pencil size={14} />
-                  Cambiar Plantilla
+                  <X size={12} />
+                  Remover
                 </button>
               </div>
-
               {/* Arrow */}
               <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-8 border-transparent border-t-white drop-shadow-sm" />
             </div>
           )}
-
-          {!showMenu && (
-            <button
-              onClick={handleRemove}
-              className="self-end opacity-0 group-hover:opacity-100 transition p-1 hover:bg-white/20 rounded-lg"
-              title="Eliminar"
-            >
-              <X size={14} />
-            </button>
-          )}
         </div>
       ) : (
-        <div className="h-full flex items-center justify-center text-slate-400 text-xs p-3">
-          <div className="text-center">
-            {dragOver && isDraggedOver ? (
-              <p className="font-semibold text-slate-600">Soltar aquí</p>
-            ) : (
-              <>
-                <p className="text-[10px]">Arrastra un turno</p>
-                <p className="text-[10px] mt-1">
-                  (Ctrl+Click para bulk)
-                </p>
-              </>
-            )}
-          </div>
+        <div className="h-full flex items-center justify-center text-slate-300 p-1">
+          {dragOver && isDraggedOver ? (
+            <p className="text-[9px] font-bold">Soltar</p>
+          ) : (
+            <p className="text-[8px] opacity-50 font-black uppercase tracking-tighter italic">Vacío</p>
+          )}
         </div>
       )}
     </div>

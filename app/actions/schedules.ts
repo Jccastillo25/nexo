@@ -87,11 +87,33 @@ export async function updateShiftTemplate(
   const supabase = await createClient()
 
   const name = formData.get('name') as string
-  const start_time = formData.get('start_time') as string
-  const end_time = formData.get('end_time') as string
-  const break_minutes = parseInt(formData.get('break_minutes') as string, 10)
-  const tolerance_in = parseInt(formData.get('tolerance_in') as string, 10)
-  const tolerance_out = parseInt(formData.get('tolerance_out') as string, 10)
+  const lunch_duration = parseInt(formData.get('lunch_duration') as string, 10)
+  const company_id = formData.get('company_id') as string
+  const branch_id = formData.get('branch_id') as string
+  const late_entry_tolerance = parseInt(formData.get('late_entry_tolerance') as string, 10) || 15
+  const early_exit_tolerance = parseInt(formData.get('early_exit_tolerance') as string, 10) || 15
+  const days_config_str = formData.get('days_config') as string
+  
+  let days_config = []
+  try {
+    if (days_config_str) {
+      days_config = JSON.parse(days_config_str)
+    }
+  } catch (e) {
+    return { error: 'Configuración de días inválida.' }
+  }
+
+  // Validación de Séptimo Día
+  const activeDays = days_config.filter((d: any) => d.isActive && !d.isSeventhDay).length
+  const restingDays = days_config.filter((d: any) => d.isSeventhDay).length
+
+  if (restingDays < 1 || activeDays > 6) {
+    return { error: 'Por ley laboral, es obligatorio asignar al menos 1 día de descanso (Séptimo Día) por cada 6 días trabajados.' }
+  }
+
+  const firstActive = days_config.find((d: any) => d.isActive && !d.isSeventhDay)
+  const start_time = firstActive ? firstActive.startTime : null
+  const end_time = firstActive ? firstActive.endTime : null
 
   const { error } = await supabase
     .from('shift_templates')
@@ -99,9 +121,13 @@ export async function updateShiftTemplate(
       name,
       start_time,
       end_time,
-      break_minutes: isNaN(break_minutes) ? 60 : break_minutes,
-      tolerance_in: isNaN(tolerance_in) ? 5 : tolerance_in,
-      tolerance_out: isNaN(tolerance_out) ? 0 : tolerance_out,
+      company_id,
+      branch_id: branch_id || null,
+      lunch_duration: isNaN(lunch_duration) ? 0 : lunch_duration,
+      late_entry_tolerance,
+      early_exit_tolerance,
+      days_config,
+      updated_at: new Date().toISOString()
     })
     .eq('id', id)
 

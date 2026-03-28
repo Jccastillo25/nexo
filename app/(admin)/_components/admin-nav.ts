@@ -22,6 +22,7 @@ export const adminNav: NavSection[] = [
     title: 'Gestión de Talento',
     items: [
       { href: '/employees', label: 'Directorio (Expediente)' },
+      { href: '/employees/groups', label: 'Puestos de Trabajo' },
       { href: '/contracts', label: 'Gestión Contractual' },
     ],
   },
@@ -44,7 +45,6 @@ export const adminNav: NavSection[] = [
     title: 'Configuración',
     items: [
       { href: '/organization', label: 'Estructura Orgánica' },
-      { href: '/employees/groups', label: 'Puestos de Trabajo' },
       { href: '/kiosk/devices', label: 'Red de Kioskos (Hardware)' },
       { href: '/settings', label: 'Seguridad / Roles' },
     ],
