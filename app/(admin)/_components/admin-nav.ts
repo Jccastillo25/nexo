@@ -37,15 +37,15 @@ export const adminNav: NavSection[] = [
     title: 'Nómina y Cierres',
     items: [
       { href: '/reports', label: 'Hub de Reportes Legales' },
-      { href: '/security', label: 'Auditoría / Sistema' },
     ],
   },
   {
     title: 'Configuración',
     items: [
       { href: '/organization', label: 'Estructura Orgánica' },
+      { href: '/security', label: 'Usuarios y Permisos' },
+      { href: '/settings', label: 'Configuración General' },
       { href: '/kiosk/devices', label: 'Red de Kioskos (Hardware)' },
-      { href: '/settings', label: 'Seguridad / Roles' },
     ],
   },
 ]
