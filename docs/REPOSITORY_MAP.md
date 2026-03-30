@@ -28,19 +28,22 @@ Orquestadores backend para la persistencia de planificación:
 
 ---
 
-## Estándar de Diseño 'Stitch'
-Gestor360 utiliza un lenguaje de diseño premium caracterizado por:
-*   **Glassmorphism**: Modales con `backdrop-blur` y opacidad controlada.
-*   **Radios de 32px**: Tarjetas y componentes principales usan `rounded-3xl`.
-*   **Matriz Dinámica**: La UI de "Planilla Maestra" permite Drag & Drop de turnos desde una librería lateral hacia una cuadrícula de puestos.
+---
+
+## Monitor 360° — Supervisión en Tiempo Real
+El monitor centraliza la visibilidad operativa mediante una **Jerarquía Visual Cascada**:
+
+*   **OperationalMonitor (`/components/Monitor360`)**: Vista maestra que orquestra la carga de datos por empresa/sucursal.
+*   **TimerDisplay (`/components/Monitor`)**: Componente reactivo que gestiona los tiempos de descanso y alertas visuales.
+*   **Tipado (`/types/monitor.ts`)**: Define los estados operativos (`active`, `on_break`, `offline`).
 
 ---
 
 ## Auditoría y Refactorizaciones Pendientes
 1.  **Tabla `shifts`**: Debe depurarse tras migrar todas las "Asignaciones Fijas" a `shift_templates`.
 2.  **Redundancia de Horarios**: Sincronizar las columnas planas de `shift_templates` con el objeto `days_config`.
-3.  **RealTime**: Implementar canales de Supabase para que cambios en la Planilla Maestra se reflejen instantáneamente en el Monitor.
+3.  **RealTime**: Los componentes `Monitor360` ya utilizan canales de Supabase para reflejar cambios instantáneos.
 
 ---
 
-*Actualizado v1.0 — 28 de marzo de 2026*
+*Actualizado v1.1 — 30 de marzo de 2026*
