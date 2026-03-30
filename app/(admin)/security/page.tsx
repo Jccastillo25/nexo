@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { Zap } from 'lucide-react'
 
 const roleLabels: Record<string, string> = {
   owner:      'Propietario',
@@ -21,7 +22,7 @@ export default async function SecurityPage() {
       .order('role'),
     supabase
       .from('audit_logs')
-      .select('id, action, entity, created_at, profiles(full_name, email)', { count: 'exact' })
+      .select('id, action, entity, impersonator_id, created_at, profiles(full_name, email)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .limit(10),
   ])
@@ -66,11 +67,12 @@ export default async function SecurityPage() {
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Empresa</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Rol</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {memberships.map((m) => {
-                  const profile = m.profiles as unknown as { email: string; full_name: string | null } | null
+                  const profile = m.profiles as unknown as { id: string; email: string; full_name: string | null } | null
                   const co      = m.companies as unknown as { display_name: string } | null
                   return (
                     <tr key={m.id} className="hover:bg-slate-50">
@@ -88,6 +90,14 @@ export default async function SecurityPage() {
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${m.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                           {m.is_active ? 'Activo' : 'Inactivo'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <a 
+                          href={`/security/users/${profile?.id}`} 
+                          className="inline-flex items-center gap-2 text-xs font-bold text-slate-900 hover:bg-slate-100 px-3 py-1.5 rounded-xl transition-colors"
+                        >
+                          Editar
+                        </a>
                       </td>
                     </tr>
                   )
@@ -116,6 +126,7 @@ export default async function SecurityPage() {
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Acción</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Entidad</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Usuario</th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Auditor Dual</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha</th>
                 </tr>
               </thead>
@@ -127,6 +138,16 @@ export default async function SecurityPage() {
                       <td className="px-6 py-3.5 font-mono text-xs text-slate-700">{log.action}</td>
                       <td className="px-6 py-3.5 text-slate-600">{log.entity}</td>
                       <td className="px-6 py-3.5 text-slate-500">{profile?.full_name ?? profile?.email ?? '—'}</td>
+                      <td className="px-6 py-3.5">
+                        {log.impersonator_id ? (
+                          <div className="flex items-center gap-1.5 text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-bold">
+                            <Zap className="h-3 w-3" />
+                            Suplantado
+                          </div>
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
+                      </td>
                       <td className="px-6 py-3.5 text-slate-400 text-xs">
                         {new Date(log.created_at).toLocaleString('es-NI', { timeZone: 'America/Managua' })}
                       </td>

@@ -2,8 +2,11 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { User } from '@supabase/supabase-js'
 
 interface GlobalContextType {
+  user: User | null
   companyId: string | null
   setCompanyId: (id: string) => void
   isLoading: boolean
@@ -12,11 +15,72 @@ interface GlobalContextType {
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined)
 
 export function GlobalProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
   const [companyId, setCompanyIdState] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const supabase = createClient()
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+
+  // BroadcastChannel para sincronizar Logouts masivos (Kill-Switch)
+  useEffect(() => {
+    const channel = new BroadcastChannel('gestor360_auth')
+    
+    channel.onmessage = (event) => {
+      if (event.data === 'FORCE_LOGOUT') {
+        console.warn('Kill-Switch detectado. Cerrando sesión en esta pestaña...')
+        supabase.auth.signOut().then(() => {
+          window.location.href = '/login?reason=deactivated'
+        })
+      }
+    }
+
+    return () => channel.close()
+  }, [])
+
+  // Suscripción Realtime para Kill-Switch
+  useEffect(() => {
+    let subscription: any
+
+    const setupAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
+
+      if (currentUser) {
+        // Escuchar cambios en el perfil del usuario (columna is_active)
+        subscription = supabase
+          .channel(`profile:${currentUser.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'profiles',
+              filter: `id=eq.${currentUser.id}`,
+            },
+            (payload) => {
+              if (payload.new.is_active === false) {
+                console.error('ALERTA DE SEGURIDAD: Tu cuenta ha sido desactivada.')
+                const channel = new BroadcastChannel('gestor360_auth')
+                channel.postMessage('FORCE_LOGOUT')
+                supabase.auth.signOut().then(() => {
+                  window.location.href = '/login?reason=deactivated'
+                })
+              }
+            }
+          )
+          .subscribe()
+      }
+    }
+
+    setupAuth()
+
+    return () => {
+      if (subscription) supabase.removeChannel(subscription)
+    }
+  }, [])
 
   // Initialize from search params or localStorage
   useEffect(() => {
@@ -52,7 +116,7 @@ export function GlobalProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <GlobalContext.Provider value={{ companyId, setCompanyId, isLoading }}>
+    <GlobalContext.Provider value={{ user, companyId, setCompanyId, isLoading }}>
       {children}
     </GlobalContext.Provider>
   )
