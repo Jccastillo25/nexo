@@ -21,7 +21,16 @@ export function BranchEditForm({ branch, companies }: BranchEditFormProps) {
   const [autoCode, setAutoCode] = useState(false)
 
   // Dirty State Guard
-  const { isDirty, checkDirty, resetInitial } = useDirtyState({
+  const { 
+    isDirty, 
+    showExitGuard, 
+    handleAttemptClose, 
+    cancelExit, 
+    confirmExit, 
+    checkDirty, 
+    resetInitial 
+  } = useDirtyState({
+    onClose: () => { window.location.href = '/organization/branches' },
     initialState: {
       company_id: branch.company_id,
       name: branch.name,
@@ -30,7 +39,6 @@ export function BranchEditForm({ branch, companies }: BranchEditFormProps) {
       is_active: branch.is_active,
     }
   })
-  const [showExitGuard, setShowExitGuard] = useState(false)
 
   useEffect(() => {
     // Collecting current state from controlled inputs and defaultValues
@@ -186,7 +194,7 @@ export function BranchEditForm({ branch, companies }: BranchEditFormProps) {
             }
             if (checkDirty(current)) {
               e.preventDefault()
-              setShowExitGuard(true)
+              handleAttemptClose()
             }
           }}
           className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
@@ -204,11 +212,8 @@ export function BranchEditForm({ branch, companies }: BranchEditFormProps) {
 
       <DirtyStateGuard 
         show={showExitGuard}
-        onConfirm={() => {
-          setShowExitGuard(false)
-          window.location.href = '/organization/branches'
-        }}
-        onCancel={() => setShowExitGuard(false)}
+        onConfirm={confirmExit}
+        onCancel={cancelExit}
       />
     </form>
   )

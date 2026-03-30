@@ -48,7 +48,16 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
   const [state, action, pending] = useActionState<ActionState, FormData>(updateEmployeeWithId, null)
 
   const formRef = useRef<HTMLFormElement>(null)
-  const { isDirty, checkDirty, resetInitial } = useDirtyState({ 
+  const { 
+    isDirty, 
+    showExitGuard, 
+    handleAttemptClose, 
+    cancelExit, 
+    confirmExit, 
+    checkDirty, 
+    resetInitial 
+  } = useDirtyState({ 
+    onClose: () => { window.location.href = `/employees/${employee.id}` },
     initialState: {
       first_name: employee.first_name,
       last_name: employee.last_name,
@@ -65,7 +74,6 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
       address: employee.address ?? '',
     }
   })
-  const [showExitGuard, setShowExitGuard] = useState(false)
 
   const getFormValues = () => {
     if (!formRef.current) return {}
@@ -87,11 +95,11 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
     }
   }
 
-  const handleAttemptClose = (e: React.MouseEvent) => {
+  const handleInterceptExit = (e: React.MouseEvent) => {
     const current = getFormValues()
     if (checkDirty(current)) {
       e.preventDefault()
-      setShowExitGuard(true)
+      handleAttemptClose()
     }
   }
 
@@ -329,13 +337,13 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
           </div>
 
           <div className="pt-8 flex justify-end gap-3 border-t border-slate-100">
-             <Link 
-               href={`/employees/${employee.id}`} 
-               onClick={handleAttemptClose}
-               className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-             >
-              Cancelar
-            </Link>
+              <Link 
+                href={`/employees/${employee.id}`} 
+                onClick={handleInterceptExit}
+                className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              >
+               Cancelar
+             </Link>
             <button type="submit" disabled={pending} className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
               {pending ? 'Guardando...' : 'Guardar cambios'}
             </button>
@@ -345,11 +353,8 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
 
       <DirtyStateGuard 
         show={showExitGuard}
-        onConfirm={() => {
-          setShowExitGuard(false)
-          window.location.href = `/employees/${employee.id}`
-        }}
-        onCancel={() => setShowExitGuard(false)}
+        onConfirm={confirmExit}
+        onCancel={cancelExit}
       />
     </div>
   )

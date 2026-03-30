@@ -63,7 +63,16 @@ export default function CreateShiftModal({
   )
 
   // Dirty State Guard
-  const { isDirty, checkDirty, resetInitial } = useDirtyState({ 
+  const { 
+    isDirty, 
+    showExitGuard, 
+    handleAttemptClose, 
+    cancelExit, 
+    confirmExit, 
+    checkDirty, 
+    resetInitial 
+  } = useDirtyState({ 
+    onClose,
     initialState: { formData: initialData ? {
       name: initialData.name || '',
       branch_id: initialData.branch_id || '',
@@ -85,7 +94,6 @@ export default function CreateShiftModal({
       endTime: '17:00'
     })) }
   })
-  const [showExitGuard, setShowExitGuard] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -151,14 +159,6 @@ export default function CreateShiftModal({
       router.refresh()
     }
   }, [state, onClose, router, resetInitial, formData, daysConfig])
-
-  const handleAttemptClose = () => {
-    if (isDirty) {
-      setShowExitGuard(true)
-    } else {
-      onClose()
-    }
-  }
 
   // Validations
   const { restingDaysCount, activeDaysCount, goldenRuleMet, effectiveHoursStr } = useMemo(() => {
@@ -494,11 +494,8 @@ export default function CreateShiftModal({
 
       <DirtyStateGuard 
         show={showExitGuard}
-        onConfirm={() => {
-          setShowExitGuard(false)
-          onClose()
-        }}
-        onCancel={() => setShowExitGuard(false)}
+        onConfirm={confirmExit}
+        onCancel={cancelExit}
       />
     </div>
   )

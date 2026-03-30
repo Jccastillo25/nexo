@@ -63,7 +63,16 @@ export function HiringWizard({
   const [selectedShift, setSelectedShift] = useState<string>('')
 
   // Dirty State Guard
-  const { isDirty, checkDirty, resetInitial } = useDirtyState({
+  const { 
+    isDirty, 
+    showExitGuard, 
+    handleAttemptClose, 
+    cancelExit, 
+    confirmExit, 
+    checkDirty, 
+    resetInitial 
+  } = useDirtyState({
+    onClose: () => { window.location.href = '/contracts' },
     initialState: {
       selectedEmployee: '',
       selectedBranch: '',
@@ -71,7 +80,6 @@ export function HiringWizard({
       selectedShift: '',
     }
   })
-  const [showExitGuard, setShowExitGuard] = useState(false)
 
   useEffect(() => {
     checkDirty({
@@ -440,7 +448,7 @@ export function HiringWizard({
               onClick={(e) => {
                 if (isDirty) {
                   e.preventDefault()
-                  setShowExitGuard(true)
+                  handleAttemptClose()
                 }
               }}
               className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
@@ -476,11 +484,8 @@ export function HiringWizard({
 
       <DirtyStateGuard 
         show={showExitGuard}
-        onConfirm={() => {
-          setShowExitGuard(false)
-          window.location.href = '/contracts'
-        }}
-        onCancel={() => setShowExitGuard(false)}
+        onConfirm={confirmExit}
+        onCancel={cancelExit}
       />
     </div>
   )

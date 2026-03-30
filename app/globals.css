@@ -141,6 +141,34 @@ body {
   overflow: hidden;
 }
 
+/* ── Forms: Radical Native Cleanup ── */
+/* Hide native icons/spinners for date and time inputs across all browsers */
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input::-webkit-inner-spin-button,
+input::-webkit-clear-button {
+  display: none !important;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox specific */
+input[type="date"], 
+input[type="time"],
+input[type="datetime-local"] {
+  appearance: none;
+  -moz-appearance: textfield;
+}
+
+/* Edge specific */
+input::-ms-clear,
+input::-ms-reveal {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 /* Sidebar transition */
 .sidebar-transition {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),

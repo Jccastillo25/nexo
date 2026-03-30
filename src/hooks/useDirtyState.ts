@@ -35,14 +35,18 @@ export function deepEqual(a: any, b: any): boolean {
 
 interface UseDirtyStateOptions {
   initialState: any
+  onClose?: () => void
 }
 
-export function useDirtyState({ initialState }: UseDirtyStateOptions) {
+export function useDirtyState({ initialState, onClose }: UseDirtyStateOptions) {
   const [isDirty, setIsDirty] = useState(false)
+  const [showExitGuard, setShowExitGuard] = useState(false)
+  
   const initialRef = useRef(initialState)
   const currentRef = useRef(initialState)
+  const lastFocusedRef = useRef<HTMLElement | null>(null)
 
-  // Update initial ref if it changes externally (e.g. after a fetch)
+  // Update initial ref if it changes externally
   useEffect(() => {
     initialRef.current = initialState
   }, [initialState])
@@ -58,14 +62,62 @@ export function useDirtyState({ initialState }: UseDirtyStateOptions) {
     initialRef.current = newState
     currentRef.current = newState
     setIsDirty(false)
+    setShowExitGuard(false)
   }, [])
+
+  const handleAttemptClose = useCallback(() => {
+    if (isDirty) {
+      // Save current focus before showing guard
+      lastFocusedRef.current = document.activeElement as HTMLElement
+      setShowExitGuard(true)
+    } else {
+      onClose?.()
+    }
+  }, [isDirty, onClose])
+
+  const cancelExit = useCallback(() => {
+    setShowExitGuard(false)
+    // Restore focus after a short delay to ensure DOM is ready
+    setTimeout(() => {
+      if (lastFocusedRef.current) {
+        lastFocusedRef.current.focus()
+      }
+    }, 10)
+  }, [])
+
+  const confirmExit = useCallback(() => {
+    setShowExitGuard(false)
+    onClose?.()
+  }, [onClose])
+
+  // Handle Escape key logic
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // High priority interceptor
+        if (showExitGuard) {
+          e.preventDefault()
+          e.stopPropagation()
+          cancelExit()
+        } else {
+          // Only attempt close if we actually have an onClose handler
+          if (onClose) {
+            handleAttemptClose()
+          }
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown, true) // Use capture to intercept before others
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
+  }, [showExitGuard, handleAttemptClose, cancelExit, onClose])
 
   // Handle browser beforeunload
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
         e.preventDefault()
-        e.returnValue = '' // Standard way to trigger browser dialog
+        e.returnValue = ''
       }
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
@@ -74,6 +126,10 @@ export function useDirtyState({ initialState }: UseDirtyStateOptions) {
 
   return {
     isDirty,
+    showExitGuard,
+    handleAttemptClose,
+    cancelExit,
+    confirmExit,
     checkDirty,
     resetInitial,
   }
