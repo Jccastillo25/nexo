@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+﻿import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 
@@ -54,7 +54,7 @@ export function generateDeviceId(): string {
 }
 
 /**
- * Obtiene la configuración de sistema
+ * Obtiene la configuraci├│n de sistema
  */
 export async function getSystemConfig() {
   try {
@@ -129,7 +129,7 @@ export async function getActiveSessions(
 }
 
 /**
- * Crea una nueva sesión
+ * Crea una nueva sesi├│n
  */
 export async function createSession(
   params: SessionCreateParams
@@ -231,12 +231,12 @@ export async function createOrUpdateDevice(
     }
   } catch (error) {
     console.error("Error creating/updating device:", error);
-    // No throw aquí porque no es crítico si falla
+    // No throw aqu├¡ porque no es cr├¡tico si falla
   }
 }
 
 /**
- * Actualiza el estado de una sesión
+ * Actualiza el estado de una sesi├│n
  */
 export async function updateSessionStatus(
   sessionId: number,
@@ -260,7 +260,7 @@ export async function updateSessionStatus(
 }
 
 /**
- * Obtiene una sesión por ID
+ * Obtiene una sesi├│n por ID
  */
 export async function getSessionById(
   sessionId: number
@@ -296,7 +296,7 @@ export async function getSessionById(
 }
 
 /**
- * Registra un evento en auditoría
+ * Registra un evento en auditor├¡a
  */
 export async function auditLog(
   userId: string,
@@ -324,7 +324,7 @@ export async function auditLog(
     if (error) throw error;
   } catch (error) {
     console.error("Error logging audit event:", error);
-    // No throw aquí porque es no-crítico
+    // No throw aqu├¡ porque es no-cr├¡tico
   }
 }
 
@@ -363,7 +363,7 @@ export async function isNewDevice(
       return true;
     }
 
-    // Si el fingerprint cambió, es posiblemente un nuevo dispositivo
+    // Si el fingerprint cambi├│, es posiblemente un nuevo dispositivo
     return device.fingerprint !== fingerprint;
   } catch (error) {
     console.error("Error checking if device is new:", error);
@@ -371,3 +371,4 @@ export async function isNewDevice(
     return true;
   }
 }
+
