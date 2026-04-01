@@ -42,7 +42,7 @@ export function UserLinker({ companyId, selectedEmployeeId, onSelect }: UserLink
 
   // Búsqueda reactiva
   useEffect(() => {
-    if (searchTerm.length < 2) {
+    if (searchTerm.length < 3) {
       setEmployees([])
       return
     }
@@ -52,7 +52,6 @@ export function UserLinker({ companyId, selectedEmployeeId, onSelect }: UserLink
       const { data } = await supabase
         .from('employees')
         .select('id, first_name, last_name, employee_code, is_active, company_id')
-        .eq('company_id', companyId)
         .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,employee_code.ilike.%${searchTerm}%`)
         .limit(5)
       

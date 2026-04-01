@@ -8,7 +8,7 @@ import { UserLinker } from '@/components/ui/UserLinker'
 import { DirtyStateGuard } from '@/components/ui/DirtyStateGuard'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useGlobalContext } from '@/context/GlobalContext'
-import { ArrowLeft, Save, ShieldAlert, Zap, Eye, EyeOff, Lock, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Save, ShieldAlert, Zap, Eye, EyeOff, Lock, ShieldCheck, Star } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface UserEditorClientProps {
@@ -31,9 +31,33 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
   const [password, setPassword] = useState<string>('')
   const [showPassword, setShowPassword] = useState(false)
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>(initialCompanyIds)
+  const [primaryCompanyId, setPrimaryCompanyId] = useState<string | null>(profile.company_id)
   const [isSaving, setIsSaving] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showExitModal, setShowExitModal] = useState(false)
+  const [pendingPath, setPendingPath] = useState<string | null>(null)
+
+  // Navigation Guard: beforeunload
+  React.useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isDirty])
+
+  const handleBack = () => {
+    if (isDirty) {
+      setPendingPath('/security')
+      setShowExitModal(true)
+    } else {
+      router.push('/security')
+    }
+  }
 
   // Obtener nombre de la empresa actual
   const currentCompanyName = companies.find(c => c.id === companyId)?.name || 'la organización'
@@ -47,16 +71,32 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
     setLinkedEmployeeId(emp ? emp.id : null)
     if (emp) {
       setFullName(`${emp.first_name} ${emp.last_name}`)
-      // Sumar automáticamente la empresa del empleado si no está
+      // Sumar automáticamente la empresa del empleado si no está y marcar como principal
       setSelectedCompanyIds(prev => prev.includes(emp.company_id) ? prev : [...prev, emp.company_id])
+      setPrimaryCompanyId(emp.company_id)
     }
     setIsDirty(true)
   }
 
   const toggleCompany = (id: string) => {
-    setSelectedCompanyIds(prev => 
-      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
-    )
+    setSelectedCompanyIds(prev => {
+      const isSelected = prev.includes(id)
+      const next = isSelected ? prev.filter(c => c !== id) : [...prev, id]
+      
+      // Si quitamos la empresa que era principal, resetear
+      if (isSelected && primaryCompanyId === id) {
+        setPrimaryCompanyId(next.length > 0 ? next[0] : null)
+      }
+      return next
+    })
+    setIsDirty(true)
+  }
+
+  const handleSetPrimary = (e: React.MouseEvent, id: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!!linkedEmployeeId) return // Bloqueado por SSOT
+    setPrimaryCompanyId(id)
     setIsDirty(true)
   }
 
@@ -72,7 +112,8 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
         .update({ 
           linked_employee_id: linkedEmployeeId,
           full_name: fullName,
-          position: position
+          position: position,
+          company_id: primaryCompanyId
         })
         .eq('id', profile.id)
 
@@ -130,9 +171,13 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-700 pb-20">
       <DirtyStateGuard 
-        show={isDirty} 
-        onConfirm={() => { setIsDirty(false); router.push('/security'); }}
-        onCancel={() => setIsDirty(false)} 
+        show={showExitModal} 
+        onConfirm={() => { 
+          setIsDirty(false)
+          setShowExitModal(false)
+          router.push(pendingPath || '/security')
+        }}
+        onCancel={() => setShowExitModal(false)} 
       />
 
       <ConfirmDialog 
@@ -150,7 +195,7 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
       <div className="flex items-center justify-between bg-slate-900/40 backdrop-blur-3xl p-10 rounded-[50px] border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
         <div className="flex items-center gap-8">
           <button 
-            onClick={() => router.back()}
+            onClick={handleBack}
             className="p-4 bg-white/5 hover:bg-white/10 rounded-3xl transition-all border border-white/5 group"
           >
             <ArrowLeft className="h-6 w-6 text-white group-hover:-translate-x-1 transition-transform" />
@@ -166,7 +211,7 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
         <div className="flex items-center gap-6">
           <button
             onClick={() => setShowConfirm(true)}
-            disabled={!isDirty || isSaving || selectedCompanyIds.length === 0}
+            disabled={!isDirty || isSaving || selectedCompanyIds.length === 0 || !primaryCompanyId}
             className="px-10 py-5 bg-white text-slate-900 text-xs font-black tracking-[0.2em] rounded-[25px] hover:bg-white hover:scale-105 active:scale-95 disabled:opacity-10 disabled:grayscale transition-all flex items-center gap-4 shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
           >
             <Save className="h-4 w-4" />
@@ -212,10 +257,10 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
                     type="text" 
                     value={fullName}
                     onChange={(e) => { setFullName(e.target.value); setIsDirty(true); }}
-                    readOnly={!!linkedEmployeeId && !isOwner}
+                    disabled={!!linkedEmployeeId && !isOwner}
                     className={`w-full text-sm font-bold rounded-2xl border transition-all outline-none px-5 py-4 ${
                       (!!linkedEmployeeId && !isOwner) 
-                        ? 'bg-white/5 border-white/5 text-white/20 cursor-not-allowed italic' 
+                        ? 'bg-white/5 border-white/5 text-white/40 cursor-not-allowed italic opacity-50 grayscale' 
                         : 'bg-white/10 border-white/10 text-white focus:border-white/40 focus:ring-4 focus:ring-white/5'
                     }`}
                     placeholder="Nombre del usuario"
@@ -231,10 +276,10 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
                     type="text" 
                     value={position}
                     onChange={(e) => { setPosition(e.target.value); setIsDirty(true); }}
-                    readOnly={!!linkedEmployeeId && !isOwner}
+                    disabled={!!linkedEmployeeId && !isOwner}
                     className={`w-full text-sm font-bold rounded-2xl border transition-all outline-none px-5 py-4 ${
                       (!!linkedEmployeeId && !isOwner) 
-                        ? 'bg-white/5 border-white/5 text-white/20 cursor-not-allowed italic' 
+                        ? 'bg-white/5 border-white/5 text-white/40 cursor-not-allowed italic opacity-50 grayscale' 
                         : 'bg-white/10 border-white/10 text-white focus:border-white/40 focus:ring-4 focus:ring-white/5'
                     }`}
                     placeholder="Ej: Administrador Externo"
@@ -291,37 +336,67 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
             <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20 mb-10 text-white">Empresas Autorizadas</h3>
             
             <div className="grid grid-cols-1 gap-4">
-              {companies.map(co => (
-                <label 
-                  key={co.id} 
-                  className={`flex items-center justify-between p-5 rounded-2xl border transition-all cursor-pointer group ${
-                    selectedCompanyIds.includes(co.id)
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-white'
-                      : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10'
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                      selectedCompanyIds.includes(co.id)
-                        ? 'bg-emerald-500 border-emerald-500'
-                        : 'bg-transparent border-white/20 group-hover:border-white/40'
-                    }`}>
-                      {selectedCompanyIds.includes(co.id) && <ShieldCheck className="h-3 w-3 text-slate-950" />}
-                    </div>
-                    <span className="text-xs font-bold uppercase tracking-widest">{co.name}</span>
+              {companies.map(co => {
+                const isSelected = selectedCompanyIds.includes(co.id)
+                const isPrimary = primaryCompanyId === co.id
+                const isReadOnly = !!linkedEmployeeId
+                
+                return (
+                  <div key={co.id} className="relative group/item">
+                    <label 
+                      className={`flex items-center justify-between p-5 rounded-2xl border transition-all cursor-pointer group ${
+                        isSelected
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-white'
+                          : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                          isSelected
+                            ? 'bg-emerald-500 border-emerald-500'
+                            : 'bg-transparent border-white/20 group-hover:border-white/40'
+                        }`}>
+                          {isSelected && <ShieldCheck className="h-3 w-3 text-slate-950" />}
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-widest">{co.name}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        {/* Selector de Empresa Principal (Estrella) */}
+                        {isSelected && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleSetPrimary(e, co.id)}
+                            disabled={isReadOnly && !isPrimary}
+                            className={`p-2 rounded-xl transition-all ${
+                              isPrimary 
+                                ? 'bg-amber-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.4)]' 
+                                : isReadOnly 
+                                  ? 'opacity-0 cursor-default'
+                                  : 'bg-white/5 text-white/20 hover:bg-white/20 hover:text-white'
+                            }`}
+                            title={isPrimary ? 'Empresa Principal' : 'Marcar como Principal'}
+                          >
+                            <Star className={`h-3 w-3 ${isPrimary ? 'fill-current' : ''}`} />
+                          </button>
+                        )}
+
+                        <input 
+                          type="checkbox"
+                          className="hidden"
+                          checked={isSelected}
+                          onChange={() => toggleCompany(co.id)}
+                        />
+                        
+                        {/* Badge de Empresa Origen/Contrato si está vinculado */}
+                        {linkedEmployeeId && isSelected && isPrimary && (
+                          <span className="text-[8px] font-black px-2 py-0.5 bg-emerald-500 text-slate-950 rounded uppercase">SSOT Principal</span>
+                        )}
+                      </div>
+                    </label>
                   </div>
-                  <input 
-                    type="checkbox"
-                    className="hidden"
-                    checked={selectedCompanyIds.includes(co.id)}
-                    onChange={() => toggleCompany(co.id)}
-                  />
-                  {/* Badge de Empresa Origen si está vinculado */}
-                  {linkedEmployeeId && selectedCompanyIds.includes(co.id) && companyId === co.id && (
-                    <span className="text-[8px] font-black px-2 py-0.5 bg-emerald-500 text-slate-950 rounded uppercase">Origen</span>
-                  )}
-                </label>
-              ))}
+                )
+              })}
             </div>
             
             {selectedCompanyIds.length === 0 && (
