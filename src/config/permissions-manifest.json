@@ -1,0 +1,91 @@
+{
+  "version": "1.0.0",
+  "name": "Gestor360 Security Manifest",
+  "description": "Deny by Default - Central Resource Mapping",
+  "resources": [
+    {
+      "id": "dashboard_kpis",
+      "name": "Dashboard KPIs",
+      "path": "/admin/dashboard",
+      "required_permissions": [
+        "can_view_kpis_talent",
+        "can_view_kpis_attendance",
+        "can_view_kpis_financial",
+        "can_view_kpis_hardware"
+      ],
+      "logic": "OR"
+    },
+    {
+      "id": "employee_management",
+      "name": "Gestión de Empleados",
+      "path": "/admin/employees",
+      "required_permissions": ["can_view_employees"]
+    },
+    {
+      "id": "contract_management",
+      "name": "Gestión de Contratos",
+      "path": "/admin/contracts",
+      "required_permissions": ["can_view_contracts"]
+    },
+    {
+      "id": "attendance_monitoring",
+      "name": "Monitoreo de Asistencia",
+      "path": "/admin/attendance",
+      "required_permissions": ["can_view_attendance"]
+    },
+    {
+      "id": "leave_management",
+      "name": "Gestión de Permisos y Ausencias",
+      "path": "/admin/leave",
+      "required_permissions": ["can_manage_leaves"]
+    },
+    {
+      "id": "schedule_management",
+      "name": "Gestión de Horarios y Turnos",
+      "path": "/admin/schedules",
+      "required_permissions": ["can_manage_schedules"]
+    },
+    {
+      "id": "monitor_kpis",
+      "name": "Monitor de KPIs",
+      "path": "/admin/monitor",
+      "required_permissions": ["can_view_attendance"]
+    },
+    {
+      "id": "organization_settings",
+      "name": "Configuración de Organización",
+      "path": "/admin/organization",
+      "required_permissions": ["can_manage_company"]
+    },
+    {
+      "id": "kiosk_management",
+      "name": "Gestión de Kioskos",
+      "path": "/admin/kiosk",
+      "required_permissions": ["can_manage_kiosks"]
+    },
+    {
+      "id": "reports_generation",
+      "name": "Generación de Reportes",
+      "path": "/admin/reports",
+      "required_permissions": ["can_view_reports"]
+    },
+    {
+      "id": "security_users",
+      "name": "Gestión de Usuarios y Accesos",
+      "path": "/admin/security/users",
+      "required_permissions": ["can_manage_users"]
+    },
+    {
+      "id": "security_audit",
+      "name": "Auditoría de Sistema",
+      "path": "/admin/security/audit",
+      "required_permissions": ["can_view_audit_logs"]
+    },
+    {
+      "id": "system_settings",
+      "name": "Ajustes del Sistema",
+      "path": "/admin/settings",
+      "required_permissions": ["can_manage_settings"]
+    }
+  ]
+}

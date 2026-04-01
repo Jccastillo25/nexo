@@ -7,10 +7,15 @@ interface Permission {
   id: string
   label: string
   description: string
-  domain: 'Talento' | 'Turnos' | 'Asistencia' | 'Nómina' | 'Sistema'
+  domain: 'Talento' | 'Turnos' | 'Asistencia' | 'Nómina' | 'Sistema' | 'Centro de Control'
 }
 
 const ALL_PERMISSIONS: Permission[] = [
+  { id: 'can_view_kpis_talent', label: 'KPIs de Talento', description: 'Altas/Bajas, rotación y cumpleaños.', domain: 'Centro de Control' },
+  { id: 'can_view_kpis_attendance', label: 'KPIs de Asistencia', description: 'Retrasos y ausencias en tiempo real.', domain: 'Centro de Control' },
+  { id: 'can_view_kpis_financial', label: 'KPIs Financieros', description: 'Costos de horas extras y totales.', domain: 'Centro de Control' },
+  { id: 'can_view_kpis_hardware', label: 'KPIs de Hardware', description: 'Estado de conexión de Kioskos.', domain: 'Centro de Control' },
+
   { id: 'can_view_employees', label: 'Ver Empleados', description: 'Permite listar los empleados de la empresa.', domain: 'Talento' },
   { id: 'can_manage_employees', label: 'Gestionar Empleados', description: 'Crear, editar y dar de baja empleados.', domain: 'Talento' },
   { id: 'can_view_contracts', label: 'Ver Contratos', description: 'Acceso a la información contractual.', domain: 'Talento' },
@@ -49,7 +54,7 @@ export function PermissionsMatrix({ values, onChange }: PermissionsMatrixProps) 
     p.description.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const domains: Array<Permission['domain']> = ['Talento', 'Turnos', 'Asistencia', 'Nómina', 'Sistema']
+  const domains: Array<Permission['domain']> = ['Centro de Control', 'Talento', 'Turnos', 'Asistencia', 'Nómina', 'Sistema']
 
   return (
     <div className="space-y-8">
