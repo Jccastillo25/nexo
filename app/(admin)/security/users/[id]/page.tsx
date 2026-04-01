@@ -2,14 +2,15 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { UserEditorClient } from './UserEditorClient'
 
-export default async function UserEditPage({ params }: { params: { id: string } }) {
+export default async function UserEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createClient()
   
   // 1. Obtener el perfil que se va a editar
   const { data: profile } = await supabase
     .from('profiles')
     .select('id, email, full_name, linked_employee_id')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!profile) return notFound()
@@ -18,7 +19,7 @@ export default async function UserEditPage({ params }: { params: { id: string } 
   const { data: permissions } = await supabase
     .from('user_permissions')
     .select('*')
-    .eq('profile_id', params.id)
+    .eq('profile_id', id)
     .single()
 
   // 3. Obtener el contexto de la empresa (actualmente manejamos 1 para este demo)

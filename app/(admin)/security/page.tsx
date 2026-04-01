@@ -35,12 +35,22 @@ export default async function SecurityPage() {
   return (
     <section className="space-y-6">
 
-      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Estructura</p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-900">Seguridad y auditoría</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-          Control de acceso por roles, membresías activas y trazabilidad de acciones del sistema.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Estructura</p>
+          <h1 className="mt-2 text-3xl font-bold text-slate-900">Seguridad y auditoría</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+            Control de acceso por roles, membresías y trazabilidad de acciones del sistema.
+          </p>
+        </div>
+        <div>
+          <a
+            href="/security/users/create"
+            className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800"
+          >
+            Nuevo Usuario
+          </a>
+        </div>
       </div>
 
       {/* Resumen de roles */}
