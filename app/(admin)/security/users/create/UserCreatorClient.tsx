@@ -66,14 +66,35 @@ export function UserCreatorClient({ companyId, isOwner }: UserCreatorClientProps
 
   const handleEmployeeToggle = (emp: any | null) => {
     if (emp) {
+      const activeContract = emp.contracts?.find((c: any) => c.status === 'active')
+      const jobTitle = activeContract?.job_positions?.name || ''
+      
       setLinkedEmployeeId(emp.id)
       setFullName(`${emp.first_name} ${emp.last_name}`)
-      // Asegurar que la empresa del empleado esté seleccionada y sea la principal
-      setSelectedCompanyIds(prev => prev.includes(emp.company_id) ? prev : [...prev, emp.company_id])
-      setPrimaryCompanyId(emp.company_id)
+      setEmail(emp.email || '')
+      setPosition(jobTitle)
+
+      if (!emp.email) {
+        toast.warning('El empleado no tiene un correo corporativo registrado en RRHH.', {
+          description: 'Deberá ingresarlo manualmente si es un usuario externo, pero el SSOT quedará incompleto.'
+        })
+      }
+
+      if (activeContract) {
+        // Asegurar que la empresa del empleado esté seleccionada y sea la principal (BLOQUEADA)
+        setSelectedCompanyIds(prev => prev.includes(activeContract.company_id) ? prev : [...prev, activeContract.company_id])
+        setPrimaryCompanyId(activeContract.company_id)
+      } else {
+        toast.error('No se encontró un contrato activo para este empleado.', {
+          description: 'La Empresa Principal no se pudo automatizar.'
+        })
+      }
     } else {
       setLinkedEmployeeId(null)
       setFullName('')
+      setEmail('')
+      setPosition('')
+      setPrimaryCompanyId(companyId)
     }
     setIsDirty(true)
   }
@@ -225,14 +246,22 @@ export function UserCreatorClient({ companyId, isOwner }: UserCreatorClientProps
 
               <div>
                 <label className="text-[10px] font-black text-white mb-4 block tracking-[0.2em] uppercase">Email Corporativo *</label>
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setIsDirty(true); }}
-                  required
-                  className="w-full text-sm font-bold rounded-2xl border bg-white/10 border-white/10 text-white focus:border-white/40 focus:ring-4 focus:ring-white/5 px-5 py-4 transition-all outline-none"
-                  placeholder="usuario@empresa.com"
-                />
+                <div className="relative">
+                  <input 
+                    type="email" 
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setIsDirty(true); }}
+                    required
+                    disabled={!!linkedEmployeeId && !isOwner}
+                    className={`w-full text-sm font-bold rounded-2xl border transition-all outline-none px-5 py-4 ${
+                      (!!linkedEmployeeId && !isOwner) 
+                        ? 'bg-white/5 border-white/5 text-white/40 cursor-not-allowed italic opacity-50 grayscale' 
+                        : 'bg-white/10 border-white/10 text-white focus:border-white/40 focus:ring-4 focus:ring-white/5'
+                    }`}
+                    placeholder="usuario@empresa.com"
+                  />
+                  {!!linkedEmployeeId && <ShieldAlert className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/10" />}
+                </div>
               </div>
 
               <div>

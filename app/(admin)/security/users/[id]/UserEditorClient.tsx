@@ -68,12 +68,33 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
   }
 
   const handleEmployeeToggle = (emp: any | null) => {
-    setLinkedEmployeeId(emp ? emp.id : null)
     if (emp) {
+      const activeContract = emp.contracts?.find((c: any) => c.status === 'active')
+      const jobTitle = activeContract?.job_positions?.name || ''
+      
+      setLinkedEmployeeId(emp.id)
       setFullName(`${emp.first_name} ${emp.last_name}`)
-      // Sumar automáticamente la empresa del empleado si no está y marcar como principal
-      setSelectedCompanyIds(prev => prev.includes(emp.company_id) ? prev : [...prev, emp.company_id])
-      setPrimaryCompanyId(emp.company_id)
+      // El email del profile usualmente es el del Auth, no se debería cambiar así nomas si ya existe
+      // Pero para SSOT, si el empleado tiene uno distinto, mostramos advertencia
+      if (emp.email && emp.email !== profile.email) {
+        toast.info('El email en RRHH difiere del email de acceso actual.', {
+          description: `RRHH: ${emp.email} | Acceso: ${profile.email}`
+        })
+      }
+      
+      setPosition(jobTitle)
+
+      if (activeContract) {
+        setSelectedCompanyIds(prev => prev.includes(activeContract.company_id) ? prev : [...prev, activeContract.company_id])
+        setPrimaryCompanyId(activeContract.company_id)
+      } else {
+        toast.error('No se encontró un contrato activo para este empleado.')
+      }
+    } else {
+      setLinkedEmployeeId(null)
+      setFullName(profile.full_name || '')
+      setPosition(profile.position || '')
+      setPrimaryCompanyId(profile.company_id)
     }
     setIsDirty(true)
   }
@@ -250,6 +271,19 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
             <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 mb-10">Metadatos e Identidad</h3>
             
             <div className="space-y-8">
+              <div>
+                <label className="text-[10px] font-black text-white mb-4 block tracking-[0.2em] uppercase">Email de Identidad (Login)</label>
+                <div className="relative">
+                  <input 
+                    type="email" 
+                    value={profile.email}
+                    disabled
+                    className="w-full text-sm font-bold rounded-2xl border bg-white/5 border-white/5 text-white/40 cursor-not-allowed italic opacity-50 grayscale px-5 py-4 transition-all outline-none"
+                  />
+                  <ShieldAlert className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/10" />
+                </div>
+              </div>
+
               <div>
                 <label className="text-[10px] font-black text-white mb-4 block tracking-[0.2em] uppercase">Nombre Legal *</label>
                 <div className="relative">
