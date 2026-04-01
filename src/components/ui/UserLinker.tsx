@@ -10,12 +10,13 @@ interface Employee {
   last_name: string
   employee_code: string
   is_active: boolean
+  company_id: string
 }
 
 interface UserLinkerProps {
   companyId: string
   selectedEmployeeId?: string | null
-  onSelect: (employeeId: string | null) => void
+  onSelect: (employee: Employee | null) => void
 }
 
 export function UserLinker({ companyId, selectedEmployeeId, onSelect }: UserLinkerProps) {
@@ -30,7 +31,7 @@ export function UserLinker({ companyId, selectedEmployeeId, onSelect }: UserLink
     if (selectedEmployeeId) {
       supabase
         .from('employees')
-        .select('id, first_name, last_name, employee_code, is_active')
+        .select('id, first_name, last_name, employee_code, is_active, company_id')
         .eq('id', selectedEmployeeId)
         .single()
         .then(({ data }) => {
@@ -50,7 +51,7 @@ export function UserLinker({ companyId, selectedEmployeeId, onSelect }: UserLink
       setIsSearching(true)
       const { data } = await supabase
         .from('employees')
-        .select('id, first_name, last_name, employee_code, is_active')
+        .select('id, first_name, last_name, employee_code, is_active, company_id')
         .eq('company_id', companyId)
         .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,employee_code.ilike.%${searchTerm}%`)
         .limit(5)
@@ -64,7 +65,7 @@ export function UserLinker({ companyId, selectedEmployeeId, onSelect }: UserLink
 
   const handleSelect = (emp: Employee) => {
     setSelected(emp)
-    onSelect(emp.id)
+    onSelect(emp)
     setSearchTerm('')
     setEmployees([])
   }

@@ -41,8 +41,11 @@ export function UserEditorClient({ profile, initialPermissions, companyId, isOwn
     setIsDirty(true)
   }
 
-  const handleEmployeeToggle = (id: string | null) => {
-    setLinkedEmployeeId(id)
+  const handleEmployeeToggle = (emp: any | null) => {
+    setLinkedEmployeeId(emp ? emp.id : null)
+    if (emp) {
+      setFullName(`${emp.first_name} ${emp.last_name}`)
+    }
     setIsDirty(true)
   }
 
@@ -161,7 +164,7 @@ export function UserEditorClient({ profile, initialPermissions, companyId, isOwn
               <UserLinker 
                 companyId={companyId} 
                 selectedEmployeeId={linkedEmployeeId}
-                onSelect={(id) => handleEmployeeToggle(id)}
+                onSelect={(emp) => handleEmployeeToggle(emp)}
               />
             </div>
           </div>
