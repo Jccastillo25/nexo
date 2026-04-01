@@ -22,22 +22,31 @@ export default async function UserEditPage({ params }: { params: Promise<{ id: s
     .eq('profile_id', id)
     .single()
 
-  // 3. Obtener el contexto de la empresa (actualmente manejamos 1 para este demo)
+  // 3. Obtener todas las membresías del usuario (para el selector multi-empresa)
+  const { data: userMemberships } = await supabase
+    .from('company_memberships')
+    .select('company_id')
+    .eq('profile_id', id)
+
+  const initialCompanyIds = userMemberships?.map(m => m.company_id) || []
+
+  // 4. Obtener el contexto del administrador actual
   const { data: { user: currentUser } } = await supabase.auth.getUser()
-  const { data: membership } = await supabase
+  const { data: currentUserMembership } = await supabase
     .from('company_memberships')
     .select('company_id, role')
     .eq('profile_id', currentUser?.id)
     .single()
 
-  const isOwner = membership?.role === 'owner'
-  const companyId = membership?.company_id || ''
+  const isOwner = currentUserMembership?.role === 'owner'
+  const companyId = currentUserMembership?.company_id || ''
 
   return (
     <UserEditorClient 
       profile={profile}
       initialPermissions={permissions || {}}
       companyId={companyId}
+      initialCompanyIds={initialCompanyIds}
       isOwner={isOwner}
     />
   )

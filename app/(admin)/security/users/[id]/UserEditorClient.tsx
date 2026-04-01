@@ -8,17 +8,18 @@ import { UserLinker } from '@/components/ui/UserLinker'
 import { DirtyStateGuard } from '@/components/ui/DirtyStateGuard'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useGlobalContext } from '@/context/GlobalContext'
-import { ArrowLeft, Save, ShieldAlert, Zap, Eye, EyeOff, Lock } from 'lucide-react'
+import { ArrowLeft, Save, ShieldAlert, Zap, Eye, EyeOff, Lock, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface UserEditorClientProps {
   profile: any
   initialPermissions: any
+  initialCompanyIds: string[]
   companyId: string
   isOwner: boolean
 }
 
-export function UserEditorClient({ profile, initialPermissions, companyId, isOwner }: UserEditorClientProps) {
+export function UserEditorClient({ profile, initialPermissions, initialCompanyIds, companyId, isOwner }: UserEditorClientProps) {
   const router = useRouter()
   const supabase = createClient()
   const { companies } = useGlobalContext()
@@ -29,6 +30,7 @@ export function UserEditorClient({ profile, initialPermissions, companyId, isOwn
   const [position, setPosition] = useState<string>(profile.position || '')
   const [password, setPassword] = useState<string>('')
   const [showPassword, setShowPassword] = useState(false)
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>(initialCompanyIds)
   const [isSaving, setIsSaving] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -45,7 +47,16 @@ export function UserEditorClient({ profile, initialPermissions, companyId, isOwn
     setLinkedEmployeeId(emp ? emp.id : null)
     if (emp) {
       setFullName(`${emp.first_name} ${emp.last_name}`)
+      // Sumar automáticamente la empresa del empleado si no está
+      setSelectedCompanyIds(prev => prev.includes(emp.company_id) ? prev : [...prev, emp.company_id])
     }
+    setIsDirty(true)
+  }
+
+  const toggleCompany = (id: string) => {
+    setSelectedCompanyIds(prev => 
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    )
     setIsDirty(true)
   }
 
@@ -67,7 +78,28 @@ export function UserEditorClient({ profile, initialPermissions, companyId, isOwn
 
       if (profileError) throw profileError
 
-      // 2. Actualizar o Insertar permisos
+      // 2. Sincronizar membresías (Modelo Multi-Empresa)
+      const toAdd = selectedCompanyIds.filter(id => !initialCompanyIds.includes(id))
+      const toRemove = initialCompanyIds.filter(id => !selectedCompanyIds.includes(id))
+
+      if (toRemove.length > 0) {
+        await supabase
+          .from('company_memberships')
+          .delete()
+          .eq('profile_id', profile.id)
+          .in('company_id', toRemove)
+      }
+
+      if (toAdd.length > 0) {
+        const newMemberships = toAdd.map(cId => ({
+          profile_id: profile.id,
+          company_id: cId,
+          role: 'admin' // Rol por defecto
+        }))
+        await supabase.from('company_memberships').insert(newMemberships)
+      }
+
+      // 3. Actualizar permisos para la empresa actual
       const { error: permsError } = await supabase
         .from('user_permissions')
         .upsert({
@@ -79,14 +111,14 @@ export function UserEditorClient({ profile, initialPermissions, companyId, isOwn
 
       if (permsError) throw permsError
       
-      // 3. Simular reseteo de contraseña si el campo no está vacío
+      // 4. Simular reseteo de contraseña si el campo no está vacío
       if (password) {
         // Aquí iría la llamada a supabase.auth.admin.updateUserById(...) para el reseteo real
         await new Promise(resolve => setTimeout(resolve, 800))
         setPassword('') // Limpieza post-reseteo
       }
 
-      toast.success('Cambios aplicados exitosamente en ' + currentCompanyName, { id: toastId })
+      toast.success(`Cambios aplicados exitosamente en ${currentCompanyName}`, { id: toastId })
       setIsDirty(false)
     } catch (err: any) {
       toast.error('Error al guardar: ' + err.message, { id: toastId })
@@ -106,7 +138,7 @@ export function UserEditorClient({ profile, initialPermissions, companyId, isOwn
       <ConfirmDialog 
         isOpen={showConfirm}
         title="Confirmar Actualización"
-        description={`¿Estás seguro de que deseas guardar estos cambios de acceso para ${fullName || 'el usuario'} en ${currentCompanyName}?`}
+        description={`¿Estás seguro de que deseas guardar estos cambios de acceso para ${fullName || 'el usuario'} con alcance en ${selectedCompanyIds.length} empresa(s)?`}
         confirmLabel="PROCEDER CON EL GUARDADO"
         cancelLabel="REVISAR DE NUEVO"
         variant="info"
@@ -134,7 +166,7 @@ export function UserEditorClient({ profile, initialPermissions, companyId, isOwn
         <div className="flex items-center gap-6">
           <button
             onClick={() => setShowConfirm(true)}
-            disabled={!isDirty || isSaving}
+            disabled={!isDirty || isSaving || selectedCompanyIds.length === 0}
             className="px-10 py-5 bg-white text-slate-900 text-xs font-black tracking-[0.2em] rounded-[25px] hover:bg-white hover:scale-105 active:scale-95 disabled:opacity-10 disabled:grayscale transition-all flex items-center gap-4 shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
           >
             <Save className="h-4 w-4" />
@@ -170,11 +202,11 @@ export function UserEditorClient({ profile, initialPermissions, companyId, isOwn
           </div>
 
           <div className="rounded-[40px] bg-slate-900/30 p-10 border border-white/10 backdrop-blur-xl shadow-inner relative overflow-hidden">
-            <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20 mb-10">Metadatos de Identidad</h3>
+            <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 mb-10">Metadatos e Identidad</h3>
             
             <div className="space-y-8">
               <div>
-                <label className="text-[8px] font-black text-white/30 mb-4 block tracking-[0.2em] uppercase">Nombre Legal</label>
+                <label className="text-[10px] font-black text-white mb-4 block tracking-[0.2em] uppercase">Nombre Legal *</label>
                 <div className="relative">
                   <input 
                     type="text" 
@@ -193,7 +225,7 @@ export function UserEditorClient({ profile, initialPermissions, companyId, isOwn
               </div>
 
               <div>
-                <label className="text-[8px] font-black text-white/30 mb-4 block tracking-[0.2em] uppercase">Cargo Corporativo</label>
+                <label className="text-[10px] font-black text-white mb-4 block tracking-[0.2em] uppercase">Cargo Corporativo</label>
                 <div className="relative">
                   <input 
                     type="text" 
@@ -219,7 +251,7 @@ export function UserEditorClient({ profile, initialPermissions, companyId, isOwn
                 </div>
                 
                 <div>
-                  <label className="text-[8px] font-black text-white/30 mb-4 block tracking-[0.2em] uppercase">Nueva Contraseña</label>
+                  <label className="text-[10px] font-black text-white mb-4 block tracking-[0.2em] uppercase">Nueva Contraseña</label>
                   <div className="relative">
                     <input 
                       type={showPassword ? 'text' : 'password'} 
@@ -252,26 +284,73 @@ export function UserEditorClient({ profile, initialPermissions, companyId, isOwn
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Bloque 3: Alcance Organizacional (Multi-Empresa) */}
+          <div className="rounded-[40px] bg-slate-900/30 p-10 border border-white/10 backdrop-blur-xl shadow-inner relative overflow-hidden">
+            <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20 mb-10 text-white">Empresas Autorizadas</h3>
             
-            {!!linkedEmployeeId && (
-              <div className="mt-10 p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-3xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                <div className="flex items-center gap-3 mb-2">
-                  <Zap className="h-4 w-4 text-emerald-500" />
-                  <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest">Sincronización de Hierro</p>
-                </div>
-                <p className="text-[10px] text-emerald-500/60 leading-relaxed font-medium">
-                  Este perfil está blindado por el trigger SSOT. Los cambios manuales serán rechazados por la base de datos.
-                </p>
-              </div>
+            <div className="grid grid-cols-1 gap-4">
+              {companies.map(co => (
+                <label 
+                  key={co.id} 
+                  className={`flex items-center justify-between p-5 rounded-2xl border transition-all cursor-pointer group ${
+                    selectedCompanyIds.includes(co.id)
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-white'
+                      : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                      selectedCompanyIds.includes(co.id)
+                        ? 'bg-emerald-500 border-emerald-500'
+                        : 'bg-transparent border-white/20 group-hover:border-white/40'
+                    }`}>
+                      {selectedCompanyIds.includes(co.id) && <ShieldCheck className="h-3 w-3 text-slate-950" />}
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-widest">{co.name}</span>
+                  </div>
+                  <input 
+                    type="checkbox"
+                    className="hidden"
+                    checked={selectedCompanyIds.includes(co.id)}
+                    onChange={() => toggleCompany(co.id)}
+                  />
+                  {/* Badge de Empresa Origen si está vinculado */}
+                  {linkedEmployeeId && selectedCompanyIds.includes(co.id) && companyId === co.id && (
+                    <span className="text-[8px] font-black px-2 py-0.5 bg-emerald-500 text-slate-950 rounded uppercase">Origen</span>
+                  )}
+                </label>
+              ))}
+            </div>
+            
+            {selectedCompanyIds.length === 0 && (
+              <p className="mt-6 text-[10px] text-red-400 font-bold uppercase tracking-widest animate-pulse">
+                Debes seleccionar al menos una empresa
+              </p>
             )}
           </div>
+
+          {!!linkedEmployeeId && (
+            <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-3xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-emerald-500 rounded-xl">
+                  <ShieldCheck className="h-4 w-4 text-slate-950" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-white uppercase tracking-widest">Identidad Vinculada</p>
+                  <p className="text-[9px] text-emerald-500/60 font-bold uppercase tracking-widest">Sincronización SSOT Activa</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Lado Derecho: Matriz de Permisos (8/12) */}
         <div className="lg:col-span-8">
           <div className="p-1 bg-white/5 rounded-[50px] border border-white/5 backdrop-blur-3xl shadow-2xl relative">
             <div className="absolute top-8 left-10 z-10 pointer-events-none">
-              <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em]">Matriz de Accesos Granulares</span>
+              <span className="text-[9px] font-black text-white uppercase tracking-[0.5em]">Matriz de Accesos Granulares</span>
             </div>
             <PermissionsMatrix 
               values={permissions}
