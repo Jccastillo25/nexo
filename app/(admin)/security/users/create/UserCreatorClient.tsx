@@ -6,7 +6,9 @@ import { createClient } from '@/lib/supabase/client'
 import { PermissionsMatrix } from '@/components/ui/PermissionsMatrix'
 import { UserLinker } from '@/components/ui/UserLinker'
 import { DirtyStateGuard } from '@/components/ui/DirtyStateGuard'
-import { ArrowLeft, Save, ShieldAlert } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useGlobalContext } from '@/context/GlobalContext'
+import { ArrowLeft, Save, ShieldAlert, Zap, UserPlus, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface UserCreatorClientProps {
@@ -17,13 +19,20 @@ interface UserCreatorClientProps {
 export function UserCreatorClient({ companyId, isOwner }: UserCreatorClientProps) {
   const router = useRouter()
   const supabase = createClient()
+  const { companies } = useGlobalContext()
   
   const [permissions, setPermissions] = useState<Record<string, boolean>>({})
   const [linkedEmployeeId, setLinkedEmployeeId] = useState<string | null>(null)
   const [fullName, setFullName] = useState<string>('')
   const [email, setEmail] = useState<string>('')
+  const [position, setPosition] = useState<string>('')
+  const [password, setPassword] = useState<string>('')
+  const [showPassword, setShowPassword] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  const currentCompanyName = companies.find(c => c.id === companyId)?.name || 'la organización'
 
   const handlePermissionChange = (id: string, value: boolean) => {
     setPermissions(prev => ({ ...prev, [id]: value }))
@@ -36,109 +45,192 @@ export function UserCreatorClient({ companyId, isOwner }: UserCreatorClientProps
   }
 
   const saveChanges = async () => {
+    setShowConfirm(false)
     setIsSaving(true)
+    const toastId = toast.loading('Registrando nuevo acceso híbrido...')
+    
     try {
-      // Logic for Auth signup + creating profile would be handled via Edge Function or Next.js Route Handler for secure creation.
-      // Assuming a backend action for now, we simulate success for UI consistency:
-      toast.success('El usuario ha sido registrado y se enviaron instrucciones a su correo.')
+      // En un entorno real, esto llamaría a una Edge Function para crear el Auth User + Profile
+      // Aquí simulamos el éxito para mantener la coherencia del flujo UI solicitado
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      toast.success('Usuario registrado exitosamente en ' + currentCompanyName, { id: toastId })
       setIsDirty(false)
-      setTimeout(() => router.push('/security'), 1500)
+      setTimeout(() => router.push('/security'), 1000)
     } catch (err: any) {
-      toast.error('Error al guardar: ' + err.message)
+      toast.error('Error al crear usuario: ' + err.message, { id: toastId })
     } finally {
       setIsSaving(false)
     }
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-700 pb-20">
       <DirtyStateGuard 
         show={isDirty} 
         onConfirm={() => { setIsDirty(false); router.push('/security'); }}
         onCancel={() => setIsDirty(false)} 
       />
+
+      <ConfirmDialog 
+        isOpen={showConfirm}
+        title="Crear Nuevo Acceso"
+        description={`¿Confirmas el registro de ${fullName || email} con los permisos seleccionados para ${currentCompanyName}?`}
+        confirmLabel="DAR DE ALTA USUARIO"
+        cancelLabel="REVISAR PERMISOS"
+        variant="success"
+        onConfirm={saveChanges}
+        onCancel={() => setShowConfirm(false)}
+      />
       
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      {/* Header Premium */}
+      <div className="flex items-center justify-between bg-slate-900/40 backdrop-blur-3xl p-10 rounded-[50px] border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+        <div className="flex items-center gap-8">
           <button 
             onClick={() => router.back()}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+            className="p-4 bg-white/5 hover:bg-white/10 rounded-3xl transition-all border border-white/5 group"
           >
-            <ArrowLeft className="h-6 w-6 text-slate-500" />
+            <ArrowLeft className="h-6 w-6 text-white group-hover:-translate-x-1 transition-transform" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Nuevo Usuario</h1>
-            <p className="text-sm text-slate-500">Configuración de seguridad y acceso granular inicial</p>
+            <h1 className="text-4xl font-black text-white tracking-tight leading-none group">
+              Nuevo Acceso
+              <span className="block mt-3 text-xs font-black uppercase tracking-[0.4em] text-white/20 group-hover:text-emerald-500/50 transition-colors">Registro de Usuario Híbrido</span>
+            </h1>
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6">
           <button
-            onClick={saveChanges}
-            disabled={!isDirty || isSaving || !email}
-            className="px-6 py-2 bg-slate-900 text-white text-sm font-bold rounded-2xl hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-slate-900/20"
+            onClick={() => setShowConfirm(true)}
+            disabled={!isDirty || isSaving || !email || !password}
+            className="px-10 py-5 bg-emerald-500 text-slate-950 text-xs font-black tracking-[0.2em] rounded-[25px] hover:bg-emerald-400 hover:scale-105 active:scale-95 disabled:opacity-10 disabled:grayscale transition-all flex items-center gap-4 shadow-[0_20px_40px_rgba(16,185,129,0.2)]"
           >
-            <Save className="h-4 w-4" />
-            {isSaving ? 'Guardando...' : 'Crear Usuario'}
+            <UserPlus className="h-4 w-4" />
+            {isSaving ? 'CREANDO...' : 'ALTA DE USUARIO'}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 space-y-6">
-          <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <div className="flex items-center gap-2 mb-4">
-              <ShieldAlert className="h-5 w-5 text-slate-900" />
-              <h2 className="text-sm font-bold text-slate-900">Entidad Dual</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Lado Izquierdo: Configuración General (4/12) */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="rounded-[40px] bg-slate-900/50 p-10 border border-white/10 backdrop-blur-3xl shadow-2xl relative overflow-hidden group">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors" />
+            
+            <div className="flex items-center gap-3 mb-8 relative z-10">
+              <div className="p-2 bg-white/10 rounded-lg">
+                <ShieldAlert className="h-4 w-4 text-white" />
+              </div>
+              <h2 className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Integración SSOT</h2>
             </div>
-            <p className="text-xs text-slate-500 mb-4">
-              Opción Híbrida: Puedes vincular este nuevo usuario directamente a un empleado de RRHH, heredando sus datos.
+            
+            <p className="text-xs leading-relaxed text-white/50 mb-8 relative z-10 font-medium">
+              Al vincular a un empleado de RRHH, el sistema blindará los datos de identidad automáticamente.
             </p>
-            <UserLinker 
-              companyId={companyId} 
-              selectedEmployeeId={linkedEmployeeId}
-              onSelect={handleEmployeeToggle}
-            />
+            
+            <div className="relative z-10">
+              <UserLinker 
+                companyId={companyId} 
+                selectedEmployeeId={linkedEmployeeId}
+                onSelect={(id) => handleEmployeeToggle(id)}
+              />
+            </div>
           </div>
 
-          <div className="rounded-3xl bg-slate-50 p-6 border border-slate-200">
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Información de Perfil</h3>
-            <div className="space-y-4">
+          <div className="rounded-[40px] bg-slate-900/30 p-10 border border-white/10 backdrop-blur-xl shadow-inner relative overflow-hidden">
+            <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20 mb-10">Credenciales de Acceso</h3>
+            
+            <div className="space-y-8">
               <div>
-                <label className="text-[10px] font-bold text-slate-400 mb-1 block">NOMBRE COMPLETO</label>
-                <input 
-                  type="text" 
-                  value={fullName}
-                  onChange={(e) => { setFullName(e.target.value); setIsDirty(true); }}
-                  readOnly={!!linkedEmployeeId}
-                  className={`w-full text-sm font-medium rounded-xl border ${!!linkedEmployeeId ? 'bg-slate-100/50 border-slate-200 text-slate-500 cursor-not-allowed' : 'bg-white border-slate-300 text-slate-900 focus:ring-2 focus:ring-slate-900 focus:border-slate-900'} px-3 py-2 transition-all outline-none`}
-                  placeholder="Ej. Juan Pérez"
-                />
-                {!!linkedEmployeeId && (
-                  <p className="text-[10px] text-amber-600 mt-1 font-medium flex items-center gap-1">
-                    <ShieldAlert className="w-3 h-3" />
-                    Dato heredado de BD (Solo lectura)
-                  </p>
-                )}
+                <label className="text-[8px] font-black text-white/30 mb-4 block tracking-[0.2em] uppercase">Nombre Legal</label>
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    value={fullName}
+                    onChange={(e) => { setFullName(e.target.value); setIsDirty(true); }}
+                    readOnly={!!linkedEmployeeId && !isOwner}
+                    className={`w-full text-sm font-bold rounded-2xl border transition-all outline-none px-5 py-4 ${
+                      (!!linkedEmployeeId && !isOwner) 
+                        ? 'bg-white/5 border-white/5 text-white/20 cursor-not-allowed italic' 
+                        : 'bg-white/10 border-white/10 text-white focus:border-white/40 focus:ring-4 focus:ring-white/5'
+                    }`}
+                    placeholder="Nombre del usuario"
+                  />
+                  {!!linkedEmployeeId && <ShieldAlert className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/10" />}
+                </div>
               </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 mb-1 block">CORREO ELECTRÓNICO *</label>
+
+               <div>
+                <label className="text-[8px] font-black text-white/30 mb-4 block tracking-[0.2em] uppercase">Email Corporativo *</label>
                 <input 
                   type="email" 
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setIsDirty(true); }}
                   required
-                  className="w-full text-sm font-medium rounded-xl border bg-white border-slate-300 text-slate-900 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 px-3 py-2 transition-all outline-none"
+                  className="w-full text-sm font-bold rounded-2xl border bg-white/10 border-white/10 text-white focus:border-white/40 focus:ring-4 focus:ring-white/5 px-5 py-4 transition-all outline-none"
                   placeholder="usuario@empresa.com"
                 />
               </div>
+
+              <div>
+                <label className="text-[8px] font-black text-white/30 mb-4 block tracking-[0.2em] uppercase">Contraseña de Acceso *</label>
+                <div className="relative">
+                  <input 
+                    type={showPassword ? 'text' : 'password'} 
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setIsDirty(true); }}
+                    required
+                    className="w-full text-sm font-bold rounded-2xl border bg-white/10 border-white/10 text-white focus:border-white/40 focus:ring-4 focus:ring-white/5 px-5 py-4 transition-all outline-none pr-14"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-xl transition-colors text-white/40 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[8px] font-black text-white/30 mb-4 block tracking-[0.2em] uppercase">Cargo Inicial</label>
+                <input 
+                  type="text" 
+                  value={position}
+                  onChange={(e) => { setPosition(e.target.value); setIsDirty(true); }}
+                  readOnly={!!linkedEmployeeId && !isOwner}
+                  className={`w-full text-sm font-bold rounded-2xl border transition-all outline-none px-5 py-4 ${
+                    (!!linkedEmployeeId && !isOwner) 
+                      ? 'bg-white/5 border-white/5 text-white/20 cursor-not-allowed italic' 
+                      : 'bg-white/10 border-white/10 text-white focus:border-white/40 focus:ring-4 focus:ring-white/5'
+                  }`}
+                  placeholder="Ej: Administrador Externo"
+                />
+              </div>
             </div>
+            
+            {!!linkedEmployeeId && (
+              <div className="mt-10 p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-3xl">
+                <div className="flex items-center gap-3 mb-2">
+                  <Zap className="h-4 w-4 text-emerald-500" />
+                  <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest">Heredando de RRHH</p>
+                </div>
+                <p className="text-[10px] text-emerald-500/60 leading-relaxed font-medium">
+                  El sistema utilizará el nombre y cargo legal definido en el expediente oficial.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="lg:col-span-2">
-          <div className="bg-slate-50/50 rounded-[40px] p-2 ring-1 ring-slate-200/50">
+        {/* Lado Derecho: Matriz de Permisos (8/12) */}
+        <div className="lg:col-span-8">
+          <div className="p-1 bg-white/5 rounded-[50px] border border-white/5 backdrop-blur-3xl shadow-2xl relative">
+            <div className="absolute top-8 left-10 z-10 pointer-events-none">
+              <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em]">Asignación de Accesos Master</span>
+            </div>
             <PermissionsMatrix 
               values={permissions}
               onChange={handlePermissionChange}

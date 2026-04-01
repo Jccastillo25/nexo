@@ -5,10 +5,18 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 
+interface Company {
+  id: string
+  name: string
+  slug: string
+}
+
 interface GlobalContextType {
   user: User | null
   companyId: string | null
   setCompanyId: (id: string) => void
+  companies: Company[]
+  setCompanies: (companies: Company[]) => void
   isLoading: boolean
 }
 
@@ -17,6 +25,7 @@ const GlobalContext = createContext<GlobalContextType | undefined>(undefined)
 export function GlobalProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [companyId, setCompanyIdState] = useState<string | null>(null)
+  const [companies, setCompanies] = useState<Company[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
   const searchParams = useSearchParams()
@@ -116,7 +125,7 @@ export function GlobalProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <GlobalContext.Provider value={{ user, companyId, setCompanyId, isLoading }}>
+    <GlobalContext.Provider value={{ user, companyId, setCompanyId, companies, setCompanies, isLoading }}>
       {children}
     </GlobalContext.Provider>
   )

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AdminSidebar } from './admin-sidebar'
 import { AdminTopbar } from './admin-topbar'
-import { GlobalProvider } from '@/context/GlobalContext'
+import { GlobalProvider, useGlobalContext } from '@/context/GlobalContext'
 
 interface AdminShellClientProps {
   companyName: string
@@ -14,7 +14,7 @@ interface AdminShellClientProps {
   children: React.ReactNode
 }
 
-export function AdminShellClient({
+function AdminShellContent({
   companyName,
   userName,
   userRole,
@@ -22,12 +22,17 @@ export function AdminShellClient({
   companies,
   children,
 }: AdminShellClientProps) {
+  const { setCompanies } = useGlobalContext()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
+  // Sync companies to global context
+  useEffect(() => {
+    setCompanies(companies)
+  }, [companies, setCompanies])
+
   return (
-    <GlobalProvider>
-      <div className="min-h-screen" style={{ background: 'var(--bg-app)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--bg-app)' }}>
 
       {/* ── Desktop sidebar ── */}
       <div
@@ -99,6 +104,13 @@ export function AdminShellClient({
         </main>
       </div>
     </div>
+  )
+}
+
+export function AdminShellClient(props: AdminShellClientProps) {
+  return (
+    <GlobalProvider>
+      <AdminShellContent {...props} />
     </GlobalProvider>
   )
 }
