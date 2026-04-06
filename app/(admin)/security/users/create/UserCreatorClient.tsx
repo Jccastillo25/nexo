@@ -252,7 +252,7 @@ export function UserCreatorClient({ companyId, isOwner }: UserCreatorClientProps
                     disabled={!!linkedEmployeeId && !isOwner}
                     className={`w-full text-sm font-bold rounded-2xl border transition-all outline-none px-5 py-4 ${
                       (!!linkedEmployeeId && !isOwner) 
-                        ? 'bg-white/5 border-white/5 text-white/40 cursor-not-allowed italic opacity-50 grayscale' 
+                        ? 'bg-white/5 border-white/5 text-white/60 cursor-not-allowed'
                         : 'bg-white/10 border-white/10 text-white focus:border-white/40 focus:ring-4 focus:ring-white/5'
                     }`}
                     placeholder="Nombre del usuario"
@@ -272,7 +272,7 @@ export function UserCreatorClient({ companyId, isOwner }: UserCreatorClientProps
                     disabled={!!linkedEmployeeId && !isOwner}
                     className={`w-full text-sm font-bold rounded-2xl border transition-all outline-none px-5 py-4 ${
                       (!!linkedEmployeeId && !isOwner) 
-                        ? 'bg-white/5 border-white/5 text-white/40 cursor-not-allowed italic opacity-50 grayscale' 
+                        ? 'bg-white/5 border-white/5 text-white/60 cursor-not-allowed'
                         : 'bg-white/10 border-white/10 text-white focus:border-white/40 focus:ring-4 focus:ring-white/5'
                     }`}
                     placeholder="usuario@empresa.com"
@@ -311,7 +311,7 @@ export function UserCreatorClient({ companyId, isOwner }: UserCreatorClientProps
                     disabled={!!linkedEmployeeId && !isOwner}
                     className={`w-full text-sm font-bold rounded-2xl border transition-all outline-none px-5 py-4 ${
                       (!!linkedEmployeeId && !isOwner) 
-                        ? 'bg-white/5 border-white/5 text-white/40 cursor-not-allowed italic opacity-50 grayscale' 
+                        ? 'bg-white/5 border-white/5 text-white/60 cursor-not-allowed'
                         : 'bg-white/10 border-white/10 text-white focus:border-white/40 focus:ring-4 focus:ring-white/5'
                     }`}
                     placeholder="Ej: Administrador Externo"

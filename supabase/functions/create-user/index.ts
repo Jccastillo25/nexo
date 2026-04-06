@@ -105,7 +105,7 @@ serve(async (req) => {
 
     // 3. Crear membresías de empresa
     const memberships = companies.map((c: { company_id: string; role: string }) => ({
-      profile_id: userId,
+      user_id: userId,
       company_id: c.company_id,
       role: c.role || 'viewer',
     }))
