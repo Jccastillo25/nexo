@@ -173,10 +173,17 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
 
       if (permsError) throw permsError
       
-      // 4. Simular reseteo de contraseña si el campo no está vacío
+      // 4. Reseteo de contraseña real vía Edge Function si el campo no está vacío
       if (password) {
-        // Aquí iría la llamada a supabase.auth.admin.updateUserById(...) para el reseteo real
-        await new Promise(resolve => setTimeout(resolve, 800))
+        const { data: pwData, error: pwError } = await supabase.functions.invoke('update-user-password', {
+          body: {
+            target_user_id: profile.id,
+            password,
+            company_id: companyId,
+          },
+        })
+        if (pwError) throw pwError
+        if (pwData?.error) throw new Error(pwData.error)
         setPassword('') // Limpieza post-reseteo
       }
 

@@ -125,12 +125,29 @@ export function UserCreatorClient({ companyId, isOwner }: UserCreatorClientProps
     setShowConfirm(false)
     setIsSaving(true)
     const toastId = toast.loading('Registrando nuevo acceso híbrido...')
-    
+
     try {
-      // En un entorno real, esto llamaría a una Edge Function para crear el Auth User + Profile
-      // Aquí simulamos el éxito para mantener la coherencia del flujo UI solicitado
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
+      const companiesPayload = selectedCompanyIds.map(cId => ({
+        company_id: cId,
+        role: cId === primaryCompanyId ? 'admin' : 'viewer',
+      }))
+
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email,
+          password,
+          full_name: fullName,
+          position,
+          company_id: primaryCompanyId || companyId,
+          linked_employee_id: linkedEmployeeId,
+          companies: companiesPayload,
+          permissions,
+        },
+      })
+
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+
       toast.success('Usuario registrado exitosamente en ' + currentCompanyName, { id: toastId })
       setIsDirty(false)
       setTimeout(() => router.push('/security'), 1000)
