@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 interface CreateUserInput {
   email: string
@@ -105,21 +105,24 @@ export async function createUserWithMemberships(input: CreateUserInput) {
     }
 
     // Step 6: Crear audit log
-    await serverClient
-      .from('audit_logs')
-      .insert({
-        table_name: 'profiles',
-        record_id: userId,
-        action: 'CREATE',
-        old_values: null,
-        new_values: {
-          email: input.email,
-          full_name: input.fullName,
-          companies: input.companyIds,
-        },
-        changed_by: currentUser.id,
-      })
-      .catch(err => console.warn('Audit log failed:', err))
+    try {
+      await serverClient
+        .from('audit_logs')
+        .insert({
+          table_name: 'profiles',
+          record_id: userId,
+          action: 'CREATE',
+          old_values: null,
+          new_values: {
+            email: input.email,
+            full_name: input.fullName,
+            companies: input.companyIds,
+          },
+          changed_by: currentUser.id,
+        })
+    } catch (err) {
+      console.warn('Audit log failed:', err)
+    }
 
     return {
       success: true,
@@ -273,27 +276,31 @@ export async function updateUser(
       if (insertError) {
         // Rollback: restaurar memberships antigas
         if (currentMemberships && currentMemberships.length > 0) {
-          await supabase
-            .from('company_memberships')
-            .insert(currentMemberships)
-            .catch(err => console.error('Rollback failed:', err))
+          try {
+            await supabase.from('company_memberships').insert(currentMemberships)
+          } catch (err) {
+            console.error('Rollback failed:', err)
+          }
         }
         throw new Error(`Error al insertar nuevas memberships: ${insertError.message}`)
       }
     }
 
     // Audit log
-    await supabase
-      .from('audit_logs')
-      .insert({
-        table_name: 'profiles',
-        record_id: userId,
-        action: 'UPDATE',
-        old_values: null,
-        new_values: updates,
-        changed_by: currentUser.id,
-      })
-      .catch(err => console.warn('Audit log failed:', err))
+    try {
+      await supabase
+        .from('audit_logs')
+        .insert({
+          table_name: 'profiles',
+          record_id: userId,
+          action: 'UPDATE',
+          old_values: null,
+          new_values: updates,
+          changed_by: currentUser.id,
+        })
+    } catch (err) {
+      console.warn('Audit log failed:', err)
+    }
 
     return { success: true, message: 'Usuario actualizado' }
   } catch (error: any) {
@@ -373,17 +380,20 @@ export async function deleteUser(userId: string) {
     }
 
     // Audit log
-    await serverClient
-      .from('audit_logs')
-      .insert({
-        table_name: 'profiles',
-        record_id: userId,
-        action: 'DELETE',
-        old_values: { id: userId, company_id: targetUser.company_id },
-        new_values: null,
-        changed_by: currentUser.id,
-      })
-      .catch(err => console.warn('Audit log failed:', err))
+    try {
+      await serverClient
+        .from('audit_logs')
+        .insert({
+          table_name: 'profiles',
+          record_id: userId,
+          action: 'DELETE',
+          old_values: { id: userId, company_id: targetUser.company_id },
+          new_values: null,
+          changed_by: currentUser.id,
+        })
+    } catch (err) {
+      console.warn('Audit log failed:', err)
+    }
 
     return { success: true, message: 'Usuario eliminado exitosamente' }
   } catch (error: any) {
