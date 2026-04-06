@@ -214,8 +214,8 @@ export function UserCreatorClient({ companyId, isOwner }: UserCreatorClientProps
         {/* Lado Izquierdo: Configuración General (4/12) */}
         <div className="lg:col-span-4 space-y-6">
           {/* Bloque 1: Integración SSOT (Buscador) */}
-          <div className="rounded-[40px] bg-slate-900/50 p-10 border border-white/10 backdrop-blur-3xl shadow-2xl relative overflow-hidden group">
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors" />
+          <div className="rounded-[40px] bg-slate-900/50 p-10 border border-white/10 backdrop-blur-3xl shadow-2xl relative group">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors pointer-events-none" />
             
             <div className="flex items-center gap-3 mb-8 relative z-10">
               <div className="p-2 bg-white/10 rounded-lg">
