@@ -20,10 +20,17 @@ serve(async (req) => {
     }
 
     const body = await req.json()
-    const { email, password, full_name, position, company_id, linked_employee_id, companies, permissions } = body
+    let { email, password, full_name, position, company_id, linked_employee_id, companies, permissions } = body
+
+    // Sanitización de UUIDs: "" -> null
+    const sanitizeUUID = (id: any) => (typeof id === 'string' && id.trim() === '') ? null : id
+    
+    company_id = sanitizeUUID(company_id)
+    linked_employee_id = sanitizeUUID(linked_employee_id)
 
     if (!email || !password || !company_id || !companies?.length) {
-      return new Response(JSON.stringify({ error: 'Faltan campos', step: 'validation', received: { email: !!email, password: !!password, company_id: !!company_id, companies: companies?.length } }), {
+      console.error('Validación fallida:', { email: !!email, password: !!password, company_id, companies_len: companies?.length })
+      return new Response(JSON.stringify({ error: 'Faltan campos obligatorios o IDs inválidos', step: 'validation' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -49,7 +56,7 @@ serve(async (req) => {
       .single()
 
     if (!callerMembership || !['owner', 'admin'].includes(callerMembership.role)) {
-      return new Response(JSON.stringify({ error: 'Sin permisos', step: 'permission_check', role: callerMembership?.role, membershipCheckError: membershipCheckError?.message }), {
+      return new Response(JSON.stringify({ error: 'Sin permisos', step: 'permission_check', role: callerMembership?.role, detail: membershipCheckError?.message }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -59,12 +66,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // 1. Crear usuario en Auth
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email, password, email_confirm: true,
     })
 
     if (createError || !newUser.user) {
-      console.error('Error Auth:', createError)
+      console.error('Error Auth Admin:', createError)
       return new Response(JSON.stringify({ error: createError?.message || 'Error Auth', step: 'create_auth_user' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -72,52 +80,56 @@ serve(async (req) => {
 
     const userId = newUser.user.id
 
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .insert({ id: userId, email, full_name: full_name || '', position: position || '', company_id, linked_employee_id: linked_employee_id || null, is_active: true })
+    // 2. Insertar Perfil
+    const profilePayload = { 
+      id: userId, 
+      email, 
+      full_name: full_name || '', 
+      position: position || '', 
+      company_id, 
+      linked_employee_id: linked_employee_id || null, 
+      is_active: true 
+    }
+    
+    console.log('Insertando perfil:', profilePayload)
+    const { error: profileError } = await supabaseAdmin.from('profiles').insert(profilePayload)
 
     if (profileError) {
-      console.error('Error insert profile:', profileError, { payload: { id: userId, email, company_id, linked_employee_id } })
+      console.error('Error insert profile:', profileError)
       await supabaseAdmin.auth.admin.deleteUser(userId)
       return new Response(JSON.stringify({ error: profileError.message, step: 'insert_profile' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // public.company_memberships: usa 'user_id' e id secuencial (o gen_random_uuid())
+    // 3. Membresías de Empresa
     const memberships = companies.map((c: { company_id: string; role: string }) => ({
       user_id: userId,
-      company_id: c.company_id,
+      company_id: sanitizeUUID(c.company_id),
       role: c.role || 'viewer',
     }))
 
+    console.log('Insertando membresías:', memberships)
     const { error: membershipError } = await supabaseAdmin.from('company_memberships').insert(memberships)
 
     if (membershipError) {
-      console.error('Error insert memberships:', membershipError, memberships)
+      console.error('Error insert memberships:', membershipError)
       await supabaseAdmin.auth.admin.deleteUser(userId)
       return new Response(JSON.stringify({ error: membershipError.message, step: 'insert_memberships' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
+    // 4. Permisos Globales (Sin company_id)
     if (permissions && Object.keys(permissions).length > 0) {
-      // public.user_permissions: profile_id es UNIQUE y NO existe la columna company_id.
-      // Los permisos se registran una sola vez vinculados al profile_id.
-      const { error: permsError } = await supabaseAdmin
-        .from('user_permissions')
-        .insert({
-          profile_id: userId,
-          ...permissions,
-        })
-      if (permsError) {
-        console.error('Error insert user_permissions:', permsError, permissions)
-        // Optamos por no borrar el user aquí, pero logueamos el error gravemente.
-      }
+      const permsPayload = { profile_id: userId, ...permissions }
+      console.log('Insertando permisos:', permsPayload)
+      const { error: permsError } = await supabaseAdmin.from('user_permissions').insert(permsPayload)
+      if (permsError) console.error('Error insert user_permissions:', permsError)
     }
 
-    // audit_logs: solo enviamos campos existentes para evitar errores de triggers o esquema
-    await supabaseAdmin.from('audit_logs').insert({
+    // 5. Audit logs
+    const auditPayload = {
       company_id,
       source: 'ADMIN',
       action: 'USUARIO_CREADO',
@@ -125,16 +137,18 @@ serve(async (req) => {
         email, 
         full_name, 
         companies: memberships.length,
-        description: 'Alta de nuevo usuario administrativo/híbrido' 
+        description: 'Alta exitosa de nuevo usuario administrativo' 
       },
-    })
+    }
+    console.log('Insertando audit log:', auditPayload)
+    await supabaseAdmin.from('audit_logs').insert(auditPayload)
 
     return new Response(JSON.stringify({ success: true, user_id: userId }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (err: any) {
-    console.error('Catch fatal error:', err)
+    console.error('Error fatal catch:', err)
     return new Response(JSON.stringify({ error: err.message, step: 'catch' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
