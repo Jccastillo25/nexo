@@ -29,8 +29,12 @@ serve(async (req) => {
     linked_employee_id = sanitizeUUID(linked_employee_id)
 
     if (!email || !password || !company_id || !companies?.length) {
-      console.error('Validación fallida:', { email: !!email, password: !!password, company_id, companies_len: companies?.length })
-      return new Response(JSON.stringify({ error: 'Faltan campos obligatorios o IDs inválidos', step: 'validation' }), {
+      console.error('Validación fallida - IDs faltantes o vacíos:', { email: !!email, password: !!password, company_id, companies_len: companies?.length })
+      return new Response(JSON.stringify({ 
+        error: 'La empresa principal es requerida o el ID es inválido. Por favor, refresque la página.', 
+        step: 'validation',
+        detail: { company_id } 
+      }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }

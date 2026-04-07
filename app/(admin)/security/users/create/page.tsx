@@ -9,8 +9,8 @@ export default async function UserCreatePage() {
   const { data: membership } = await supabase
     .from('company_memberships')
     .select('company_id, role')
-    .eq('profile_id', currentUser?.id)
-    .single()
+    .eq('user_id', currentUser?.id)
+    .maybeSingle()
 
   const isOwner = membership?.role === 'owner'
   const companyId = membership?.company_id || ''
