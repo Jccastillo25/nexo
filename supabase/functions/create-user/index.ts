@@ -82,8 +82,11 @@ serve(async (req) => {
       })
     }
 
+    // public.company_memberships: usa 'user_id' e id secuencial (o gen_random_uuid())
     const memberships = companies.map((c: { company_id: string; role: string }) => ({
-      user_id: userId, company_id: c.company_id, role: c.role || 'viewer',
+      user_id: userId,
+      company_id: c.company_id,
+      role: c.role || 'viewer',
     }))
 
     const { error: membershipError } = await supabaseAdmin.from('company_memberships').insert(memberships)
@@ -96,18 +99,28 @@ serve(async (req) => {
     }
 
     if (permissions && Object.keys(permissions).length > 0) {
-      const permRows = companies.map((c: { company_id: string }) => ({
-        profile_id: userId, company_id: c.company_id, ...permissions,
-      }))
-      const { error: permsError } = await supabaseAdmin.from('user_permissions').insert(permRows)
+      // public.user_permissions: profile_id es UNIQUE y NO existe la columna company_id.
+      // Los permisos se registran una sola vez vinculados al profile_id.
+      const { error: permsError } = await supabaseAdmin
+        .from('user_permissions')
+        .insert({
+          profile_id: userId,
+          ...permissions,
+        })
       if (permsError) console.error('Permisos error:', permsError.message)
     }
 
-    // audit_logs: solo columnas que existen en la tabla
+    // audit_logs: solo enviamos campos existentes para evitar errores de triggers o esquema
     await supabaseAdmin.from('audit_logs').insert({
       company_id,
       source: 'ADMIN',
-      details: { new_data: { email, full_name, companies }, action_description: 'Usuario creado' },
+      action: 'USUARIO_CREADO',
+      details: { 
+        email, 
+        full_name, 
+        companies: memberships.length,
+        description: 'Alta de nuevo usuario administrativo/híbrido' 
+      },
     })
 
     return new Response(JSON.stringify({ success: true, user_id: userId }), {
