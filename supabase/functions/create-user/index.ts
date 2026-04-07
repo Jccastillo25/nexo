@@ -64,6 +64,7 @@ serve(async (req) => {
     })
 
     if (createError || !newUser.user) {
+      console.error('Error Auth:', createError)
       return new Response(JSON.stringify({ error: createError?.message || 'Error Auth', step: 'create_auth_user' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -76,6 +77,7 @@ serve(async (req) => {
       .insert({ id: userId, email, full_name: full_name || '', position: position || '', company_id, linked_employee_id: linked_employee_id || null, is_active: true })
 
     if (profileError) {
+      console.error('Error insert profile:', profileError, { payload: { id: userId, email, company_id, linked_employee_id } })
       await supabaseAdmin.auth.admin.deleteUser(userId)
       return new Response(JSON.stringify({ error: profileError.message, step: 'insert_profile' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -92,6 +94,7 @@ serve(async (req) => {
     const { error: membershipError } = await supabaseAdmin.from('company_memberships').insert(memberships)
 
     if (membershipError) {
+      console.error('Error insert memberships:', membershipError, memberships)
       await supabaseAdmin.auth.admin.deleteUser(userId)
       return new Response(JSON.stringify({ error: membershipError.message, step: 'insert_memberships' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -107,7 +110,10 @@ serve(async (req) => {
           profile_id: userId,
           ...permissions,
         })
-      if (permsError) console.error('Permisos error:', permsError.message)
+      if (permsError) {
+        console.error('Error insert user_permissions:', permsError, permissions)
+        // Optamos por no borrar el user aquí, pero logueamos el error gravemente.
+      }
     }
 
     // audit_logs: solo enviamos campos existentes para evitar errores de triggers o esquema
@@ -128,6 +134,7 @@ serve(async (req) => {
     })
 
   } catch (err: any) {
+    console.error('Catch fatal error:', err)
     return new Response(JSON.stringify({ error: err.message, step: 'catch' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
