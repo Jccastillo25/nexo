@@ -18,7 +18,7 @@ export default async function SecurityPage() {
   ] = await Promise.all([
     supabase
       .from('company_memberships')
-      .select('id, role, is_active, profiles(id, email, full_name, linked_employee_id), companies(display_name)')
+      .select('id, user_id, role, is_active, profiles(id, email, full_name, linked_employee_id), companies(display_name)')
       .order('role'),
     supabase
       .from('audit_logs')
@@ -142,7 +142,7 @@ export default async function SecurityPage() {
                           </td>
                           <td className="px-10 py-8 text-right text-white">
                             <a 
-                              href={`/security/users/${profile?.id}`} 
+                              href={`/security/users/${m.user_id}`} 
                               className="inline-flex items-center justify-center p-4 bg-white/5 hover:bg-white text-white hover:text-slate-950 rounded-2xl transition-all border border-white/5"
                             >
                               <ExternalLink className="h-4 w-4" />
