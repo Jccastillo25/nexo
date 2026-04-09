@@ -6,14 +6,16 @@ export default async function UserCreatePage() {
 
   // 1. Obtener el contexto de la empresa del admin logueado
   const { data: { user: currentUser } } = await supabase.auth.getUser()
-  const { data: membership } = await supabase
+  const { data: memberships } = await supabase
     .from('company_memberships')
     .select('company_id, role')
     .eq('user_id', currentUser?.id)
-    .maybeSingle()
+    .in('role', ['owner', 'admin'])
 
-  const isOwner = membership?.role === 'owner'
-  const companyId = membership?.company_id || ''
+  // Si el usuario tiene múltiples membresías, preferir la de owner
+  const primaryMembership = memberships?.find(m => m.role === 'owner') ?? memberships?.[0]
+  const isOwner = primaryMembership?.role === 'owner'
+  const companyId = primaryMembership?.company_id ?? ''
 
   return (
     <UserCreatorClient 

@@ -145,14 +145,22 @@ export function UserCreatorClient({ companyId, isOwner }: UserCreatorClientProps
         },
       })
 
-      if (error) throw error
+      if (error) {
+        // Intentar extraer el mensaje real del cuerpo de la respuesta
+        let serverMessage = error.message
+        try {
+          const body = await (error as any).context?.json?.()
+          if (body?.error) serverMessage = body.error
+        } catch {}
+        throw new Error(serverMessage)
+      }
       if (data?.error) throw new Error(data.error)
 
       toast.success('Usuario registrado exitosamente en ' + currentCompanyName, { id: toastId })
       setIsDirty(false)
       setTimeout(() => router.push('/security'), 1000)
     } catch (err: any) {
-      toast.error('Error al crear usuario: ' + err.message, { id: toastId })
+      toast.error('Error al crear usuario: ' + err.message, { id: toastId, duration: 8000 })
     } finally {
       setIsSaving(false)
     }
@@ -214,7 +222,7 @@ export function UserCreatorClient({ companyId, isOwner }: UserCreatorClientProps
         {/* Lado Izquierdo: Configuración General (4/12) */}
         <div className="lg:col-span-4 space-y-6">
           {/* Bloque 1: Integración SSOT (Buscador) */}
-          <div className="rounded-[40px] bg-slate-900/50 p-10 border border-white/10 backdrop-blur-3xl shadow-2xl relative group">
+          <div className="rounded-[40px] bg-slate-900/50 p-10 border border-white/10 backdrop-blur-3xl shadow-2xl relative group z-20">
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors pointer-events-none" />
             
             <div className="flex items-center gap-3 mb-8 relative z-10">

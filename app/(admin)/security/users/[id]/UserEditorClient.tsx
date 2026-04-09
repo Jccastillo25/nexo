@@ -182,7 +182,14 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
             company_id: companyId,
           },
         })
-        if (pwError) throw pwError
+        if (pwError) {
+          let serverMessage = pwError.message
+          try {
+            const body = await (pwError as any).context?.json?.()
+            if (body?.error) serverMessage = body.error
+          } catch {}
+          throw new Error(serverMessage)
+        }
         if (pwData?.error) throw new Error(pwData.error)
         setPassword('') // Limpieza post-reseteo
       }
