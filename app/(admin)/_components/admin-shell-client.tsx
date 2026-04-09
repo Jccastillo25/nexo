@@ -84,10 +84,7 @@ function AdminShellContent({
 
       {/* ── Main content area ── */}
       <div
-        className="flex min-h-screen flex-col w-full transition-all duration-300 ease-in-out"
-        style={{ 
-          paddingLeft: sidebarOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed-width)',
-        }}
+        className={`flex min-h-screen flex-col w-full transition-all duration-300 ease-in-out ${sidebarOpen ? 'lg:pl-[280px]' : 'lg:pl-[80px]'}`}
       >
         <AdminTopbar
           sidebarOpen={sidebarOpen}
