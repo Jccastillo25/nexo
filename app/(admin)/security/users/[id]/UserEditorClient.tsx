@@ -148,13 +148,13 @@ export function UserEditorClient({ profile, initialPermissions, initialCompanyId
         await supabase
           .from('company_memberships')
           .delete()
-          .eq('profile_id', profile.id)
+          .eq('user_id', profile.id)
           .in('company_id', toRemove)
       }
 
       if (toAdd.length > 0) {
         const newMemberships = toAdd.map(cId => ({
-          profile_id: profile.id,
+          user_id: profile.id,
           company_id: cId,
           role: 'admin' // Rol por defecto
         }))

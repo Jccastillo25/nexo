@@ -22,7 +22,7 @@ export default async function SecurityPage() {
       .order('role'),
     supabase
       .from('audit_logs')
-      .select('id, action, entity, impersonator_id, created_at, profiles(full_name, email)', { count: 'exact' })
+      .select('id, action, table_name, impersonator_id, created_at, profiles!impersonator_id(full_name, email)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .limit(15),
   ])
@@ -192,7 +192,7 @@ export default async function SecurityPage() {
                         {profile?.full_name || profile?.email || 'Sistema'}
                       </p>
                       <div className="flex items-center justify-between mt-1">
-                        <span className="text-[9px] font-black uppercase text-white/20 tracking-widest">{log.entity}</span>
+                        <span className="text-[9px] font-black uppercase text-white/20 tracking-widest">{log.table_name}</span>
                         {log.impersonator_id && (
                           <div className="flex items-center gap-1.5 text-[8px] bg-amber-500/10 text-amber-500 px-2 py-1 rounded-full font-black tracking-widest">
                             <Zap className="h-2 w-2 fill-amber-500" />

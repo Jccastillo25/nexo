@@ -5,11 +5,11 @@ import { UserEditorClient } from './UserEditorClient'
 export default async function UserEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
-  
+
   // 1. Obtener el perfil que se va a editar
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, email, full_name, linked_employee_id')
+    .select('id, email, full_name, linked_employee_id, position, company_id')
     .eq('id', id)
     .single()
 
@@ -26,23 +26,24 @@ export default async function UserEditPage({ params }: { params: Promise<{ id: s
   const { data: userMemberships } = await supabase
     .from('company_memberships')
     .select('company_id')
-    .eq('profile_id', id)
+    .eq('user_id', id)
 
   const initialCompanyIds = userMemberships?.map(m => m.company_id) || []
 
   // 4. Obtener el contexto del administrador actual
   const { data: { user: currentUser } } = await supabase.auth.getUser()
-  const { data: currentUserMembership } = await supabase
+  const { data: adminMemberships } = await supabase
     .from('company_memberships')
     .select('company_id, role')
-    .eq('profile_id', currentUser?.id)
-    .single()
+    .eq('user_id', currentUser?.id)
+    .in('role', ['owner', 'admin'])
 
-  const isOwner = currentUserMembership?.role === 'owner'
-  const companyId = currentUserMembership?.company_id || ''
+  const primaryMembership = adminMemberships?.find(m => m.role === 'owner') ?? adminMemberships?.[0]
+  const isOwner = primaryMembership?.role === 'owner'
+  const companyId = primaryMembership?.company_id || ''
 
   return (
-    <UserEditorClient 
+    <UserEditorClient
       profile={profile}
       initialPermissions={permissions || {}}
       companyId={companyId}
