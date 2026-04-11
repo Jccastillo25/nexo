@@ -38,14 +38,14 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
   return (
     <form action={action} className="space-y-6">
       {state?.error && (
-        <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-200">
+        <div className="rounded-2xl bg-red-500/10 px-4 py-3 text-xs font-bold text-red-400 border border-red-500/20">
           {state.error}
         </div>
       )}
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="mb-2 block text-sm font-semibold text-slate-900">
+          <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
             Empresa a la que pertenece *
           </label>
           <select
@@ -53,7 +53,7 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
             required
             value={companyId}
             onChange={(e) => setCompanyId(e.target.value)}
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           >
             <option value="">Selecciona una empresa...</option>
             {companies.map((c) => (
@@ -65,7 +65,7 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
         </div>
 
         <div className="sm:col-span-2">
-          <label className="mb-2 block text-sm font-semibold text-slate-900">
+          <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
             Nombre de la sucursal *
           </label>
           <input
@@ -75,12 +75,12 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Ej. Oficina Central"
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           />
         </div>
 
         <div className="sm:col-span-2">
-          <label className="mb-2 block text-sm font-semibold text-slate-900">
+          <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
             Código interno (Opcional)
           </label>
           <input
@@ -89,37 +89,37 @@ export function BranchForm({ companies }: { companies: { id: string; display_nam
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="Ej. SUC-01"
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           />
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-[11px] font-medium text-slate-500">
             Identificador corto para reportes. Se genera automáticamente según el slug de la empresa.
           </p>
         </div>
 
         <div className="sm:col-span-2">
-          <label className="mb-2 block text-sm font-semibold text-slate-900">
+          <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
             Dirección (Opcional)
           </label>
           <textarea
             name="address"
             placeholder="Dirección completa de la sucursal"
             rows={3}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className="w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           />
         </div>
       </div>
 
-      <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
+      <div className="pt-4 flex justify-end gap-3 border-t border-slate-700/50">
         <Link
           href="/organization/branches"
-          className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+          className="flex h-12 items-center justify-center rounded-2xl px-6 text-[11px] font-black uppercase tracking-widest text-slate-400 border border-transparent transition hover:border-slate-700 hover:text-white"
         >
           Cancelar
         </Link>
         <button
           type="submit"
           disabled={pending}
-          className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+          className="flex h-12 items-center justify-center rounded-2xl bg-blue-500 px-8 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-600 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none"
         >
           {pending ? 'Guardando...' : 'Guardar sucursal'}
         </button>

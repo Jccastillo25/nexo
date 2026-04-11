@@ -181,9 +181,9 @@ export function OperationalMonitor({
   return (
     <NowProvider>
     <div className="space-y-6">
-      <div className="rounded-3xl bg-slate-50 p-6 shadow-inner ring-1 ring-slate-200">
-        <div className="space-y-12 overflow-x-auto">
-          <div className="min-w-[700px] min-h-[60vh] pb-12">
+      <div className="app-surface p-6 shadow-inner">
+        <div className="space-y-12 overflow-x-auto min-h-[60vh] pb-12 scrollbar-none">
+          <div className="min-w-[700px]">
             {treeData.map(node => (
               <HierarchyNode 
                 key={node.id} 
@@ -202,12 +202,12 @@ export function OperationalMonitor({
       {/* Break End Validation Modal */}
       {selectedForEndBreak && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md animate-in zoom-in-95 rounded-3xl bg-white p-8 shadow-2xl">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+          <div className="w-full max-w-md animate-in zoom-in-95 app-surface p-8 shadow-2xl">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
               <Coffee className="h-8 w-8" />
             </div>
-            <h3 className="text-center text-xl font-bold text-slate-900">Validar Retorno de {selectedForEndBreak.name}</h3>
-            <p className="mt-2 text-center text-sm text-slate-500">
+            <h3 className="text-center text-xl font-black text-white tracking-tight">Validar Retorno de {selectedForEndBreak.name}</h3>
+            <p className="mt-2 text-center text-sm font-medium text-slate-400">
               El colaborador está regresando antes de tiempo. ¿Cómo desea registrar esta acción?
             </p>
 
@@ -217,13 +217,13 @@ export function OperationalMonitor({
                   await endEmployeeBreak(selectedForEndBreak.empId, selectedForEndBreak.logId, false)
                   setSelectedForEndBreak(null)
                 }}
-                className="flex w-full items-center justify-between rounded-2xl border-2 border-slate-100 p-4 transition hover:border-slate-900 hover:bg-slate-50"
+                className="flex w-full items-center justify-between rounded-2xl border border-slate-700/50 bg-slate-800/50 p-4 transition hover:border-blue-500/50 hover:bg-slate-800"
               >
                 <div className="text-left">
-                  <p className="text-sm font-bold text-slate-900">Descanso Parcial (Tiempo Real)</p>
-                  <p className="text-xs text-slate-500">Se guardará la duración exacta tomada.</p>
+                  <p className="text-sm font-bold text-white">Descanso Parcial (Tiempo Real)</p>
+                  <p className="text-xs font-medium text-slate-400">Se guardará la duración exacta tomada.</p>
                 </div>
-                <History className="h-5 w-5 text-slate-400" />
+                <History className="h-5 w-5 text-blue-500" />
               </button>
 
               <button 
@@ -231,19 +231,19 @@ export function OperationalMonitor({
                   await endEmployeeBreak(selectedForEndBreak.empId, selectedForEndBreak.logId, true)
                   setSelectedForEndBreak(null)
                 }}
-                className="flex w-full items-center justify-between rounded-2xl border-2 border-slate-100 p-4 transition hover:border-slate-900 hover:bg-slate-50"
+                className="flex w-full items-center justify-between rounded-2xl border border-slate-700/50 bg-slate-800/50 p-4 transition hover:border-emerald-500/50 hover:bg-slate-800"
               >
                 <div className="text-left">
-                  <p className="text-sm font-bold text-slate-900">Descanso Completo</p>
-                  <p className="text-xs text-slate-500">Ignorar retorno temprano (Llenar bloque).</p>
+                  <p className="text-sm font-bold text-white">Descanso Completo</p>
+                  <p className="text-xs font-medium text-slate-400">Ignorar retorno temprano (Llenar bloque).</p>
                 </div>
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               </button>
             </div>
 
             <button 
               onClick={() => setSelectedForEndBreak(null)}
-              className="mt-6 w-full text-center text-xs font-bold uppercase tracking-widest text-slate-400 transition hover:text-slate-900"
+              className="mt-6 w-full text-center text-[10px] font-black uppercase tracking-widest text-slate-500 transition hover:text-white"
             >
               Cancelar
             </button>
@@ -254,19 +254,19 @@ export function OperationalMonitor({
       {/* Absence Modal */}
       {absenceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <form onSubmit={handleRegisterAbsence} className="w-full max-w-md animate-in zoom-in-95 rounded-3xl bg-white p-8 shadow-2xl">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600">
+          <form onSubmit={handleRegisterAbsence} className="w-full max-w-md animate-in zoom-in-95 app-surface p-8 shadow-2xl">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-red-500 border border-red-500/20">
               <CalendarX className="h-8 w-8" />
             </div>
-            <h3 className="text-center text-xl font-bold text-slate-900">Registrar Ausencia</h3>
-            <p className="mt-2 text-center text-sm text-slate-500">
-              Registrando ausencia para <span className="font-bold text-slate-900">{absenceModal.name}</span>.
+            <h3 className="text-center text-xl font-black text-white tracking-tight">Registrar Ausencia</h3>
+            <p className="mt-2 text-center text-sm font-medium text-slate-400">
+              Registrando ausencia para <span className="font-black text-white">{absenceModal.name}</span>.
             </p>
 
             <div className="mt-6 space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-bold text-slate-900 uppercase">Motivo</label>
-                <select name="reason" className="h-12 w-full rounded-xl border-2 border-slate-200 px-4 text-sm outline-none focus:border-slate-900">
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Motivo</label>
+                <select name="reason" className="h-12 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 text-sm text-white outline-none focus:border-blue-500">
                   <option value="sick">Enfermedad / Salud</option>
                   <option value="permission">Permiso Previo</option>
                   <option value="vacation">Vacaciones</option>
@@ -274,8 +274,8 @@ export function OperationalMonitor({
                 </select>
               </div>
               <div>
-                <label className="mb-2 block text-xs font-bold text-slate-900 uppercase">Notas Adicionales</label>
-                <textarea name="notes" rows={3} className="w-full rounded-xl border-2 border-slate-200 p-4 text-sm outline-none focus:border-slate-900" placeholder="Detalles de autorización o comprobantes..."></textarea>
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Notas Adicionales</label>
+                <textarea name="notes" rows={3} className="w-full rounded-xl border border-slate-700 bg-slate-800 p-4 text-sm text-white outline-none focus:border-blue-500" placeholder="Detalles de autorización o comprobantes..."></textarea>
               </div>
             </div>
 
@@ -283,13 +283,13 @@ export function OperationalMonitor({
               <button 
                 type="button"
                 onClick={() => setAbsenceModal(null)}
-                className="flex h-12 flex-1 items-center justify-center rounded-xl font-bold text-slate-500 transition hover:bg-slate-50"
+                className="flex h-12 flex-1 items-center justify-center rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-500 transition hover:bg-slate-800 hover:text-white"
               >
                 Cancelar
               </button>
               <button 
                 type="submit"
-                className="flex h-12 flex-1 items-center justify-center rounded-xl bg-red-600 font-bold text-white transition hover:bg-red-700 active:scale-95"
+                className="flex h-12 flex-1 items-center justify-center rounded-xl bg-red-500 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-500/20 transition hover:bg-red-600 active:scale-95"
               >
                 Confirmar Ausencia
               </button>
@@ -301,19 +301,19 @@ export function OperationalMonitor({
       {/* Early Exit Modal */}
       {exitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <form onSubmit={handleRegisterExit} className="w-full max-w-md animate-in zoom-in-95 rounded-3xl bg-white p-8 shadow-2xl">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-orange-600">
+          <form onSubmit={handleRegisterExit} className="w-full max-w-md animate-in zoom-in-95 app-surface p-8 shadow-2xl">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-500/10 text-orange-500 border border-orange-500/20">
               <LogOut className="h-8 w-8 ml-1" />
             </div>
-            <h3 className="text-center text-xl font-bold text-slate-900">Salida Anticipada</h3>
-            <p className="mt-2 text-center text-sm text-slate-500">
-              Terminando la jornada de <span className="font-bold text-slate-900">{exitModal.name}</span> antes del horario de su turno.
+            <h3 className="text-center text-xl font-black text-white tracking-tight">Salida Anticipada</h3>
+            <p className="mt-2 text-center text-sm font-medium text-slate-400">
+              Terminando la jornada de <span className="font-black text-white">{exitModal.name}</span> antes del horario de su turno.
             </p>
 
             <div className="mt-6 space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-bold text-slate-900 uppercase">Justificación</label>
-                <textarea name="notes" rows={3} required className="w-full rounded-xl border-2 border-slate-200 p-4 text-sm outline-none focus:border-slate-900" placeholder="Razón de la salida anticipada..."></textarea>
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Justificación</label>
+                <textarea name="notes" rows={3} required className="w-full rounded-xl border border-slate-700 bg-slate-800 p-4 text-sm text-white outline-none focus:border-blue-500" placeholder="Razón de la salida anticipada..."></textarea>
               </div>
             </div>
 
@@ -321,13 +321,13 @@ export function OperationalMonitor({
               <button 
                 type="button"
                 onClick={() => setExitModal(null)}
-                className="flex h-12 flex-1 items-center justify-center rounded-xl font-bold text-slate-500 transition hover:bg-slate-50"
+                className="flex h-12 flex-1 items-center justify-center rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-500 transition hover:bg-slate-800 hover:text-white"
               >
                 Cancelar
               </button>
               <button 
                 type="submit"
-                className="flex h-12 flex-1 items-center justify-center rounded-xl bg-slate-900 font-bold text-white transition hover:bg-slate-800 active:scale-95"
+                className="flex h-12 flex-1 items-center justify-center rounded-xl bg-blue-500 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-600 active:scale-95"
               >
                 Marcar Salida
               </button>
@@ -360,11 +360,11 @@ function HierarchyNode({ node, activeLogs, activeShifts, onEndBreak, onOpenAbsen
   return (
     <div className={`space-y-4 ${paddingClass}`}>
       <div className="flex items-center gap-3">
-        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">{node.name}</h3>
-        <span className="flex h-5 items-center rounded-full bg-slate-200 px-2 text-[10px] font-bold text-slate-600">
-          Lvl {node.level}
+        <h3 className="text-[11px] font-black text-white uppercase tracking-widest">{node.name}</h3>
+        <span className="flex h-5 items-center rounded-lg bg-blue-500/10 px-2 text-[9px] font-black tracking-widest text-blue-400 border border-blue-500/20">
+          LVL {node.level}
         </span>
-        <div className="h-px flex-1 bg-slate-200/60" />
+        <div className="h-px flex-1 bg-slate-700/50" />
       </div>
 
       {node.employees.length > 0 && (
@@ -454,36 +454,36 @@ function UniversalActionCard({
   const isCritical = percentage >= 80 && !isOvertimeNum
 
   // Styling machine
-  let cardBg = 'bg-white'
-  let cardBorder = 'border-slate-200'
-  let timerUiColor = 'text-[#4CAF50]' 
-  let ringStroke = 'stroke-[#4CAF50]'
+  let cardBg = 'bg-slate-800'
+  let cardBorder = 'border-slate-700/50'
+  let timerUiColor = 'text-emerald-400' 
+  let ringStroke = 'stroke-emerald-400'
 
   if (isOffline) {
-    cardBg = 'bg-slate-50'
-    cardBorder = 'border-slate-200 border-dashed'
+    cardBg = 'bg-slate-800/50'
+    cardBorder = 'border-slate-700/50 border-dashed'
   } else if (isActive) {
-    cardBg = 'bg-emerald-50/30'
-    cardBorder = 'border-[#4CAF50] border-2 shadow-[0_4px_15px_rgba(76,175,80,0.15)]'
+    cardBg = 'bg-emerald-500/10'
+    cardBorder = 'border-emerald-500/30 border shadow-[0_4px_15px_rgba(16,185,129,0.15)]'
   } else if (isAbsent) {
-    cardBg = 'bg-slate-100'
-    cardBorder = 'border-slate-400 border-2'
+    cardBg = 'bg-slate-900/50'
+    cardBorder = 'border-slate-700 border'
   } else if (isBreak) {
     if (isOvertimeNum) {
-      cardBg = 'bg-[#ffebee]'
-      cardBorder = 'border-[#F44336] border-2 shadow-[0_0_15px_rgba(244,67,54,0.3)]'
-      timerUiColor = 'text-[#F44336] animate-pulse'
-      ringStroke = 'stroke-[#F44336]'
+      cardBg = 'bg-red-500/10'
+      cardBorder = 'border-red-500/40 border shadow-[0_0_15px_rgba(239,68,68,0.2)]'
+      timerUiColor = 'text-red-400 animate-pulse'
+      ringStroke = 'stroke-red-400'
     } else if (isCritical) {
-      cardBg = 'bg-[#fff3e0]'
-      cardBorder = 'border-[#FF9800] border-2 shadow-[0_0_12px_rgba(255,152,0,0.2)]'
-      timerUiColor = 'text-[#FF9800] animate-pulse'
-      ringStroke = 'stroke-[#FF9800]'
+      cardBg = 'bg-amber-500/10'
+      cardBorder = 'border-amber-500/40 border shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+      timerUiColor = 'text-amber-400 animate-pulse'
+      ringStroke = 'stroke-amber-400'
     } else {
-      cardBg = 'bg-amber-50/70'
-      cardBorder = 'border-amber-400 border-2 shadow-sm'
-      timerUiColor = 'text-[#4CAF50]'
-      ringStroke = 'stroke-[#4CAF50]'
+      cardBg = 'bg-amber-500/5'
+      cardBorder = 'border-amber-500/20 border shadow-sm'
+      timerUiColor = 'text-emerald-400'
+      ringStroke = 'stroke-emerald-400'
     }
   }
 
@@ -539,27 +539,27 @@ function UniversalActionCard({
   const primaryBtn = {
     icon: <Play className="h-3 w-3 fill-current" />,
     text: 'Entrada',
-    style: 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-md shadow-emerald-600/20'
+    style: 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600'
   }
 
   if (isActive) {
     if (position.default_break_mins > 0) {
       primaryBtn.icon = <Coffee className="h-3 w-3" />
       primaryBtn.text = 'Descanso'
-      primaryBtn.style = 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+      primaryBtn.style = 'bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30'
     } else {
       primaryBtn.icon = <LogOut className="h-3 w-3" />
       primaryBtn.text = 'Salida'
-      primaryBtn.style = 'bg-slate-800 text-white hover:bg-slate-700'
+      primaryBtn.style = 'bg-slate-700 text-white hover:bg-slate-600'
     }
   } else if (isBreak) {
     primaryBtn.icon = <Square className="h-3 w-3 fill-current" />
     primaryBtn.text = 'Terminar'
-    primaryBtn.style = 'bg-slate-900/10 text-slate-900 hover:bg-slate-900/20'
+    primaryBtn.style = 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 hover:text-white'
   } else if (isAbsent) {
     primaryBtn.icon = <AlertTriangle className="h-3 w-3" />
     primaryBtn.text = 'En Trabajo'
-    primaryBtn.style = 'bg-slate-800 text-white hover:bg-slate-700'
+    primaryBtn.style = 'bg-slate-700 text-white hover:bg-slate-600'
   }
 
   return (
@@ -569,35 +569,35 @@ function UniversalActionCard({
       <div className="absolute top-2 right-2">
         <button 
           onClick={() => setMenuOpen(!menuOpen)}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 opacity-60 transition hover:bg-slate-200 hover:text-slate-800 hover:opacity-100 focus:outline-none"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 opacity-60 transition hover:bg-slate-700 hover:text-white hover:opacity-100 focus:outline-none"
         >
           <MoreVertical className="h-4 w-4" />
         </button>
 
         {menuOpen && (
-          <div className="absolute right-0 top-10 z-30 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl animate-in fade-in slide-in-from-top-2">
+          <div className="absolute right-0 top-10 z-30 w-48 rounded-2xl border border-slate-700/50 bg-slate-800 p-2 shadow-xl animate-in fade-in slide-in-from-top-2">
             
             {/* Contextual actions based on state */}
             {isOffline && (
-              <button onClick={() => { setMenuOpen(false); onOpenAbsence(employee.id, shortName) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-700 hover:bg-slate-100">
+              <button onClick={() => { setMenuOpen(false); onOpenAbsence(employee.id, shortName) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[11px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-700 hover:text-white">
                 <CalendarX className="h-4 w-4 text-red-500" /> Registrar Ausencia
               </button>
             )}
             
             {isActive && (
-              <button onClick={() => { setMenuOpen(false); onOpenExit(employee.id, shortName) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-700 hover:bg-red-50 hover:text-red-700">
+              <button onClick={() => { setMenuOpen(false); onOpenExit(employee.id, shortName) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[11px] font-black uppercase tracking-widest text-slate-400 hover:bg-red-500/10 hover:text-red-400">
                 <LogOut className="h-4 w-4" /> Salida Anticipada
               </button>
             )}
 
             {isAbsent && (
-              <div className="px-3 py-2 text-[10px] text-slate-400 leading-tight">
+              <div className="px-3 py-2 text-[10px] text-slate-500 font-medium leading-tight">
                 El empleado se encuentra marcado como ausente para la jornada de hoy.
               </div>
             )}
             
             {(isBreak || (!isOffline && !isActive && !isAbsent)) && (
-              <div className="px-3 py-2 text-[10px] text-slate-400">
+              <div className="px-3 py-2 text-[10px] text-slate-500 font-medium">
                 Sin acciones extra en este estado.
               </div>
             )}
@@ -611,22 +611,22 @@ function UniversalActionCard({
       {/* Top: Avatar & Name */}
       <div className="flex items-start gap-3 w-[85%]">
         {/* Avatar */}
-        <div className={`flex shrink-0 items-center justify-center rounded-full bg-slate-200 font-bold text-slate-500 shadow-inner ${isLarge ? 'h-10 w-10 text-base' : 'h-8 w-8 text-xs'}`}>
+        <div className={`flex shrink-0 items-center justify-center rounded-full bg-slate-700 border border-slate-600 font-black text-white shadow-inner ${isLarge ? 'h-10 w-10 text-base' : 'h-8 w-8 text-xs'}`}>
           {initials}
         </div>
         
         {/* Bio */}
         <div className="flex flex-col overflow-hidden w-full pt-0.5">
-          <span className={`truncate font-black text-slate-900 leading-tight ${isLarge ? 'text-lg' : 'text-sm'}`}>
+          <span className={`truncate font-black text-white leading-tight ${isLarge ? 'text-lg' : 'text-sm'}`}>
             {shortName}
           </span>
           <div className="mt-1 flex items-center gap-1.5 opacity-80 overflow-hidden">
-            <IconComponent className={`shrink-0 ${isLarge ? 'h-4 w-4' : 'h-3 w-3'} text-slate-600`} />
-            <span className="truncate text-[10px] font-bold uppercase text-slate-600 leading-none">ID: {employee.id.substring(0, 5).toUpperCase()} • {position.name}</span>
+            <IconComponent className={`shrink-0 ${isLarge ? 'h-4 w-4' : 'h-3 w-3'} text-slate-400`} />
+            <span className="truncate text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none">ID: {employee.id.substring(0, 5).toUpperCase()} • {position.name}</span>
           </div>
 
           {isOffline && empShift && (
-            <span className="mt-1.5 truncate text-[9px] font-mono text-slate-400">
+            <span className="mt-1.5 truncate text-[9px] font-bold text-slate-500">
               {empShift.shifts.start_time.substring(0,5)} - {empShift.shifts.end_time.substring(0,5)}
             </span>
           )}

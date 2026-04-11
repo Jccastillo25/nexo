@@ -57,21 +57,21 @@ export function IntegrityScanner({ start, end, branchId, onValidated }: Integrit
   }, [start, end, branchId])
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 transition-all">
+    <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-4 transition-all">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {status === 'scanning' && <Loader2 className="h-5 w-5 animate-spin text-slate-400" />}
-          {status === 'ready' && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
-          {status === 'error' && <AlertCircle className="h-5 w-5 text-amber-500" />}
-          {status === 'idle' && <Play className="h-5 w-5 text-slate-400" />}
+          {status === 'scanning' && <Loader2 className="h-5 w-5 animate-spin text-blue-500" />}
+          {status === 'ready' && <CheckCircle2 className="h-5 w-5 text-emerald-400" />}
+          {status === 'error' && <AlertCircle className="h-5 w-5 text-amber-400" />}
+          {status === 'idle' && <Play className="h-5 w-5 text-slate-500" />}
           
           <div>
-            <h3 className="text-sm font-bold text-slate-900">
+            <h3 className="text-sm font-black text-white">
               {status === 'scanning' ? 'Escaneando integridad...' : 
                status === 'ready' ? 'Datos íntegros para reporte' : 
                status === 'error' ? 'Inconsistencias detectadas' : 'Listo para escanear'}
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs font-medium text-slate-400">
               {status === 'error' ? `${issues.length} marcaciones incompletas bloquean la exportación.` : 
                status === 'ready' ? 'Todos los registros tienen entrada y salida.' : 
                'Se requiere validación antes de generar PDF.'}
@@ -82,18 +82,18 @@ export function IntegrityScanner({ start, end, branchId, onValidated }: Integrit
         {status === 'error' && (
           <button 
             onClick={() => runScan()}
-            className="text-xs font-bold text-slate-900 underline underline-offset-4"
+            className="text-[11px] font-black uppercase text-white tracking-widest border border-slate-700 hover:bg-slate-700 transition px-3 py-1.5 rounded-lg"
           >
-            Re-escaneas
+            Re-escanear
           </button>
         )}
       </div>
 
       {issues.length > 0 && (
-        <div className="mt-4 max-h-32 overflow-y-auto rounded-2xl border border-amber-100 bg-amber-50/50 p-3">
+        <div className="mt-4 max-h-32 overflow-y-auto rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3">
           <ul className="space-y-2">
             {issues.map((issue, idx) => (
-              <li key={idx} className="flex justify-between text-[10px] text-amber-800">
+              <li key={idx} className="flex justify-between text-[11px] font-medium text-amber-400">
                 <span className="font-bold">{issue.full_name}</span>
                 <span>{issue.attendance_date} (Falta Salida)</span>
               </li>

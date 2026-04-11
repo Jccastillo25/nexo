@@ -74,11 +74,11 @@ export function HoursView({ start, end, branch }: HoursViewProps) {
 
   return (
     <section className="space-y-6">
-      <div className="flex items-start justify-between gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+      <div className="flex items-start justify-between gap-4 app-surface p-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Hub de Reportes</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">Pre-nómina (Cálculo de Horas)</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Hub de Reportes</p>
+          <h1 className="mt-2 text-3xl font-black text-white tracking-tight">Pre-nómina (Cálculo de Horas)</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
             Consolidado de tiempo laborado para cálculo de nómina.
           </p>
         </div>
@@ -99,26 +99,26 @@ export function HoursView({ start, end, branch }: HoursViewProps) {
         />
       </div>
 
-      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 print:hidden">
+      <div className="app-surface p-6 print:hidden">
         <form className="grid gap-4 sm:grid-cols-4">
           <input type="hidden" name="type" value="hours" />
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase text-slate-400">Desde</label>
-            <input type="date" name="start" defaultValue={filterStart} className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:ring-2 focus:ring-slate-100" />
+            <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Desde</label>
+            <input type="date" name="start" defaultValue={filterStart} className="h-10 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 text-sm text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </div>
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase text-slate-400">Hasta</label>
-            <input type="date" name="end" defaultValue={filterEnd} className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:ring-2 focus:ring-slate-100" />
+            <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Hasta</label>
+            <input type="date" name="end" defaultValue={filterEnd} className="h-10 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 text-sm text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </div>
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase text-slate-400">Sucursal</label>
-            <select name="branch" defaultValue={branch || 'all'} className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:ring-2 focus:ring-slate-100">
+            <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Sucursal</label>
+            <select name="branch" defaultValue={branch || 'all'} className="h-10 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 text-sm text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="all">Todas</option>
               {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </div>
           <div className="flex items-end">
-            <button type="submit" className="h-10 w-full rounded-xl bg-slate-900 text-sm font-bold text-white transition hover:bg-slate-800">
+            <button type="submit" className="h-10 w-full rounded-xl bg-blue-500 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-600 hover:-translate-y-0.5 active:translate-y-0">
               Cargar Cálculos
             </button>
           </div>
@@ -126,41 +126,41 @@ export function HoursView({ start, end, branch }: HoursViewProps) {
       </div>
 
       {loading ? (
-        <div className="flex h-32 items-center justify-center rounded-3xl bg-white ring-1 ring-slate-200">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
+        <div className="flex h-32 items-center justify-center app-surface">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
         </div>
       ) : (
-        <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
+        <div className="app-surface overflow-hidden">
           <table className="w-full text-sm text-left">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              <tr className="border-b border-slate-700/50 bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400">
                 <th className="px-6 py-4">Empleado</th>
                 <th className="px-6 py-4 text-center">Días Laborados</th>
                 <th className="px-6 py-4 text-right">Total Horas (Netas)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-700/50">
               {results.length > 0 ? (
                 results.map((emp: any) => (
-                  <tr key={emp.code} className="hover:bg-slate-50 transition">
+                  <tr key={emp.code} className="hover:bg-slate-800/50 transition">
                     <td className="px-6 py-4">
-                      <p className="font-semibold text-slate-900">{emp.name}</p>
-                      <p className="text-[10px] font-mono text-slate-400 uppercase">{emp.code}</p>
+                      <p className="font-bold text-white">{emp.name}</p>
+                      <p className="text-[10px] font-mono text-slate-500 uppercase">{emp.code}</p>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="inline-block rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">
+                      <span className="inline-block rounded-lg bg-blue-500/10 px-2 py-1 text-[11px] font-black text-blue-400 border border-blue-500/20">
                         {emp.daysWorked} día(s)
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <span className="text-lg font-bold text-slate-900">{emp.totalHours}</span>
-                      <span className="ml-1 text-xs text-slate-400 font-semibold">hrs</span>
+                      <span className="text-lg font-black text-white">{emp.totalHours}</span>
+                      <span className="ml-1 text-[10px] text-slate-500 font-bold uppercase tracking-widest">hrs</span>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">No hay datos procesados.</td>
+                  <td colSpan={3} className="px-6 py-12 text-center text-slate-500 text-sm font-medium">No hay datos procesados.</td>
                 </tr>
               )}
             </tbody>

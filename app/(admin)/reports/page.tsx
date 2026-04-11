@@ -30,25 +30,25 @@ export default async function ReportsHubPage({ searchParams }: ReportsHubProps) 
   return (
     <div className="space-y-6">
       {/* Universal Tab Navigation */}
-      <div className="flex flex-col gap-4 border-b border-slate-200 pb-2 md:flex-row md:items-end md:justify-between">
+      <div className="flex flex-col gap-4 border-b border-slate-700/50 pb-4 md:flex-row md:items-end md:justify-between px-2">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Centro de Reportes y Nómina</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-black tracking-tight text-white">Centro de Reportes y Nómina</h1>
+          <p className="mt-1 text-sm text-slate-400">
             Hub unificado para exportación de datos y cálculos horariales.
           </p>
         </div>
         
-        <nav className="flex space-x-2 shrink-0 overflow-x-auto pb-2 md:pb-0">
+        <nav className="flex space-x-2 shrink-0 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id
             return (
               <Link
                 key={tab.id}
                 href={`/reports?type=${tab.id}&start=${params.start || ''}&end=${params.end || ''}&date=${params.date || ''}&branch=${params.branch || ''}`}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors whitespace-nowrap ${
+                className={`rounded-full px-5 py-2 text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                   isActive
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+                    : 'bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white'
                 }`}
               >
                 {tab.label}

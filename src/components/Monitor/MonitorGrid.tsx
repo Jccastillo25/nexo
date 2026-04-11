@@ -62,17 +62,17 @@ export const MonitorGrid = ({ companyId, onOpenActionDrawer }: Props) => {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      <div className="flex h-64 items-center justify-center app-surface">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     )
   }
 
   if (employees.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-3xl bg-white p-12 shadow-sm ring-1 ring-slate-200">
-        <Users size={48} className="text-slate-200" />
-        <p className="mt-4 text-sm text-slate-500">No hay empleados activos en esta empresa.</p>
+      <div className="flex flex-col items-center justify-center app-surface p-12">
+        <Users size={48} className="text-slate-600" />
+        <p className="mt-4 text-sm font-medium text-slate-400">No hay empleados activos en esta empresa.</p>
       </div>
     )
   }
@@ -105,15 +105,15 @@ export const MonitorGrid = ({ companyId, onOpenActionDrawer }: Props) => {
   }
 
   return (
-    <div className="space-y-8 rounded-[2.5rem] bg-slate-950/20 p-8 ring-1 ring-white/5 backdrop-blur-sm">
+    <div className="space-y-8 app-surface p-8">
       <div className="flex items-center justify-between px-2">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-1 bg-blue-600 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.5)]" />
-          <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">
+          <div className="h-8 w-1 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+          <h2 className="text-sm font-black uppercase tracking-[0.3em] text-white">
             Jerarquía de Personal
           </h2>
         </div>
-        <span className="rounded-full bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-blue-400 ring-1 ring-blue-500/20">
+        <span className="flex items-center gap-2 rounded-xl bg-blue-500/10 px-4 py-2 border border-blue-500/20 shadow-lg shadow-blue-500/10 text-[10px] font-black uppercase tracking-widest text-blue-400">
           {employees.length} EN VIVO
         </span>
       </div>

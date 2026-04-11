@@ -54,21 +54,21 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
       />
 
       {/* Drawer */}
-      <div className={`fixed right-0 top-0 z-50 h-full w-full max-w-md transform bg-white shadow-2xl ring-1 ring-slate-200 transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={`fixed right-0 top-0 z-50 h-full w-full max-w-md transform bg-slate-900 border-l border-slate-700/50 shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-100 p-6">
+          <div className="flex items-center justify-between border-b border-slate-700/50 p-6">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                 Panel de Acción
               </p>
-              <h2 className="mt-1 text-xl font-bold text-slate-900">
+              <h2 className="mt-1 text-xl font-black tracking-tight text-white">
                 {employee.first_name} {employee.last_name}
               </h2>
             </div>
             <button 
               onClick={onClose}
-              className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="rounded-full p-2 text-slate-500 hover:bg-slate-800 hover:text-white transition-colors"
             >
               <X size={24} />
             </button>
@@ -76,42 +76,42 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
 
           <div className="flex-1 overflow-y-auto p-6 space-y-8">
             {/* Status & Clock */}
-            <div className="flex items-center justify-between rounded-3xl bg-slate-50 p-6">
+            <div className="flex items-center justify-between app-surface p-5">
               <div className="space-y-1">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Estado Actual</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estado Actual</p>
                 <div className="flex items-center gap-2">
                   <EmployeeStatusBadge status={employee.current_status} className="scale-110 origin-left" />
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hora Servidor</p>
-                <DigitalClock className="text-xl font-bold text-slate-900" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Hora Servidor</p>
+                <DigitalClock className="text-xl font-black tracking-tight text-white" />
               </div>
             </div>
 
             {/* Buttons Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <ActionButton 
                 label="Entrada" 
-                color="bg-green-600 hover:bg-green-700" 
+                color="bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/20" 
                 onClick={() => handleAction('CLOCK_IN')}
                 disabled={employee.current_status === 'active' || isSubmitting}
               />
               <ActionButton 
                 label="Descanso" 
-                color="bg-amber-500 hover:bg-amber-600" 
+                color="bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20" 
                 onClick={() => handleAction('START_BREAK')}
                 disabled={employee.current_status !== 'active' || isSubmitting}
               />
               <ActionButton 
                 label="Reanudar" 
-                color="bg-blue-600 hover:bg-blue-700" 
+                color="bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-500/20" 
                 onClick={() => handleAction('END_BREAK')}
                 disabled={employee.current_status !== 'on_break' || isSubmitting}
               />
               <ActionButton 
                 label="Salida" 
-                color="bg-slate-900 hover:bg-black" 
+                color="bg-slate-700 hover:bg-slate-600 border border-slate-600" 
                 onClick={() => handleAction('CLOCK_OUT')}
                 disabled={employee.current_status === 'offline' || isSubmitting}
               />
@@ -119,16 +119,16 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
 
             {/* Incident Form */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                <AlertCircle size={18} className="text-slate-400" />
-                <h3 className="text-sm font-bold text-slate-900">Registrar Incidencia / Notas</h3>
+              <div className="flex items-center gap-2 border-b border-slate-700/50 pb-3">
+                <AlertCircle size={16} className="text-blue-500" />
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-white">Registrar Incidencia / Notas</h3>
               </div>
               
               <div className="space-y-3">
                 <select 
                   value={incidenteType}
                   onChange={(e) => setIncidenteType(e.target.value)}
-                  className="w-full rounded-2xl border-slate-200 bg-white text-sm shadow-sm ring-1 ring-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="h-12 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 text-sm text-white outline-none focus:border-blue-500"
                 >
                   <option value="permiso">Permiso Especial</option>
                   <option value="ausencia">Ausencia Justificada</option>
@@ -140,17 +140,17 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Escribe el motivo o nota aquí..."
-                  className="h-32 w-full rounded-2xl border-slate-200 bg-white text-sm shadow-sm ring-1 ring-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="h-32 w-full rounded-xl border border-slate-700 bg-slate-800 p-4 text-sm text-white placeholder:text-slate-500 outline-none focus:border-blue-500 resize-none"
                 />
 
                 <div className="flex gap-2">
-                   <button className="flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 p-4 text-xs font-semibold text-slate-400 transition hover:border-slate-300 hover:text-slate-600">
-                    <Camera size={18} />
-                    Cargar Foto
+                   <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-dashed border-slate-700 p-4 text-[11px] font-black uppercase tracking-widest text-slate-500 transition hover:border-blue-500/50 hover:text-blue-400">
+                    <Camera size={16} />
+                    Foto
                    </button>
-                   <button className="flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 p-4 text-xs font-semibold text-slate-400 transition hover:border-slate-300 hover:text-slate-600">
-                    <FileText size={18} />
-                    Archivo PDF
+                   <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-dashed border-slate-700 p-4 text-[11px] font-black uppercase tracking-widest text-slate-500 transition hover:border-blue-500/50 hover:text-blue-400">
+                    <FileText size={16} />
+                    PDF
                    </button>
                 </div>
               </div>
@@ -158,17 +158,17 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-slate-100 p-6 bg-slate-50 flex gap-4">
+          <div className="border-t border-slate-700/50 p-6 bg-slate-900/80 flex gap-3">
             <button 
               onClick={onClose}
-              className="flex-1 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+              className="flex-1 rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
             >
               Cancelar
             </button>
             <button 
               disabled={isSubmitting || !notes}
-              onClick={() => handleAction('NOTE_ONLY')} // Custom action if just saving notes
-              className="flex-1 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 disabled:opacity-50"
+              onClick={() => handleAction('NOTE_ONLY')}
+              className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 hover:bg-blue-600 disabled:opacity-40 transition-all"
             >
               Guardar Nota
             </button>

@@ -165,17 +165,17 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
                 <img
                   src={previewUrl}
                   alt="Foto de perfil"
-                  className="h-36 w-36 rounded-full object-cover ring-4 ring-slate-100 shadow-lg"
+                  className="h-36 w-36 rounded-full object-cover border-4 border-slate-700 shadow-lg"
                 />
               ) : (
-                <div className="flex h-36 w-36 items-center justify-center rounded-full bg-slate-200 ring-4 ring-slate-100 shadow-lg">
-                  <span className="text-4xl font-bold text-slate-500">{initials}</span>
+                <div className="flex h-36 w-36 items-center justify-center rounded-full bg-slate-800/80 border-4 border-slate-700 shadow-lg">
+                  <span className="text-4xl font-black text-slate-500">{initials}</span>
                 </div>
               )}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-white shadow-md transition hover:bg-slate-700"
+                className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg shadow-blue-500/30 transition hover:bg-blue-600 hover:shadow-blue-500/50 hover:scale-105"
                 title="Cambiar foto"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -199,20 +199,20 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="text-sm font-semibold text-slate-700 underline underline-offset-2 hover:text-slate-900"
+                className="text-sm font-bold text-blue-400 hover:text-blue-300 transition-colors"
               >
                 Seleccionar imagen
               </button>
-              <p className="mt-1 text-xs text-slate-400">JPG, PNG o WebP · Máximo 3 MB</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">JPG, PNG o WebP · Máximo 3 MB</p>
             </div>
 
             {photoState && 'error' in photoState && (
-              <div className="w-full rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-200 text-center">
+              <div className="w-full rounded-2xl bg-red-500/10 px-4 py-3 text-xs font-bold text-red-400 border border-red-500/20 text-center">
                 {photoState.error}
               </div>
             )}
             {photoState && 'success' in photoState && (
-              <div className="w-full rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-700 ring-1 ring-green-200 text-center">
+              <div className="w-full rounded-2xl bg-emerald-500/10 px-4 py-3 text-xs font-bold text-emerald-400 border border-emerald-500/20 text-center">
                 ✓ Foto actualizada correctamente
               </div>
             )}
@@ -220,7 +220,7 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
             <button
               type="submit"
               disabled={photoPending}
-              className="flex h-12 w-full flex-1 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+              className="flex h-12 w-full flex-1 items-center justify-center rounded-2xl bg-blue-500 px-8 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-600 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none"
             >
               {photoPending ? 'Subiendo...' : 'Guardar foto'}
             </button>
@@ -237,9 +237,9 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
              hasActiveContract={hasActiveContract}
              employeeNumber={employee.employee_number}
            />
-           <div className="mt-8 rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-200">
-              <h3 className="text-sm font-semibold text-slate-900">Configuración de Kiosko</h3>
-              <p className="mt-2 text-sm text-slate-500">
+           <div className="mt-8 rounded-2xl bg-slate-800/50 p-6 border border-slate-700/50">
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-white">Configuración de Kiosko</h3>
+              <p className="mt-2 text-sm text-slate-400">
                 Las opciones avanzadas de acceso y permisos de marcación por kiosko se configuran aquí. 
                 Asegúrate de que el colaborador tenga un turno asignado antes de requerir su PIN.
               </p>
@@ -255,7 +255,7 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
           className="space-y-8 animate-in fade-in duration-300"
         >
           {state?.error && (
-            <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-200">
+            <div className="rounded-2xl bg-red-500/10 px-4 py-3 text-xs font-bold text-red-400 border border-red-500/20">
               {state.error}
             </div>
           )}
@@ -265,30 +265,30 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
             <div className={activeTab === 'general' ? 'block' : 'hidden'}>
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-900">Nombres *</label>
-                  <input type="text" name="first_name" defaultValue={employee.first_name} required className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200" />
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Nombres *</label>
+                  <input type="text" name="first_name" defaultValue={employee.first_name} required className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-900">Apellidos *</label>
-                  <input type="text" name="last_name" defaultValue={employee.last_name} required className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200" />
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Apellidos *</label>
+                  <input type="text" name="last_name" defaultValue={employee.last_name} required className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-900">Correo electrónico</label>
-                  <input type="email" name="email" defaultValue={employee.email ?? ''} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200" />
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Correo electrónico</label>
+                  <input type="email" name="email" defaultValue={employee.email ?? ''} className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-900">Teléfono</label>
-                  <input type="tel" name="phone" defaultValue={employee.phone ?? ''} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200" />
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Teléfono</label>
+                  <input type="tel" name="phone" defaultValue={employee.phone ?? ''} className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-900">Sucursal *</label>
-                  <select name="branch_id" defaultValue={employee.branch_id} required className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200">
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Sucursal *</label>
+                  <select name="branch_id" defaultValue={employee.branch_id} required className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                     {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </div>
-                <div className="flex items-center gap-3 pt-8">
-                  <input type="checkbox" id="is_active" name="is_active" defaultChecked={employee.is_active} className="h-5 w-5 rounded-lg text-slate-900" />
-                  <label htmlFor="is_active" className="text-sm font-semibold text-slate-900">Colaborador Activo</label>
+                <div className="flex items-center gap-3 pt-8 px-2">
+                  <input type="checkbox" id="is_active" name="is_active" defaultChecked={employee.is_active} className="h-5 w-5 rounded-lg border-slate-700 bg-slate-800 text-blue-500" />
+                  <label htmlFor="is_active" className="text-[10px] font-black uppercase tracking-widest text-white">Colaborador Activo</label>
                 </div>
               </div>
             </div>
@@ -297,32 +297,32 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
             <div className={activeTab === 'identificacion' ? 'block' : 'hidden'}>
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-900">N° Cédula de Identidad</label>
-                  <input type="text" name="national_id" value={nationalId} onChange={handleNationalIdChange} placeholder="000-000000-0000A" className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm uppercase outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 tracking-wider" />
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">N° Cédula de Identidad</label>
+                  <input type="text" name="national_id" value={nationalId} onChange={handleNationalIdChange} placeholder="000-000000-0000A" className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white uppercase outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 tracking-wider placeholder:text-slate-600" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-900">N° INSS</label>
-                  <input type="text" name="social_security_id" value={inss} onChange={handleInssChange} placeholder="1234567-8" className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm tracking-wider uppercase outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200" />
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">N° INSS</label>
+                  <input type="text" name="social_security_id" value={inss} onChange={handleInssChange} placeholder="1234567-8" className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white tracking-wider uppercase outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder:text-slate-600" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-900">N° RUC</label>
-                  <input type="text" name="tax_id" value={taxId} onChange={handleTaxIdChange} placeholder="J0000000000000" className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm uppercase tracking-wider outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200" />
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">N° RUC</label>
+                  <input type="text" name="tax_id" value={taxId} onChange={handleTaxIdChange} placeholder="J0000000000000" className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white uppercase tracking-wider outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder:text-slate-600" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-900">Fecha de Nacimiento</label>
-                  <input type="date" name="birth_date" defaultValue={employee.birth_date ?? ''} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200" />
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Fecha de Nacimiento</label>
+                  <input type="date" name="birth_date" defaultValue={employee.birth_date ?? ''} className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 css-dark-calendar" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-900">Género</label>
-                  <select name="gender" defaultValue={employee.gender ?? ''} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200">
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Género</label>
+                  <select name="gender" defaultValue={employee.gender ?? ''} className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                     <option value="">No especificado</option>
                     <option value="M">Masculino</option>
                     <option value="F">Femenino</option>
                   </select>
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-900">Fecha de Ingreso</label>
-                  <input type="date" name="hire_date" defaultValue={employee.hire_date ? new Date(employee.hire_date).toISOString().split('T')[0] : ''} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200" />
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Fecha de Ingreso</label>
+                  <input type="date" name="hire_date" defaultValue={employee.hire_date ? new Date(employee.hire_date).toISOString().split('T')[0] : ''} className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 css-dark-calendar" />
                 </div>
               </div>
             </div>
@@ -330,22 +330,22 @@ export function EmployeeEditForm({ employee, branches, hasActiveContract }: Empl
             {/* PESTAÑA: UBICACIÓN */}
             <div className={activeTab === 'ubicacion' ? 'block' : 'hidden'}>
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-900">Dirección Domiciliar Completa</label>
-                <textarea name="address" defaultValue={employee.address ?? ''} rows={4} className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200" placeholder="Ej. De los semáforos 2c al lago..." />
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">Dirección Domiciliar Completa</label>
+                <textarea name="address" defaultValue={employee.address ?? ''} rows={4} className="w-full rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder:text-slate-600" placeholder="Ej. De los semáforos 2c al lago..." />
               </div>
             </div>
           </div>
 
-          <div className="pt-8 flex justify-end gap-3 border-t border-slate-100">
+          <div className="pt-8 flex justify-end gap-3 border-t border-slate-700/50">
               <Link 
                 href={`/employees/${employee.id}`} 
                 onClick={handleInterceptExit}
-                className="flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                className="flex h-12 items-center justify-center rounded-2xl px-6 text-[11px] font-black uppercase tracking-widest text-slate-400 border border-transparent transition hover:border-slate-700 hover:text-white"
               >
                Cancelar
              </Link>
-            <button type="submit" disabled={pending} className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-8 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
-              {pending ? 'Guardando...' : 'Guardar cambios'}
+            <button type="submit" disabled={pending} className="flex h-12 items-center justify-center rounded-2xl bg-blue-500 px-8 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-600 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none">
+              {pending ? 'Aplicando...' : 'Guardar cambios'}
             </button>
           </div>
         </form>

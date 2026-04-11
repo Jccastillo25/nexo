@@ -16,17 +16,17 @@ export default async function NewBranchPage() {
       <div className="flex items-center gap-4">
         <Link
           href="/organization/branches"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-900"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 border border-slate-700 text-slate-400 shadow-sm transition hover:bg-slate-700 hover:text-white"
         >
           ←
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Nueva sucursal</h1>
-          <p className="text-sm text-slate-500">Crea un nuevo punto de operación u oficina.</p>
+          <h1 className="text-2xl font-black text-white tracking-tight">Nueva sucursal</h1>
+          <p className="mt-1 text-sm text-slate-400">Crea un nuevo punto de operación u oficina.</p>
         </div>
       </div>
 
-      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
+      <div className="app-surface p-6 sm:p-8">
         <BranchForm companies={companies ?? []} />
       </div>
     </section>

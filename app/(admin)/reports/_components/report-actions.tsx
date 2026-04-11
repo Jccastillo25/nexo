@@ -67,7 +67,7 @@ export function ReportActions({ data, summary, filters, canExport = false }: Rep
     <div className="flex gap-2 print:hidden">
       <button
         onClick={handlePrint}
-        className="flex h-10 items-center justify-center gap-2 rounded-xl bg-white border border-slate-200 px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none"
+        className="flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-800 border border-slate-700 px-4 text-[11px] font-black uppercase tracking-widest text-slate-300 transition hover:bg-slate-700 focus:outline-none"
       >
         <Printer className="w-4 h-4" />
         <span className="hidden sm:inline">Imprimir</span>
@@ -76,14 +76,14 @@ export function ReportActions({ data, summary, filters, canExport = false }: Rep
       <button
         onClick={generateProfessionalPDF}
         disabled={!canExport || isGenerating}
-        className={`flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold shadow-sm transition focus:outline-none ${
+        className={`flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-[11px] font-black uppercase tracking-widest transition focus:outline-none ${
           !canExport 
-            ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' 
-            : 'bg-slate-900 text-white hover:bg-slate-800'
+            ? 'bg-slate-800/50 text-slate-500 cursor-not-allowed border border-slate-700/50' 
+            : 'bg-blue-500 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-600 hover:-translate-y-0.5 active:translate-y-0'
         }`}
       >
         {isGenerating ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="w-4 h-4 animate-spin border-white" />
         ) : (
           <Download className="w-4 h-4" />
         )}

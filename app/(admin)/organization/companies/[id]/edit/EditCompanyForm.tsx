@@ -54,10 +54,10 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
   }
 
   return (
-    <form action={action} className="space-y-8 divide-y divide-slate-100 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
+    <form action={action} className="space-y-8 divide-y divide-slate-700/50">
       <div className="space-y-6">
         {state?.error && (
-          <div className="rounded-2xl bg-red-50 p-4 text-sm font-medium text-red-800 ring-1 ring-inset ring-red-100">
+          <div className="rounded-2xl bg-red-500/10 p-4 text-xs font-bold text-red-400 border border-red-500/20">
             {state.error}
           </div>
         )}
@@ -65,7 +65,7 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
         <div className="grid gap-6 md:grid-cols-2">
           {/* Nombre Comercial */}
           <div className="space-y-2">
-            <label htmlFor="display_name" className="text-sm font-semibold text-slate-900">
+            <label htmlFor="display_name" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
               Nombre de la empresa (Comercial) *
             </label>
             <input
@@ -75,14 +75,14 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
               defaultValue={company.display_name}
               required
               onChange={handleNameChange}
-              className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+              className="w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="Ej. Gestor360 Nicaragua"
             />
           </div>
 
           {/* Razón Social */}
           <div className="space-y-2">
-            <label htmlFor="legal_name" className="text-sm font-semibold text-slate-900">
+            <label htmlFor="legal_name" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
               Razón Social (Legal) *
             </label>
             <input
@@ -91,14 +91,14 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
               name="legal_name"
               defaultValue={company.legal_name}
               required
-              className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+              className="w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="Ej. Corporación Tecnológica S.A."
             />
           </div>
 
           {/* Slug */}
           <div className="space-y-2">
-            <label htmlFor="slug" className="text-sm font-semibold text-slate-900">
+            <label htmlFor="slug" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
               Slug / Identificador Corto *
             </label>
             <div className="relative">
@@ -112,23 +112,23 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
                   setAutoSlug(false)
                 }}
                 required
-                className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                className="w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="Ej. grupo-ct"
               />
               <button
                 type="button"
                 onClick={toggleAutoSlug}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition ${autoSlug ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'}`}
+                className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-widest transition ${autoSlug ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-slate-700 text-slate-400 border border-slate-600'}`}
               >
                 Auto {autoSlug ? 'ON' : 'OFF'}
               </button>
             </div>
-            <p className="text-[11px] text-slate-400">Usado para URLs únicas.</p>
+            <p className="text-[11px] font-medium text-slate-500">Usado para URLs únicas.</p>
           </div>
 
           {/* RUC */}
           <div className="space-y-2">
-            <label htmlFor="tax_id" className="text-sm font-semibold text-slate-900">
+            <label htmlFor="tax_id" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
               RUC / NIT (Opcional)
             </label>
             <input
@@ -136,14 +136,14 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
               id="tax_id"
               name="tax_id"
               defaultValue={company.tax_id || ''}
-              className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+              className="w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="Ej. J0000000000000"
             />
           </div>
 
           {/* Dirección */}
           <div className="space-y-2 md:col-span-2">
-            <label htmlFor="address" className="text-sm font-semibold text-slate-900">
+            <label htmlFor="address" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
               Dirección Fiscal (Opcional)
             </label>
             <textarea
@@ -151,14 +151,14 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
               name="address"
               defaultValue={company.address || ''}
               rows={2}
-              className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+              className="w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="Ej. De la rotonda 1c al sur..."
             />
           </div>
 
           {/* Teléfono */}
           <div className="space-y-2">
-            <label htmlFor="phone" className="text-sm font-semibold text-slate-900">
+            <label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
               Teléfono de Contacto (Opcional)
             </label>
             <input
@@ -166,19 +166,19 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
               id="phone"
               name="phone"
               defaultValue={company.phone || ''}
-              className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+              className="w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="Ej. +505 8888-8888"
             />
           </div>
 
           {/* Logo para reportes */}
           <div className="space-y-2">
-            <label htmlFor="logo_file" className="text-sm font-semibold text-slate-900">
+            <label htmlFor="logo_file" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
               Logo para Reportes (Opcional)
             </label>
             <div className="flex items-center gap-4">
               {company.report_logo_url && (
-                <img src={company.report_logo_url} alt="Logo" className="h-[46px] w-[46px] object-cover rounded-xl border bg-white p-1" />
+                <img src={company.report_logo_url} alt="Logo" className="h-[46px] w-[46px] object-cover rounded-xl border border-slate-700 bg-slate-800/80 p-1" />
               )}
               <div className="flex-1">
                 <input
@@ -186,9 +186,9 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
                   id="logo_file"
                   name="logo_file"
                   accept="image/png, image/jpeg, image/webp"
-                  className="w-full rounded-2xl bg-slate-50 px-4 py-[9px] text-[13px] transition file:mr-4 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-1 file:text-[11px] file:font-semibold file:text-white hover:file:bg-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 cursor-pointer"
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 py-[9px] text-[13px] text-white transition file:mr-4 file:rounded-lg file:border-0 file:bg-blue-500/20 file:px-3 file:py-1 file:text-[11px] file:font-black file:uppercase file:tracking-widest file:text-blue-400 file:border file:border-blue-500/30 hover:file:bg-blue-500/30 cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
-                <p className="mt-1 text-[11px] text-slate-400">Sube una imagen para reemplazar el logo actual.</p>
+                <p className="mt-1 text-[11px] font-medium text-slate-500">Sube una imagen para reemplazar el logo actual.</p>
               </div>
             </div>
             <input type="hidden" name="report_logo_url" value={company.report_logo_url || ''} />
@@ -196,24 +196,24 @@ export default function EditCompanyForm({ company }: EditCompanyFormProps) {
         </div>
 
         {/* Estado */}
-        <div className="flex items-center gap-3 space-y-2">
+        <div className="flex items-center gap-3 pt-4 pb-2 px-2">
           <input
             type="checkbox"
             id="is_active"
             name="is_active"
             defaultChecked={company.is_active}
-            className="h-5 w-5 rounded-lg border-slate-200 text-slate-900 focus:ring-slate-900"
+            className="h-5 w-5 rounded-lg border-slate-700 bg-slate-800 text-blue-500 focus:ring-blue-500"
           />
-          <label htmlFor="is_active" className="text-sm font-semibold text-slate-900">
+          <label htmlFor="is_active" className="text-[10px] font-black uppercase tracking-widest text-white">
             Empresa Activa
           </label>
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-4 pt-8">
+      <div className="flex items-center justify-end gap-3 pt-6">
         <Link
           href="/organization/companies"
-          className="rounded-2xl px-6 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+          className="flex h-12 items-center justify-center rounded-2xl px-6 text-[11px] font-black uppercase tracking-widest text-slate-400 border border-transparent transition hover:border-slate-700 hover:text-white"
         >
           Cancelar
         </Link>
@@ -229,7 +229,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-2xl bg-slate-900 px-8 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+      className="flex h-12 items-center justify-center rounded-2xl bg-blue-500 px-8 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-600 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none"
     >
       {pending ? 'Guardando...' : 'Guardar Cambios'}
     </button>
