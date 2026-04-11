@@ -9,8 +9,38 @@ const roleLabels: Record<string, string> = {
   viewer:     'Visor de Reportes',
 }
 
+import { redirect } from 'next/navigation'
+import { createAdminClient } from '@/lib/supabase/admin'
+
 export default async function SecurityPage() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) redirect('/login')
+
+  // Verificación de seguridad robusta (Server-side)
+  const adminClient = createAdminClient()
+  const { data: membership } = await adminClient
+    .from('company_memberships')
+    .select('role')
+    .eq('user_id', user.id)
+    .in('role', ['owner', 'admin'])
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle()
+
+  if (!membership) {
+    // Si no es admin/owner, verificar permisos granulares
+    const { data: perms } = await adminClient
+      .from('user_permissions')
+      .select('can_manage_users')
+      .eq('profile_id', user.id)
+      .maybeSingle()
+
+    if (!perms?.can_manage_users) {
+      redirect('/dashboard')
+    }
+  }
 
   const [
     { data: memberships },

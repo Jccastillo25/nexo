@@ -11,10 +11,16 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/) y el 
 ### Fixed
 
 #### 🛡️ Admin Shell & Permissions Safety
-- **Issue**: TypeScript error during production build (`npm run build`) in Vercel. `Partial<UserPermissions>` was not strictly assignable to `Record<string, boolean>` due to metadata fields (`profile_id`, etc.).
-- **Solution**: Implemented strict boolean filtering of user permissions before passing them to the Client Component.
-- **Improved**: Added type assertion to ensure the client-side receives a clean permission matrix.
-- **Modified**: `web/app/(admin)/_components/admin-shell.tsx`
+- **Issue**: TypeScript error during production build in Vercel. Meta fields in permissions caused type mismatch.
+- **Solution**: Implemented strict boolean filtering and explicit type casting in `AdminShell.tsx`.
+- **Improved**: Added server-side security gate in the `/security` page to replace unstable middleware redirects.
+
+#### 🔐 Security & Concurrency Hardening
+- **Fix**: Enabled Row-Level Security (RLS) on `kiosk_devices`, `audit_logs`, and `user_sessions`.
+- **Concurrency**: Added a database-level unique constraint to prevent multiple open attendance logs (double-session prevention).
+- **Resilience**: Refactored kiosk device registration with retry logic to handle unique code collisions.
+- **Stability**: Fixed redirect loop in `/security` for users with multiple-company memberships by making the middleware more robust.
+
 
 ---
 

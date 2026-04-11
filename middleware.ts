@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Rutas que solo pueden acceder owner/admin
-const ADMIN_ONLY_PREFIXES = ['/security']
+const ADMIN_ONLY_PREFIXES: string[] = []
 
 // Rutas que requieren autenticación (prefijos)
 const PROTECTED_PREFIXES = [
@@ -74,15 +74,14 @@ export async function middleware(request: NextRequest) {
   // Verificar rol owner/admin para rutas de administración de accesos
   const isAdminOnly = ADMIN_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix))
   if (user && isAdminOnly) {
-    const { data: membership } = await supabase
+    const { data: memberships } = await supabase
       .from('company_memberships')
       .select('role')
       .eq('user_id', user.id)
       .in('role', ['owner', 'admin'])
       .limit(1)
-      .maybeSingle()
-
-    if (!membership) {
+ 
+    if (!memberships || memberships.length === 0) {
       const dashboardUrl = request.nextUrl.clone()
       dashboardUrl.pathname = '/dashboard'
       return NextResponse.redirect(dashboardUrl)
