@@ -62,6 +62,8 @@ export default async function EmployeesPage({
     const branches = branchesResult.data || []
     const shiftsList = shiftsListResult.data || []
 
+
+
     const stats = [
       { label: 'Total', value: total },
       { label: 'Activos', value: Math.max(0, total - inactive) },

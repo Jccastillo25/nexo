@@ -53,5 +53,19 @@ Para evitar errores de tipado o inyección de metadatos en el cliente, el sistem
 - Se garantiza el tipado `Record<string, boolean>`.
 - Esto previene fallos en el proceso de build (Vercel) y asegura que el componente de interfaz solo reciba flags de permisos procesables.
 
+## 7. Seguridad de Base de Datos (RLS Recursion Control)
+
+Para garantizar la integridad y el rendimiento del sistema, se ha implementado una arquitectura de Row-Level Security (RLS) que evita la recursión infinita mediante el uso de funciones con `SECURITY DEFINER`.
+
+### Mecanismo de Prevención de Recursión
+Cuando una política RLS en la tabla `A` consulta la tabla `B`, y la tabla `B` tiene una política que consulta de nuevo la tabla `A`, se produce un error 500 (Recursión Infinita). Para evitarlo, utilizamos funciones que operan con privilegios elevados (saltando el RLS) pero con lógica estricta:
+
+- **`is_member_of(target_company_id)`**: Verifica si el usuario autenticado (`auth.uid()`) tiene una membresía activa en la empresa indicada. Se usa para filtrar `companies`, `branches`, `employees` y `contracts`.
+- **`is_company_admin(target_company_id)`**: Variante restringida a roles `owner` o `admin`. Se usa para la gestión de membresías y seguridad.
+
+### Aplicación de Políticas
+- **Directorio**: Los colaboradores solo son visibles para usuarios con membresía en la misma `company_id`.
+- **Membresías**: Un usuario puede ver su propia membresía por UID, pero solo los Admins/Owners pueden ver el listado completo de la empresa.
+
 ---
-*Ultima Actualización: 2026-04-12*
+*Última Actualización: 2026-04-12*

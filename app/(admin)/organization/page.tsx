@@ -20,6 +20,8 @@ export default async function OrganizationPage() {
     { label: 'Miembros activos', value: totalMembers ?? 0 },
   ]
 
+
+
   const subModules = [
     { title: 'Empresas',   href: '/organization/companies',    desc: 'Gestiona las empresas del grupo.' },
     { title: 'Sucursales', href: '/organization/branches',     desc: 'Administra sucursales y ubicaciones.' },

@@ -6,20 +6,25 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/) y el 
 
 ---
 
-## [0.2.1] — 2026-04-11
+## [0.2.2] — 2026-04-11
 
 ### Fixed
 
-#### 🛡️ Admin Shell & Permissions Safety
-- **Issue**: TypeScript error during production build in Vercel. Meta fields in permissions caused type mismatch.
-- **Solution**: Implemented strict boolean filtering and explicit type casting in `AdminShell.tsx`.
-- **Improved**: Added server-side security gate in the `/security` page to replace unstable middleware redirects.
+#### 📊 Data Visibility & Dashboards
+- **Issue**: Organizational counters (companies, branches) and the employee directory were showing 0 rows for Owners/Admins without explicit employee records.
+- **Root Cause**: Overly restrictive RLS policies and an infinite recursion bug in the `company_memberships` table.
+- **Solution**: 
+  - Implemented `SECURITY DEFINER` helper functions (`is_member_of`, `is_company_admin`) to bypass RLS recursion safely.
+  - Refactored RLS policies for `companies`, `branches`, `employees`, and `contracts` to use these helpers.
+  - Verified that all organizational entities are now correctly visible to authorized users.
 
-#### 🔐 Security & Concurrency Hardening
-- **Fix**: Enabled Row-Level Security (RLS) on `kiosk_devices`, `audit_logs`, and `user_sessions`.
-- **Concurrency**: Added a database-level unique constraint to prevent multiple open attendance logs (double-session prevention).
-- **Resilience**: Refactored kiosk device registration with retry logic to handle unique code collisions.
-- **Stability**: Fixed redirect loop in `/security` for users with multiple-company memberships by making the middleware more robust.
+#### 🛡️ Security Stability
+- **Fix**: Eliminated `infinite recursion` errors in the database that were causing PostgREST 500 errors.
+- **Sanitization**: Removed redundant and conflicting RLS policies on the `employees` and `company_memberships` tables.
+
+---
+
+## [0.2.1] — 2026-04-11
 
 
 ---
