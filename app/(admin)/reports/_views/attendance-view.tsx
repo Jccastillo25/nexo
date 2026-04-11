@@ -47,7 +47,6 @@ export function AttendanceView({ date, branch }: AttendanceViewProps) {
 
   return (
     <section className="space-y-6">
-    <section className="space-y-6">
       <div className="flex items-start justify-between gap-4 app-surface p-6">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Hub de Reportes</p>
