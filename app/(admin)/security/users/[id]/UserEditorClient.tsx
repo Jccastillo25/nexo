@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useGlobalContext } from '@/context/GlobalContext'
 import { ArrowLeft, Save, ShieldAlert, Eye, EyeOff, Lock, ShieldCheck, Star, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
+import { saveUserChanges } from './actions'
 
 type RoleKey = 'owner' | 'admin' | 'rrhh' | 'supervisor' | 'viewer'
 
@@ -145,82 +146,9 @@ export function UserEditorClient({ profile, initialPermissions, initialRole, ini
     const toastId = toast.loading('Guardando cambios...')
 
     try {
-      // 1. Actualizar perfil
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          linked_employee_id: linkedEmployeeId,
-          full_name: fullName,
-          position: position,
-          company_id: primaryCompanyId
-        })
-        .eq('id', profile.id)
-
-      if (profileError) throw profileError
-
-      // 2. Actualizar / crear rol en la membresía principal
-      // Primero verificamos si ya existe la membresía
-      const { count: membershipCount } = await supabase
-        .from('company_memberships')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', profile.id)
-        .eq('company_id', companyId)
-
-      if ((membershipCount ?? 0) > 0) {
-        // Ya existe → solo actualizar el rol
-        const { error: roleUpdateError } = await supabase
-          .from('company_memberships')
-          .update({ role, is_active: true })
-          .eq('user_id', profile.id)
-          .eq('company_id', companyId)
-        if (roleUpdateError) throw roleUpdateError
-      } else {
-        // No existe → crear membresía nueva
-        const { error: roleInsertError } = await supabase
-          .from('company_memberships')
-          .insert({ user_id: profile.id, company_id: companyId, role, is_active: true })
-        if (roleInsertError) throw roleInsertError
-      }
-
-      // 3. Sincronizar membresías multi-empresa
-      const toAdd = selectedCompanyIds.filter(id => !initialCompanyIds.includes(id))
-      const toRemove = initialCompanyIds.filter(id => !selectedCompanyIds.includes(id))
-
-      if (toRemove.length > 0) {
-        await supabase.from('company_memberships').delete()
-          .eq('user_id', profile.id).in('company_id', toRemove)
-      }
-
-      if (toAdd.length > 0) {
-        await supabase.from('company_memberships').insert(
-          toAdd.map(cId => ({ user_id: profile.id, company_id: cId, role: 'viewer' }))
-        )
-      }
-
-      // 4. Actualizar permisos granulares
-      // Verificamos existencia con COUNT antes de decidir UPDATE vs INSERT
-      const { count: permsCount } = await supabase
-        .from('user_permissions')
-        .select('profile_id', { count: 'exact', head: true })
-        .eq('profile_id', profile.id)
-        .eq('company_id', companyId)
-
-      if ((permsCount ?? 0) > 0) {
-        const { error: permsUpdateError } = await supabase
-          .from('user_permissions')
-          .update({ ...permissions, updated_at: new Date().toISOString() })
-          .eq('profile_id', profile.id)
-          .eq('company_id', companyId)
-        if (permsUpdateError) throw permsUpdateError
-      } else {
-        const { error: permsInsertError } = await supabase
-          .from('user_permissions')
-          .insert({ profile_id: profile.id, company_id: companyId, ...permissions })
-        if (permsInsertError) throw permsInsertError
-      }
-
-      // 5. Reset de contraseña si se completó el campo
+      // Si hay nueva contraseña, la guardamos primero vía Edge Function
       if (password) {
+        const supabase = createClient()
         const { data: pwData, error: pwError } = await supabase.functions.invoke('update-user-password', {
           body: { target_user_id: profile.id, password, company_id: companyId }
         })
@@ -233,14 +161,32 @@ export function UserEditorClient({ profile, initialPermissions, initialRole, ini
           throw new Error(serverMessage)
         }
         if (pwData?.error) throw new Error(pwData.error)
-        setPassword('')
       }
 
-      toast.success(`Cambios aplicados exitosamente en ${currentCompanyName}`, { id: toastId })
-      setIsDirty(false)
+      // Guardar todo lo demás via Server Action (bypasea RLS con adminClient)
+      await saveUserChanges({
+        targetUserId: profile.id,
+        companyId,
+        role,
+        fullName,
+        position,
+        linkedEmployeeId,
+        primaryCompanyId,
+        selectedCompanyIds,
+        initialCompanyIds,
+        permissions,
+      })
+
+      // El Server Action hace redirect('/security') internamente,
+      // pero por si acaso Next.js no lo propaga mostramos el toast antes
+      toast.success('Cambios guardados correctamente', { id: toastId })
     } catch (err: any) {
+      // Next.js redirect lanza un error especial que no debemos capturar
+      if (err?.message?.includes('NEXT_REDIRECT')) {
+        toast.success('Cambios guardados correctamente', { id: toastId })
+        return
+      }
       toast.error('Error al guardar: ' + err.message, { id: toastId })
-    } finally {
       setIsSaving(false)
     }
   }
