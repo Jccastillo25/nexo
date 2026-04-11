@@ -1,12 +1,13 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
   "name": "Gestor360 Security Manifest",
-  "description": "Deny by Default - Central Resource Mapping",
+  "description": "Deny by Default — Norma Estricta: Toda ruta, acción y elemento UI debe estar vinculado a un permiso.",
+  "roles": ["owner", "admin", "rrhh", "supervisor", "viewer"],
   "resources": [
     {
       "id": "dashboard_kpis",
       "name": "Dashboard KPIs",
-      "path": "/admin/dashboard",
+      "path": "/dashboard",
       "required_permissions": [
         "can_view_kpis_talent",
         "can_view_kpis_attendance",
@@ -16,76 +17,199 @@
       "logic": "OR"
     },
     {
-      "id": "employee_management",
-      "name": "Gestión de Empleados",
-      "path": "/admin/employees",
+      "id": "employee_list",
+      "name": "Listado de Empleados",
+      "path": "/employees",
       "required_permissions": ["can_view_employees"]
+    },
+    {
+      "id": "employee_create",
+      "name": "Crear Empleado",
+      "path": "/employees/new",
+      "required_permissions": ["can_manage_employees"]
+    },
+    {
+      "id": "employee_edit",
+      "name": "Editar Empleado",
+      "path": "/employees/[id]/edit",
+      "required_permissions": ["can_manage_employees"]
+    },
+    {
+      "id": "employee_types",
+      "name": "Tipos de Empleado / Jerarquía",
+      "path": "/employees/types",
+      "required_permissions": ["can_manage_employees"]
+    },
+    {
+      "id": "employee_documents",
+      "name": "Documentos de Empleados",
+      "path": "/employees/documents",
+      "required_permissions": ["can_view_contracts", "can_manage_employees"],
+      "logic": "OR"
     },
     {
       "id": "contract_management",
       "name": "Gestión de Contratos",
-      "path": "/admin/contracts",
+      "path": "/contracts",
       "required_permissions": ["can_view_contracts"]
+    },
+    {
+      "id": "contract_create_edit",
+      "name": "Crear / Editar Contrato",
+      "path": "/contracts/new",
+      "required_permissions": ["can_manage_contracts"]
     },
     {
       "id": "attendance_monitoring",
       "name": "Monitoreo de Asistencia",
-      "path": "/admin/attendance",
+      "path": "/attendance",
+      "required_permissions": ["can_view_attendance"]
+    },
+    {
+      "id": "attendance_corrections",
+      "name": "Correcciones de Asistencia",
+      "path": "/attendance/corrections",
+      "required_permissions": ["can_approve_corrections", "can_manage_attendance"],
+      "logic": "OR"
+    },
+    {
+      "id": "attendance_incidents",
+      "name": "Incidentes de Asistencia",
+      "path": "/attendance/incidents",
+      "required_permissions": ["can_manage_attendance"]
+    },
+    {
+      "id": "attendance_records",
+      "name": "Registros de Asistencia",
+      "path": "/attendance/records",
       "required_permissions": ["can_view_attendance"]
     },
     {
       "id": "leave_management",
       "name": "Gestión de Permisos y Ausencias",
-      "path": "/admin/leave",
+      "path": "/leave",
       "required_permissions": ["can_manage_leaves"]
     },
     {
       "id": "schedule_management",
       "name": "Gestión de Horarios y Turnos",
-      "path": "/admin/schedules",
+      "path": "/schedules",
+      "required_permissions": ["can_view_shift_templates", "can_manage_schedules"],
+      "logic": "OR"
+    },
+    {
+      "id": "schedule_templates",
+      "name": "Plantillas de Turnos",
+      "path": "/schedules/templates",
+      "required_permissions": ["can_view_shift_templates"]
+    },
+    {
+      "id": "schedule_assignments",
+      "name": "Asignaciones de Horarios",
+      "path": "/schedules/assignments",
       "required_permissions": ["can_manage_schedules"]
     },
     {
-      "id": "monitor_kpis",
-      "name": "Monitor de KPIs",
-      "path": "/admin/monitor",
+      "id": "monitor_360",
+      "name": "Monitor 360 en Tiempo Real",
+      "path": "/monitor",
       "required_permissions": ["can_view_attendance"]
     },
     {
-      "id": "organization_settings",
-      "name": "Configuración de Organización",
-      "path": "/admin/organization",
-      "required_permissions": ["can_manage_company"]
+      "id": "monitor_manual_action",
+      "name": "Acción Manual en Monitor (marcar entrada/salida)",
+      "path": "/monitor#action",
+      "required_permissions": ["can_manage_attendance"]
     },
     {
       "id": "kiosk_management",
       "name": "Gestión de Kioskos",
-      "path": "/admin/kiosk",
+      "path": "/kiosk",
       "required_permissions": ["can_manage_kiosks"]
+    },
+    {
+      "id": "organization_settings",
+      "name": "Configuración de Organización",
+      "path": "/organization",
+      "required_permissions": ["can_manage_company"]
     },
     {
       "id": "reports_generation",
       "name": "Generación de Reportes",
-      "path": "/admin/reports",
+      "path": "/reports",
       "required_permissions": ["can_view_reports"]
+    },
+    {
+      "id": "reports_attendance",
+      "name": "Reportes de Asistencia",
+      "path": "/reports/attendance",
+      "required_permissions": ["can_view_reports"]
+    },
+    {
+      "id": "payroll_view",
+      "name": "Ver Nómina y Cálculos",
+      "path": "/reports#payroll",
+      "required_permissions": ["can_view_payroll"]
+    },
+    {
+      "id": "salary_view",
+      "name": "Ver Salarios (dato sensible)",
+      "path": "/reports#salary",
+      "required_permissions": ["can_view_salary"]
     },
     {
       "id": "security_users",
       "name": "Gestión de Usuarios y Accesos",
-      "path": "/admin/security/users",
+      "path": "/security/users",
       "required_permissions": ["can_manage_users"]
     },
     {
       "id": "security_audit",
       "name": "Auditoría de Sistema",
-      "path": "/admin/security/audit",
-      "required_permissions": ["can_view_audit_logs"]
+      "path": "/security",
+      "required_permissions": ["can_view_audit_logs", "can_manage_users"],
+      "logic": "OR"
     },
     {
       "id": "system_settings",
       "name": "Ajustes del Sistema",
-      "path": "/admin/settings",
+      "path": "/settings",
       "required_permissions": ["can_manage_settings"]
+    },
+    {
+      "id": "roles_management",
+      "name": "Gestión de Roles",
+      "path": "/security#roles",
+      "required_permissions": ["can_manage_roles"]
     }
-  ]
+  ],
+  "action_permissions": {
+    "createEmployee":         "can_manage_employees",
+    "updateEmployee":         "can_manage_employees",
+    "deleteEmployee":         "can_manage_employees",
+    "createContract":         "can_manage_contracts",
+    "updateContract":         "can_manage_contracts",
+    "processKioskEvent":      null,
+    "processMonitorMark":     "can_manage_attendance",
+    "approveCorrection":      "can_approve_corrections",
+    "rejectCorrection":       "can_approve_corrections",
+    "createLeave":            "can_manage_leaves",
+    "approveLeave":           "can_manage_leaves",
+    "createShiftTemplate":    "can_manage_shift_templates",
+    "updateShiftTemplate":    "can_manage_shift_templates",
+    "createAssignment":       "can_manage_schedules",
+    "updateAssignment":       "can_manage_schedules",
+    "createBranch":           "can_manage_company",
+    "updateBranch":           "can_manage_company",
+    "createCompany":          "can_manage_company",
+    "updateCompany":          "can_manage_company",
+    "createUser":             "can_manage_users",
+    "updateUserPermissions":  "can_manage_roles",
+    "resetUserPassword":      "can_manage_users",
+    "registerKioskDevice":    "can_manage_kiosks",
+    "updateKioskSettings":    "can_manage_kiosks",
+    "exportReport":           "can_view_reports",
+    "viewPayrollData":        "can_view_payroll",
+    "closePayrollPeriod":     "can_manage_payroll"
+  }
 }

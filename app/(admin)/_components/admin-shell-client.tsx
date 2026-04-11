@@ -10,7 +10,8 @@ interface AdminShellClientProps {
   userName: string
   userRole: string
   logoUrl: string | null
-  companies: { id: string, name: string, slug: string }[]
+  companies: { id: string; name: string; slug: string }[]
+  userPermissions?: Record<string, boolean>
   children: React.ReactNode
 }
 
@@ -20,6 +21,7 @@ function AdminShellContent({
   userRole,
   logoUrl,
   companies,
+  userPermissions = {},
   children,
 }: AdminShellClientProps) {
   const { setCompanies } = useGlobalContext()
@@ -51,6 +53,7 @@ function AdminShellContent({
             logoUrl={logoUrl}
             collapsed={!sidebarOpen}
             onExpand={() => setSidebarOpen(true)}
+            userPermissions={userPermissions}
           />
         </div>
       </div>
@@ -79,6 +82,7 @@ function AdminShellContent({
           userRole={userRole}
           logoUrl={logoUrl}
           onClose={() => setMobileSidebarOpen(false)}
+          userPermissions={userPermissions}
         />
       </div>
 

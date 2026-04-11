@@ -42,10 +42,21 @@ export default async function UserEditPage({ params }: { params: Promise<{ id: s
   const isOwner = primaryMembership?.role === 'owner'
   const companyId = primaryMembership?.company_id || ''
 
+  // 5. Obtener el rol actual del usuario que se edita
+  const { data: targetMembership } = await supabase
+    .from('company_memberships')
+    .select('role')
+    .eq('user_id', id)
+    .eq('company_id', companyId)
+    .maybeSingle()
+
+  const initialRole = (targetMembership?.role as any) || 'viewer'
+
   return (
     <UserEditorClient
       profile={profile}
       initialPermissions={permissions || {}}
+      initialRole={initialRole}
       companyId={companyId}
       initialCompanyIds={initialCompanyIds}
       isOwner={isOwner}

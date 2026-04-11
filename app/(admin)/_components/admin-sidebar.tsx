@@ -15,6 +15,7 @@ interface AdminSidebarProps {
   collapsed?: boolean
   onClose?: () => void
   onExpand?: () => void
+  userPermissions?: Record<string, boolean>
 }
 
 const roleLabels: Record<string, string> = {
@@ -72,6 +73,11 @@ const chevronIcon = (
   </svg>
 )
 
+function hasPermission(permissions: Record<string, boolean>, perm?: string): boolean {
+  if (!perm) return true  // Sin requisito → siempre visible
+  return permissions[perm] === true
+}
+
 export function AdminSidebar({
   companyName = 'Gestor360',
   userName = 'Administrador',
@@ -80,6 +86,7 @@ export function AdminSidebar({
   collapsed = false,
   onClose,
   onExpand,
+  userPermissions = {},
 }: AdminSidebarProps) {
   const pathname = usePathname()
   const { companyId } = useGlobalContext()
@@ -155,12 +162,22 @@ export function AdminSidebar({
       <nav className={`flex-1 overflow-y-auto px-3 py-2 ${collapsed ? 'scrollbar-hide' : ''}`}>
         <div className="space-y-0.5">
           {adminNav.map((section) => {
-            const sectionActive = isSectionActive(pathname, section.items)
+            // Filtrar items según permisos del usuario
+            const visibleItems = section.items.filter(item =>
+              hasPermission(userPermissions, item.permission)
+            )
+            // Si la sección tiene permiso de sección y ningún item visible → ocultar
+            if (visibleItems.length === 0) return null
+            // Si la sección tiene permiso propio de sección → verificar
+            if (section.permission && !hasPermission(userPermissions, section.permission)) return null
+
+            const sectionActive = isSectionActive(pathname, visibleItems)
             const isOpen = collapsed ? false : (openSections[section.title] ?? false)
             const icon = sectionIcons[section.title] || sectionIcons['Centro de Control']
 
             if (section.direct) {
-              const item = section.items[0]
+              const item = visibleItems[0]
+              if (!item) return null
               const active = isActive(pathname, item.href)
               return (
                 <Link
@@ -216,7 +233,7 @@ export function AdminSidebar({
                   <div className="collapse-content" data-open={isOpen}>
                     <div>
                       <div className="ml-8 space-y-0.5 border-l-2 py-1 pl-3" style={{ borderColor: 'var(--border-medium)' }}>
-                        {section.items.map((item) => {
+                        {visibleItems.map((item) => {
                           const active = isActive(pathname, item.href)
                           return (
                             <Link
