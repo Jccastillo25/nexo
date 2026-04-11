@@ -271,7 +271,7 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
   const { data: employee, error: empErr } = await supabase
     .from('employees')
     .select(`
-      id, first_name, last_name, is_active, employee_code, company_id, branch_id, job_position_id,
+      id, first_name, last_name, is_active, employee_code, company_id, branch_id, job_position_id, current_status,
       job_positions!left(default_break_mins)
     `)
     .eq('employee_code', pin)
@@ -280,6 +280,15 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
 
   if (empErr || !employee || !employee.is_active) {
     return { success: false, error: 'PIN incorrecto o empleado no encontrado en esta sucursal.' }
+  }
+
+  // Prevenir doble clock-in
+  if (eventType === 'clock_in' && employee.current_status === 'active') {
+    return { success: false, error: 'El empleado ya tiene una entrada registrada. Debe marcar salida primero.' }
+  }
+  // Prevenir clock-out sin entrada activa
+  if (eventType === 'clock_out' && employee.current_status !== 'active' && employee.current_status !== 'on_break') {
+    return { success: false, error: 'No hay una entrada activa para registrar la salida.' }
   }
 
   const now = new Date()

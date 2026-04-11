@@ -45,9 +45,9 @@ export async function createEmployee(
 
   const company_id = membership.company_id
 
-  // Generar un employee_code único usando UUID
-  const crypto = await import('crypto')
-  const employee_code = `EMP-${crypto.randomUUID().substring(0, 8).toUpperCase()}`
+  // Generar un PIN numérico de 4 dígitos único para el kiosco
+  const { generateUniquePin } = await import('@/lib/utils')
+  const employee_code = await generateUniquePin(supabase, company_id)
 
   // 1. Insertar Empleado
   const { data: employee, error: empError } = await supabase.from('employees').insert({
@@ -72,7 +72,7 @@ export async function createEmployee(
       company_id,
       is_active: true
     })
-    if (assError) console.error('Error creating assignment:', assError)
+    if (assError) return { error: `Error al crear la asignación: ${assError.message}` }
   }
 
 
