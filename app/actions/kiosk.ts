@@ -79,32 +79,52 @@ export async function registerKioskDevice(
   const branchPart = (branch.code || branch.name.split(' ')[0]).toLowerCase().substring(0, 5)
 
   // 2. Count existing kiosks for this branch to get the sequence
-  const { count, error: countErr } = await supabase
-    .from('kiosk_devices')
-    .select('*', { count: 'exact', head: true })
-    .eq('branch_id', branchId)
+  // We use a small retry loop (max 3) in case of rare race condition collisions
+  let finalDeviceCode = ''
+  let attempts = 0
+  const maxAttempts = 3
 
-  if (countErr) return { error: 'No se pudo generar el código secuencial.' }
+  while (attempts < maxAttempts) {
+    const { count, error: countErr } = await supabase
+      .from('kiosk_devices')
+      .select('*', { count: 'exact', head: true })
+      .eq('branch_id', branchId)
 
-  const sequence = String((count || 0) + 1).padStart(2, '0')
-  const deviceCode = `${companyPart}-${branchPart}-ki-${sequence}`
+    if (countErr) return { error: 'No se pudo generar el código secuencial.' }
 
-  // 3. Insert the new device
-  const { error } = await supabase
-    .from('kiosk_devices')
-    .insert({
-      branch_id: branchId,
-      device_code: deviceCode,
-      name,
-      location: location || null,
-      notes: notes || null,
-      is_active: true
-    })
+    const sequence = String((count || 0) + 1 + attempts).padStart(2, '0')
+    const deviceCode = `${companyPart}-${branchPart}-ki-${sequence}`
 
-  if (error) return { error: error.message }
+    // 3. Insert the new device
+    const { error } = await supabase
+      .from('kiosk_devices')
+      .insert({
+        branch_id: branchId,
+        device_code: deviceCode,
+        name,
+        location: location || null,
+        notes: notes || null,
+        is_active: true
+      })
+
+    if (!error) {
+      finalDeviceCode = deviceCode
+      break
+    }
+
+    // If it's a unique constraint violation (code 23505), increment and retry
+    if (error.code === '23505') {
+      attempts++
+      continue
+    }
+
+    return { error: error.message }
+  }
+
+  if (!finalDeviceCode) return { error: 'No se pudo generar un código de dispositivo único después de varios intentos.' }
   
   revalidatePath('/kiosk/devices')
-  return { success: true, deviceCode }
+  return { success: true, deviceCode: finalDeviceCode }
 }
 
 export async function updateKioskDevice(
