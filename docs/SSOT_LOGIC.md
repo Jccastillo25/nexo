@@ -45,4 +45,4 @@ erDiagram
 ```
 
 ---
-*Ultima Actualización: 2026-04-01*
+*Ultima Actualización: 2026-04-11*

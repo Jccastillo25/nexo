@@ -45,5 +45,13 @@ if (!can_view_kpis_financial) return <AccessDenied />;
 - Se utiliza Hashing irreversibles (Bcrypt/Argon2) gestionado por Supabase Auth.
 - El administrador solo puede "Sobrescribir" la clave, nunca recuperarla.
 
+## 6. Integridad de Datos en Cliente
+
+Para evitar errores de tipado o inyección de metadatos en el cliente, el sistema aplica un filtrado estricto en el servidor (`AdminShell`) antes de pasar los permisos al `AdminShellClient`:
+
+- Se eliminan campos no booleanos (`profile_id`, `company_id`, `timestamps`).
+- Se garantiza el tipado `Record<string, boolean>`.
+- Esto previene fallos en el proceso de build (Vercel) y asegura que el componente de interfaz solo reciba flags de permisos procesables.
+
 ---
-*Ultima Actualización: 2026-04-01*
+*Ultima Actualización: 2026-04-12*

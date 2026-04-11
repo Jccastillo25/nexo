@@ -51,6 +51,12 @@
 
 ## Cambios Recientes
 
+### 🛡️ Estabilidad y Seguridad (2026-04-11)
+
+**Fix de Compilación y Tipado:**
+- Resuelto error de TypeScript en la construcción de producción (Vercel) al pasar permisos al componente cliente.
+- Implementado filtrado binario estricto de permisos en `AdminShell` para garantizar integridad de tipos y evitar fugas de metadatos internos (`profile_id`, etc.).
+
 ### 🏗️ Gestión de Turnos: Herencia y Matriz de Diagnóstico (2026-03-27)
 
 **Motor de Herencia (4 Niveles):**
@@ -375,5 +381,5 @@ Cerrar sesión ──► signOut (Server Action)
 
 ---
 
-*Documentación actualizada el 26 de marzo de 2026 — Gestor360 v0.2.0*
-- Última actualización: Performance pass — índices DB, RPCs de agregación, optimizaciones de realtime y timer global del monitor
+*Documentación actualizada el 11 de abril de 2026 — Gestor360 v0.2.1*
+- Última actualización: Estabilidad de Build (Vercel fix) y filtrado estricto de permisos.

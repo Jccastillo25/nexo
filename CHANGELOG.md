@@ -6,6 +6,18 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/) y el 
 
 ---
 
+## [0.2.1] — 2026-04-11
+
+### Fixed
+
+#### 🛡️ Admin Shell & Permissions Safety
+- **Issue**: TypeScript error during production build (`npm run build`) in Vercel. `Partial<UserPermissions>` was not strictly assignable to `Record<string, boolean>` due to metadata fields (`profile_id`, etc.).
+- **Solution**: Implemented strict boolean filtering of user permissions before passing them to the Client Component.
+- **Improved**: Added type assertion to ensure the client-side receives a clean permission matrix.
+- **Modified**: `web/app/(admin)/_components/admin-shell.tsx`
+
+---
+
 ## [0.2.0] — 2026-03-26
 
 ### Added
