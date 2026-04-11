@@ -82,6 +82,12 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
 
   const logoUrl = brandingRows?.[0]?.value ?? null
 
+  // Strip non-boolean metadata fields before passing to client
+  const NON_PERM_KEYS = new Set(['id', 'profile_id', 'company_id', 'created_at', 'updated_at'])
+  const booleanPermissions = Object.fromEntries(
+    Object.entries(userPermissions).filter(([k, v]) => !NON_PERM_KEYS.has(k) && typeof v === 'boolean')
+  ) as Record<string, boolean>
+
   return (
     <AdminShellClient
       companyName={companyName}
@@ -89,7 +95,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
       userRole={userRole}
       logoUrl={logoUrl}
       companies={userCompanies}
-      userPermissions={userPermissions}
+      userPermissions={booleanPermissions}
     >
       {children}
     </AdminShellClient>
