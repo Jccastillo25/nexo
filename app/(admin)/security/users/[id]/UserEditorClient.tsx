@@ -159,14 +159,23 @@ export function UserEditorClient({ profile, initialPermissions, initialRole, ini
       if (profileError) throw profileError
 
       // 2. Actualizar / crear rol en la membresía principal
-      const { error: roleError } = await supabase
+      // Usamos update primero; si no afecta filas, hacemos insert
+      const { data: updatedRows, error: roleUpdateError } = await supabase
         .from('company_memberships')
-        .upsert(
-          { user_id: profile.id, company_id: companyId, role, is_active: true },
-          { onConflict: 'user_id, company_id' }
-        )
+        .update({ role, is_active: true })
+        .eq('user_id', profile.id)
+        .eq('company_id', companyId)
+        .select('id')
 
-      if (roleError) throw roleError
+      if (roleUpdateError) throw roleUpdateError
+
+      // Si no existía membresía, la creamos
+      if (!updatedRows || updatedRows.length === 0) {
+        const { error: roleInsertError } = await supabase
+          .from('company_memberships')
+          .insert({ user_id: profile.id, company_id: companyId, role, is_active: true })
+        if (roleInsertError) throw roleInsertError
+      }
 
       // 3. Sincronizar membresías multi-empresa
       const toAdd = selectedCompanyIds.filter(id => !initialCompanyIds.includes(id))
@@ -184,16 +193,22 @@ export function UserEditorClient({ profile, initialPermissions, initialRole, ini
       }
 
       // 4. Actualizar permisos granulares
-      const { error: permsError } = await supabase
+      // Intentamos update; si no hay registro previo, insertamos
+      const { data: permsUpdated, error: permsUpdateError } = await supabase
         .from('user_permissions')
-        .upsert({
-          profile_id: profile.id,
-          company_id: companyId,
-          ...permissions,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'profile_id, company_id' })
+        .update({ ...permissions, updated_at: new Date().toISOString() })
+        .eq('profile_id', profile.id)
+        .eq('company_id', companyId)
+        .select('profile_id')
 
-      if (permsError) throw permsError
+      if (permsUpdateError) throw permsUpdateError
+
+      if (!permsUpdated || permsUpdated.length === 0) {
+        const { error: permsInsertError } = await supabase
+          .from('user_permissions')
+          .insert({ profile_id: profile.id, company_id: companyId, ...permissions })
+        if (permsInsertError) throw permsInsertError
+      }
 
       // 5. Reset de contraseña si se completó el campo
       if (password) {
