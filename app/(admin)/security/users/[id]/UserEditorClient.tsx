@@ -159,18 +159,23 @@ export function UserEditorClient({ profile, initialPermissions, initialRole, ini
       if (profileError) throw profileError
 
       // 2. Actualizar / crear rol en la membresía principal
-      // Usamos update primero; si no afecta filas, hacemos insert
-      const { data: updatedRows, error: roleUpdateError } = await supabase
+      // Primero verificamos si ya existe la membresía
+      const { count: membershipCount } = await supabase
         .from('company_memberships')
-        .update({ role, is_active: true })
+        .select('id', { count: 'exact', head: true })
         .eq('user_id', profile.id)
         .eq('company_id', companyId)
-        .select('id')
 
-      if (roleUpdateError) throw roleUpdateError
-
-      // Si no existía membresía, la creamos
-      if (!updatedRows || updatedRows.length === 0) {
+      if ((membershipCount ?? 0) > 0) {
+        // Ya existe → solo actualizar el rol
+        const { error: roleUpdateError } = await supabase
+          .from('company_memberships')
+          .update({ role, is_active: true })
+          .eq('user_id', profile.id)
+          .eq('company_id', companyId)
+        if (roleUpdateError) throw roleUpdateError
+      } else {
+        // No existe → crear membresía nueva
         const { error: roleInsertError } = await supabase
           .from('company_memberships')
           .insert({ user_id: profile.id, company_id: companyId, role, is_active: true })
@@ -193,17 +198,21 @@ export function UserEditorClient({ profile, initialPermissions, initialRole, ini
       }
 
       // 4. Actualizar permisos granulares
-      // Intentamos update; si no hay registro previo, insertamos
-      const { data: permsUpdated, error: permsUpdateError } = await supabase
+      // Verificamos existencia con COUNT antes de decidir UPDATE vs INSERT
+      const { count: permsCount } = await supabase
         .from('user_permissions')
-        .update({ ...permissions, updated_at: new Date().toISOString() })
+        .select('profile_id', { count: 'exact', head: true })
         .eq('profile_id', profile.id)
         .eq('company_id', companyId)
-        .select('profile_id')
 
-      if (permsUpdateError) throw permsUpdateError
-
-      if (!permsUpdated || permsUpdated.length === 0) {
+      if ((permsCount ?? 0) > 0) {
+        const { error: permsUpdateError } = await supabase
+          .from('user_permissions')
+          .update({ ...permissions, updated_at: new Date().toISOString() })
+          .eq('profile_id', profile.id)
+          .eq('company_id', companyId)
+        if (permsUpdateError) throw permsUpdateError
+      } else {
         const { error: permsInsertError } = await supabase
           .from('user_permissions')
           .insert({ profile_id: profile.id, company_id: companyId, ...permissions })
