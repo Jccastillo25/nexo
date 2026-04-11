@@ -158,12 +158,13 @@ export function UserEditorClient({ profile, initialPermissions, initialRole, ini
 
       if (profileError) throw profileError
 
-      // 2. Actualizar rol en la membresía principal
+      // 2. Actualizar / crear rol en la membresía principal
       const { error: roleError } = await supabase
         .from('company_memberships')
-        .update({ role })
-        .eq('user_id', profile.id)
-        .eq('company_id', companyId)
+        .upsert(
+          { user_id: profile.id, company_id: companyId, role, is_active: true },
+          { onConflict: 'user_id, company_id' }
+        )
 
       if (roleError) throw roleError
 
@@ -262,6 +263,7 @@ export function UserEditorClient({ profile, initialPermissions, initialRole, ini
 
         <div className="flex items-center gap-6">
           <button
+            type="button"
             onClick={() => setShowConfirm(true)}
             disabled={!isDirty || isSaving || selectedCompanyIds.length === 0 || !primaryCompanyId}
             className="px-10 py-5 bg-white text-slate-900 text-xs font-black tracking-[0.2em] rounded-[25px] hover:scale-105 active:scale-95 disabled:opacity-10 disabled:grayscale transition-all flex items-center gap-4 shadow-[0_20px_40px_rgba(255,255,255,0.1)]"

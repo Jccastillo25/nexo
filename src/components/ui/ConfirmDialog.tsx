@@ -74,12 +74,14 @@ export function ConfirmDialog({
 
           <div className="mt-12 flex flex-col sm:flex-row gap-4">
             <button
+              type="button"
               onClick={onConfirm}
               className={`flex-1 py-4 px-6 rounded-3xl text-[11px] font-black tracking-[0.2em] uppercase transition-all active:scale-95 ${variantStyles[variant]}`}
             >
               {confirmLabel}
             </button>
             <button
+              type="button"
               onClick={onCancel}
               className="flex-1 py-4 px-6 bg-transparent text-white/40 text-[11px] font-black tracking-[0.2em] uppercase rounded-3xl hover:bg-white/5 hover:text-white transition-all active:scale-95 border border-white/5"
             >
@@ -90,6 +92,7 @@ export function ConfirmDialog({
         
         {/* Close Button X */}
         <button 
+          type="button"
           onClick={onCancel}
           className="absolute top-8 right-8 p-2 text-white/20 hover:text-white transition-colors"
         >
