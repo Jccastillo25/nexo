@@ -12,10 +12,10 @@ interface EmployeeTableRowProps {
 function StatusBadge({ active }: { active: boolean }) {
   return (
     <span
-      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+      className={`inline-block rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest border ${
         active
-          ? 'bg-green-100 text-green-700'
-          : 'bg-slate-100 text-slate-500'
+          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+          : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
       }`}
     >
       {active ? 'Activo' : 'Inactivo'}
@@ -26,34 +26,34 @@ function StatusBadge({ active }: { active: boolean }) {
 function PinBadge({ hasPin }: { hasPin: boolean }) {
   return (
     <span
-      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium border ${
+      className={`inline-block rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest border ${
         hasPin
-          ? 'bg-blue-50 text-blue-700 border-blue-200'
-          : 'bg-amber-50 text-amber-700 border-amber-200'
+          ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+          : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
       }`}
     >
-      {hasPin ? 'Sí' : 'No generado'}
+      {hasPin ? 'Generado' : 'No generado'}
     </span>
   )
 }
 
 function ContractStatusBadge({ contracts }: { contracts: any[] }) {
   if (!contracts || contracts.length === 0) {
-    return <span className="inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-700">Sin contrato</span>
+    return <span className="inline-block rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest border bg-slate-500/10 text-slate-400 border-slate-500/20">Sin contrato</span>
   }
 
   const activeContract = contracts.find((c: any) => c.status === 'active')
 
   if (activeContract) {
-    return <span className="inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-700">🟢 Activo</span>
+    return <span className="inline-block rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Activo</span>
   }
 
   const vencidoContract = contracts.find((c: any) => c.status === 'expired')
   if (vencidoContract) {
-    return <span className="inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-700">🔴 Vencido</span>
+    return <span className="inline-block rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest border bg-red-500/10 text-red-400 border-red-500/20">Vencido</span>
   }
 
-  return <span className="inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-700">Otro</span>
+  return <span className="inline-block rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest border bg-slate-500/10 text-slate-400 border-slate-500/20">Otro</span>
 }
 
 export function EmployeeTableRow({ emp }: EmployeeTableRowProps) {
@@ -92,24 +92,24 @@ export function EmployeeTableRow({ emp }: EmployeeTableRowProps) {
 
   return (
     <>
-      <tr key={emp.id} className="transition hover:bg-slate-50 group">
+      <tr key={emp.id} className="transition-colors hover:bg-slate-800/50 group border-b border-slate-700/50 last:border-0">
         <td className="px-6 py-4">
           <div className="flex items-center gap-3">
             {emp.photo_url ? (
-              <img src={emp.photo_url} alt="" className="h-8 w-8 rounded-full object-cover shadow-sm ring-1 ring-slate-200" />
+              <img src={emp.photo_url} alt="" className="h-8 w-8 rounded-full object-cover border border-slate-700" />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500 uppercase">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800/80 border border-slate-700 text-[10px] font-black text-slate-400 uppercase">
                 {emp.first_name?.[0] ?? ''}{emp.last_name?.[0] ?? ''}
               </div>
             )}
             <div>
-              <div className="font-semibold text-slate-900">{emp.first_name} {emp.last_name}</div>
-              <div className="text-xs text-slate-500">{emp.email}</div>
+              <div className="font-bold text-white">{emp.first_name} {emp.last_name}</div>
+              <div className="text-xs font-medium text-slate-400">{emp.email}</div>
             </div>
           </div>
         </td>
-        <td className="px-6 py-4 text-slate-600">{jp?.name ?? '—'}</td>
-        <td className="px-6 py-4 text-slate-600">{b?.name ?? '—'}</td>
+        <td className="px-6 py-4 text-slate-400 font-medium">{jp?.name ?? '—'}</td>
+        <td className="px-6 py-4 text-slate-400 font-medium">{b?.name ?? '—'}</td>
         <td className="px-6 py-4 text-center">
           <ContractStatusBadge contracts={contracts} />
         </td>
@@ -121,19 +121,19 @@ export function EmployeeTableRow({ emp }: EmployeeTableRowProps) {
         </td>
         <td className="px-6 py-4 text-right">
           <div className="flex items-center justify-end gap-3 transition-opacity">
-            <Link href={`/employees/${emp.id}`} className="text-xs font-semibold text-slate-600 hover:text-slate-900">Ver</Link>
-            <Link href={`/employees/${emp.id}/edit`} className="text-xs font-semibold text-slate-900 hover:underline">Editar</Link>
+            <Link href={`/employees/${emp.id}`} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Ver</Link>
+            <Link href={`/employees/${emp.id}/edit`} className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors">Editar</Link>
             <button
               onClick={handleDelete}
               disabled={isDeleting}
-              className="text-xs font-semibold text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title="Eliminar empleado"
             >
               {isDeleting ? 'Eliminando...' : 'Eliminar'}
             </button>
           </div>
           {error && (
-            <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded whitespace-pre-line">
+            <div className="mt-2 text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 p-2 rounded-lg whitespace-pre-line text-left">
               {error}
             </div>
           )}

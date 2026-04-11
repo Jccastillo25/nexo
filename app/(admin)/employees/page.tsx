@@ -74,20 +74,20 @@ export default async function EmployeesPage({
     return (
       <section className="space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+        <div className="flex items-start justify-between gap-4 mb-8">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
+            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">
               Recursos humanos
             </p>
-            <h1 className="mt-2 text-3xl font-bold text-slate-900">Directorio de Empleados</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+            <h1 className="text-3xl font-black text-white tracking-tight">Directorio de Empleados</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
               Listado maestro de colaboradores con perfil, estado, sucursal y turno asignado.
             </p>
           </div>
           <div className="flex gap-3">
             <Link
               href="/employees/new"
-              className="shrink-0 rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="shrink-0 rounded-2xl bg-blue-500 px-5 py-2.5 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-600 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0"
             >
               + Nuevo empleado
             </Link>
@@ -97,13 +97,13 @@ export default async function EmployeesPage({
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {stats.map((s) => (
-            <div key={s.label} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 relative overflow-hidden">
-              <p className="text-sm text-slate-500 relative z-10">{s.label}</p>
-              <p className={`mt-3 text-3xl font-bold relative z-10 ${s.label === 'Pendientes de PIN' && s.value > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
+            <div key={s.label} className="app-surface p-5 relative overflow-hidden group hover:border-slate-500 transition-all">
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-2 relative z-10">{s.label}</p>
+              <p className={`text-3xl font-black relative z-10 tracking-tight ${s.label === 'Pendientes de PIN' && s.value > 0 ? 'text-amber-400' : 'text-white'}`}>
                 {s.value}
               </p>
               {s.label === 'Pendientes de PIN' && s.value > 0 && (
-                <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-amber-50 to-transparent"></div>
+                <div className="absolute inset-0 bg-amber-500/5 transition-opacity group-hover:bg-amber-500/10"></div>
               )}
             </div>
           ))}
@@ -118,9 +118,9 @@ export default async function EmployeesPage({
                 name="q"
                 defaultValue={q}
                 placeholder="Buscar por nombre o correo..."
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 text-slate-900"
+                className="h-11 w-full rounded-2xl border border-slate-700 bg-slate-800/50 pl-11 pr-4 text-sm text-white placeholder-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
                 </svg>
@@ -130,7 +130,7 @@ export default async function EmployeesPage({
             <select
               name="branch"
               defaultValue={branch}
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-slate-400"
+              className="h-11 rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             >
               <option value="">Todas las sucursales</option>
               {branches?.map((b: any) => (
@@ -141,7 +141,7 @@ export default async function EmployeesPage({
             <select
               name="shift"
               defaultValue={shift}
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-slate-400"
+              className="h-11 rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             >
               <option value="">Todos los turnos</option>
               {shiftsList?.map((s: any) => (
@@ -165,9 +165,9 @@ export default async function EmployeesPage({
         </div>
 
         {/* Tabla */}
-        <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
-          <div className="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-slate-900">
+        <div className="app-surface overflow-hidden">
+          <div className="border-b border-slate-700/50 px-6 py-5 flex items-center justify-between">
+            <h2 className="text-base font-black text-white tracking-tight uppercase">
               Todos los empleados
             </h2>
           </div>
@@ -175,18 +175,18 @@ export default async function EmployeesPage({
           {employees.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50 text-left">
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Nombre</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Puesto</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Sucursal</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 text-center">Contrato</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 text-center">PIN</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 text-center">Estado</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 text-right">Acciones</th>
+                <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                  <tr className="text-left">
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Nombre</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Puesto</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Sucursal</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Contrato</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">PIN</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Estado</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-700/50 text-slate-300">
                   {employees.map((emp) => (
                     <EmployeeTableRow key={emp.id} emp={emp} />
                   ))}
@@ -204,17 +204,17 @@ export default async function EmployeesPage({
   } catch (error) {
     console.error('Error loading employees:', error)
     return (
-      <div className="flex h-[50vh] flex-col items-center justify-center rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
-        <div className="mb-4 rounded-full bg-red-50 p-3 text-red-500">
+      <div className="flex h-[50vh] flex-col items-center justify-center app-surface p-8 text-center">
+        <div className="mb-4 rounded-full bg-red-500/10 border border-red-500/20 p-3 text-red-400">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
         </div>
-        <h2 className="text-lg font-bold text-slate-900">Error al cargar datos</h2>
-        <p className="mt-2 text-center text-sm text-slate-500 break-all">
+        <h2 className="text-lg font-black text-white tracking-tight uppercase">Error al cargar datos</h2>
+        <p className="mt-2 text-center text-sm text-slate-400 break-all max-w-md">
           {error instanceof Error ? error.message : 'Problema de conexión con la base de datos.'}
         </p>
-        <Link href="/employees" className="mt-6 rounded-xl bg-slate-900 px-6 py-2 text-sm font-semibold text-white">
+        <Link href="/employees" className="mt-6 rounded-xl bg-slate-800 border border-slate-700 px-6 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:border-slate-500 transition-all">
           Reintentar
         </Link>
       </div>

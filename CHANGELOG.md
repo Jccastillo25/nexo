@@ -6,6 +6,21 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/) y el 
 
 ---
 
+## [0.3.0] — 2026-04-11
+
+### Added
+- **Global Design System**: Implemented the "Premium Dark Theme" system-wide using the `.app-surface` utility class.
+- **Glassmorphism UI**: High-contrast, completely borderless aesthetics with layered translucency.
+
+### Changed
+- **UX Unification - Phase 1**: Modernized the user interface and data tables of key modules:
+  - `/leave`: "Permisos y Ausencias" transformed to dark theme.
+  - `/organization`: "Empresas y Sucursales" unified under new layout.
+  - `/employees`: "Directorio de Empleados" refactored including `employee-table-row`.
+  - `/security`: "Administración de Accesos" converted to standard `app-surface` components.
+
+---
+
 ## [0.2.2] — 2026-04-11
 
 ### Fixed

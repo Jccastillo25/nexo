@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
-  pending:  { label: 'Pendiente',  cls: 'bg-amber-100 text-amber-700' },
-  approved: { label: 'Aprobado',   cls: 'bg-green-100 text-green-700' },
-  rejected: { label: 'Rechazado',  cls: 'bg-red-100 text-red-600' },
-  cancelled:{ label: 'Cancelado',  cls: 'bg-slate-100 text-slate-500' },
+  pending:  { label: 'Pendiente',  cls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20' },
+  approved: { label: 'Aprobado',   cls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
+  rejected: { label: 'Rechazado',  cls: 'bg-red-500/10 text-red-400 border border-red-500/20' },
+  cancelled:{ label: 'Cancelado',  cls: 'bg-slate-500/10 text-slate-400 border border-slate-500/20' },
 }
 
 export default async function LeavePage() {
@@ -39,14 +39,14 @@ export default async function LeavePage() {
     <section className="space-y-6">
 
       {/* Header */}
-      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
+      <div className="mb-8">
+        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">
           Operación
         </p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-900">
+        <h1 className="text-3xl font-black text-white tracking-tight">
           Permisos y ausencias
         </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+        <p className="mt-2 text-sm text-slate-400">
           Control de solicitudes, tipos de permiso, aprobaciones y estado del equipo.
         </p>
       </div>
@@ -54,17 +54,17 @@ export default async function LeavePage() {
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm text-slate-500">{s.label}</p>
-            <p className="mt-3 text-3xl font-bold text-slate-900">{s.value}</p>
+          <div key={s.label} className="app-surface p-5 relative overflow-hidden group hover:border-slate-500 transition-all">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-2">{s.label}</p>
+            <p className="text-3xl font-black text-white tracking-tight">{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Tabla de solicitudes */}
-      <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">
+      <div className="app-surface overflow-hidden">
+        <div className="border-b border-slate-700/50 px-6 py-5 flex items-center justify-between">
+          <h2 className="text-base font-black text-white tracking-tight uppercase">
             Solicitudes recientes
           </h2>
         </div>
@@ -72,17 +72,17 @@ export default async function LeavePage() {
         {requests && requests.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50 text-left">
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Empleado</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Tipo</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Fechas</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Días</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Motivo</th>
+              <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                <tr className="text-left">
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Empleado</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Tipo</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Fechas</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Días</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Estado</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Motivo</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-700/50 text-slate-300">
                 {requests.map((req) => {
                   const emp = req.employees as unknown as { first_name: string; last_name: string } | null
                   const lt  = req.leave_types as unknown as { name: string } | null
@@ -90,23 +90,23 @@ export default async function LeavePage() {
                   const fmtDate = (d: string) =>
                     new Date(d).toLocaleDateString('es-NI', { day: 'numeric', month: 'short', year: 'numeric' })
                   return (
-                    <tr key={req.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 font-medium text-slate-900">
+                    <tr key={req.id} className="hover:bg-slate-800/50 transition-colors border-b border-slate-700/50 last:border-0">
+                      <td className="px-6 py-4 font-bold text-white">
                         {emp ? `${emp.first_name} ${emp.last_name}` : '—'}
                       </td>
-                      <td className="px-6 py-4 text-slate-600">{lt?.name ?? '—'}</td>
-                      <td className="px-6 py-4 text-slate-500 text-xs">
+                      <td className="px-6 py-4 text-slate-400 font-medium">{lt?.name ?? '—'}</td>
+                      <td className="px-6 py-4 text-slate-500 text-xs font-mono">
                         {fmtDate(req.start_date)} – {fmtDate(req.end_date)}
                       </td>
-                      <td className="px-6 py-4 text-slate-700 font-medium">
+                      <td className="px-6 py-4 font-bold text-emerald-400">
                         {Number(req.days_requested)}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${sc.cls}`}>
+                        <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${sc.cls}`}>
                           {sc.label}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-500 max-w-xs truncate">
+                      <td className="px-6 py-4 text-slate-500 max-w-xs truncate text-xs">
                         {req.reason}
                       </td>
                     </tr>
@@ -117,10 +117,10 @@ export default async function LeavePage() {
           </div>
         ) : (
           <div className="px-6 py-16 text-center">
-            <p className="text-sm font-semibold text-slate-500">
+            <p className="text-sm font-bold text-slate-500">
               No hay solicitudes de permiso registradas.
             </p>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-slate-600">
               Las solicitudes aparecerán aquí cuando los empleados las envíen.
             </p>
           </div>

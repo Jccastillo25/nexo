@@ -31,19 +31,19 @@ export default async function OrganizationPage() {
   return (
     <section className="space-y-6">
 
-      <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Estructura</p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-900">Organización</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+      <div className="mb-8">
+        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Estructura</p>
+        <h1 className="text-3xl font-black text-white tracking-tight">Organización</h1>
+        <p className="mt-2 text-sm text-slate-400">
           Estructura del grupo: empresas, sucursales y acceso de miembros.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm text-slate-500">{s.label}</p>
-            <p className="mt-3 text-3xl font-bold text-slate-900">{s.value}</p>
+          <div key={s.label} className="app-surface p-5 relative overflow-hidden group hover:border-slate-500 transition-all">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-2">{s.label}</p>
+            <p className="text-3xl font-black text-white tracking-tight">{s.value}</p>
           </div>
         ))}
       </div>
@@ -53,39 +53,39 @@ export default async function OrganizationPage() {
           <Link
             key={m.href}
             href={m.href}
-            className="group rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 transition hover:ring-slate-300"
+            className="group app-surface p-6 transition-all hover:border-slate-500 hover:bg-slate-800"
           >
-            <h2 className="text-base font-semibold text-slate-900">{m.title}</h2>
-            <p className="mt-2 text-sm text-slate-500">{m.desc}</p>
-            <p className="mt-4 text-xs font-semibold text-slate-400 group-hover:text-slate-600">Ir →</p>
+            <h2 className="text-base font-black text-white tracking-tight">{m.title}</h2>
+            <p className="mt-2 text-sm text-slate-400">{m.desc}</p>
+            <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">Ir →</p>
           </Link>
         ))}
       </div>
 
       {/* Empresas */}
       {companies && companies.length > 0 && (
-        <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
-          <div className="border-b border-slate-100 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Empresas registradas</h2>
+        <div className="app-surface overflow-hidden">
+          <div className="border-b border-slate-700/50 px-6 py-5">
+            <h2 className="text-base font-black text-white tracking-tight uppercase">Empresas registradas</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50 text-left">
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Nombre</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Razón social</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Slug</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
+              <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                <tr className="text-left">
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Nombre</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Razón social</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Slug</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Estado</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-700/50 text-slate-300">
                 {companies.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4 font-medium text-slate-900">{c.display_name}</td>
-                    <td className="px-6 py-4 text-slate-600">{c.legal_name}</td>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-400">{c.slug}</td>
+                  <tr key={c.id} className="hover:bg-slate-800/50 transition-colors border-b border-slate-700/50 last:border-0">
+                    <td className="px-6 py-4 font-bold text-white">{c.display_name}</td>
+                    <td className="px-6 py-4 text-slate-400 font-medium">{c.legal_name}</td>
+                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{c.slug}</td>
                     <td className="px-6 py-4">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${c.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                      <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest border border-current ${c.is_active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border-slate-500/20'}`}>
                         {c.is_active ? 'Activa' : 'Inactiva'}
                       </span>
                     </td>
@@ -99,30 +99,30 @@ export default async function OrganizationPage() {
 
       {/* Sucursales */}
       {branches && branches.length > 0 && (
-        <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
-          <div className="border-b border-slate-100 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Sucursales registradas</h2>
+        <div className="app-surface overflow-hidden">
+          <div className="border-b border-slate-700/50 px-6 py-5">
+            <h2 className="text-base font-black text-white tracking-tight uppercase">Sucursales registradas</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50 text-left">
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Sucursal</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Código</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Empresa</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</th>
+              <thead className="bg-slate-800/50 border-b border-slate-700/50">
+                <tr className="text-left">
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Sucursal</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Código</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Empresa</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Estado</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-700/50 text-slate-300">
                 {branches.map((b) => {
                   const co = b.companies as unknown as { display_name: string } | null
                   return (
-                    <tr key={b.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 font-medium text-slate-900">{b.name}</td>
-                      <td className="px-6 py-4 font-mono text-xs text-slate-400">{b.code ?? '—'}</td>
-                      <td className="px-6 py-4 text-slate-600">{co?.display_name ?? '—'}</td>
+                    <tr key={b.id} className="hover:bg-slate-800/50 transition-colors border-b border-slate-700/50 last:border-0">
+                      <td className="px-6 py-4 font-bold text-white">{b.name}</td>
+                      <td className="px-6 py-4 font-mono text-xs text-slate-500">{b.code ?? '—'}</td>
+                      <td className="px-6 py-4 text-slate-400 font-medium">{co?.display_name ?? '—'}</td>
                       <td className="px-6 py-4">
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${b.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                        <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest border border-current ${b.is_active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border-slate-500/20'}`}>
                           {b.is_active ? 'Activa' : 'Inactiva'}
                         </span>
                       </td>
