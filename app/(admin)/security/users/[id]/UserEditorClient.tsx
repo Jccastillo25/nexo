@@ -146,25 +146,18 @@ export function UserEditorClient({ profile, initialPermissions, initialRole, ini
     const toastId = toast.loading('Guardando cambios...')
 
     try {
-      // Si hay nueva contraseña, la guardamos primero vía Edge Function
+      // Contraseña primero si se llenó el campo
       if (password) {
         const supabase = createClient()
         const { data: pwData, error: pwError } = await supabase.functions.invoke('update-user-password', {
           body: { target_user_id: profile.id, password, company_id: companyId }
         })
-        if (pwError) {
-          let serverMessage = pwError.message
-          try {
-            const body = await (pwError as any).context?.json?.()
-            if (body?.error) serverMessage = body.error
-          } catch {}
-          throw new Error(serverMessage)
-        }
+        if (pwError) throw new Error(pwError.message)
         if (pwData?.error) throw new Error(pwData.error)
       }
 
-      // Guardar todo lo demás via Server Action (bypasea RLS con adminClient)
-      await saveUserChanges({
+      // Guardar rol, permisos, membresías via Server Action (adminClient, bypasea RLS)
+      const result = await saveUserChanges({
         targetUserId: profile.id,
         companyId,
         role,
@@ -177,16 +170,14 @@ export function UserEditorClient({ profile, initialPermissions, initialRole, ini
         permissions,
       })
 
-      // El Server Action hace redirect('/security') internamente,
-      // pero por si acaso Next.js no lo propaga mostramos el toast antes
-      toast.success('Cambios guardados correctamente', { id: toastId })
-    } catch (err: any) {
-      // Next.js redirect lanza un error especial que no debemos capturar
-      if (err?.message?.includes('NEXT_REDIRECT')) {
-        toast.success('Cambios guardados correctamente', { id: toastId })
-        return
+      if ('error' in result) {
+        throw new Error(result.error)
       }
-      toast.error('Error al guardar: ' + err.message, { id: toastId })
+
+      toast.success('Cambios guardados correctamente', { id: toastId })
+      router.push('/security')
+    } catch (err: any) {
+      toast.error('Error: ' + err.message, { id: toastId })
       setIsSaving(false)
     }
   }
