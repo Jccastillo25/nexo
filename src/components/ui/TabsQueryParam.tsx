@@ -54,11 +54,11 @@ function getTabClass(isActive: boolean, variant: 'default' | 'light' | 'dark' = 
 
   const variantClasses = {
     default: isActive
-      ? 'border-slate-900 text-slate-900'
-      : 'border-transparent text-slate-500 hover:text-slate-700',
+      ? 'border-[var(--primary)] text-white'
+      : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-body)] hover:border-[var(--border-medium)]',
     light: isActive
-      ? 'border-slate-800 text-slate-800'
-      : 'border-transparent text-slate-400 hover:text-slate-600',
+      ? 'border-[var(--primary)] text-white'
+      : 'border-transparent text-[var(--text-light)] hover:text-[var(--text-muted)]',
     dark: isActive
       ? 'border-white text-white'
       : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-500',
@@ -82,7 +82,7 @@ export function TabsQueryParam({
 
   return (
     <div
-      className={`flex overflow-x-auto border-b border-slate-100 -mx-6 px-6 ${className}`}
+      className={`flex overflow-x-auto border-b border-[var(--border-soft)] -mx-6 px-6 ${className}`}
       role="tablist"
     >
       {tabs.map((tab) => (

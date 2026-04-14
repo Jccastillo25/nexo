@@ -185,6 +185,11 @@ export function PermissionsMatrix({ values, onChange, onApplyPreset }: Permissio
                     <div
                       key={perm.id}
                       onClick={() => onChange(perm.id, !isActive)}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange(perm.id, !isActive) } }}
+                      role="switch"
+                      aria-checked={isActive}
+                      aria-label={perm.label}
+                      tabIndex={0}
                       className={`flex items-start justify-between gap-4 p-3 rounded-2xl transition-all cursor-pointer border ${
                         isActive
                           ? 'bg-white/10 border-white/20 shadow-lg'
@@ -201,6 +206,7 @@ export function PermissionsMatrix({ values, onChange, onApplyPreset }: Permissio
                       </div>
 
                       <div
+                        aria-hidden="true"
                         className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-all duration-300 ease-in-out ${
                           isActive ? 'bg-white' : 'bg-white/10'
                         }`}

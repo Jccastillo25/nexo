@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 
-export const DigitalClock = ({ className = '' }: { className?: string }) => {
+export const DigitalClock = ({ className = '', style }: { className?: string; style?: React.CSSProperties }) => {
   const [time, setTime] = useState(new Date())
 
   useEffect(() => {
@@ -11,7 +11,7 @@ export const DigitalClock = ({ className = '' }: { className?: string }) => {
   }, [])
 
   return (
-    <div className={`font-mono ${className}`}>
+    <div className={`font-mono ${className}`} style={style}>
       {time.toLocaleTimeString('es-NI', { 
         hour: '2-digit', 
         minute: '2-digit', 

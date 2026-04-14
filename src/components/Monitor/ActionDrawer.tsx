@@ -48,27 +48,36 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
   return (
     <>
       {/* Overlay */}
-      <div 
-        className={`fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+      <div
+        className={`fixed inset-0 z-40 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        style={{ background: 'rgba(15,23,42,0.6)' }}
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Drawer */}
-      <div className={`fixed right-0 top-0 z-50 h-full w-full max-w-md transform bg-slate-900 border-l border-slate-700/50 shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div
+        className={`action-drawer fixed right-0 top-0 z-50 h-full w-full max-w-md transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Panel de acción — ${employee.first_name} ${employee.last_name}`}
+      >
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-700/50 p-6">
+          <div className="flex items-center justify-between border-b p-6" style={{ borderColor: 'var(--border-soft)' }}>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Panel de Acción
-              </p>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-white">
+              <p className="section-label">Panel de Acción</p>
+              <h2 className="mt-1 text-xl font-black tracking-tight" style={{ color: 'var(--text-strong)' }}>
                 {employee.first_name} {employee.last_name}
               </h2>
             </div>
-            <button 
+            <button
               onClick={onClose}
-              className="rounded-full p-2 text-slate-500 hover:bg-slate-800 hover:text-white transition-colors"
+              aria-label="Cerrar panel"
+              className="rounded-full p-2 transition-colors"
+              style={{ color: 'var(--text-light)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-strong)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-light)' }}
             >
               <X size={24} />
             </button>
@@ -78,40 +87,40 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
             {/* Status & Clock */}
             <div className="flex items-center justify-between app-surface p-5">
               <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estado Actual</p>
+                <p className="section-label">Estado Actual</p>
                 <div className="flex items-center gap-2">
                   <EmployeeStatusBadge status={employee.current_status} className="scale-110 origin-left" />
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Hora Servidor</p>
-                <DigitalClock className="text-xl font-black tracking-tight text-white" />
+                <p className="section-label">Hora Servidor</p>
+                <DigitalClock className="text-xl font-black tracking-tight" style={{ color: 'var(--text-strong)' }} />
               </div>
             </div>
 
             {/* Buttons Grid */}
             <div className="grid grid-cols-2 gap-3">
-              <ActionButton 
-                label="Entrada" 
-                color="bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/20" 
+              <ActionButton
+                label="Entrada"
+                color="bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/20"
                 onClick={() => handleAction('CLOCK_IN')}
                 disabled={employee.current_status === 'active' || isSubmitting}
               />
-              <ActionButton 
-                label="Descanso" 
-                color="bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20" 
+              <ActionButton
+                label="Descanso"
+                color="bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20"
                 onClick={() => handleAction('START_BREAK')}
                 disabled={employee.current_status !== 'active' || isSubmitting}
               />
-              <ActionButton 
-                label="Reanudar" 
-                color="bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-500/20" 
+              <ActionButton
+                label="Reanudar"
+                color="bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-500/20"
                 onClick={() => handleAction('END_BREAK')}
                 disabled={employee.current_status !== 'on_break' || isSubmitting}
               />
-              <ActionButton 
-                label="Salida" 
-                color="bg-slate-700 hover:bg-slate-600 border border-slate-600" 
+              <ActionButton
+                label="Salida"
+                color="bg-[var(--bg-elevated)] hover:bg-[var(--border-soft)] border border-[var(--border-medium)]"
                 onClick={() => handleAction('CLOCK_OUT')}
                 disabled={employee.current_status === 'offline' || isSubmitting}
               />
@@ -119,16 +128,16 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
 
             {/* Incident Form */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-700/50 pb-3">
-                <AlertCircle size={16} className="text-blue-500" />
-                <h3 className="text-[11px] font-black uppercase tracking-widest text-white">Registrar Incidencia / Notas</h3>
+              <div className="flex items-center gap-2 border-b pb-3" style={{ borderColor: 'var(--border-soft)' }}>
+                <AlertCircle size={16} style={{ color: 'var(--primary)' }} />
+                <h3 className="text-[11px] font-black uppercase tracking-widest" style={{ color: 'var(--text-strong)' }}>Registrar Incidencia / Notas</h3>
               </div>
-              
+
               <div className="space-y-3">
-                <select 
+                <select
                   value={incidenteType}
                   onChange={(e) => setIncidenteType(e.target.value)}
-                  className="h-12 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 text-sm text-white outline-none focus:border-blue-500"
+                  className="input-dark h-12 w-full px-4 text-sm"
                 >
                   <option value="permiso">Permiso Especial</option>
                   <option value="ausencia">Ausencia Justificada</option>
@@ -136,39 +145,53 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
                   <option value="nota">Nota de Supervisión</option>
                 </select>
 
-                <textarea 
+                <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Escribe el motivo o nota aquí..."
-                  className="h-32 w-full rounded-xl border border-slate-700 bg-slate-800 p-4 text-sm text-white placeholder:text-slate-500 outline-none focus:border-blue-500 resize-none"
+                  className="input-dark h-32 w-full p-4 text-sm resize-none"
                 />
 
                 <div className="flex gap-2">
-                   <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-dashed border-slate-700 p-4 text-[11px] font-black uppercase tracking-widest text-slate-500 transition hover:border-blue-500/50 hover:text-blue-400">
+                  <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-dashed p-4 text-[11px] font-black uppercase tracking-widest transition"
+                    style={{ borderColor: 'var(--border-soft)', color: 'var(--text-light)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-soft)'; e.currentTarget.style.color = 'var(--text-light)' }}
+                  >
                     <Camera size={16} />
                     Foto
-                   </button>
-                   <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-dashed border-slate-700 p-4 text-[11px] font-black uppercase tracking-widest text-slate-500 transition hover:border-blue-500/50 hover:text-blue-400">
+                  </button>
+                  <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-dashed p-4 text-[11px] font-black uppercase tracking-widest transition"
+                    style={{ borderColor: 'var(--border-soft)', color: 'var(--text-light)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-soft)'; e.currentTarget.style.color = 'var(--text-light)' }}
+                  >
                     <FileText size={16} />
                     PDF
-                   </button>
+                  </button>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="border-t border-slate-700/50 p-6 bg-slate-900/80 flex gap-3">
-            <button 
+          <div className="border-t p-6 flex gap-3" style={{ borderColor: 'var(--border-soft)', background: 'var(--bg-app)' }}>
+            <button
               onClick={onClose}
-              className="flex-1 rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+              className="flex-1 rounded-xl border px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-colors"
+              style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-soft)', color: 'var(--text-muted)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-strong)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--text-muted)' }}
             >
               Cancelar
             </button>
-            <button 
+            <button
               disabled={isSubmitting || !notes}
               onClick={() => handleAction('NOTE_ONLY')}
-              className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 hover:bg-blue-600 disabled:opacity-40 transition-all"
+              className="flex-1 rounded-xl px-4 py-3 text-[11px] font-black uppercase tracking-widest text-white transition-all disabled:opacity-40"
+              style={{ background: 'var(--primary)', boxShadow: '0 0 20px var(--primary-soft)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary-hover)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--primary)' }}
             >
               Guardar Nota
             </button>
