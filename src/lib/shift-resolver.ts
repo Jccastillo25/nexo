@@ -3,6 +3,8 @@ import { SupabaseClient } from '@supabase/supabase-js'
 export type ShiftSourceLevel = 1 | 2 | 3 | 4
 
 export interface ResolvedShift {
+  shift_template_id: string | null
+  /** @deprecated Use shift_template_id instead. Current UI depends on this name. */
   shift_id: string | null
   name: string
   start_time: string | null
@@ -38,7 +40,8 @@ export function resolveShiftInMemory(
   if (override?.shift_templates) {
     const st = override.shift_templates
     return {
-      shift_id: st.id,
+      shift_template_id: st.id,
+      shift_id: st.id, // Compatibility mapping
       name: st.name,
       start_time: st.start_time,
       end_time: st.end_time,
@@ -52,23 +55,26 @@ export function resolveShiftInMemory(
     }
   }
 
-  // LEVEL 2: MANUAL FIXED - LEGACY IGNORED OR ADAPTED
+  // LEVEL 2: ASIGNACIÓN FIJA (Updated to shift_templates)
   const manual = data.manuals.get(employee.id)
-  if (manual?.shifts) {
-    const s = manual.shifts
-    if (s.days_of_week?.includes(dayOfWeek)) {
+  if (manual?.shift_templates) {
+    const st = manual.shift_templates
+    const dayConfig = st.days_config?.find((d: any) => d.dayOfWeek === dayOfWeek)
+    
+    if (dayConfig?.isActive) {
       return {
-        shift_id: s.id,
-        name: s.name,
-        start_time: s.start_time,
-        end_time: s.end_time,
-        color_code: s.color_code || '#64748b',
+        shift_template_id: st.id,
+        shift_id: st.id,
+        name: st.name,
+        start_time: dayConfig.startTime || st.start_time,
+        end_time: dayConfig.endTime || st.end_time,
+        color_code: st.color_code || '#64748b',
         source_level: 2,
         source_name: 'Asignación Fija',
-        lunch_duration: s.break_minutes || 60,
-        late_entry_tolerance: s.tolerance_in || 15,
-        early_exit_tolerance: s.tolerance_out || 15,
-        days_config: s.days_config || []
+        lunch_duration: st.lunch_duration || 0,
+        late_entry_tolerance: st.late_entry_tolerance || 15,
+        early_exit_tolerance: st.early_exit_tolerance || 15,
+        days_config: st.days_config
       }
     }
   }
@@ -80,6 +86,7 @@ export function resolveShiftInMemory(
     if (globalSched?.shift_templates) {
       const st = globalSched.shift_templates
       return {
+        shift_template_id: st.id,
         shift_id: st.id,
         name: st.name,
         start_time: st.start_time,
@@ -102,6 +109,7 @@ export function resolveShiftInMemory(
     if (branchDefault?.shift_templates) {
       const st = branchDefault.shift_templates
       return {
+        shift_template_id: st.id,
         shift_id: st.id,
         name: st.name,
         start_time: st.start_time,
@@ -165,32 +173,35 @@ export async function resolveShift(
     }
   }
 
-  // LEVEL 2: MANUAL FIXED - Legacy Shifts Fallback
+  // LEVEL 2: ASIGNACIÓN FIJA (Updated to shift_templates)
   const { data: manualAssignment } = await supabase
     .from('employee_shifts')
     .select(`
-      shift_id,
-      shifts!inner(id, name, start_time, end_time, color_code, tolerance_in, tolerance_out, break_minutes, days_of_week)
+      shift_template_id,
+      shift_templates!inner(id, name, start_time, end_time, color_code, lunch_duration, late_entry_tolerance, early_exit_tolerance, days_config)
     `)
     .eq('employee_id', employeeId)
     .eq('is_active', true)
     .maybeSingle()
 
-  if (manualAssignment?.shifts) {
-    const s = manualAssignment.shifts as any
-    if (s.days_of_week?.includes(dayOfWeek)) {
+  if (manualAssignment?.shift_templates) {
+    const st = manualAssignment.shift_templates as any
+    const dayConfig = st.days_config?.find((d: any) => d.dayOfWeek === dayOfWeek)
+    
+    if (dayConfig?.isActive) {
       return {
-        shift_id: s.id,
-        name: s.name,
-        start_time: s.start_time,
-        end_time: s.end_time,
-        color_code: s.color_code || '#64748b',
+        shift_template_id: st.id,
+        shift_id: st.id,
+        name: st.name,
+        start_time: dayConfig.startTime || st.start_time,
+        end_time: dayConfig.endTime || st.end_time,
+        color_code: st.color_code || '#64748b',
         source_level: 2,
         source_name: 'Asignación Fija',
-        lunch_duration: s.break_minutes || 60,
-        late_entry_tolerance: s.tolerance_in || 15,
-        early_exit_tolerance: s.tolerance_out || 15,
-        days_config: []
+        lunch_duration: st.lunch_duration || 0,
+        late_entry_tolerance: st.late_entry_tolerance || 15,
+        early_exit_tolerance: st.early_exit_tolerance || 15,
+        days_config: st.days_config
       }
     }
   }
@@ -210,6 +221,7 @@ export async function resolveShift(
     if (globalSched?.shift_templates) {
       const st = globalSched.shift_templates as any
       return {
+        shift_template_id: st.id,
         shift_id: st.id,
         name: st.name,
         start_time: st.start_time,

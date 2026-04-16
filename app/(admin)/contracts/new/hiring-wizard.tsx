@@ -165,7 +165,7 @@ export function HiringWizard({
         <input type="hidden" name="branch_id" value={selectedBranch} />
         <input type="hidden" name="job_position_id" value={selectedPosition} />
         <input type="hidden" name="company_id" value={autoCompanyId} />
-        <input type="hidden" name="schedule_id" value={selectedShift} />
+        <input type="hidden" name="shift_template_id" value={selectedShift} />
         <input type="hidden" name="hire_date" value={hireDate} />
         <input type="hidden" name="start_date" value={hireDate} />
         <input type="hidden" name="contract_type" value={contractType} />

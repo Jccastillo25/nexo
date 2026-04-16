@@ -64,7 +64,7 @@ export function AssignmentForm({ employees, shifts, branches }: AssignmentFormPr
             Turno a Asignar *
           </label>
           <select
-            name="shift_id"
+            name="shift_template_id"
             required
             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
           >

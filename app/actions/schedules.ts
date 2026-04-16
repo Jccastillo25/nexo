@@ -327,10 +327,10 @@ export async function assignShift(
   const supabase = await createClient()
 
   const employee_id = formData.get('employee_id') as string
-  const shift_id = formData.get('shift_id') as string
+  const shift_template_id = formData.get('shift_template_id') as string
   const start_date = formData.get('start_date') as string
 
-  if (!employee_id || !shift_id) {
+  if (!employee_id || !shift_template_id) {
     return { error: 'Empleado y turno son requeridos.' }
   }
 
@@ -347,7 +347,7 @@ export async function assignShift(
   // Insertar nueva asignación
   const { error } = await supabase.from('employee_shifts').insert({
     employee_id,
-    shift_id,
+    shift_template_id,
     start_date: start_date || new Date().toISOString().split('T')[0],
     is_active: true,
   })
@@ -461,7 +461,8 @@ export async function getResolvedPersonnelSchedule(
       }
 
       grid[`${emp.id}_${dateStr}`] = resolved ? {
-        shift_id: resolved.id,
+        shift_template_id: resolved.id,
+        shift_id: resolved.id, // Compatibility
         name: resolved.name,
         start_time: resolved.start_time,
         end_time: resolved.end_time,

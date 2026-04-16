@@ -13,7 +13,7 @@ export default async function EmployeesPage({
 
   let selectQuery = 'id, employee_code, first_name, last_name, is_active, hire_date, email, phone, photo_url, job_position_id, branches(id, name), job_positions(id, name), contracts(id, status, end_date)'
   if (shift) {
-    selectQuery += ', employee_shifts!inner(shift_id, is_active)'
+    selectQuery += ', employee_shifts!inner(shift_template_id, is_active)'
   }
 
   let query = supabase.from('employees').select(selectQuery, { count: 'exact' })
@@ -25,7 +25,7 @@ export default async function EmployeesPage({
     query = query.eq('branch_id', branch)
   }
   if (shift) {
-    query = query.eq('employee_shifts.shift_id', shift).eq('employee_shifts.is_active', true)
+    query = query.eq('employee_shifts.shift_template_id', shift).eq('employee_shifts.is_active', true)
   }
   if (company_id && company_id !== 'all') {
     query = query.eq('company_id', company_id)
@@ -52,7 +52,7 @@ export default async function EmployeesPage({
       applyParams(supabase.from('employees').select('id', { count: 'exact', head: true }).eq('is_active', false)),
       applyParams(supabase.from('employees').select('id', { count: 'exact', head: true }).eq('is_active', true).is('employee_code', null)),
       applyParams(supabase.from('branches').select('id, name').eq('is_active', true).order('name')),
-      supabase.from('shifts').select('id, name').eq('is_active', true).order('name'),
+      supabase.from('shift_templates').select('id, name').eq('is_active', true).order('name'),
     ])
 
     const employees = (results.data as unknown as any[]) || []

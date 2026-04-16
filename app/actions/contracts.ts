@@ -13,7 +13,7 @@ export async function createContract(
   const supabase = await createClient()
 
   const employee_id = formData.get('employee_id') as string
-  const schedule_id = formData.get('schedule_id') as string
+  const shift_template_id = formData.get('shift_template_id') as string // Refactor V3
   const company_id = formData.get('company_id') as string
   const branch_id = formData.get('branch_id') as string
   const contract_type = formData.get('contract_type') as string
@@ -24,7 +24,7 @@ export async function createContract(
   const social_security_number = formData.get('social_security_number') as string
   const hire_date = formData.get('hire_date') as string
 
-  if (!employee_id || !schedule_id || !company_id || !branch_id || !job_position_id) {
+  if (!employee_id || !shift_template_id || !company_id || !branch_id || !job_position_id) {
     return { error: 'Empleado, turno, empresa, sucursal y puesto son requeridos.' }
   }
 
@@ -43,7 +43,13 @@ export async function createContract(
   const seq = (count || 0) + 1
   const employee_number = `${company?.abbreviation || 'EMP'}-${branch?.code || 'SUC'}-${seq.toString().padStart(3, '0')}`
 
-  // 3. Update Employee with PIN, Employee Number, Company and Branch
+  // 3. Update Employee with PIN, Employee Number, Company, Branch AND INSS Logic
+  const inss_status = social_security_number ? 'ACTIVE' : 'PENDING_GRACE'
+  const hire_date_base = hire_date || start_date || new Date().toISOString()
+  const grace_expiry = social_security_number 
+    ? null 
+    : new Date(new Date(hire_date_base).getTime() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
   const { error: empUpdateErr } = await supabase
     .from('employees')
     .update({
@@ -53,7 +59,9 @@ export async function createContract(
       employee_number,
       employee_code: pin, // Legacy support
       hire_date: start_date,
-      job_position_id
+      job_position_id,
+      inss_status,
+      inss_grace_expiry: grace_expiry
     })
     .eq('id', employee_id)
 
@@ -64,7 +72,7 @@ export async function createContract(
   // 4. Create the contract
   const { error: contractErr } = await supabase.from('contracts').insert({
     employee_id,
-    schedule_id,
+    shift_template_id,
     company_id,
     branch_id,
     contract_type,
@@ -91,7 +99,7 @@ export async function createContract(
 
   await supabase.from('employee_shifts').insert({
     employee_id,
-    shift_id: schedule_id,
+    shift_template_id: shift_template_id,
     start_date: start_date,
     is_active: true,
   })
@@ -110,7 +118,7 @@ export async function updateContract(
 ): Promise<ContractActionState> {
   const supabase = await createClient()
 
-  const schedule_id = formData.get('schedule_id') as string
+  const shift_template_id = formData.get('shift_template_id') as string // Refactor V3
   const contract_type = formData.get('contract_type') as string
   const salary = parseFloat(formData.get('salary') as string)
   const start_date = formData.get('start_date') as string
@@ -124,7 +132,7 @@ export async function updateContract(
   const { data: contract, error: contractErr } = await supabase
     .from('contracts')
     .update({
-      schedule_id,
+      shift_template_id,
       contract_type,
       salary: isNaN(salary) ? 0 : salary,
       start_date,
@@ -157,7 +165,7 @@ export async function updateContract(
     .from('employee_shifts')
     .insert({
       employee_id,
-      shift_id: schedule_id,
+      shift_template_id,
       start_date: start_date,
       is_active: true
     })

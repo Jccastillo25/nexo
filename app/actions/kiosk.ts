@@ -348,7 +348,7 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     const [{ error: insertErr }] = await Promise.all([
       supabase.from('attendance_logs').insert({
         employee_id: employee.id,
-        shift_id: resolvedShift?.shift_id,
+        shift_template_id: resolvedShift?.shift_template_id || resolvedShift?.shift_id,
         clock_in: nowISO,
         status: tardinessMinutes > 0 ? 'late' : 'on_time',
         source_origin: 'KIOSK'

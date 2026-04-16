@@ -54,16 +54,16 @@ async function isAuthorizedToMark(supabase: any, targetEmployeeId: string) {
   return actingLevel <= targetLevel || targetEmployee.job_positions?.parent_id === actingEmployee.job_positions?.id
 }
 
-export async function markEntry(employeeId: string, shiftId: string): Promise<{ success?: boolean, error?: string }> {
+export async function markEntry(employeeId: string, shiftTemplateId: string): Promise<{ success?: boolean, error?: string }> {
   const supabase = await createClient()
 
   // 1. Validate authorization
   // const authorized = await isAuthorizedToMark(supabase, employeeId)
   // if (!authorized) return { error: 'No tienes los permisos jerárquicos para marcar a este colaborador.' }
 
-  // 2. Fetch Shift details
-  const { data: shift } = await supabase.from('shifts').select('id, name, start_time, end_time, break_minutes, tolerance_in, tolerance_out').eq('id', shiftId).single()
-  if (!shift) return { error: 'Shift no encontrado.' }
+  // 2. Fetch Shift details from templates
+  const { data: shift } = await supabase.from('shift_templates').select('id, name, start_time, end_time, lunch_duration, late_entry_tolerance, early_exit_tolerance').eq('id', shiftTemplateId).single()
+  if (!shift) return { error: 'Turno no encontrado.' }
 
   // 3. Time Validation (max 15 mins early)
   if (!isWithin15Mins(shift.start_time)) {
@@ -83,7 +83,7 @@ export async function markEntry(employeeId: string, shiftId: string): Promise<{ 
   const { error: attErr } = await supabase.from('attendance_logs').insert({
     employee_id: employeeId,
     clock_in: now.toISOString(),
-    shift_id: shiftId,
+    shift_template_id: shiftTemplateId,
     status
   })
 
@@ -110,7 +110,7 @@ export async function markExit(employeeId: string, isEarly: boolean, notes?: str
   // 1. Find today's open attendance log
   const { data: openLog } = await supabase
     .from('attendance_logs')
-    .select('id, clock_in, shift_id')
+    .select('id, clock_in, shift_template_id')
     .eq('employee_id', employeeId)
     .is('clock_out', null)
     .order('clock_in', { ascending: false })
@@ -121,11 +121,11 @@ export async function markExit(employeeId: string, isEarly: boolean, notes?: str
     let calcFlags = {}
 
     // 2. Fetch Shift details for engine
-    if (openLog.shift_id) {
+    if (openLog.shift_template_id) {
       const { data: st } = await supabase
         .from('shift_templates')
         .select('lunch_duration, late_entry_tolerance, early_exit_tolerance, days_config')
-        .eq('id', openLog.shift_id)
+        .eq('id', openLog.shift_template_id)
         .single()
       
       if (st) {
