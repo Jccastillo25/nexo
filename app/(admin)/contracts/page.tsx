@@ -9,7 +9,7 @@ export default async function ContractsPage() {
     .select(`
       *,
       employees (first_name, last_name, email),
-      shifts (name, start_time, end_time)
+      shift_templates (name, start_time, end_time)
     `)
     .order('created_at', { ascending: false })
 
@@ -94,9 +94,9 @@ export default async function ContractsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {contracts.map((contract) => {
+                {contracts.map((contract: any) => {
                   const emp = contract.employees
-                  const shift = contract.shifts
+                  const shift = contract.shift_templates
                   return (
                     <tr key={contract.id} className="group hover:bg-slate-50 transition">
                       <td className="px-6 py-4">

@@ -21,7 +21,7 @@ export default async function NewContractPage() {
 
   // Apply filter only if there are active contracts
   if (activeEmployeeIds.length > 0) {
-    employeesQuery = employeesQuery.not('id', 'in', `(${activeEmployeeIds.join(',')})`)
+    employeesQuery = employeesQuery.not('id', 'in', activeEmployeeIds)
   }
 
   const { data: employees } = await employeesQuery
