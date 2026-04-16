@@ -296,8 +296,8 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
                     <input
                       type="date"
                       value={hireDate}
-                      onChange={e => setHireDate(e.target.value)}
-                      className="h-12 w-full rounded-2xl border-2 border-indigo-200 bg-indigo-50/50 px-4 text-sm font-bold text-slate-900 outline-none transition-all hover:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100"
+                      readOnly
+                      className="h-12 w-full rounded-2xl border-2 border-slate-200 bg-slate-100/50 px-4 text-sm font-bold text-slate-500 cursor-not-allowed outline-none"
                     />
                   </div>
                 </div>
@@ -305,34 +305,20 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
             </div>
 
             <div className="pt-6 border-t border-slate-100">
-              <label className="mb-4 block text-sm font-bold text-slate-700 uppercase tracking-wider">Horario Dinámico (Seleccione {shifts.length} opciones)</label>
-              <div className="grid gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                {shifts.map((shift) => (
-                  <label 
-                    key={shift.id}
-                    className={`flex cursor-pointer items-center gap-4 rounded-2xl border-2 p-4 transition-all duration-300 shadow-sm ${
-                      selectedShift === shift.id 
-                        ? 'border-slate-900 bg-slate-900 text-white translate-x-1' 
-                        : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
-                    }`}
-                  >
-                    <input 
-                      type="radio" 
-                      name="_ignore_shift" 
-                      value={shift.id} 
-                      checked={selectedShift === shift.id}
-                      onChange={() => setSelectedShift(shift.id)}
-                      className="h-6 w-6 accent-slate-100" 
-                    />
-                    <div className="flex-1">
-                      <p className={`font-bold ${selectedShift === shift.id ? 'text-white' : 'text-slate-900'}`}>{shift.name}</p>
-                      <p className={`text-xs font-mono font-bold uppercase tracking-widest mt-1 ${selectedShift === shift.id ? 'text-slate-300' : 'text-slate-500'}`}>
-                        {shift.start_time.substring(0,5)} - {shift.end_time.substring(0,5)}
-                      </p>
-                    </div>
-                  </label>
+              <label className="mb-2 block text-sm font-bold text-slate-700 uppercase tracking-wider">Turno Asignado (Fijo)</label>
+              <select 
+                value={selectedShift}
+                onChange={e => setSelectedShift(e.target.value)}
+                className="h-12 w-full rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-900 outline-none transition-all hover:bg-white focus:border-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-100"
+                required
+              >
+                <option value="">Seleccionar turno</option>
+                {shifts.map(shift => (
+                  <option key={shift.id} value={shift.id}>
+                    {shift.name} ({shift.start_time.substring(0,5)} - {shift.end_time.substring(0,5)})
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
           </div>
         )}
