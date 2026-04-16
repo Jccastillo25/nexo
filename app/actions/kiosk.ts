@@ -274,6 +274,7 @@ async function getTodayShift(
   }
 
   return {
+    shift_template_id: resolved.shift_template_id,
     shift_id: resolved.shift_id,
     start_time: dailyStartTime,
     late_entry_tolerance: resolved.late_entry_tolerance,
@@ -348,7 +349,7 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     const [{ error: insertErr }] = await Promise.all([
       supabase.from('attendance_logs').insert({
         employee_id: employee.id,
-        shift_template_id: resolvedShift?.shift_template_id || resolvedShift?.shift_id,
+        shift_template_id: (resolvedShift as any)?.shift_template_id || resolvedShift?.shift_id,
         clock_in: nowISO,
         status: tardinessMinutes > 0 ? 'late' : 'on_time',
         source_origin: 'KIOSK'

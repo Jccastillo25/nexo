@@ -159,6 +159,7 @@ export async function resolveShift(
   if (override?.shift_templates) {
     const st = override.shift_templates as any
     return {
+      shift_template_id: st.id,
       shift_id: st.id,
       name: st.name,
       start_time: st.start_time,
@@ -251,6 +252,7 @@ export async function resolveShift(
   if (branchDefault?.shift_templates) {
     const st = branchDefault.shift_templates as any
     return {
+      shift_template_id: st.id,
       shift_id: st.id,
       name: st.name,
       start_time: st.start_time,
