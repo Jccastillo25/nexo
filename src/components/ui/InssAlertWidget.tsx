@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { FileWarning } from 'lucide-react'
-import { fetchPendingInss, type PendingInssEmployee } from '@/app/actions/compliance'
+import { fetchPendingInss, type PendingInssEmployee } from '../../../app/actions/compliance'
 import Link from 'next/link'
 
 export function InssAlertWidget({ companyId }: { companyId: string }) {
