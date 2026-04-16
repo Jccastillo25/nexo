@@ -5,8 +5,8 @@ export async function GET() {
   const supabase = await createClient()
 
   const { data: shifts, error } = await supabase
-    .from('shifts')
-    .select('id, name, start_time, end_time, break_minutes, tolerance_in, is_active')
+    .from('shift_templates')
+    .select('*')
     .eq('is_active', true)
     .order('name')
 

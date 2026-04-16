@@ -56,7 +56,7 @@ export function HiringWizard({
   jobPositions: JobPosition[]
 }) {
   const [step, setStep] = useState(1)
-  const [shifts, setShifts] = useState<Shift[]>([])
+  const [allShifts, setAllShifts] = useState<Shift[]>([])
   
   const [selectedEmployee, setSelectedEmployee] = useState<string>('')
   const [selectedBranch, setSelectedBranch] = useState<string>('')
@@ -107,16 +107,14 @@ export function HiringWizard({
     ? jobPositions.filter(p => p.company_id === autoCompanyId)
     : []
 
-  const filteredShifts = selectedBranch
-    ? shifts.filter(s => !s.branch_id || s.branch_id === selectedBranch)
-    : shifts
+  const visibleShifts = allShifts.filter(s => !s.branch_id || s.branch_id === selectedBranch)
 
   useEffect(() => {
     async function loadShifts() {
       try {
         const res = await fetch('/api/v1/schedules')
         const data = await res.json()
-        setShifts(data.data || [])
+        setAllShifts(data.data || [])
       } catch (e) {
         console.error('Error loading shifts:', e)
       }
@@ -304,7 +302,7 @@ export function HiringWizard({
                 className="h-12 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-900"
               >
                 <option value="">Seleccione un turno</option>
-                {filteredShifts.map(s => (
+                {visibleShifts.map(s => (
                   <option key={s.id} value={s.id}>{s.name} ({s.start_time.substring(0,5)} - {s.end_time.substring(0,5)})</option>
                 ))}
               </select>
