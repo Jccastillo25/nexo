@@ -228,3 +228,35 @@ export async function deleteContract(id: string): Promise<{ error?: string }> {
   revalidatePath('/contracts')
   return {}
 }
+
+export async function uploadSignedContract(id: string, formData: FormData): Promise<{ error?: string, url?: string }> {
+  const supabase = await createClient()
+  
+  const file = formData.get('file') as File
+  if (!file) return { error: 'No se encontró el archivo.' }
+
+  const ext = file.name.split('.').pop()
+  const fileName = `contract_${id}_${Date.now()}.${ext}`
+  
+  const { error: uploadError } = await supabase.storage
+    .from('contracts')
+    .upload(fileName, file)
+    
+  if (uploadError) return { error: uploadError.message }
+  
+  const { data: publicUrlData } = supabase.storage.from('contracts').getPublicUrl(fileName)
+  
+  const { error } = await supabase
+    .from('contracts')
+    .update({ 
+      document_url: publicUrlData.publicUrl,
+      pdf_uploaded_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    
+  if (error) return { error: error.message }
+  
+  revalidatePath('/contracts')
+  revalidatePath(`/contracts/${id}/edit`)
+  return { url: publicUrlData.publicUrl }
+}

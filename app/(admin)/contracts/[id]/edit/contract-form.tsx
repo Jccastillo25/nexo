@@ -2,7 +2,7 @@
 
 import { useState, useActionState, useEffect } from 'react'
 import Link from 'next/link'
-import { updateContract, annulContract, deleteContract, type ContractActionState } from '../../../../actions/contracts'
+import { updateContract, annulContract, deleteContract, uploadSignedContract, type ContractActionState } from '../../../../actions/contracts'
 import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
 import { formatCurrency } from '@/lib/utils'
@@ -50,6 +50,7 @@ interface ContractFormProps {
 export function ContractForm({ id, initialData, shifts, jobPositions, branches = [], templateContent = null, employee = {} }: ContractFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const [isPendingUpload, setIsPendingUpload] = useState(false)
   
   // Tab State
   const [activeTab, setActiveTab] = useState<1 | 2 | 3>(1)
@@ -81,6 +82,27 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
   const parentJob = jobPositions.find(p => p.id === selectedJob?.parent_id)
   
   const selectedShiftData = shifts.find(s => s.id === selectedShift)
+
+  const isDocumentOutdated = initialData.pdf_uploaded_at && initialData.updated_at 
+    ? new Date(initialData.updated_at) > new Date(initialData.pdf_uploaded_at) 
+    : false;
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsPendingUpload(true)
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const res = await uploadSignedContract(id, formData)
+    if (res.error) {
+      alert(res.error)
+    } else {
+      router.refresh()
+    }
+    setIsPendingUpload(false)
+  }
 
   // Live PDF Engine
   useEffect(() => {
@@ -392,6 +414,65 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
                  <p className="text-slate-400 text-sm mt-2">Visita la sección de Plantillas Legales para crear una.</p>
                </div>
              )}
+
+             {/* Sección B: Documento Firmado */}
+             <div className="pt-8 mt-8 border-t-2 border-slate-100 border-dashed">
+                <div className="mb-6 px-2">
+                   <h3 className="text-lg font-black tracking-tight text-slate-900">Documento Firmado</h3>
+                   <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Sube el PDF con las firmas físicas de ambas partes</p>
+                </div>
+
+                {isDocumentOutdated && (
+                  <div className="mb-6 rounded-2xl bg-amber-50 p-5 ring-1 ring-amber-200 shadow-sm animate-in zoom-in-95">
+                    <div className="flex gap-3">
+                      <svg className="h-6 w-6 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div>
+                        <h4 className="text-sm font-black text-amber-900">⚠️ Atención: Documento Desactualizado</h4>
+                        <p className="mt-1 text-sm text-amber-700/90 font-medium leading-relaxed">
+                          El perfil de este contrato ha sufrido modificaciones (ej. cambios de salario o turno) desde que se subió este archivo. El documento físico ya no refleja la realidad actual del sistema. Por favor, genere un nuevo borrador, imprima y suba el nuevo contrato firmado.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200">
+                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <div>
+                      {initialData.pdf_uploaded_at ? (
+                        <>
+                           <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                             <svg className="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                             </svg>
+                             Archivo Subido Exitosamente
+                           </p>
+                           <p className="text-xs text-slate-500 mt-1">Última versión subida: {new Date(initialData.pdf_uploaded_at).toLocaleString('es-NI')}</p>
+                           {initialData.document_url && (
+                             <a href={initialData.document_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-3 text-xs font-bold text-blue-600 hover:text-blue-500 underline underline-offset-4">
+                               Ver Documento Actual &rarr;
+                             </a>
+                           )}
+                        </>
+                      ) : (
+                        <p className="text-sm font-bold text-slate-500">Aún no se ha subido ningún documento firmado.</p>
+                      )}
+                    </div>
+                    
+                    <div className="w-full sm:w-auto">
+                      <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-3.5 text-sm font-bold text-white transition-all hover:bg-slate-800 active:scale-95 shadow-md ${isPendingUpload ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        {isPendingUpload ? 'Subiendo...' : 'Subir PDF Firmado'}
+                        <input type="file" accept="application/pdf" className="hidden" disabled={isPendingUpload} onChange={handleFileUpload} />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+             </div>
           </div>
         )}
       </div>
