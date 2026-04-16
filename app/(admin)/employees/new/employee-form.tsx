@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createEmployee, type ActionState } from '../../../actions/employees'
 
@@ -9,11 +9,17 @@ export function EmployeeForm({
   positions,
   templates
 }: { 
-  branches: { id: string; name: string }[],
-  positions: { id: string; name: string }[],
+  branches: { id: string; name: string; company_id: string }[],
+  positions: { id: string; name: string; company_id: string }[],
   templates: { id: string; name: string }[]
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createEmployee, null)
+  const [selectedBranch, setSelectedBranch] = useState('')
+  
+  const selectedBranchCompanyId = branches.find(b => b.id === selectedBranch)?.company_id
+  const filteredPositions = selectedBranch 
+    ? positions.filter(p => p.company_id === selectedBranchCompanyId)
+    : [];
 
   return (
     <form action={action} className="space-y-6">
@@ -80,6 +86,8 @@ export function EmployeeForm({
           </label>
           <select
             name="branch_id"
+            value={selectedBranch}
+            onChange={(e) => setSelectedBranch(e.target.value)}
             className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           >
             <option value="">Sin asignar (Candidato)</option>
@@ -97,10 +105,11 @@ export function EmployeeForm({
           </label>
           <select
             name="job_position_id"
-            className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            disabled={!selectedBranch}
+            className="h-12 w-full rounded-2xl border border-slate-700 bg-slate-800/50 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
           >
-            <option value="">Selecciona un puesto</option>
-            {positions.map((p) => (
+            <option value="">{selectedBranch ? "Selecciona un puesto" : "Selecciona una sucursal primero"}</option>
+            {filteredPositions.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>

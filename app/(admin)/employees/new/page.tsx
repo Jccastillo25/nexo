@@ -8,14 +8,14 @@ export default async function NewEmployeePage() {
   // 1. Fetch Branches
   const { data: branches } = await supabase
     .from('branches')
-    .select('id, name')
+    .select('id, name, company_id')
     .eq('is_active', true)
     .order('name')
 
   // 2. Fetch Job Positions
   const { data: positions } = await supabase
     .from('job_positions')
-    .select('id, name')
+    .select('id, name, company_id')
     .eq('is_active', true)
     .order('name')
 

@@ -7,6 +7,8 @@ import { useGlobalContext } from '@/context/GlobalContext'
 import { AlertCircle } from 'lucide-react'
 import type { Employee } from '@/components/Monitor/EmployeeCard'
 
+import { InssAlertWidget } from '@/components/ui/InssAlertWidget'
+
 export default function MonitorPage() {
   const { companyId, isLoading: isContextLoading } = useGlobalContext()
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
@@ -82,6 +84,9 @@ export default function MonitorPage() {
           </span>
         </div>
       </div>
+
+      {/* ── Alertas de Cumplimiento ── */}
+      <InssAlertWidget companyId={companyId} />
 
       {/* ── Grid principal ── */}
       <MonitorGrid
