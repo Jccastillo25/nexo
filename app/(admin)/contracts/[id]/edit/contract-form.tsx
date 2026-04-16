@@ -6,6 +6,7 @@ import { updateContract, annulContract, deleteContract, uploadSignedContract, ty
 import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
 import { formatCurrency } from '@/lib/utils'
+import { toast } from 'sonner'
 
 function sanitizeTemplateHtml(html: string): string {
   return html
@@ -97,8 +98,9 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
 
     const res = await uploadSignedContract(id, formData)
     if (res.error) {
-      alert(res.error)
+      toast.error('Error: El bucket de almacenamiento no fue encontrado o hubo un fallo de red.')
     } else {
+      toast.success('Documento legal subido exitosamente.')
       router.refresh()
     }
     setIsPendingUpload(false)
@@ -373,12 +375,26 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
                    <h2 className="text-xl font-black tracking-tight text-slate-900">Live Preview</h2>
                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Motor de Reportes Gestor360</p>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-200 shadow-sm">
-                   <span className="relative flex h-2.5 w-2.5">
-                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                   </span>
-                   Sincronizado
+                
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-4 py-2.5 rounded-full border border-emerald-200 shadow-sm">
+                     <span className="relative flex h-2.5 w-2.5">
+                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                       <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                     </span>
+                     Sincronizado
+                  </div>
+                  <Link 
+                    href={`/contracts/${id}/print`}
+                    data-ignore-dirty="true"
+                    target="_blank"
+                    className="rounded-full border-2 border-slate-200 bg-white px-5 py-2 text-xs font-bold text-slate-800 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center gap-2 active:scale-95 shadow-sm"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Exportar PDF Actual
+                  </Link>
                 </div>
              </div>
              
@@ -479,18 +495,6 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
 
       {/* Global Master Save Action */}
       <div className="mt-8 flex flex-wrap items-center justify-end gap-3 pt-6 border-t border-slate-200 sticky bottom-6 bg-white/80 backdrop-blur-xl p-4 rounded-3xl ring-1 ring-slate-200 shadow-xl z-20">
-        {activeTab === 3 && (
-          <Link 
-            href={`/contracts/${id}/print`}
-            className="rounded-2xl border-2 border-slate-200 bg-white px-5 py-3.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center gap-2 active:scale-95"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            Exportar PDF Actual
-          </Link>
-        )}
-
         {initialData.status !== 'annulled' && (
           <button
             type="button"
