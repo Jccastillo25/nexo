@@ -30,7 +30,7 @@ interface ContractFormProps {
 export function ContractForm({ id, initialData, shifts, jobPositions }: ContractFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [selectedShift, setSelectedShift] = useState<string>(initialData.schedule_id || '')
+  const [selectedShift, setSelectedShift] = useState<string>(initialData.shift_template_id || '')
   const [startDate, setStartDate] = useState<string>(initialData.start_date || '')
   const [hireDate, setHireDate] = useState<string>(initialData.hire_date ? (typeof initialData.hire_date === 'string' ? initialData.hire_date.split('T')[0] : initialData.hire_date) : '')
   
@@ -214,7 +214,7 @@ export function ContractForm({ id, initialData, shifts, jobPositions }: Contract
               >
                 <input 
                   type="radio" 
-                  name="schedule_id" 
+                  name="shift_template_id" 
                   value={shift.id} 
                   checked={selectedShift === shift.id}
                   onChange={() => setSelectedShift(shift.id)}

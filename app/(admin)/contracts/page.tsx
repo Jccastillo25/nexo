@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { formatCurrency } from '@/lib/utils'
 
 export default async function ContractsPage() {
   const supabase = await createClient()
@@ -105,7 +106,7 @@ export default async function ContractsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <p className="font-semibold text-slate-700">{contract.contract_type}</p>
-                        <p className="text-xs font-medium text-slate-400">${contract.salary?.toLocaleString()}</p>
+                        <p className="text-xs font-medium text-slate-400">{formatCurrency(contract.salary)}</p>
                       </td>
                       <td className="px-6 py-4 text-slate-600">
                         {shift ? (

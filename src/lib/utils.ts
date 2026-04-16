@@ -93,3 +93,11 @@ export async function checkAttendanceReady(
 
   return { ready: true }
 }
+
+export const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('es-NI', {
+    style: 'currency',
+    currency: 'NIO',
+    currencyDisplay: 'narrowSymbol'
+  }).format(amount).replace('NIO', 'C$'); // Fallback por si el navegador no renderiza C$ nativamente
+};

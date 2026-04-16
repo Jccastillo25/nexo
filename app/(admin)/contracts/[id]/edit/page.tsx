@@ -22,7 +22,7 @@ export default async function EditContractPage({
       status,
       start_date,
       end_date,
-      schedule_id,
+      shift_template_id,
       company_id,
       branch_id,
       job_position_id,
@@ -60,7 +60,7 @@ export default async function EditContractPage({
 
   // 3. Fetch all shifts for the selector
   const { data: shifts } = await supabase
-    .from('shifts')
+    .from('shift_templates')
     .select('id, name, start_time, end_time')
     .eq('is_active', true)
 

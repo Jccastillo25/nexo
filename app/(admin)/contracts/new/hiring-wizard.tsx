@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createContract, type ContractActionState } from '../../../actions/contracts'
 import { useDirtyState } from '@/hooks/useDirtyState'
 import { DirtyStateGuard } from '@/components/ui/DirtyStateGuard'
+import { formatCurrency } from '@/lib/utils'
 
 type Shift = {
   id: string
@@ -346,7 +347,7 @@ export function HiringWizard({
                   </div>
                   <div className="flex justify-between pb-2">
                     <span className="text-xs font-bold text-slate-400 uppercase">Salario Inicial</span>
-                    <span className="text-sm font-bold text-green-600">${Number(salary).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-sm font-bold text-green-600">{formatCurrency(Number(salary))}</span>
                   </div>
                 </div>
                 
