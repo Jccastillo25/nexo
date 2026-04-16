@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
+import { parseContractTemplate } from '@/lib/default-contract-template'
 
 function sanitizeTemplateHtml(html: string): string {
   return html
@@ -108,29 +109,23 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
 
   // Live PDF Engine
   useEffect(() => {
-    if (!templateContent || !employee.id) return
-    let content = templateContent
+    if (!employee.id) return
     
-    // El formateador recibe los datos en crudo (numérico) y el template los espera ya en formato NIO C$
-    const formattedSalary = formatCurrency(Number(salary) || 0)
-    
-    const replacements: Record<string, string> = {
-      '{{full_name}}': `${employee.first_name || ''} ${employee.last_name || ''}`,
-      '{{salary}}': formattedSalary,
-      '{{shift_name}}': selectedShiftData?.name || 'N/A',
-      '{{shift_start}}': selectedShiftData?.start_time || 'N/A',
-      '{{contract_type}}': contractType || 'N/A',
-      '{{start_date}}': startDate ? new Date(startDate).toLocaleDateString() : 'N/A',
-      '{{employee_number}}': employee.employee_number || 'Pendiente'
-    }
+    // Instead of raw string replaces, use the new parser
+    // It automatically falls back to DEFAULT_CONTRACT_TEMPLATE if templateContent is null/falsy
+    const newPreviewHtml = parseContractTemplate(templateContent, {
+      employee: employee,
+      companyName: 'Gestor360', // Ideally derived from selected branch/company in the future
+      jobPosition: selectedJob?.name || '',
+      shiftName: selectedShiftData?.name || '',
+      shiftSchedule: selectedShiftData ? `${selectedShiftData.start_time.substring(0,5)} - ${selectedShiftData.end_time.substring(0,5)}` : '',
+      salary: Number(salary) || 0,
+      startDate: startDate || '',
+      inss: socialSecurity || ''
+    });
 
-    Object.entries(replacements).forEach(([key, value]) => {
-      const safeValue = value.replace(/\{\{|\}\}/g, '')
-      content = content.replace(new RegExp(key.replace(/[{}]/g, '\\$&'), 'g'), safeValue)
-    })
-
-    setPreviewHtml(sanitizeTemplateHtml(content))
-  }, [templateContent, employee, salary, selectedShiftData, contractType, startDate])
+    setPreviewHtml(sanitizeTemplateHtml(newPreviewHtml))
+  }, [templateContent, employee, salary, selectedShiftData, selectedJob, startDate, socialSecurity])
 
   const handleAnnul = () => {
     setShowAnnulConfirm(true)
@@ -397,9 +392,7 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
                   </Link>
                 </div>
              </div>
-             
-             {templateContent ? (
-               <div className="w-full bg-slate-200/50 p-4 sm:p-10 rounded-3xl overflow-hidden shadow-inner flex justify-center border border-slate-300 relative">
+             <div className="w-full bg-slate-200/50 p-4 sm:p-10 rounded-3xl overflow-hidden shadow-inner flex justify-center border border-slate-300 relative">
                   {/* Decorative corner accents for realism */}
                   <div className="absolute top-0 left-0 w-16 h-16 border-t-4 border-l-4 border-slate-300/50 rounded-tl-3xl m-4 mix-blend-multiply"></div>
                   
@@ -421,15 +414,6 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
                     />
                   </div>
                </div>
-             ) : (
-               <div className="p-20 text-center border-2 border-dashed border-slate-300 rounded-3xl bg-slate-50">
-                 <svg className="h-12 w-12 text-slate-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                 </svg>
-                 <p className="text-slate-500 font-bold font-sans">No hay plantilla de contrato base configurada.</p>
-                 <p className="text-slate-400 text-sm mt-2">Visita la sección de Plantillas Legales para crear una.</p>
-               </div>
-             )}
 
              {/* Sección B: Documento Firmado */}
              <div className="pt-8 mt-8 border-t-2 border-slate-100 border-dashed">
