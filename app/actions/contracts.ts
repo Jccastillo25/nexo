@@ -260,3 +260,14 @@ export async function uploadSignedContract(id: string, formData: FormData): Prom
   revalidatePath(`/contracts/${id}/edit`)
   return { url: publicUrlData.publicUrl }
 }
+
+export async function createTemplate(name: string, content: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('contract_templates')
+    .insert([{ name, content }])
+  
+  if (error) return { error: error.message }
+  revalidatePath('/contracts/templates')
+  return {}
+}
