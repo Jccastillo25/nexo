@@ -67,6 +67,10 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
   const [status, setStatus] = useState<string>(initialData.status || 'active')
   
   const [previewHtml, setPreviewHtml] = useState<string>('')
+  
+  const [showAnnulConfirm, setShowAnnulConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const [state, action, pending] = useActionState<ContractActionState, FormData>(
     updateContract.bind(null, id),
@@ -104,20 +108,30 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
     setPreviewHtml(sanitizeTemplateHtml(content))
   }, [templateContent, employee, salary, selectedShiftData, contractType, startDate])
 
-  const handleAnnul = async () => {
-    if (!confirm('¿Estás seguro de anular este contrato? Esta acción lo marcará como no activo.')) return
+  const handleAnnul = () => {
+    setShowAnnulConfirm(true)
+  }
+
+  const handleDelete = () => {
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmAnnul = () => {
+    setShowAnnulConfirm(false)
+    setActionError(null)
     startTransition(async () => {
       const res = await annulContract(id)
-      if (res.error) alert(res.error)
+      if (res.error) setActionError(res.error)
       else router.push('/contracts')
     })
   }
 
-  const handleDelete = async () => {
-    if (!confirm('¿Estás seguro de ELIMINAR permanentemente este contrato?')) return
+  const confirmDelete = () => {
+    setShowDeleteConfirm(false)
+    setActionError(null)
     startTransition(async () => {
       const res = await deleteContract(id)
-      if (res.error) alert(res.error)
+      if (res.error) setActionError(res.error)
       else router.push('/contracts')
     })
   }
@@ -139,6 +153,12 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
       {state?.error && (
         <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-600 ring-1 ring-red-200">
           {state.error}
+        </div>
+      )}
+
+      {actionError && (
+        <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-600 ring-1 ring-red-200">
+          {actionError}
         </div>
       )}
 
@@ -440,6 +460,74 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
           )}
         </button>
       </div>
+
+      {showAnnulConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 mb-4">
+              <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-black text-slate-900 text-center mb-2 tracking-tight">Anular Contrato</h3>
+            <p className="text-sm text-slate-500 mb-8 font-medium text-center leading-relaxed">
+              ¿Estás seguro de anular este contrato? Esta acción lo marcará como inactivo de inmediato.
+            </p>
+            <div className="flex flex-col-reverse sm:flex-row justify-center gap-3 w-full">
+              <button 
+                type="button"
+                disabled={isPending} 
+                onClick={() => setShowAnnulConfirm(false)} 
+                className="flex-1 px-4 py-3 text-sm font-bold text-slate-600 bg-slate-100/80 hover:bg-slate-200 rounded-2xl transition-all active:scale-95"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button"
+                disabled={isPending} 
+                onClick={confirmAnnul} 
+                className="flex-1 px-4 py-3 text-sm font-bold text-orange-700 bg-orange-100 hover:bg-orange-200 rounded-2xl shadow-xl shadow-orange-500/10 transition-all active:scale-95"
+              >
+                Sí, anular
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
+              <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-black text-slate-900 text-center mb-2 tracking-tight">Cuidado</h3>
+            <p className="text-sm text-slate-500 mb-8 font-medium text-center leading-relaxed">
+              ¿Estás seguro de ELIMINAR permanentemente este contrato? Esta acción borra todo registro legal y no se puede deshacer.
+            </p>
+            <div className="flex flex-col-reverse sm:flex-row justify-center gap-3 w-full">
+              <button 
+                type="button"
+                disabled={isPending} 
+                onClick={() => setShowDeleteConfirm(false)} 
+                className="flex-1 px-4 py-3 text-sm font-bold text-slate-600 bg-slate-100/80 hover:bg-slate-200 rounded-2xl transition-all active:scale-95"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button"
+                disabled={isPending} 
+                onClick={confirmDelete} 
+                className="flex-1 px-4 py-3 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-2xl shadow-xl shadow-red-500/20 transition-all active:scale-95"
+              >
+                Sí, eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   )
 }

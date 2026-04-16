@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteEmployee } from '../../actions/employees'
 
@@ -58,7 +58,8 @@ function ContractStatusBadge({ contracts }: { contracts: any[] }) {
 
 export function EmployeeTableRow({ emp }: EmployeeTableRowProps) {
   const router = useRouter()
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const b = emp.branches as any
@@ -73,21 +74,22 @@ export function EmployeeTableRow({ emp }: EmployeeTableRowProps) {
       return
     }
 
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${emp.first_name} ${emp.last_name}? Esta acción no se puede deshacer.`)) {
-      return
-    }
+    setShowConfirm(true)
+  }
 
-    setIsDeleting(true)
+  const confirmDelete = () => {
+    setShowConfirm(false)
     setError(null)
 
-    const result = await deleteEmployee(emp.id)
+    startTransition(async () => {
+      const result = await deleteEmployee(emp.id)
 
-    if (result?.error) {
-      setError(result.error)
-      setIsDeleting(false)
-    } else {
-      router.refresh()
-    }
+      if (result?.error) {
+        setError(result.error)
+      } else {
+        router.refresh()
+      }
+    })
   }
 
   return (
@@ -125,11 +127,11 @@ export function EmployeeTableRow({ emp }: EmployeeTableRowProps) {
             <Link href={`/employees/${emp.id}/edit`} className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors">Editar</Link>
             <button
               onClick={handleDelete}
-              disabled={isDeleting}
+              disabled={isPending}
               className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title="Eliminar empleado"
             >
-              {isDeleting ? 'Eliminando...' : 'Eliminar'}
+              {isPending ? 'Eliminando...' : 'Eliminar'}
             </button>
           </div>
           {error && (
@@ -139,6 +141,38 @@ export function EmployeeTableRow({ emp }: EmployeeTableRowProps) {
           )}
         </td>
       </tr>
+      
+      {showConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
+              <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-black text-slate-900 text-center mb-2 tracking-tight">Precaución</h3>
+            <p className="text-sm text-slate-500 mb-8 font-medium text-center leading-relaxed">
+              ¿Estás seguro de que deseas eliminar permanentemente a <strong className="text-slate-800">{emp.first_name} {emp.last_name}</strong>?
+            </p>
+            <div className="flex flex-col-reverse sm:flex-row justify-center gap-3 w-full">
+              <button 
+                disabled={isPending} 
+                onClick={() => setShowConfirm(false)} 
+                className="flex-1 px-4 py-3 text-sm font-bold text-slate-600 bg-slate-100/80 hover:bg-slate-200 rounded-2xl transition-all active:scale-95"
+              >
+                Cancelar
+              </button>
+              <button 
+                disabled={isPending} 
+                onClick={confirmDelete} 
+                className="flex-1 px-4 py-3 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-2xl shadow-xl shadow-red-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                Sí, eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
