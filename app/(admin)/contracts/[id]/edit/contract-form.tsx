@@ -479,15 +479,17 @@ export function ContractForm({ id, initialData, shifts, jobPositions, branches =
 
       {/* Global Master Save Action */}
       <div className="mt-8 flex flex-wrap items-center justify-end gap-3 pt-6 border-t border-slate-200 sticky bottom-6 bg-white/80 backdrop-blur-xl p-4 rounded-3xl ring-1 ring-slate-200 shadow-xl z-20">
-        <Link 
-          href={`/contracts/${id}/print`}
-          className="rounded-2xl border-2 border-slate-200 bg-white px-5 py-3.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center gap-2 active:scale-95"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-          </svg>
-          Exportar PDF Actual
-        </Link>
+        {activeTab === 3 && (
+          <Link 
+            href={`/contracts/${id}/print`}
+            className="rounded-2xl border-2 border-slate-200 bg-white px-5 py-3.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center gap-2 active:scale-95"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Exportar PDF Actual
+          </Link>
+        )}
 
         {initialData.status !== 'annulled' && (
           <button
