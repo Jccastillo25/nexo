@@ -70,6 +70,19 @@ export default async function EditContractPage({
     .select('id, name, company_id, parent_id')
     .eq('is_active', true)
 
+  // 5. Fetch Branches
+  const { data: branches } = await supabase
+    .from('branches')
+    .select('id, name, company_id')
+    .eq('is_active', true)
+
+  // 6. Fetch Contract Template for Live Preview
+  const { data: template } = await supabase
+    .from('contract_templates')
+    .select('*')
+    .limit(1)
+    .maybeSingle()
+
   return (
     <section className="space-y-6">
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
@@ -85,6 +98,9 @@ export default async function EditContractPage({
           initialData={contract} 
           shifts={shifts || []} 
           jobPositions={jobPositions || []}
+          branches={branches || []}
+          templateContent={template?.content || null}
+          employee={employee}
         />
       </div>
     </section>
