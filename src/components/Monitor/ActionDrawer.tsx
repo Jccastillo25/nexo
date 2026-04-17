@@ -35,6 +35,7 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
   const [toast, setToast]                 = useState<Toast | null>(null)
   const [localStatus, setLocalStatus]     = useState<string>(employee?.current_status ?? 'offline')
+  const [hasHadBreak, setHasHadBreak]     = useState(false)
   const supabase = createClient()
 
   // Sincroniza cuando el prop cambia (realtime del padre)
@@ -42,12 +43,31 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
     if (employee?.current_status) setLocalStatus(employee.current_status)
   }, [employee?.current_status])
 
+  // Al abrir el drawer, verificar si el empleado ya usó su descanso hoy
+  useEffect(() => {
+    if (!isOpen || !employee) return
+    if (employee.current_status === 'on_break') { setHasHadBreak(true); return }
+    const today = new Date().toISOString().split('T')[0]
+    supabase
+      .from('employee_status_logs')
+      .select('id')
+      .eq('employee_id', employee.id)
+      .gte('start_time', `${today}T00:00:00`)
+      .limit(1)
+      .then(({ data }) => { if (data && data.length > 0) setHasHadBreak(true) })
+  }, [isOpen, employee?.id])
+
+  // Resetear descanso cuando el empleado hace una nueva entrada
+  useEffect(() => {
+    if (localStatus === 'offline') setHasHadBreak(false)
+  }, [localStatus])
+
   if (!employee) return null
 
   // ── Estado de botones ────────────────────────────────────────────────────────
   const canClockIn    = !['active', 'on_break'].includes(localStatus)
   const canClockOut   = ['active', 'on_break'].includes(localStatus)
-  const canStartBreak = localStatus === 'active'
+  const canStartBreak = localStatus === 'active' && !hasHadBreak
   const canEndBreak   = localStatus === 'on_break'
 
   // ── Feedback visual ──────────────────────────────────────────────────────────
@@ -78,6 +98,7 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
       }
 
       setLocalStatus(STATUS_AFTER_ACTION[action])
+      if (action === 'START_BREAK' || action === 'END_BREAK') setHasHadBreak(true)
       showToast('success', ACTION_LABELS[action] || 'Acción completada')
       setNotes('')
     } catch (err: any) {
