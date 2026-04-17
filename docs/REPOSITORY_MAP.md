@@ -37,13 +37,30 @@ El monitor centraliza la visibilidad operativa mediante una **Jerarquía Visual 
 *   **TimerDisplay (`/components/Monitor`)**: Componente reactivo que gestiona los tiempos de descanso y alertas visuales.
 *   **Tipado (`/types/monitor.ts`)**: Define los estados operativos (`active`, `on_break`, `offline`).
 
+## Módulo de Contratación y Expedientes (`/app/(admin)/contracts`)
+
+El motor de contratación centraliza la legalización de la relación laboral:
+*   **Hiring Wizard (`/new/hiring-wizard.tsx`)**: Orquestador de 3 pasos que vincula la estructura organizativa (Sucursal/Puesto) con la legal (Contrato/INSS).
+*   **PDF Engine (`/lib/default-contract-template.ts`)**: Parser de plantillas HTML que inyecta datos dinámicos del empleado para previsualización y exportación.
+*   **Gestión de Firmas**: Sistema de tracking de documentos subidos (`document_url`) con lógica de invalidación (`isDocumentOutdated`) si cambian los términos del contrato.
+
+---
+
+## Seguridad y Gobernanza (SSOT)
+
+El sistema opera bajo una norma de **"Deny by Default"**:
+*   **Manifiesto (`permissions-manifest.json`)**: Diccionario único de recursos y permisos asociados.
+*   **AdminShell**: Middleware de nivel de aplicación que intercepta rutas y filtra permisos antes de renderizar la UI.
+*   **Protección de Identidad**: Los campos marcados como SSOT en `profiles` se bloquean mediante validación en servidor para garantizar que la "verdad" legal resida en la tabla `employees`.
+
 ---
 
 ## Auditoría y Refactorizaciones Pendientes
 1.  **Tabla `shifts`**: Debe depurarse tras migrar todas las "Asignaciones Fijas" a `shift_templates`.
 2.  **Redundancia de Horarios**: Sincronizar las columnas planas de `shift_templates` con el objeto `days_config`.
 3.  **RealTime**: Los componentes `Monitor360` ya utilizan canales de Supabase para reflejar cambios instantáneos.
+4.  **Integración INSS**: Expandir las alertas de Dashboard para incluir otros trámites legales (p. ej., licencias de conducir vencidas).
 
 ---
 
-*Actualizado v1.1 — 30 de marzo de 2026*
+*Actualizado v1.2 — 17 de abril de 2026*

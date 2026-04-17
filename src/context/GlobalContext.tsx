@@ -13,6 +13,8 @@ interface Company {
 
 interface GlobalContextType {
   user: User | null
+  userRole: string | null
+  userPermissions: Record<string, boolean>
   companyId: string | null
   setCompanyId: (id: string) => void
   companies: Company[]
@@ -22,7 +24,15 @@ interface GlobalContextType {
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined)
 
-export function GlobalProvider({ children }: { children: React.ReactNode }) {
+export function GlobalProvider({ 
+  children,
+  userRole = null,
+  userPermissions = {}
+}: { 
+  children: React.ReactNode,
+  userRole?: string | null,
+  userPermissions?: Record<string, boolean>
+}) {
   const [user, setUser] = useState<User | null>(null)
   const [companyId, setCompanyIdState] = useState<string | null>(null)
   const [companies, setCompanies] = useState<Company[]>([])
@@ -125,7 +135,16 @@ export function GlobalProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <GlobalContext.Provider value={{ user, companyId, setCompanyId, companies, setCompanies, isLoading }}>
+    <GlobalContext.Provider value={{ 
+      user, 
+      userRole, 
+      userPermissions, 
+      companyId, 
+      setCompanyId, 
+      companies, 
+      setCompanies, 
+      isLoading 
+    }}>
       {children}
     </GlobalContext.Provider>
   )

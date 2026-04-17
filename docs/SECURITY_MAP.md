@@ -17,9 +17,14 @@ Todas las rutas dentro de `app/(admin)/` DEBEN estar registradas en el manifiest
 | Recurso ID | Ruta | Descripción |
 | :--- | :--- | :--- |
 | `admin_dashboard` | `/dashboard` | Centro de Control / KPIs |
-| `admin_security` | `/security` | Gestión de usuarios y permisos |
-| `admin_employees` | `/hr/employees` | Listado de colaboradores (SSOT) |
-| ... | ... | ... |
+| `security_users` | `/security/users` | Gestión de usuarios y permisos |
+| `employee_list` | `/employees` | Listado maestro de colaboradores |
+| `employee_create` | `/employees/new` | Hiring Wizard (Alta de personal) |
+| `contract_management` | `/contracts` | Listado y gestión de contratos legales |
+| `contract_create_edit`| `/contracts/new` | Motor de generación de contratos |
+| `attendance_monitoring`| `/attendance` | Monitoreo de marcaciones y KPIs en vivo |
+| `kiosk_management` | `/kiosk` | Registro y control de dispositivos físicos |
+| `reports_generation` | `/reports` | Generador de reportes Excel / PDF |
 
 ## 3. Matriz de KPIs (Centro de Control)
 
@@ -68,4 +73,5 @@ Cuando una política RLS en la tabla `A` consulta la tabla `B`, y la tabla `B` t
 - **Membresías**: Un usuario puede ver su propia membresía por UID, pero solo los Admins/Owners pueden ver el listado completo de la empresa.
 
 ---
-*Última Actualización: 2026-04-12*
+---
+*Última Actualización: 2026-04-17 (Sincronizado con Manifiesto v2.0)*

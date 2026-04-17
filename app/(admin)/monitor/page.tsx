@@ -10,7 +10,7 @@ import type { Employee } from '@/components/Monitor/EmployeeCard'
 import { InssAlertWidget } from '@/components/ui/InssAlertWidget'
 
 export default function MonitorPage() {
-  const { companyId, isLoading: isContextLoading } = useGlobalContext()
+  const { companyId, isLoading: isContextLoading, userRole } = useGlobalContext()
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [isDrawerOpen, setIsDrawerOpen]         = useState(false)
 
@@ -18,6 +18,8 @@ export default function MonitorPage() {
     setSelectedEmployee(employee)
     setIsDrawerOpen(true)
   }
+
+  const isAdminOrRRHH = ['admin', 'owner', 'rrhh'].includes(userRole?.toLowerCase() || '')
 
   if (isContextLoading) {
     return (
@@ -53,7 +55,7 @@ export default function MonitorPage() {
   }
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-6 pb-20">
       {/* ── Encabezado ── */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between px-1">
         <div>
@@ -85,8 +87,8 @@ export default function MonitorPage() {
         </div>
       </div>
 
-      {/* ── Alertas de Cumplimiento ── */}
-      <InssAlertWidget companyId={companyId} />
+      {/* ── Alertas de Cumplimiento (Solo Admin/RRHH) ── */}
+      {isAdminOrRRHH && <InssAlertWidget companyId={companyId} />}
 
       {/* ── Grid principal ── */}
       <MonitorGrid

@@ -12,6 +12,12 @@ Se ha corregido la fragmentación de turnos. En lugar de tener "Turno Administra
 *   **Lunes a Viernes**: 07:30 - 17:00
 *   **Sábado**: 08:00 - 15:00
 
+### 3. Regla de Gracia INSS (5 Días)
+Para garantizar la agilidad en la contratación sin comprometer el cumplimiento legal:
+*   **Periodo de Gracia**: Los empleados nuevos sin número de INSS entran en estado `PENDING_GRACE`.
+*   **Vencimiento**: El sistema otorga exactamente 5 días calendario desde la `hire_date` para regularizar el número.
+*   **Alertas Administrativas**: El dashboard resalta en ROJO los trámites vencidos y en NARANJA los que vencen en <48h.
+
 ---
 
 ## Tolerancias y Deducciones
@@ -30,6 +36,22 @@ Se ha corregido la fragmentación de turnos. En lugar de tener "Turno Administra
 
 ---
 
+## Reglas de Contratación y Legalidad
+
+### 1. Unicidad de Contrato
+*   Un empleado solo puede tener **un (1) contrato en estado `active`** simultáneamente. 
+*   Al activar un nuevo contrato, el anterior se marca automáticamente como `expired` o `terminated`.
+
+### 2. Inmutabilidad de Documentos Impresos
+*   Si un contrato tiene el flag `is_printed: true` (indicando que ya fue generado para firma física), **no se permite su eliminación**.
+*   Para corregir errores en contratos impresos, se debe proceder a la **Anulación (`annulled`)**, lo cual preserva la correlación de auditoría.
+
+### 3. Vigencia de Documentos PDF
+*   El sistema detecta discrepancias entre los datos del contrato en DB y el archivo subido en Storage.
+*   Cualquier cambio en Salario, Turno o Puesto marca el documento actual como **"Desactualizado"**, exigiendo una nueva impresión y firma.
+
+---
+
 ## Jerarquía de Prioridades (Resumen)
 Para cualquier duda sobre qué turno aplica a un empleado, el sistema sigue este orden:
 1. **Excepción de Día** (Manual Admin)
@@ -39,4 +61,4 @@ Para cualquier duda sobre qué turno aplica a un empleado, el sistema sigue este
 
 ---
 
-*Actualizado v1.0 — 28 de marzo de 2026*
+*Actualizado v1.1 — 17 de abril de 2026*

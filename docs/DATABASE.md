@@ -63,6 +63,8 @@ Empleados de la empresa, con perfil completo.
 | `job_position_id`    | `uuid` FK   | Puesto de trabajo → `job_positions.id` (Nivel Jerárquico) |
 | `current_status`     | `text`      | Estado para Monitor: `active`, `on_break`, `offline`, `absent` |
 | `last_status_change` | `timestamptz` | Última actualización de estado para el Monitor |
+| `inss_status`        | `text`      | Estado de seguridad social: `ACTIVE`, `PENDING_GRACE`, `EXPIRED_GRACE` |
+| `inss_grace_expiry`  | `date`      | Fecha límite para regularizar el INSS (hire_date + 5 días) |
 | `is_active`          | `bool`      | Estado administrativo (Habilitado/Baja)         |
 | `created_at`         | `timestamptz` | Fecha de creación                            |
 
@@ -181,6 +183,45 @@ Máxima prioridad en la jerarquía de resolución.
 
 ---
 
+### `contracts` (Gestión Legal de Empleo)
+Controla la relación legal, salario y términos de contratación.
+
+| Columna | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `id` | `uuid` PK | Identificador único |
+| `employee_id` | `uuid` FK | Empleado → `employees.id` |
+| `company_id` | `uuid` FK | Empresa → `companies.id` |
+| `branch_id` | `uuid` FK | Sucursal → `branches.id` |
+| `job_position_id`| `uuid` FK | Puesto → `job_positions.id` |
+| `shift_template_id`| `uuid` FK | Turno fijo → `shift_templates.id` |
+| `contract_type` | `text` | Tipo: `Indefinido`, `Temporal`, `Servicios Prof.`, `Pasantía` |
+| `salary` | `numeric` | Salario mensual bruto |
+| `currency` | `text` | Moneda (Default: `NIO`) |
+| `start_date` | `date` | Fecha de inicio del contrato / firma |
+| `end_date` | `date` | Fecha de finalización (para contratos temporales) |
+| `hire_date` | `date` | Fecha de alta oficial en el sistema |
+| `social_security_number`| `text` | Número de INSS específico del contrato |
+| `status` | `text` | `active`, `annulled`, `expired`, `terminated` |
+| `is_printed` | `bool` | Indica si el documento ya fue generado para firma |
+| `document_url` | `text` | URL al PDF firmado en Storage |
+| `pdf_uploaded_at`| `timestamptz`| Fecha de carga del documento legal |
+
+---
+
+### `contract_templates` (Plantillas de Documentos Legales)
+Define el contenido HTML para la generación dinámica de contratos.
+
+| Columna | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `id` | `uuid` PK | Identificador único |
+| `name` | `text` | Nombre descriptivo (Ej. "Contrato Indefinido V2") |
+| `content` | `text` | HTML con variables placeholder (ej. `{{employee_name}}`) |
+| `is_default` | `bool` | Indica si es la plantilla base del sistema |
+
+---
+
+---
+
 ### `shifts` (LEGACY)
 > [!WARNING]
 > Tabla obsoleta. Use `shift_templates` para nuevos desarrollos. Se mantiene solo para retrocompatibilidad con asignaciones de Nivel 2.
@@ -205,11 +246,14 @@ erDiagram
     EMPLOYEES ||--o{ ATTENDANCE_LOGS : "registra"
     ATTENDANCE_LOGS }o--|| SHIFT_TEMPLATES : "basado en"
     SHIFT_TEMPLATES ||--o{ EMPLOYEE_SHIFT_OVERRIDES : "excepción"
+    EMPLOYEES ||--o{ CONTRACTS : "firmó"
+    CONTRACTS ||--o{ CONTRACT_TEMPLATES : "usa"
+    CONTRACTS }o--|| SHIFT_TEMPLATES : "define horario"
 ```
 
 ---
 
-*Documentación de base de datos — Gestor360 v1.0.0 (Phase 3 Ready) — 28 de marzo de 2026*
+*Documentación de base de datos — Gestor360 v1.1.0 — 17 de abril de 2026*
                    shifts        time_corrections
     │         │
     │         └─────────────────── contracts

@@ -155,7 +155,10 @@ function AdminShellContent({
 
 export function AdminShellClient(props: AdminShellClientProps) {
   return (
-    <GlobalProvider>
+    <GlobalProvider 
+      userRole={props.userRole} 
+      userPermissions={props.userPermissions}
+    >
       <AdminShellContent {...props} />
     </GlobalProvider>
   )

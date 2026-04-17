@@ -51,6 +51,27 @@
 
 ## Cambios Recientes
 
+### 🛡️ Seguridad SSOT y Gobernanza (2026-04-14)
+
+**Deny by Default:**
+- Implementada política estricta de "Denegado por Defecto" mediante `permissions-manifest.json`.
+- Toda ruta y acción del sistema ahora requiere validación explícita de permisos granulares.
+- **Blindaje de Identidad**: Los campos de identidad legal (provenientes de empleados) se bloquean automáticamente en perfiles de usuario si existe vinculación SSOT.
+
+### 📄 Gestión de Contratos y Live Preview (2026-04-15)
+
+**Motor de Documentos Legales:**
+- Nuevo sistema de plantillas de contrato dinámicas con soporte para variables de sistema.
+- **Live Preview Engine**: Pre-visualización en tiempo real del documento legal mientras se editan las condiciones (salario, horario, etc.).
+- Integración con Storage para subida de archivos firmados con detector de obsolescencia.
+
+### 🚀 Hiring Refactor V2 e INSS (2026-04-16)
+
+**Hiring Wizard:**
+- Nuevo flujo de contratación consolidado en 3 pasos (Organización, Legal, Documentación).
+- **Cumplimiento INSS**: Implementación de periodos de gracia automáticos (5 días) para empleados sin número de seguridad social al momento del alta.
+- **Alertas Proactivas**: Widgets de cumplimiento en el Dashboard para monitorear vencimientos de trámites de seguridad social.
+
 ### 🛡️ Estabilidad y Seguridad (2026-04-11)
 
 **Fix de Compilación y Tipado:**
@@ -138,6 +159,7 @@ web/
 ### 🏠 Dashboard
 Pantalla principal del panel. Muestra:
 - **Métricas en tiempo real**: empleados activos, asistencia del día, correcciones pendientes, permisos por aprobar.
+- **Widgets de Cumplimiento**: Alertas de vencimiento de trámites INSS (Grace periods).
 - **Gráfica de asistencia semanal** (Recharts).
 - **Top atrasos del mes** (empleados con más tardanzas acumuladas).
 - **Donut de asistencia en vivo** (presentes vs. total).
@@ -145,12 +167,19 @@ Pantalla principal del panel. Muestra:
 - **Solicitudes de permiso pendientes** con botones de aprobación rápida.
 - **Actividad reciente** (últimas 4 marcaciones).
 
-### 👥 Empleados
+### 👥 Empleados y Hiring Wizard
+- **Hiring Wizard (Refactor V2)**: Proceso de alta guiado en 3 pasos que garantiza la integridad de datos desde el inicio.
 - Listado maestro con código de empleado, nombre, correo, teléfono, sucursal, fecha de ingreso y estado.
 - Estadísticas: total, activos, inactivos, sin turno asignado.
 - Perfil individual con todos los campos: datos personales, identidad (DUI, INNS, NIT), género, dirección, foto.
 - Crear, editar y activar/desactivar empleados.
 - Generación automática de **PIN único de 4 dígitos** al crear un empleado.
+
+### 📄 Contratos y Expedientes
+- **Gestión de Contratos**: Creación de contratos vinculados a empleados con tipos (Indefinido, Temporal, etc.).
+- **Motor de Plantillas**: Generación dinámica de documentos legales basados en el perfil del empleado y condiciones acordadas.
+- **Live Preview**: Visualización instantánea del PDF/HTML antes de imprimir.
+- **Control de Firmas**: Seguimiento de documentos físicos subidos y alertas de desactualización si cambian las condiciones del contrato.
 
 ### ⏱️ Marcaciones
 - **Resumen**: marcaciones del día (entradas, salidas, correcciones, incidencias).
@@ -185,8 +214,10 @@ Se han incluido scripts auxiliares en la carpeta `scripts/` para tareas administ
 - **Sucursales**: cada sucursal pertenece a una empresa y puede tener un código único.
 - **Membresías**: control de qué usuarios tienen acceso a qué empresa y con qué rol.
 
-### 🔒 Sistema / Seguridad
+### 🔒 Sistema / Seguridad (SSOT)
 - Módulo de gestión de accesos y configuración del sistema.
+- **Gobernanza SSOT**: Sincronización estricta entre la identidad legal (RRHH) y la digital (Accesos).
+- **Deny by Default**: Control de acceso basado en un manifiesto centralizado de permisos.
 - Roles disponibles: `owner`, `admin`, `rrhh`, `supervisor`, `viewer`.
 
 ### 🖥️ Kiosco
@@ -381,5 +412,5 @@ Cerrar sesión ──► signOut (Server Action)
 
 ---
 
-*Documentación actualizada el 11 de abril de 2026 — Gestor360 v0.2.1*
-- Última actualización: Estabilidad de Build (Vercel fix) y filtrado estricto de permisos.
+*Documentación actualizada el 17 de abril de 2026 — Gestor360 v0.5.0*
+- Última actualización: Hiring Wizard V2, Integración INSS y Motor de Contratos.
