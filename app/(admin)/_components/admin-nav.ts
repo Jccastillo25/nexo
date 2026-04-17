@@ -43,7 +43,10 @@ export const adminNav: NavSection[] = [
     title: 'Nómina y Cierres',
     permission: 'can_view_reports',
     items: [
-      { href: '/reports', label: 'Hub de Reportes Legales', permission: 'can_view_reports' },
+      { href: '/nomina',             label: 'Planilla de Nómina',      permission: 'can_view_payroll'  },
+      { href: '/nomina?tab=cierres', label: 'Cierres de Período',      permission: 'can_manage_payroll' },
+      { href: '/nomina?tab=detalle', label: 'Detalle por Empleado',    permission: 'can_view_payroll'  },
+      { href: '/reports',            label: 'Hub de Reportes Legales', permission: 'can_view_reports'  },
     ],
   },
   {
