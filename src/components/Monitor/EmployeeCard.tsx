@@ -302,7 +302,7 @@ export const EmployeeCard = ({ employee, onOpenDrawer }: Props) => {
           <>
             <button
               onClick={handleStartBreak}
-              style={{ flex: 1, height: 36, borderRadius: 12, border: 'none', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer' } as React.CSSProperties}
+              style={{ flex: 1, height: 36, borderRadius: 12, border: '1px solid rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer' } as React.CSSProperties}
             >
               ☕ Iniciar Descanso
             </button>
