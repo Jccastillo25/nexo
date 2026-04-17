@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, Clock, AlertCircle, FileText, Camera, CheckCircle2, XCircle } from 'lucide-react'
 import { DigitalClock } from './DigitalClock'
 import { EmployeeStatusBadge } from './EmployeeStatusBadge'
@@ -22,22 +22,33 @@ const ACTION_LABELS: Record<string, string> = {
   END_BREAK:   'Regreso registrado',
 }
 
+const STATUS_AFTER_ACTION: Record<string, string> = {
+  CLOCK_IN:    'active',
+  CLOCK_OUT:   'offline',
+  START_BREAK: 'on_break',
+  END_BREAK:   'active',
+}
+
 export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
   const [notes, setNotes]                 = useState('')
   const [incidentType, setIncidentType]   = useState('nota')
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
   const [toast, setToast]                 = useState<Toast | null>(null)
+  const [localStatus, setLocalStatus]     = useState<string>(employee?.current_status ?? 'offline')
   const supabase = createClient()
+
+  // Sincroniza cuando el prop cambia (realtime del padre)
+  useEffect(() => {
+    if (employee?.current_status) setLocalStatus(employee.current_status)
+  }, [employee?.current_status])
 
   if (!employee) return null
 
-  const status = employee.current_status as string
-
   // ── Estado de botones ────────────────────────────────────────────────────────
-  const canClockIn    = !['active', 'on_break'].includes(status)
-  const canClockOut   = ['active', 'on_break'].includes(status)
-  const canStartBreak = status === 'active'
-  const canEndBreak   = status === 'on_break'
+  const canClockIn    = !['active', 'on_break'].includes(localStatus)
+  const canClockOut   = ['active', 'on_break'].includes(localStatus)
+  const canStartBreak = localStatus === 'active'
+  const canEndBreak   = localStatus === 'on_break'
 
   // ── Feedback visual ──────────────────────────────────────────────────────────
   function showToast(type: Toast['type'], message: string) {
@@ -66,6 +77,7 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
         return
       }
 
+      setLocalStatus(STATUS_AFTER_ACTION[action])
       showToast('success', ACTION_LABELS[action] || 'Acción completada')
       setNotes('')
     } catch (err: any) {
@@ -178,7 +190,7 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
             <div className="flex items-center justify-between rounded-2xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-soft)' }}>
               <div className="space-y-1">
                 <p className="section-label">Estado Actual</p>
-                <EmployeeStatusBadge status={status} className="scale-110 origin-left" />
+                <EmployeeStatusBadge status={localStatus} className="scale-110 origin-left" />
               </div>
               <div className="text-right">
                 <p className="section-label">Hora Servidor</p>
