@@ -5,7 +5,7 @@ import { X, Clock, AlertCircle, FileText, Camera, CheckCircle2, XCircle } from '
 import { DigitalClock } from './DigitalClock'
 import { EmployeeStatusBadge } from './EmployeeStatusBadge'
 import { createClient } from '@/lib/supabase/client'
-import { registerAbsence } from '../../../../app/actions/attendance'
+import { registerAbsence } from '../../../app/actions/attendance'
 
 interface Props {
   employee: any | null
