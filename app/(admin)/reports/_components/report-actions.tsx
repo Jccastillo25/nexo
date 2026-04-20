@@ -46,7 +46,10 @@ export function ReportActions({ data, summary, filters, canExport = false }: Rep
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `Reporte_Gestor360_${filters.date || filters.start}.pdf`
+      const suffix = filters.start && filters.end
+        ? `${filters.start}_${filters.end}`
+        : filters.date || filters.start || 'reporte'
+      a.download = `Reporte_Gestor360_${filters.type || 'asistencia'}_${suffix}.pdf`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
