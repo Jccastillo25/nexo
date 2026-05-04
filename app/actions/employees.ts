@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { requirePermission } from '@/lib/auth/require-permission'
 
 export type ActionState = { error: string } | null
 
@@ -10,6 +11,8 @@ export async function createEmployee(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const perm = await requirePermission('can_manage_employees')
+  if (!perm.ok) return { error: perm.error }
   const supabase = await createClient()
 
   const first_name = formData.get('first_name') as string
@@ -87,7 +90,8 @@ export async function updateEmployee(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState & { success?: boolean }> {
-
+  const perm = await requirePermission('can_manage_employees')
+  if (!perm.ok) return { error: perm.error }
   const supabase = await createClient()
 
   const first_name = formData.get('first_name') as string
@@ -176,6 +180,8 @@ export async function updateEmployee(
 
 
 export async function toggleEmployeeStatus(id: string, currentStatus: boolean) {
+  const perm = await requirePermission('can_manage_employees')
+  if (!perm.ok) throw new Error(perm.error)
   const supabase = await createClient()
   const { error } = await supabase
     .from('employees')
@@ -188,6 +194,8 @@ export async function toggleEmployeeStatus(id: string, currentStatus: boolean) {
 }
 
 export async function deleteEmployee(id: string): Promise<ActionState> {
+  const perm = await requirePermission('can_manage_employees')
+  if (!perm.ok) return { error: perm.error }
   const supabase = await createClient()
 
   // 1. Verificar si el empleado tiene contratos activos

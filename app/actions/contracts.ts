@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { requirePermission } from '@/lib/auth/require-permission'
 
 export type ContractActionState = { error: string } | null
 
@@ -10,6 +11,8 @@ export async function createContract(
   _prevState: ContractActionState,
   formData: FormData
 ): Promise<ContractActionState> {
+  const perm = await requirePermission('can_manage_contracts')
+  if (!perm.ok) return { error: perm.error }
   const supabase = await createClient()
 
   const employee_id = formData.get('employee_id') as string
@@ -116,6 +119,8 @@ export async function updateContract(
   _prevState: ContractActionState,
   formData: FormData
 ): Promise<ContractActionState> {
+  const perm = await requirePermission('can_manage_contracts')
+  if (!perm.ok) return { error: perm.error }
   const supabase = await createClient()
 
   const shift_template_id = formData.get('shift_template_id') as string // Refactor V3
@@ -198,6 +203,8 @@ export async function markContractAsPrinted(id: string): Promise<{ error?: strin
 }
 
 export async function annulContract(id: string): Promise<{ error?: string }> {
+  const perm = await requirePermission('can_manage_contracts')
+  if (!perm.ok) return { error: perm.error }
   const supabase = await createClient()
   const { error } = await supabase
     .from('contracts')
@@ -210,8 +217,10 @@ export async function annulContract(id: string): Promise<{ error?: string }> {
 }
 
 export async function deleteContract(id: string): Promise<{ error?: string }> {
+  const perm = await requirePermission('can_manage_contracts')
+  if (!perm.ok) return { error: perm.error }
   const supabase = await createClient()
-  
+
   // 1. Check if already printed
   const { data: contract } = await supabase
     .from('contracts')

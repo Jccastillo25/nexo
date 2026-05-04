@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/auth/require-permission'
 
 // Time utilities
 const isWithin15Mins = (targetTimeStr: string) => {
@@ -55,6 +56,8 @@ async function isAuthorizedToMark(supabase: any, targetEmployeeId: string) {
 }
 
 export async function markEntry(employeeId: string, shiftTemplateId: string): Promise<{ success?: boolean, error?: string }> {
+  const perm = await requirePermission('can_manage_attendance')
+  if (!perm.ok) return { error: perm.error }
   const supabase = await createClient()
 
   // 1. Validate authorization
@@ -103,6 +106,8 @@ export async function markEntry(employeeId: string, shiftTemplateId: string): Pr
 }
 
 export async function markExit(employeeId: string, isEarly: boolean, notes?: string): Promise<{ success?: boolean, error?: string }> {
+  const perm = await requirePermission('can_manage_attendance')
+  if (!perm.ok) return { error: perm.error }
   const supabase = await createClient()
 
   const now = new Date()
@@ -179,6 +184,8 @@ export async function markExit(employeeId: string, isEarly: boolean, notes?: str
 }
 
 export async function registerAbsence(employeeId: string, reason: string, notes: string): Promise<{ success?: boolean, error?: string }> {
+  const perm = await requirePermission('can_manage_attendance')
+  if (!perm.ok) return { error: perm.error }
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const now = new Date()
@@ -226,9 +233,11 @@ export async function endAbsence(employeeId: string): Promise<{ success?: boolea
 }
 
 export async function updateAttendanceLog(
-  id: string, 
+  id: string,
   data: { clock_in?: string, clock_out?: string, status?: string }
 ): Promise<{ success?: boolean, error?: string }> {
+  const perm = await requirePermission('can_approve_corrections')
+  if (!perm.ok) return { error: perm.error }
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -244,6 +253,8 @@ export async function updateAttendanceLog(
 }
 
 export async function deleteAttendanceLog(id: string): Promise<{ success?: boolean, error?: string }> {
+  const perm = await requirePermission('can_approve_corrections')
+  if (!perm.ok) return { error: perm.error }
   const supabase = await createClient()
 
   const { error } = await supabase
