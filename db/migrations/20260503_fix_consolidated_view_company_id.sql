@@ -55,13 +55,13 @@ FROM employees e
 LEFT JOIN attendance_logs al
        ON e.id = al.employee_id
 
-LEFT JOIN shift_templates st
-       ON al.shift_template_id = st.id
+LEFT JOIN shifts s
+       ON al.shift_template_id = s.id
 
 LEFT JOIN employee_shifts es
        ON e.id = es.employee_id AND es.is_active = true
-LEFT JOIN shifts s
-       ON es.shift_id = s.id
+LEFT JOIN shift_templates st
+       ON es.shift_template_id = st.id
 
 LEFT JOIN absence_logs abs
        ON e.id = abs.employee_id
