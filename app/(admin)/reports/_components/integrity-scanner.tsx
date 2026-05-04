@@ -1,30 +1,33 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AlertCircle, CheckCircle2, Loader2, Play } from 'lucide-react'
 
 interface IntegrityScannerProps {
+  companyId: string
   start: string
   end: string
   branchId?: string
   onValidated: (isValid: boolean) => void
 }
 
-export function IntegrityScanner({ start, end, branchId, onValidated }: IntegrityScannerProps) {
+export function IntegrityScanner({ companyId, start, end, branchId, onValidated }: IntegrityScannerProps) {
   const [status, setStatus] = useState<'idle' | 'scanning' | 'ready' | 'error'>('idle')
-  const [issues, setIssues] = useState<any[]>([])
-  const supabase = createClient()
+  const [issues, setIssues]  = useState<any[]>([])
+  const supabase = useRef(createClient()).current
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   async function runScan() {
+    if (!companyId) return
     setStatus('scanning')
     onValidated(false)
-    
+
     try {
-      // We query the consolidated view for missing_clock_out
       let query = supabase
         .from('consolidated_attendance_view')
-        .select('*')
+        .select('full_name, attendance_date, missing_clock_out')
+        .eq('company_id', companyId)
         .gte('attendance_date', start)
         .lte('attendance_date', end)
 
@@ -37,7 +40,7 @@ export function IntegrityScanner({ start, end, branchId, onValidated }: Integrit
 
       const integrityIssues = data?.filter(r => r.missing_clock_out) || []
       setIssues(integrityIssues)
-      
+
       if (integrityIssues.length === 0) {
         setStatus('ready')
         onValidated(true)
@@ -51,36 +54,40 @@ export function IntegrityScanner({ start, end, branchId, onValidated }: Integrit
     }
   }
 
-  // Auto-scan when params change
+  // Debounced auto-scan on param changes (300ms)
   useEffect(() => {
-    runScan()
-  }, [start, end, branchId])
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => { runScan() }, 300)
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, start, end, branchId])
 
   return (
     <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-4 transition-all">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {status === 'scanning' && <Loader2 className="h-5 w-5 animate-spin text-blue-500" />}
-          {status === 'ready' && <CheckCircle2 className="h-5 w-5 text-emerald-400" />}
-          {status === 'error' && <AlertCircle className="h-5 w-5 text-amber-400" />}
-          {status === 'idle' && <Play className="h-5 w-5 text-slate-500" />}
-          
+          {status === 'ready'    && <CheckCircle2 className="h-5 w-5 text-emerald-400" />}
+          {status === 'error'    && <AlertCircle  className="h-5 w-5 text-amber-400" />}
+          {status === 'idle'     && <Play         className="h-5 w-5 text-slate-500" />}
+
           <div>
             <h3 className="text-sm font-black text-white">
-              {status === 'scanning' ? 'Escaneando integridad...' : 
-               status === 'ready' ? 'Datos íntegros para reporte' : 
-               status === 'error' ? 'Inconsistencias detectadas' : 'Listo para escanear'}
+              {status === 'scanning' ? 'Escaneando integridad...' :
+               status === 'ready'    ? 'Datos íntegros para reporte' :
+               status === 'error'    ? 'Inconsistencias detectadas' :
+               'Listo para escanear'}
             </h3>
             <p className="text-xs font-medium text-slate-400">
-              {status === 'error' ? `${issues.length} marcaciones incompletas bloquean la exportación.` : 
-               status === 'ready' ? 'Todos los registros tienen entrada y salida.' : 
+              {status === 'error'   ? `${issues.length} marcaciones incompletas bloquean la exportación.` :
+               status === 'ready'   ? 'Todos los registros tienen entrada y salida.' :
                'Se requiere validación antes de generar PDF.'}
             </p>
           </div>
         </div>
 
         {status === 'error' && (
-          <button 
+          <button
             onClick={() => runScan()}
             className="text-[11px] font-black uppercase text-white tracking-widest border border-slate-700 hover:bg-slate-700 transition px-3 py-1.5 rounded-lg"
           >

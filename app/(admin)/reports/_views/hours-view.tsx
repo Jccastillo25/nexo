@@ -1,76 +1,89 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ReportActions } from '../_components/report-actions'
 import { IntegrityScanner } from '../_components/integrity-scanner'
-import { getNicaISODate, getNicaRange } from '@/lib/date-utils'
+import { getNicaISODate } from '@/lib/date-utils'
 
 interface HoursViewProps {
+  companyId: string
   start?: string
   end?: string
   branch?: string
 }
 
-export function HoursView({ start, end, branch }: HoursViewProps) {
-  const [results, setResults] = useState<any[]>([])
+export function HoursView({ companyId, start, end, branch }: HoursViewProps) {
+  const [results, setResults]   = useState<any[]>([])
   const [branches, setBranches] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]   = useState(true)
   const [canExport, setCanExport] = useState(false)
-  const supabase = createClient()
+  const supabase = useRef(createClient()).current
 
   const filterStart = start || getNicaISODate(new Date(Date.now() - 15 * 24 * 60 * 60 * 1000))
   const filterEnd   = end   || getNicaISODate()
 
-  async function fetchData() {
-    setLoading(true)
-    const { start: utcStart, end: utcEnd } = getNicaRange(filterStart, filterEnd)
+  useEffect(() => {
+    if (!companyId) return
 
-    // Using consolidated view for consistent math
-    let query = supabase
-      .from('consolidated_attendance_view')
-      .select('*')
-      .gte('attendance_date', filterStart)
-      .lte('attendance_date', filterEnd)
+    let cancelled = false
 
-    if (branch && branch !== 'all') {
-      query = query.eq('branch_id', branch)
+    async function fetchData() {
+      setLoading(true)
+
+      let query = supabase
+        .from('consolidated_attendance_view')
+        .select('*')
+        .eq('company_id', companyId)
+        .gte('attendance_date', filterStart)
+        .lte('attendance_date', filterEnd)
+
+      if (branch && branch !== 'all') {
+        query = query.eq('branch_id', branch)
+      }
+
+      const [{ data: records }, { data: branchesData }] = await Promise.all([
+        query,
+        supabase.from('branches').select('id, name').eq('company_id', companyId).order('name'),
+      ])
+
+      if (cancelled) return
+
+      // Build branch name lookup
+      const branchMap: Record<string, string> = {}
+      branchesData?.forEach((b: any) => { branchMap[b.id] = b.name })
+
+      // Aggregate by employee
+      const empMap: Record<string, any> = {}
+      records?.forEach((r: any) => {
+        if (!empMap[r.employee_id]) {
+          empMap[r.employee_id] = {
+            name:          r.full_name,
+            code:          r.employee_code,
+            branch:        branchMap[r.branch_id] ?? r.branch_id,
+            totalHours:    0,
+            daysWorkedSet: new Set<string>(),
+          }
+        }
+        empMap[r.employee_id].totalHours += r.net_hours ?? 0
+        if (r.attendance_date) empMap[r.employee_id].daysWorkedSet.add(r.attendance_date)
+      })
+
+      const finalResults = Object.values(empMap).map((emp: any) => ({
+        ...emp,
+        totalHours: emp.totalHours.toFixed(2),
+        daysWorked: emp.daysWorkedSet.size,
+      }))
+
+      setResults(finalResults)
+      setBranches(branchesData || [])
+      setLoading(false)
     }
 
-    const { data: records } = await query
-    const { data: branchesData } = await supabase.from('branches').select('id, name').order('name')
-
-    // Aggregate by employee
-    const empMap: Record<string, any> = {}
-    records?.forEach((r: any) => {
-      const empId = r.employee_id
-      if (!empMap[empId]) {
-        empMap[empId] = { 
-          name: r.full_name, 
-          code: r.employee_code,
-          branch: r.branch_id, // simplified for now
-          totalHours: 0,
-          daysWorkedSet: new Set()
-        }
-      }
-      empMap[empId].totalHours += r.net_hours
-      empMap[empId].daysWorkedSet.add(r.attendance_date)
-    })
-
-    const finalResults = Object.values(empMap).map((emp: any) => ({
-      ...emp,
-      totalHours: emp.totalHours.toFixed(2),
-      daysWorked: emp.daysWorkedSet.size
-    }))
-
-    setResults(finalResults)
-    setBranches(branchesData || [])
-    setLoading(false)
-  }
-
-  useEffect(() => {
     fetchData()
-  }, [start, end, branch])
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, filterStart, filterEnd, branch])
 
   return (
     <section className="space-y-6">
@@ -83,7 +96,7 @@ export function HoursView({ start, end, branch }: HoursViewProps) {
           </p>
         </div>
         <div className="flex flex-col items-end gap-3 shrink-0">
-          <ReportActions 
+          <ReportActions
             canExport={canExport}
             filters={{ start: filterStart, end: filterEnd, branch: branch || 'all', type: 'hours' }}
           />
@@ -91,9 +104,10 @@ export function HoursView({ start, end, branch }: HoursViewProps) {
       </div>
 
       <div className="max-w-xl">
-        <IntegrityScanner 
-          start={filterStart} 
-          end={filterEnd} 
+        <IntegrityScanner
+          companyId={companyId}
+          start={filterStart}
+          end={filterEnd}
           branchId={branch}
           onValidated={setCanExport}
         />
@@ -135,6 +149,7 @@ export function HoursView({ start, end, branch }: HoursViewProps) {
             <thead>
               <tr className="border-b border-slate-700/50 bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400">
                 <th className="px-6 py-4">Empleado</th>
+                <th className="px-6 py-4">Sucursal</th>
                 <th className="px-6 py-4 text-center">Días Laborados</th>
                 <th className="px-6 py-4 text-right">Total Horas (Netas)</th>
               </tr>
@@ -147,6 +162,7 @@ export function HoursView({ start, end, branch }: HoursViewProps) {
                       <p className="font-bold text-white">{emp.name}</p>
                       <p className="text-[10px] font-mono text-slate-500 uppercase">{emp.code}</p>
                     </td>
+                    <td className="px-6 py-4 text-slate-400 text-sm">{emp.branch}</td>
                     <td className="px-6 py-4 text-center">
                       <span className="inline-block rounded-lg bg-blue-500/10 px-2 py-1 text-[11px] font-black text-blue-400 border border-blue-500/20">
                         {emp.daysWorked} día(s)
@@ -160,7 +176,7 @@ export function HoursView({ start, end, branch }: HoursViewProps) {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={3} className="px-6 py-12 text-center text-slate-500 text-sm font-medium">No hay datos procesados.</td>
+                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500 text-sm font-medium">No hay datos procesados.</td>
                 </tr>
               )}
             </tbody>

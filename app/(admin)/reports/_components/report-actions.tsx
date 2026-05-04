@@ -40,8 +40,16 @@ export function ReportActions({ data, summary, filters, canExport = false }: Rep
 
       if (error) throw error
 
-      // 2. Handle the Blob and trigger download
-      // Note: invoke returns { data, error }. data is the blob/buffer
+      // 2. Validate we received a PDF, not a JSON error body
+      if (response instanceof ArrayBuffer && response.byteLength < 10) {
+        throw new Error('Respuesta vacía del servidor.')
+      }
+      // If the edge function returned a JSON error, response will be an object
+      if (response && typeof response === 'object' && !(response instanceof ArrayBuffer) && !ArrayBuffer.isView(response)) {
+        const errMsg = (response as any)?.error || 'Error desconocido del servidor.'
+        throw new Error(errMsg)
+      }
+
       const blob = new Blob([response], { type: 'application/pdf' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')

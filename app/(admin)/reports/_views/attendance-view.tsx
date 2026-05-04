@@ -1,49 +1,67 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Loader2 } from 'lucide-react'
 import { ReportActions } from '../_components/report-actions'
 import { IntegrityScanner } from '../_components/integrity-scanner'
 import { getNicaISODate, getNicaRange } from '@/lib/date-utils'
 
 interface AttendanceViewProps {
+  companyId: string
   date?: string
   branch?: string
 }
 
-export function AttendanceView({ date, branch }: AttendanceViewProps) {
-  const [records, setRecords] = useState<any[]>([])
+export function AttendanceView({ companyId, date, branch }: AttendanceViewProps) {
+  const [records, setRecords]   = useState<any[]>([])
   const [branches, setBranches] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]   = useState(true)
   const [canExport, setCanExport] = useState(false)
-  const supabase = createClient()
+  const supabase = useRef(createClient()).current
 
   const filterDate = date || getNicaISODate()
   const { start, end: rangeEnd } = getNicaRange(filterDate)
 
-  async function fetchData() {
-    setLoading(true)
-    
-    const { data: recordsData } = await supabase
-      .from('attendance_logs')
-      .select('id, clock_in, clock_out, status, source_origin, employees(first_name, last_name, employee_code), branches(name)')
-      .gte('clock_in', start)
-      .lte('clock_in', rangeEnd)
-      .order('clock_in', { ascending: true })
-
-    const { data: branchesData } = await supabase.from('branches').select('id, name').order('name')
-
-    setRecords(recordsData || [])
-    setBranches(branchesData || [])
-    setLoading(false)
-  }
-
   useEffect(() => {
+    if (!companyId) return
+
+    let cancelled = false
+
+    async function fetchData() {
+      setLoading(true)
+
+      let query = supabase
+        .from('attendance_logs')
+        .select('id, clock_in, clock_out, status, source_origin, company_id, employees(first_name, last_name, employee_code, branch_id, branches(name))')
+        .eq('company_id', companyId)
+        .gte('clock_in', start)
+        .lte('clock_in', rangeEnd)
+        .order('clock_in', { ascending: true })
+
+      if (branch && branch !== 'all') {
+        query = query.eq('employees.branch_id', branch)
+      }
+
+      const [{ data: recordsData }, { data: branchesData }] = await Promise.all([
+        query,
+        supabase.from('branches').select('id, name').eq('company_id', companyId).order('name'),
+      ])
+
+      if (cancelled) return
+
+      setRecords(recordsData || [])
+      setBranches(branchesData || [])
+      setLoading(false)
+    }
+
     fetchData()
-  }, [date, branch])
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, filterDate, branch])
 
   const punctual = records.filter(r => r.status === 'on_time').length
-  const late = records.filter(r => r.status === 'late').length
+  const late     = records.filter(r => r.status === 'late').length
 
   return (
     <section className="space-y-6">
@@ -57,16 +75,17 @@ export function AttendanceView({ date, branch }: AttendanceViewProps) {
         </div>
         <div className="flex flex-col items-end gap-3 shrink-0">
           <ReportActions
-             canExport={canExport}
-             filters={{ date: filterDate, branch: branch || 'all', type: 'attendance' }}
+            canExport={canExport}
+            filters={{ date: filterDate, branch: branch || 'all', type: 'attendance' }}
           />
         </div>
       </div>
 
       <div className="max-w-xl">
-        <IntegrityScanner 
-          start={filterDate} 
-          end={filterDate} 
+        <IntegrityScanner
+          companyId={companyId}
+          start={filterDate}
+          end={filterDate}
           branchId={branch}
           onValidated={setCanExport}
         />
@@ -94,6 +113,18 @@ export function AttendanceView({ date, branch }: AttendanceViewProps) {
         </form>
       </div>
 
+      {/* KPI pills */}
+      {!loading && records.length > 0 && (
+        <div className="flex gap-3 px-1">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-[11px] font-black text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> {punctual} Puntuales
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 px-3 py-1 text-[11px] font-black text-amber-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> {late} Con Retraso
+          </span>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex h-32 items-center justify-center app-surface">
           <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
@@ -114,17 +145,16 @@ export function AttendanceView({ date, branch }: AttendanceViewProps) {
             <tbody className="divide-y divide-slate-700/50">
               {records.length > 0 ? (
                 records.map(r => {
-                  const emp = r.employees as any
-                  const inTime = new Date(r.clock_in).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', hour12: true })
+                  const emp     = r.employees as any
+                  const inTime  = new Date(r.clock_in).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', hour12: true })
                   const outTime = r.clock_out ? new Date(r.clock_out).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', hour12: true }) : '---'
-
                   return (
                     <tr key={r.id} className="hover:bg-slate-800/50 transition">
                       <td className="px-6 py-4">
-                        <div className="font-bold text-white">{emp.first_name} {emp.last_name}</div>
-                        <div className="text-[10px] font-mono text-slate-500 uppercase">{emp.employee_code}</div>
+                        <div className="font-bold text-white">{emp?.first_name} {emp?.last_name}</div>
+                        <div className="text-[10px] font-mono text-slate-500 uppercase">{emp?.employee_code}</div>
                       </td>
-                      <td className="px-6 py-4 text-slate-400">{(r.branches as any)?.name}</td>
+                      <td className="px-6 py-4 text-slate-400">{emp?.branches?.name ?? '—'}</td>
                       <td className="px-6 py-4 font-mono text-white">{inTime}</td>
                       <td className="px-6 py-4 font-mono text-slate-400">{outTime}</td>
                       <td className="px-6 py-4">
@@ -132,7 +162,7 @@ export function AttendanceView({ date, branch }: AttendanceViewProps) {
                           {r.status === 'late' ? 'RETRASO' : 'PUNTUAL'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase">{r.source_origin || 'KIOSKO'}</td>
+                      <td className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase">{r.source_origin || 'KIOSK'}</td>
                     </tr>
                   )
                 })
@@ -146,13 +176,5 @@ export function AttendanceView({ date, branch }: AttendanceViewProps) {
         </div>
       )}
     </section>
-  )
-}
-
-function Loader2({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-    </svg>
   )
 }

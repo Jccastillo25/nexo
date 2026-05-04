@@ -1,4 +1,4 @@
-export type EventType = 'clock_in' | 'clock_out' | 'break_in' | 'break_out'
+export type EventType = 'clock_in' | 'clock_out' | 'start_break' | 'end_break'
 
 export type UIState = 'idle' | 'loading' | 'selecting_action' | 'success' | 'error' | 'linking'
 

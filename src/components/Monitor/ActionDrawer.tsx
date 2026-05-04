@@ -5,6 +5,7 @@ import { X, Clock, AlertCircle, FileText, Camera, CheckCircle2, XCircle } from '
 import { DigitalClock } from './DigitalClock'
 import { EmployeeStatusBadge } from './EmployeeStatusBadge'
 import { createClient } from '@/lib/supabase/client'
+import { getNicaISODate, getNicaRange } from '@/lib/date-utils'
 import { registerAbsence } from '../../../app/actions/attendance'
 
 interface Props {
@@ -47,12 +48,13 @@ export const ActionDrawer = ({ employee, isOpen, onClose }: Props) => {
   useEffect(() => {
     if (!isOpen || !employee) return
     if (employee.current_status === 'on_break') { setHasHadBreak(true); return }
-    const today = new Date().toISOString().split('T')[0]
+    const nicaToday = getNicaISODate()
+    const { start: dayStart } = getNicaRange(nicaToday)
     supabase
       .from('employee_status_logs')
       .select('id')
       .eq('employee_id', employee.id)
-      .gte('start_time', `${today}T00:00:00`)
+      .gte('start_time', dayStart)
       .limit(1)
       .then(({ data }) => { if (data && data.length > 0) setHasHadBreak(true) })
   }, [isOpen, employee?.id])

@@ -285,10 +285,17 @@ async function getTodayShift(
   }
 }
 
+const RPC_ACTION_MAP: Record<EventType, string> = {
+  clock_in:    'CLOCK_IN',
+  clock_out:   'CLOCK_OUT',
+  start_break: 'START_BREAK',
+  end_break:   'END_BREAK',
+}
+
 export async function processKioskEvent(branchId: string, pin: string, eventType: EventType): Promise<KioskResult> {
   const supabase = createAdminClient()
 
-  // 1. Verify existence and active status
+  // 1. Resolve employee by PIN + branch
   const { data: employee, error: empErr } = await supabase
     .from('employees')
     .select(`
@@ -303,152 +310,111 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     return { success: false, error: 'PIN incorrecto o empleado no encontrado en esta sucursal.' }
   }
 
-  // Prevenir doble clock-in
-  if (eventType === 'clock_in' && employee.current_status === 'active') {
-    return { success: false, error: 'El empleado ya tiene una entrada registrada. Debe marcar salida primero.' }
-  }
-  // Prevenir clock-out sin entrada activa
-  if (eventType === 'clock_out' && employee.current_status !== 'active' && employee.current_status !== 'on_break') {
-    return { success: false, error: 'No hay una entrada activa para registrar la salida.' }
-  }
-
   const now = new Date()
   const nowISO = now.toISOString()
-  
-  // Resolve today's shift configuration
-  const resolvedShift = await getTodayShift(
-    supabase, 
-    employee.id, 
-    employee.company_id, 
-    employee.branch_id, 
-    employee.job_position_id
-  )
 
-  // Tardiness Calculation Logic
+  // 2. Tardiness calculation (clock_in only)
   let tardinessMinutes = 0
+  let resolvedShift: Awaited<ReturnType<typeof getTodayShift>> | null = null
+
+  if (eventType === 'clock_in' || eventType === 'clock_out') {
+    resolvedShift = await getTodayShift(supabase, employee.id, employee.company_id, employee.branch_id, employee.job_position_id)
+  }
+
   if (eventType === 'clock_in' && resolvedShift && !resolvedShift.is_seventh_day && resolvedShift.start_time) {
     const { hour, minute } = getNicaTimeParts()
     const currentTotalMins = hour * 60 + minute
-
     const [shiftHours, shiftMins] = resolvedShift.start_time.split(':').map(Number)
     const shiftTotalMins = shiftHours * 60 + shiftMins
     const tolerance = resolvedShift.late_entry_tolerance || 0
-
     if (currentTotalMins > shiftTotalMins + tolerance) {
       tardinessMinutes = currentTotalMins - shiftTotalMins
     }
   }
 
-  // Determine next employee status upfront
-  let nextStatus = 'offline'
-  if (eventType === 'clock_in' || eventType === 'break_in') nextStatus = 'active'
-  if (eventType === 'break_out') nextStatus = 'on_break'
+  // 3. Delegate to RPC (handles audit, company_id, state validation, employee_status_logs for breaks)
+  const { data: rpcData, error: rpcErr } = await supabase.rpc('rpc_mark_attendance_action', {
+    p_company_id:  employee.company_id,
+    p_employee_id: employee.id,
+    p_action:      RPC_ACTION_MAP[eventType],
+    p_source:      'KIOSK',
+    p_executed_by: null,
+    p_notes:       null,
+    p_timestamp:   nowISO,
+  })
 
-  // 2 & 3. Run attendance log write + employee status update in parallel
-  if (eventType === 'clock_in') {
-    const [{ error: insertErr }] = await Promise.all([
-      supabase.from('attendance_logs').insert({
-        employee_id: employee.id,
-        shift_template_id: (resolvedShift as any)?.shift_template_id || resolvedShift?.shift_id,
-        clock_in: nowISO,
-        status: tardinessMinutes > 0 ? 'late' : 'on_time',
-        source_origin: 'KIOSK'
-      }),
-      supabase.from('employees').update({
-        current_status: nextStatus,
-        last_status_change: nowISO
-      }).eq('id', employee.id)
-    ])
-    if (insertErr) return { success: false, error: `Error al registrar entrada: ${insertErr.message}` }
-
-  } else if (eventType === 'clock_out') {
-    // Find open session first
-    const { data: openLog } = await supabase
-      .from('attendance_logs')
-      .select('id, clock_in')
-      .eq('employee_id', employee.id)
-      .is('clock_out', null)
-      .order('clock_in', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    let calcFlags = {}
-
-    if (openLog && resolvedShift) {
-      // Import payroll engine dynamically or statically at top
-      // Wait, we can't top-level import without adding it there. We just compute it here explicitly to avoid missing imports.
-      // Wait actually I need to call the engine. It's better to just inline it or import it.
-      // We will assume importing it at the top later, but for now I will inline the import or just calculate it directly.
-      const { calculatePayableHours } = await import('@/lib/payroll-engine')
-      
-      const clockInDate = new Date(openLog.clock_in)
-      const clockOutDate = now
-      const todayDow = now.getDay()
-      
-      const payrollFlags = calculatePayableHours(
-        clockInDate,
-        clockOutDate,
-        {
-          lunch_duration: resolvedShift.lunch_duration || 0,
-          late_entry_tolerance: resolvedShift.late_entry_tolerance || 15,
-          early_exit_tolerance: resolvedShift.early_exit_tolerance || 15,
-          days_config: resolvedShift.days_config || []
-        },
-        todayDow
-      )
-
-      calcFlags = {
-        is_late: payrollFlags.is_late,
-        minutes_deducted: payrollFlags.minutes_deducted,
-        overtime_minutes: payrollFlags.overtime_minutes,
-        is_seventh_day_overtime: payrollFlags.is_seventh_day_overtime
-      }
-    }
-
-    await Promise.all([
-      openLog
-        ? supabase.from('attendance_logs').update({ 
-            clock_out: nowISO,
-            ...calcFlags
-          }).eq('id', openLog.id)
-        : Promise.resolve(),
-      supabase.from('employees').update({
-        current_status: nextStatus,
-        last_status_change: nowISO
-      }).eq('id', employee.id)
-    ])
-
-  } else if (eventType === 'break_out') {
-    const breakMins = (employee.job_positions as any)?.default_break_mins || 60
-    const startTime = new Date()
-    const endTimeScheduled = new Date(startTime.getTime() + breakMins * 60000)
-
-    await Promise.all([
-      supabase.from('employee_status_logs').insert({
-        employee_id: employee.id,
-        start_time: startTime.toISOString(),
-        end_time_scheduled: endTimeScheduled.toISOString(),
-      }),
-      supabase.from('employees').update({
-        current_status: nextStatus,
-        last_status_change: nowISO
-      }).eq('id', employee.id)
-    ])
-
-  } else if (eventType === 'break_in') {
-    await Promise.all([
-      supabase.from('employee_status_logs')
-        .update({ end_time_actual: nowISO })
-        .eq('employee_id', employee.id)
-        .is('end_time_actual', null),
-      supabase.from('employees').update({
-        current_status: nextStatus,
-        last_status_change: nowISO
-      }).eq('id', employee.id)
-    ])
+  if (rpcErr) {
+    return { success: false, error: `Error técnico: ${rpcErr.message}` }
   }
 
-  // Revalidate paths to update dashboards
+  const rpc = Array.isArray(rpcData) ? rpcData[0] : rpcData
+  if (!rpc?.success) {
+    return { success: false, error: rpc?.message || 'No se pudo procesar la marcación.' }
+  }
+
+  // 4. Post-processing: persist tardiness status
+  if (eventType === 'clock_in' && tardinessMinutes > 0 && rpc.attendance_log_id) {
+    await supabase
+      .from('attendance_logs')
+      .update({ status: 'late' })
+      .eq('id', rpc.attendance_log_id)
+  }
+
+  // 5. Post-processing: persist payroll flags on clock_out
+  if (eventType === 'clock_out' && rpc.attendance_log_id && resolvedShift) {
+    const { data: closedLog } = await supabase
+      .from('attendance_logs')
+      .select('clock_in, clock_out')
+      .eq('id', rpc.attendance_log_id)
+      .single()
+
+    if (closedLog?.clock_in && closedLog?.clock_out) {
+      const { calculatePayableHours } = await import('@/lib/payroll-engine')
+      const payrollFlags = calculatePayableHours(
+        new Date(closedLog.clock_in),
+        new Date(closedLog.clock_out),
+        {
+          lunch_duration:       resolvedShift.lunch_duration || 0,
+          late_entry_tolerance: resolvedShift.late_entry_tolerance || 15,
+          early_exit_tolerance: resolvedShift.early_exit_tolerance || 15,
+          days_config:          resolvedShift.days_config || [],
+        },
+        now.getDay()
+      )
+      await supabase
+        .from('attendance_logs')
+        .update({
+          is_late:                payrollFlags.is_late,
+          minutes_deducted:       payrollFlags.minutes_deducted,
+          overtime_minutes:       payrollFlags.overtime_minutes,
+          is_seventh_day_overtime: payrollFlags.is_seventh_day_overtime,
+        })
+        .eq('id', rpc.attendance_log_id)
+    }
+  }
+
+  // 6. Post-processing: fix break duration (RPC hardcodes 60 min)
+  if (eventType === 'start_break') {
+    const breakMins = (employee.job_positions as any)?.default_break_mins ?? 60
+    if (breakMins !== 60) {
+      const endTimeScheduled = new Date(now.getTime() + breakMins * 60000)
+      const { data: breakLog } = await supabase
+        .from('employee_status_logs')
+        .select('id')
+        .eq('employee_id', employee.id)
+        .is('end_time_actual', null)
+        .order('start_time', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (breakLog) {
+        await supabase
+          .from('employee_status_logs')
+          .update({ end_time_scheduled: endTimeScheduled.toISOString() })
+          .eq('id', breakLog.id)
+      }
+    }
+  }
+
   revalidatePath('/dashboard')
   revalidatePath('/attendance')
   revalidatePath('/monitor')
@@ -459,6 +425,6 @@ export async function processKioskEvent(branchId: string, pin: string, eventType
     employee_code: employee.employee_code,
     event_type: eventType,
     tardiness_minutes: tardinessMinutes,
-    overtime_minutes: 0
+    overtime_minutes: 0,
   }
 }

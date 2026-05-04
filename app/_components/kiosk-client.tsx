@@ -362,8 +362,8 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
                     <span className="material-symbols-outlined text-xl transform group-hover:translate-x-1 transition-transform">chevron_right</span>
                   </button>
                   <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => executeAction('break_in')} className="py-5 bg-white hover:bg-slate-50 text-slate-600 border-2 border-slate-100 rounded-2xl font-bold text-xs flex flex-col items-center gap-3 transition-all active:scale-[0.96]"><span className="material-symbols-outlined text-2xl text-slate-400">coffee</span>Inicio Descanso</button>
-                    <button onClick={() => executeAction('break_out')} className="py-5 bg-white hover:bg-slate-50 text-slate-600 border-2 border-slate-100 rounded-2xl font-bold text-xs flex flex-col items-center gap-3 transition-all active:scale-[0.96]"><span className="material-symbols-outlined text-2xl text-slate-400">restaurant</span>Fin Descanso</button>
+                    <button onClick={() => executeAction('start_break')} className="py-5 bg-white hover:bg-slate-50 text-slate-600 border-2 border-slate-100 rounded-2xl font-bold text-xs flex flex-col items-center gap-3 transition-all active:scale-[0.96]"><span className="material-symbols-outlined text-2xl text-slate-400">coffee</span>Inicio Descanso</button>
+                    <button onClick={() => executeAction('end_break')} className="py-5 bg-white hover:bg-slate-50 text-slate-600 border-2 border-slate-100 rounded-2xl font-bold text-xs flex flex-col items-center gap-3 transition-all active:scale-[0.96]"><span className="material-symbols-outlined text-2xl text-slate-400">restaurant</span>Fin Descanso</button>
                   </div>
                   <button onClick={() => executeAction('clock_out')} className="w-full py-5 px-6 bg-slate-900 hover:bg-black text-white rounded-2xl font-black flex items-center justify-between shadow-2xl transition-all active:scale-[0.98] group">
                     <div className="flex items-center gap-4"><span className="material-symbols-outlined text-2xl opacity-80">logout</span><span className="text-base tracking-tight">Marcar Salida</span></div>
@@ -395,7 +395,7 @@ export function KioskClient({ initialLogoUrl, initialKioskBgUrl, initialCompanyN
                   <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex justify-between items-center transition-transform hover:scale-[1.02]">
                     <div className="flex items-center gap-4"><div className="size-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-100"><span className="material-symbols-outlined text-blue-500 text-xl">label</span></div><p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Tipo de acción</p></div>
                     <span className="px-4 py-1.5 bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">
-                      {result.event_type === 'clock_in' ? 'Entrada' : result.event_type === 'clock_out' ? 'Salida' : result.event_type === 'break_in' ? 'Inicio Descanso' : 'Fin Descanso'}
+                      {result.event_type === 'clock_in' ? 'Entrada' : result.event_type === 'clock_out' ? 'Salida' : result.event_type === 'start_break' ? 'Inicio Descanso' : 'Fin Descanso'}
                     </span>
                   </div>
                 </div>

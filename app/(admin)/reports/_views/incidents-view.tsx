@@ -7,12 +7,13 @@ import { IntegrityScanner } from '../_components/integrity-scanner'
 import { getNicaISODate, getNicaRange, formatInNica } from '@/lib/date-utils'
 
 interface IncidentsViewProps {
+  companyId?: string
   start?: string
   end?: string
   employee?: string
 }
 
-export function IncidentsView({ start, end, employee }: IncidentsViewProps) {
+export function IncidentsView({ companyId = '', start, end, employee }: IncidentsViewProps) {
   const [incidents, setIncidents] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -80,10 +81,11 @@ export function IncidentsView({ start, end, employee }: IncidentsViewProps) {
       </div>
 
       <div className="max-w-xl">
-        <IntegrityScanner 
-          start={filterStart} 
-          end={filterEnd} 
-          onValidated={setCanExport} 
+        <IntegrityScanner
+          companyId={companyId}
+          start={filterStart}
+          end={filterEnd}
+          onValidated={setCanExport}
         />
       </div>
 
