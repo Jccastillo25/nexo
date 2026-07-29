@@ -35,6 +35,41 @@ export async function proxy(request: NextRequest) {
   const isLoginRoute = pathname === "/login";
   const isRootRoute = pathname === "/";
 
+  // /supadmin es un area aislada, con su propio login: no comparte
+  // logica de redirect con /login, /admin ni /driver.
+  const isSupadminRoute = pathname.startsWith("/supadmin");
+  const isSupadminLoginRoute = pathname === "/supadmin/login";
+
+  if (isSupadminRoute) {
+    if (!user) {
+      if (isSupadminLoginRoute) return response;
+      const url = request.nextUrl.clone();
+      url.pathname = "/supadmin/login";
+      return NextResponse.redirect(url);
+    }
+
+    const { data: platformAdmin } = await supabase
+      .from("platform_admins")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!platformAdmin) {
+      if (isSupadminLoginRoute) return response;
+      const url = request.nextUrl.clone();
+      url.pathname = "/supadmin/login";
+      return NextResponse.redirect(url);
+    }
+
+    if (isSupadminLoginRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/supadmin";
+      return NextResponse.redirect(url);
+    }
+
+    return response;
+  }
+
   if ((isDriverRoute || isAdminRoute) && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -72,5 +107,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/driver/:path*", "/admin/:path*", "/login"],
+  matcher: ["/", "/driver/:path*", "/admin/:path*", "/login", "/supadmin/:path*"],
 };

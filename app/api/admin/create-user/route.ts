@@ -42,6 +42,26 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
+  const { data: company } = await admin
+    .from("companies")
+    .select("max_users")
+    .eq("id", callerProfile.company_id)
+    .single();
+
+  if (company?.max_users !== null && company?.max_users !== undefined) {
+    const { count } = await admin
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", callerProfile.company_id);
+
+    if ((count ?? 0) >= company.max_users) {
+      return NextResponse.json(
+        { error: "Se alcanzó el límite de usuarios permitidos para tu empresa. Contacta a Ruta360 para ampliarlo." },
+        { status: 403 },
+      );
+    }
+  }
+
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email,
     password,

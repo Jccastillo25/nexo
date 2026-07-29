@@ -44,7 +44,9 @@ export type Database = {
           created_at: string | null
           email: string | null
           id: string
+          is_active: boolean
           logo_url: string | null
+          max_users: number | null
           name: string
           phone: string | null
           ruc: string | null
@@ -54,7 +56,9 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean
           logo_url?: string | null
+          max_users?: number | null
           name: string
           phone?: string | null
           ruc?: string | null
@@ -64,10 +68,27 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean
           logo_url?: string | null
+          max_users?: number | null
           name?: string
           phone?: string | null
           ruc?: string | null
+        }
+        Relationships: []
+      }
+      platform_admins: {
+        Row: {
+          created_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
