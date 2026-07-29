@@ -33,6 +33,7 @@ export async function proxy(request: NextRequest) {
   const isDriverRoute = pathname.startsWith("/driver");
   const isAdminRoute = pathname.startsWith("/admin");
   const isLoginRoute = pathname === "/login";
+  const isRootRoute = pathname === "/";
 
   if ((isDriverRoute || isAdminRoute) && !user) {
     const url = request.nextUrl.clone();
@@ -40,20 +41,27 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (isLoginRoute && user) {
+  if (isRootRoute && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/driver";
+    url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  if (isAdminRoute && user) {
+  if (user && (isLoginRoute || isRootRoute || isAdminRoute)) {
     const { data: profile } = await supabase
       .from("users")
       .select("role")
       .eq("id", user.id)
       .maybeSingle();
+    const isAdmin = profile?.role === "admin";
 
-    if (profile?.role !== "admin") {
+    if (isLoginRoute || isRootRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = isAdmin ? "/admin" : "/driver";
+      return NextResponse.redirect(url);
+    }
+
+    if (isAdminRoute && !isAdmin) {
       const url = request.nextUrl.clone();
       url.pathname = "/driver";
       return NextResponse.redirect(url);
@@ -64,5 +72,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/driver/:path*", "/admin/:path*", "/login"],
+  matcher: ["/", "/driver/:path*", "/admin/:path*", "/login"],
 };

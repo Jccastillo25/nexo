@@ -34,7 +34,8 @@ export default function LoginPage() {
     }
 
     window.localStorage.setItem(LAST_EMAIL_KEY, email);
-    router.push("/driver");
+    // "/" y no "/driver": el proxy decide a dónde ir según el rol (admin -> /admin).
+    router.push("/");
     router.refresh();
   }
 
