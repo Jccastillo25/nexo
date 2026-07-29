@@ -1,9 +1,12 @@
 import type { MetadataRoute } from "next";
+import { getPlatformSettings } from "@/lib/platform-settings";
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const { productName } = await getPlatformSettings();
+
   return {
-    name: "Ruta360",
-    short_name: "Ruta360",
+    name: productName,
+    short_name: productName,
     description: "Control operativo de viajes para conductores",
     start_url: "/driver",
     display: "standalone",

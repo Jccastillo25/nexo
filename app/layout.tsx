@@ -1,20 +1,25 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { getPlatformSettings } from "@/lib/platform-settings";
 
-export const metadata: Metadata = {
-  title: "Ruta360",
-  description: "Control operativo de viajes para conductores",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Ruta360",
-  },
-  icons: {
-    icon: ["/icon-192.png", "/icon-512.png"],
-    apple: "/apple-touch-icon.png",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { productName } = await getPlatformSettings();
+
+  return {
+    title: productName,
+    description: "Control operativo de viajes para conductores",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: productName,
+    },
+    icons: {
+      icon: ["/icon-192.png", "/icon-512.png"],
+      apple: "/apple-touch-icon.png",
+    },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",

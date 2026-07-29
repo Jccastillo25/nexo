@@ -1,74 +1,49 @@
-import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { StatCard } from "@/components/StatCard";
+import { UsersByCompanyChart } from "./SupadminCharts";
 
-export default async function SupadminCompaniesPage() {
+export default async function SupadminDashboardPage() {
   const admin = createAdminClient();
 
-  const { data: companies } = await admin
-    .from("companies")
-    .select("id, name, is_active, max_users, users(count)")
-    .order("name");
+  const [
+    { count: totalCompanies },
+    { count: activeCompanies },
+    { count: totalUsers },
+    { count: activeUsers },
+    { data: companies },
+  ] = await Promise.all([
+    admin.from("companies").select("id", { count: "exact", head: true }),
+    admin.from("companies").select("id", { count: "exact", head: true }).eq("is_active", true),
+    admin.from("users").select("id", { count: "exact", head: true }),
+    admin.from("users").select("id", { count: "exact", head: true }).eq("is_active", true),
+    admin.from("companies").select("name, users(count)").order("name"),
+  ]);
+
+  const usersByCompany = (companies ?? [])
+    .map((c) => ({
+      name: c.name,
+      count: Array.isArray(c.users) ? (c.users[0]?.count ?? 0) : 0,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-100">Empresas</h1>
-        <Link
-          href="/supadmin/new"
-          className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-900"
-        >
-          Nueva empresa
-        </Link>
+    <div className="flex flex-col gap-8">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-100">Dashboard</h1>
+        <p className="text-slate-400">Resumen de toda la plataforma Ruta360.</p>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800">
-        <table className="w-full text-sm text-slate-200">
-          <thead className="bg-slate-900 text-left text-slate-400">
-            <tr>
-              <th className="px-3 py-2">Empresa</th>
-              <th className="px-3 py-2">Estado</th>
-              <th className="px-3 py-2">Usuarios</th>
-              <th className="px-3 py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {(companies ?? []).map((c) => {
-              const userCount = Array.isArray(c.users) ? (c.users[0]?.count ?? 0) : 0;
-              return (
-                <tr key={c.id} className="border-t border-slate-800">
-                  <td className="px-3 py-2 font-semibold">{c.name}</td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                        c.is_active ? "bg-emerald-900 text-emerald-300" : "bg-red-900 text-red-300"
-                      }`}
-                    >
-                      {c.is_active ? "Activa" : "Inactiva"}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">
-                    {userCount} / {c.max_users ?? "∞"}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <Link
-                      href={`/supadmin/companies/${c.id}`}
-                      className="font-semibold text-amber-400 hover:underline"
-                    >
-                      Editar
-                    </Link>
-                  </td>
-                </tr>
-              );
-            })}
-            {(companies ?? []).length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-3 py-6 text-center text-slate-500">
-                  Sin empresas registradas todavía.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <StatCard label="Empresas" value={totalCompanies ?? 0} />
+        <StatCard label="Empresas activas" value={activeCompanies ?? 0} />
+        <StatCard label="Usuarios totales" value={totalUsers ?? 0} />
+        <StatCard label="Usuarios activos" value={activeUsers ?? 0} />
+      </div>
+
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <h2 className="mb-2 text-lg font-bold text-slate-100">Usuarios por empresa</h2>
+        <UsersByCompanyChart data={usersByCompany} />
       </div>
     </div>
   );

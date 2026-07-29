@@ -34,3 +34,21 @@ export async function uploadCompanyLogo(file: File, companyId: string): Promise<
   // seguiria mostrando la imagen vieja cacheada bajo la misma URL.
   return `${data.publicUrl}?v=${Date.now()}`;
 }
+
+// Bucket público "platform-assets": logo único de la plataforma (Ruta360),
+// distinto del logo de cada empresa. Mismo patrón de upsert + cache-bust.
+export async function uploadPlatformLogo(file: File): Promise<string> {
+  const supabase = createClient();
+  const ext = file.type === "image/png" ? "png" : file.type === "image/svg+xml" ? "svg" : "jpg";
+  const path = `logo.${ext}`;
+
+  const { error } = await supabase.storage.from("platform-assets").upload(path, file, {
+    cacheControl: "3600",
+    upsert: true,
+  });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("platform-assets").getPublicUrl(path);
+  return `${data.publicUrl}?v=${Date.now()}`;
+}

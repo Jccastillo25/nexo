@@ -77,6 +77,30 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_settings: {
+        Row: {
+          copyright_text: string | null
+          id: number
+          logo_url: string | null
+          product_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          copyright_text?: string | null
+          id?: number
+          logo_url?: string | null
+          product_name?: string
+          updated_at?: string | null
+        }
+        Update: {
+          copyright_text?: string | null
+          id?: number
+          logo_url?: string | null
+          product_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       platform_admins: {
         Row: {
           created_at: string | null
