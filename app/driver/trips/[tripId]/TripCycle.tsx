@@ -7,20 +7,10 @@ import { uploadEvidencePhoto } from "@/lib/storage";
 import { recordTripEvent, TripEventError } from "@/lib/trip-events";
 import { PhotoCaptureInput } from "@/components/PhotoCaptureInput";
 import { BigButton } from "@/components/BigButton";
+import { TRIP_STATUS_LABEL } from "@/lib/trip-status";
 import type { Database } from "@/lib/supabase/database.types";
 
 type TripStatus = Database["public"]["Enums"]["trip_status"];
-
-const STATUS_LABEL: Record<TripStatus, string> = {
-  created: "Pendiente de inspección",
-  inspected: "Listo para iniciar",
-  in_transit: "En ruta",
-  at_destination: "En destino",
-  unloading: "Descargando",
-  unloading_completed: "Descarga finalizada",
-  completed: "Viaje completado",
-  cancelled: "Viaje cancelado",
-};
 
 export function TripCycle({
   tripId,
@@ -110,7 +100,7 @@ export function TripCycle({
   return (
     <div className="flex flex-col gap-6">
       <p className="inline-block w-fit rounded-full bg-slate-800 px-4 py-2 text-sm font-semibold text-amber-400">
-        {STATUS_LABEL[status]}
+        {TRIP_STATUS_LABEL[status]}
       </p>
 
       {error && <p className="text-red-400">{error}</p>}

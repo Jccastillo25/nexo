@@ -31,9 +31,10 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isDriverRoute = pathname.startsWith("/driver");
+  const isAdminRoute = pathname.startsWith("/admin");
   const isLoginRoute = pathname === "/login";
 
-  if (isDriverRoute && !user) {
+  if ((isDriverRoute || isAdminRoute) && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -45,9 +46,23 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (isAdminRoute && user) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.role !== "admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/driver";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return response;
 }
 
 export const config = {
-  matcher: ["/driver/:path*", "/login"],
+  matcher: ["/driver/:path*", "/admin/:path*", "/login"],
 };
