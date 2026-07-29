@@ -11,9 +11,18 @@ const NAV_ITEMS = [
   { href: "/admin/vehicles", label: "Vehículos" },
   { href: "/admin/accessories", label: "Accesorios" },
   { href: "/admin/drivers", label: "Conductores" },
+  { href: "/admin/company", label: "Empresa" },
 ];
 
-export function AdminSidebar({ fullName }: { fullName: string }) {
+export function AdminSidebar({
+  fullName,
+  companyName,
+  logoUrl,
+}: {
+  fullName: string;
+  companyName: string;
+  logoUrl: string | null;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -28,6 +37,16 @@ export function AdminSidebar({ fullName }: { fullName: string }) {
   function isActive(href: string) {
     return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
   }
+
+  const brand = (
+    <div className="mb-4 flex items-center gap-2">
+      {logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- logo servido desde Supabase Storage
+        <img src={logoUrl} alt={companyName} className="h-8 w-8 rounded-lg object-contain bg-slate-800" />
+      ) : null}
+      <p className="truncate text-sm font-bold text-slate-100">{companyName}</p>
+    </div>
+  );
 
   const navLinks = (
     <nav className="flex flex-col gap-1">
@@ -64,6 +83,7 @@ export function AdminSidebar({ fullName }: { fullName: string }) {
       {mobileOpen && (
         <div className="fixed inset-0 z-40 flex md:hidden">
           <div className="w-64 shrink-0 bg-slate-900 p-4">
+            {brand}
             <p className="mb-4 text-sm font-semibold text-slate-100">{fullName}</p>
             {navLinks}
             <button
@@ -80,6 +100,7 @@ export function AdminSidebar({ fullName }: { fullName: string }) {
       {/* Sidebar fijo en desktop */}
       <aside className="hidden w-56 shrink-0 flex-col justify-between border-r border-slate-800 bg-slate-900 p-4 md:flex">
         <div>
+          {brand}
           <p className="mb-1 text-sm font-semibold text-slate-100">{fullName}</p>
           <p className="mb-6 text-xs text-slate-500">Panel de Administración</p>
           {navLinks}

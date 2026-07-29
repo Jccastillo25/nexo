@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Control de Transporte",
-    short_name: "Transporte",
+    name: "Ruta360",
+    short_name: "Ruta360",
     description: "Control operativo de viajes para conductores",
     start_url: "/driver",
     display: "standalone",

@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await supabase
     .from("users")
-    .select("full_name, role")
+    .select("full_name, role, company_id")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -21,9 +21,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/driver");
   }
 
+  const { data: company } = await supabase
+    .from("companies")
+    .select("name, logo_url")
+    .eq("id", profile.company_id)
+    .maybeSingle();
+
   return (
     <div className="flex min-h-dvh flex-col bg-slate-950 md:flex-row">
-      <AdminSidebar fullName={profile.full_name} />
+      <AdminSidebar
+        fullName={profile.full_name}
+        companyName={company?.name ?? ""}
+        logoUrl={company?.logo_url ?? null}
+      />
       <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>

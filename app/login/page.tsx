@@ -80,7 +80,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh flex-col justify-center gap-6 bg-slate-900 px-6 py-10 text-slate-100">
       <div className="mx-auto w-full max-w-sm">
-        <h1 className="mb-1 text-3xl font-bold">Control de Transporte</h1>
+        <h1 className="mb-1 text-3xl font-bold">Ruta360</h1>
         <p className="mb-8 text-slate-400">Ingresa para iniciar tu jornada</p>
 
         <div className="mb-6 flex rounded-xl bg-slate-800 p-1">

@@ -3,12 +3,12 @@ import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
-  title: "Control de Transporte",
+  title: "Ruta360",
   description: "Control operativo de viajes para conductores",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Transporte",
+    title: "Ruta360",
   },
   icons: {
     icon: ["/icon-192.png", "/icon-512.png"],

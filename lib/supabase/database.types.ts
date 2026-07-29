@@ -40,19 +40,34 @@ export type Database = {
       }
       companies: {
         Row: {
+          address: string | null
           created_at: string | null
+          email: string | null
           id: string
+          logo_url: string | null
           name: string
+          phone: string | null
+          ruc: string | null
         }
         Insert: {
+          address?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
+          logo_url?: string | null
           name: string
+          phone?: string | null
+          ruc?: string | null
         }
         Update: {
+          address?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
+          phone?: string | null
+          ruc?: string | null
         }
         Relationships: []
       }
