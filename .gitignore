@@ -9,3 +9,4 @@ out/
 .DS_Store
 *.tsbuildinfo
 .claude/settings.local.json
+.claude/scheduled_tasks.lock

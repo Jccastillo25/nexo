@@ -1,112 +1,107 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formatDuration } from "@/lib/duration";
+import { StatCard } from "@/components/StatCard";
 import { TRIP_STATUS_LABEL } from "@/lib/trip-status";
+import { DailyTripsChart, StatusBreakdownChart } from "./AdminCharts";
 import type { Database } from "@/lib/supabase/database.types";
 
-type TripEventType = Database["public"]["Enums"]["trip_event_type"];
+type TripStatus = Database["public"]["Enums"]["trip_status"];
 
-function eventTime(events: { event_type: TripEventType; recorded_at: string | null }[], type: TripEventType) {
-  return events.find((e) => e.event_type === type)?.recorded_at ?? null;
+const DAY_LABEL = new Intl.DateTimeFormat("es", { weekday: "short", day: "numeric" });
+
+function dayKey(iso: string) {
+  return iso.slice(0, 10);
 }
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
-  const { data: vehicles } = await supabase
-    .from("vehicles")
-    .select("id, license_plate, brand, model, status, current_odometer")
-    .order("license_plate");
+  const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(now.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(now.getDate() - 30);
 
-  const { data: trips } = await supabase
-    .from("trips")
-    .select(
-      "id, status, start_odometer, end_odometer, created_at, vehicle:vehicles(license_plate), driver:users(full_name), trip_events(event_type, recorded_at)",
-    )
-    .order("created_at", { ascending: false })
-    .limit(30);
+  const [
+    { count: activeVehicles },
+    { count: activeDrivers },
+    { count: tripsInProgress },
+    { data: recentTrips },
+  ] = await Promise.all([
+    supabase.from("vehicles").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabase
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "driver")
+      .eq("is_active", true),
+    supabase
+      .from("trips")
+      .select("id", { count: "exact", head: true })
+      .not("status", "in", "(completed,cancelled)"),
+    supabase
+      .from("trips")
+      .select("status, created_at")
+      .gte("created_at", thirtyDaysAgo.toISOString()),
+  ]);
+
+  const trips = recentTrips ?? [];
+  const completedLast30d = trips.filter((t) => t.status === "completed").length;
+
+  const dailyBuckets = new Map<string, number>();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(sevenDaysAgo);
+    d.setDate(sevenDaysAgo.getDate() + i);
+    dailyBuckets.set(dayKey(d.toISOString()), 0);
+  }
+  for (const trip of trips) {
+    const key = dayKey(trip.created_at ?? "");
+    if (dailyBuckets.has(key)) {
+      dailyBuckets.set(key, (dailyBuckets.get(key) ?? 0) + 1);
+    }
+  }
+  const dailyData = [...dailyBuckets.entries()].map(([key, count]) => ({
+    day: DAY_LABEL.format(new Date(`${key}T00:00:00`)),
+    count,
+  }));
+
+  const statusCounts = new Map<TripStatus, number>();
+  for (const trip of trips) {
+    statusCounts.set(trip.status, (statusCounts.get(trip.status) ?? 0) + 1);
+  }
+  const statusData = [...statusCounts.entries()].map(([status, count]) => ({
+    label: TRIP_STATUS_LABEL[status],
+    count,
+  }));
 
   return (
     <div className="flex flex-col gap-8">
-      <section>
-        <h1 className="mb-3 text-xl font-bold text-slate-100">Flota</h1>
-        <div className="overflow-x-auto rounded-xl border border-slate-800">
-          <table className="w-full text-sm text-slate-200">
-            <thead className="bg-slate-900 text-left text-slate-400">
-              <tr>
-                <th className="px-3 py-2">Placa</th>
-                <th className="px-3 py-2">Marca/Modelo</th>
-                <th className="px-3 py-2">Estado</th>
-                <th className="px-3 py-2">Odómetro</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(vehicles ?? []).map((v) => (
-                <tr key={v.id} className="border-t border-slate-800">
-                  <td className="px-3 py-2 font-semibold">{v.license_plate}</td>
-                  <td className="px-3 py-2 text-slate-400">
-                    {[v.brand, v.model].filter(Boolean).join(" ") || "—"}
-                  </td>
-                  <td className="px-3 py-2">{v.status}</td>
-                  <td className="px-3 py-2">{v.current_odometer.toLocaleString()} km</td>
-                </tr>
-              ))}
-              {(vehicles ?? []).length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-3 py-6 text-center text-slate-500">
-                    Sin vehículos registrados todavía.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-100">Dashboard</h1>
+        <p className="text-slate-400">Resumen operativo de los últimos 30 días.</p>
+      </div>
 
-      <section>
-        <h2 className="mb-3 text-xl font-bold text-slate-100">Viajes recientes</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-800">
-          <table className="w-full text-sm text-slate-200">
-            <thead className="bg-slate-900 text-left text-slate-400">
-              <tr>
-                <th className="px-3 py-2">Vehículo</th>
-                <th className="px-3 py-2">Conductor</th>
-                <th className="px-3 py-2">Estado</th>
-                <th className="px-3 py-2">Tiempo en ruta</th>
-                <th className="px-3 py-2">Tiempo de descarga</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(trips ?? []).map((t) => {
-                const events = t.trip_events ?? [];
-                const enRuta = formatDuration(
-                  eventTime(events, "start_trip"),
-                  eventTime(events, "arrival_destination"),
-                );
-                const descarga = formatDuration(
-                  eventTime(events, "start_unloading"),
-                  eventTime(events, "end_unloading"),
-                );
-                return (
-                  <tr key={t.id} className="border-t border-slate-800">
-                    <td className="px-3 py-2 font-semibold">{t.vehicle?.license_plate}</td>
-                    <td className="px-3 py-2 text-slate-400">{t.driver?.full_name}</td>
-                    <td className="px-3 py-2">{TRIP_STATUS_LABEL[t.status]}</td>
-                    <td className="px-3 py-2">{enRuta}</td>
-                    <td className="px-3 py-2">{descarga}</td>
-                  </tr>
-                );
-              })}
-              {(trips ?? []).length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                    Sin viajes registrados todavía.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <StatCard label="Vehículos activos" value={activeVehicles ?? 0} />
+        <StatCard label="Conductores activos" value={activeDrivers ?? 0} />
+        <StatCard label="Viajes en curso" value={tripsInProgress ?? 0} />
+        <StatCard label="Completados (30d)" value={completedLast30d} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <h2 className="mb-2 text-lg font-bold text-slate-100">Viajes por día (últimos 7 días)</h2>
+          <DailyTripsChart data={dailyData} />
         </div>
-      </section>
+        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <h2 className="mb-2 text-lg font-bold text-slate-100">Viajes por estado (30 días)</h2>
+          <StatusBreakdownChart data={statusData} />
+        </div>
+      </div>
+
+      <Link href="/admin/fleet-trips" className="text-sm font-semibold text-amber-400 hover:underline">
+        Ver flota y viajes completos →
+      </Link>
     </div>
   );
 }

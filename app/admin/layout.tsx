@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AdminHeader } from "@/components/AdminHeader";
+import { AdminSidebar } from "@/components/AdminSidebar";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -22,9 +22,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-dvh bg-slate-950">
-      <AdminHeader fullName={profile.full_name} />
-      <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
+    <div className="flex min-h-dvh flex-col bg-slate-950 md:flex-row">
+      <AdminSidebar fullName={profile.full_name} />
+      <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
+        <div className="mx-auto max-w-5xl">{children}</div>
+      </main>
     </div>
   );
 }
