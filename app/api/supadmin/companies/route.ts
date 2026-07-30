@@ -16,6 +16,7 @@ export async function POST(request: Request) {
   const companyEmail =
     typeof body?.companyEmail === "string" && body.companyEmail.trim() ? body.companyEmail.trim() : null;
   const maxUsers = Number.isFinite(Number(body?.maxUsers)) ? Number(body.maxUsers) : null;
+  const maxDrivers = Number.isFinite(Number(body?.maxDrivers)) ? Number(body.maxDrivers) : null;
 
   const adminFullName = typeof body?.adminFullName === "string" ? body.adminFullName.trim() : "";
   const adminEmail = typeof body?.adminEmail === "string" ? body.adminEmail.trim().toLowerCase() : "";
@@ -34,14 +35,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres." }, { status: 400 });
   }
   if (maxUsers === null || maxUsers < 1) {
-    return NextResponse.json({ error: "El límite de usuarios debe ser un número mayor a 0." }, { status: 400 });
+    return NextResponse.json({ error: "El límite de administradores debe ser un número mayor a 0." }, { status: 400 });
+  }
+  if (maxDrivers === null || maxDrivers < 1) {
+    return NextResponse.json({ error: "El límite de conductores debe ser un número mayor a 0." }, { status: 400 });
   }
 
   const admin = createAdminClient();
 
   const { data: company, error: companyError } = await admin
     .from("companies")
-    .insert({ name: companyName, ruc, address, phone, email: companyEmail, max_users: maxUsers })
+    .insert({
+      name: companyName,
+      ruc,
+      address,
+      phone,
+      email: companyEmail,
+      max_users: maxUsers,
+      max_drivers: maxDrivers,
+    })
     .select("id")
     .single();
 
@@ -63,12 +75,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const { error: profileError } = await admin.from("users").insert({
+  const { error: profileError } = await admin.from("admins").insert({
     id: created.user.id,
     company_id: company.id,
     email: adminEmail,
     full_name: adminFullName,
-    role: "admin",
     is_active: true,
   });
 

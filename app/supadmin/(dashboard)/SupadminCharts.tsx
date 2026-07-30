@@ -9,7 +9,7 @@ const tooltipStyle = {
   color: "#f1f5f9",
 };
 
-export function UsersByCompanyChart({ data }: { data: { name: string; count: number }[] }) {
+export function DriversByCompanyChart({ data }: { data: { name: string; count: number }[] }) {
   if (data.length === 0) {
     return <p className="py-16 text-center text-slate-500">Sin empresas todavía.</p>;
   }
@@ -21,7 +21,7 @@ export function UsersByCompanyChart({ data }: { data: { name: string; count: num
         <XAxis type="number" stroke="#94a3b8" fontSize={12} allowDecimals={false} />
         <YAxis type="category" dataKey="name" stroke="#94a3b8" fontSize={12} width={120} />
         <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "#1e293b" }} />
-        <Bar dataKey="count" name="Usuarios" fill="#fbbf24" radius={[0, 4, 4, 0]} />
+        <Bar dataKey="count" name="Conductores" fill="#fbbf24" radius={[0, 4, 4, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

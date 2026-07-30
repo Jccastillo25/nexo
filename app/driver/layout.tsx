@@ -14,8 +14,8 @@ export default async function DriverLayout({ children }: { children: React.React
   }
 
   const { data: profile } = await supabase
-    .from("users")
-    .select("full_name, role, is_active")
+    .from("drivers")
+    .select("full_name, is_active")
     .eq("id", user.id)
     .maybeSingle();
 

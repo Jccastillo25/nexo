@@ -42,15 +42,27 @@ Archivos clave: `app/admin/**`, `components/AdminSidebar.tsx`, `components/StatC
 
 No estaba en el documento original; se agregó a pedido del usuario como un nivel por encima de las empresas.
 
-- Tabla `platform_admins`, **separada** de `public.users` por diseño explícito (nunca se mezclan usuarios de plataforma con usuarios de empresa).
+- Tabla `platform_admins`, **separada** de las tablas de usuarios de empresa por diseño explícito (nunca se mezclan usuarios de plataforma con usuarios de empresa).
 - Login propio (`/supadmin/login`), completamente aislado del `/login` de empresas — su propia rama en `proxy.ts`.
-- Listado de empresas con conteo de usuarios (`/supadmin/companies`), alta de empresa + su primer admin (`/supadmin/companies/new`), edición de perfil (idéntica a la de empresa, más cupo de usuarios y activar/desactivar).
-- Enforcement real del cupo de usuarios en `POST /api/admin/create-user` (no solo cosmético en la UI).
+- Listado de empresas con conteo de usuarios (`/supadmin/companies`), alta de empresa + su primer admin (`/supadmin/companies/new`), edición de perfil (idéntica a la de empresa, más cupos y activar/desactivar).
 - Desactivar una empresa corta el acceso de **todos** sus usuarios de inmediato (verificado a nivel de RLS, no solo de UI).
-- Sidebar propio (Dashboard / Empresas / Configuración) y dashboard de KPIs de toda la plataforma (empresas, usuarios totales/activos, gráfica de usuarios por empresa).
+- Sidebar propio (Dashboard / Empresas / Configuración) y dashboard de KPIs de toda la plataforma.
 - **Configuración de plataforma** (`/supadmin/settings`): nombre del producto, logo y copyright de Ruta360 — dinámico en toda la app (título de pestaña, manifest PWA, pantallas de login), no hardcodeado.
 
 Archivos clave: `app/supadmin/**`, `app/api/supadmin/**`, `lib/supadmin.ts`, `lib/platform-settings.ts`.
+
+## ✅ Extensión post-plan — Administradores y conductores en tablas independientes, perfil de conductor ampliado
+
+A pedido explícito del usuario: "los usuarios administrativos del sistema y conductores... nunca se deben de mezclar, deben de existir 2 tablas diferentes" — mismo principio ya aplicado a `platform_admins`, extendido aquí a admin/conductor.
+
+- Migración `0012`: `public.users` (una tabla con columna `role`) se reemplaza por **`admins`** y **`drivers`**, tablas físicamente independientes. Un conductor ya no puede auto-editar su propia fila (antes sí podía, vía RLS `users_update_admin_or_self` — cerrado como efecto colateral positivo del rediseño).
+- Perfil de conductor ampliado: nombres, apellidos, usuario, identificación, número/tipo de licencia, categorías de licencia (catálogo propio administrable en `/admin/license-categories`, selección múltiple), fecha de vencimiento.
+- **Login de conductor cambia a usuario + PIN** (ya no correo + PIN): el conductor no tiene contraseña. PIN de 4 dígitos autogenerado al crear el conductor, único por empresa, con opción de ver/regenerar desde su perfil (`/admin/drivers/[driverId]`).
+- Nuevo módulo `/admin/admins`: alta, edición y reseteo de contraseña de administradores, separado de `/admin/drivers`.
+- **Cupos independientes**: `companies.max_users` (administradores) y `companies.max_drivers` (conductores) — migración `0013`. Antes era un único cupo combinado; ahora cada uno se define y se hace cumplir por separado en sus respectivas rutas de alta.
+- Fix de bug preexistente encontrado durante esta extensión: `supabase.auth.verifyOtp()` en el login por PIN enviaba `email` junto con `token_hash`, que la API de Supabase Auth rechaza (`validation_failed`) — era la causa real de que el login de conductor fallara silenciosamente. Corregido en `app/login/LoginForm.tsx`.
+
+Archivos clave: `app/admin/drivers/**`, `app/admin/admins/**`, `app/admin/license-categories/**`, `app/api/admin/drivers/**`, `app/api/admin/admins/**`, `lib/admin-auth.ts`, `lib/generate-pin.ts`, `lib/company-quota.ts`.
 
 ## Pendiente / fuera de alcance actual
 

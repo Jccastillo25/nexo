@@ -6,7 +6,7 @@ export default async function SupadminCompaniesPage() {
 
   const { data: companies } = await admin
     .from("companies")
-    .select("id, name, is_active, max_users, users(count)")
+    .select("id, name, is_active, max_users, max_drivers, admins(count), drivers(count)")
     .order("name");
 
   return (
@@ -27,13 +27,15 @@ export default async function SupadminCompaniesPage() {
             <tr>
               <th className="px-3 py-2">Empresa</th>
               <th className="px-3 py-2">Estado</th>
-              <th className="px-3 py-2">Usuarios</th>
+              <th className="px-3 py-2">Administradores</th>
+              <th className="px-3 py-2">Conductores</th>
               <th className="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody>
             {(companies ?? []).map((c) => {
-              const userCount = Array.isArray(c.users) ? (c.users[0]?.count ?? 0) : 0;
+              const adminCount = Array.isArray(c.admins) ? (c.admins[0]?.count ?? 0) : 0;
+              const driverCount = Array.isArray(c.drivers) ? (c.drivers[0]?.count ?? 0) : 0;
               return (
                 <tr key={c.id} className="border-t border-slate-800">
                   <td className="px-3 py-2 font-semibold">{c.name}</td>
@@ -47,7 +49,10 @@ export default async function SupadminCompaniesPage() {
                     </span>
                   </td>
                   <td className="px-3 py-2">
-                    {userCount} / {c.max_users ?? "∞"}
+                    {adminCount} / {c.max_users ?? "∞"}
+                  </td>
+                  <td className="px-3 py-2">
+                    {driverCount} / {c.max_drivers ?? "∞"}
                   </td>
                   <td className="px-3 py-2 text-right">
                     <Link
@@ -62,7 +67,7 @@ export default async function SupadminCompaniesPage() {
             })}
             {(companies ?? []).length === 0 && (
               <tr>
-                <td colSpan={4} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
                   Sin empresas registradas todavía.
                 </td>
               </tr>

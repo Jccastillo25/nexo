@@ -14,6 +14,7 @@ type Company = {
   email: string | null;
   logo_url: string | null;
   max_users: number | null;
+  max_drivers: number | null;
   is_active: boolean;
 };
 
@@ -27,6 +28,7 @@ export function EditCompanyForm({ company }: { company: Company }) {
   const [phone, setPhone] = useState(company.phone ?? "");
   const [email, setEmail] = useState(company.email ?? "");
   const [maxUsers, setMaxUsers] = useState(String(company.max_users ?? ""));
+  const [maxDrivers, setMaxDrivers] = useState(String(company.max_drivers ?? ""));
   const [isActive, setIsActive] = useState(company.is_active);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(company.logo_url);
@@ -64,6 +66,7 @@ export function EditCompanyForm({ company }: { company: Company }) {
           email,
           logoUrl,
           maxUsers: Number(maxUsers),
+          maxDrivers: Number(maxDrivers),
           isActive,
         }),
       });
@@ -169,13 +172,25 @@ export function EditCompanyForm({ company }: { company: Company }) {
 
       <div className="flex items-end gap-4">
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-slate-300">Límite de usuarios</label>
+          <label className="text-sm font-medium text-slate-300">Límite de administradores</label>
           <input
             type="number"
             min={1}
             required
             value={maxUsers}
             onChange={(e) => setMaxUsers(e.target.value)}
+            className="w-32 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-slate-300">Límite de conductores</label>
+          <input
+            type="number"
+            min={1}
+            required
+            value={maxDrivers}
+            onChange={(e) => setMaxDrivers(e.target.value)}
             className="w-32 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
           />
         </div>

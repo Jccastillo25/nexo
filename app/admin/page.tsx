@@ -31,9 +31,8 @@ export default async function AdminDashboardPage() {
   ] = await Promise.all([
     supabase.from("vehicles").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase
-      .from("users")
+      .from("drivers")
       .select("id", { count: "exact", head: true })
-      .eq("role", "driver")
       .eq("is_active", true),
     supabase
       .from("trips")

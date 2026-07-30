@@ -17,7 +17,7 @@ export default async function NewTripPage({
   } = await supabase.auth.getUser();
 
   const { data: profile } = await supabase
-    .from("users")
+    .from("drivers")
     .select("company_id")
     .eq("id", user!.id)
     .single();

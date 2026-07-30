@@ -18,13 +18,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ co
   const email = typeof body?.email === "string" && body.email.trim() ? body.email.trim() : null;
   const logoUrl = typeof body?.logoUrl === "string" && body.logoUrl ? body.logoUrl : null;
   const maxUsers = Number.isFinite(Number(body?.maxUsers)) ? Number(body.maxUsers) : null;
+  const maxDrivers = Number.isFinite(Number(body?.maxDrivers)) ? Number(body.maxDrivers) : null;
   const isActive = Boolean(body?.isActive);
 
   if (!name) {
     return NextResponse.json({ error: "El nombre de la empresa es obligatorio." }, { status: 400 });
   }
   if (maxUsers === null || maxUsers < 1) {
-    return NextResponse.json({ error: "El límite de usuarios debe ser un número mayor a 0." }, { status: 400 });
+    return NextResponse.json({ error: "El límite de administradores debe ser un número mayor a 0." }, { status: 400 });
+  }
+  if (maxDrivers === null || maxDrivers < 1) {
+    return NextResponse.json({ error: "El límite de conductores debe ser un número mayor a 0." }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -39,6 +43,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ co
       email,
       logo_url: logoUrl,
       max_users: maxUsers,
+      max_drivers: maxDrivers,
       is_active: isActive,
     })
     .eq("id", companyId);

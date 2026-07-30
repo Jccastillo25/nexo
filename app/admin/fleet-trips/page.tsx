@@ -20,7 +20,7 @@ export default async function AdminFleetTripsPage() {
   const { data: trips } = await supabase
     .from("trips")
     .select(
-      "id, status, start_odometer, end_odometer, created_at, vehicle:vehicles(license_plate), driver:users(full_name), trip_events(event_type, recorded_at)",
+      "id, status, start_odometer, end_odometer, created_at, vehicle:vehicles(license_plate), driver:drivers(full_name), trip_events(event_type, recorded_at)",
     )
     .order("created_at", { ascending: false })
     .limit(30);

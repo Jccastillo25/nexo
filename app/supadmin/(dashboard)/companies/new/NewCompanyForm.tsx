@@ -12,7 +12,8 @@ export function NewCompanyForm() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
-  const [maxUsers, setMaxUsers] = useState("10");
+  const [maxUsers, setMaxUsers] = useState("3");
+  const [maxDrivers, setMaxDrivers] = useState("10");
 
   const [adminFullName, setAdminFullName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
@@ -36,6 +37,7 @@ export function NewCompanyForm() {
         phone,
         companyEmail,
         maxUsers: Number(maxUsers),
+        maxDrivers: Number(maxDrivers),
         adminFullName,
         adminEmail,
         adminPassword,
@@ -94,16 +96,29 @@ export function NewCompanyForm() {
             className="w-1/2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
           />
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-slate-300">Límite de usuarios permitidos</label>
-          <input
-            type="number"
-            min={1}
-            required
-            value={maxUsers}
-            onChange={(e) => setMaxUsers(e.target.value)}
-            className="w-32 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
-          />
+        <div className="flex gap-4">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-slate-300">Límite de administradores</label>
+            <input
+              type="number"
+              min={1}
+              required
+              value={maxUsers}
+              onChange={(e) => setMaxUsers(e.target.value)}
+              className="w-32 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-slate-300">Límite de conductores</label>
+            <input
+              type="number"
+              min={1}
+              required
+              value={maxDrivers}
+              onChange={(e) => setMaxDrivers(e.target.value)}
+              className="w-32 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+            />
+          </div>
         </div>
       </section>
 

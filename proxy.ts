@@ -83,12 +83,14 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && (isLoginRoute || isRootRoute || isAdminRoute)) {
-    const { data: profile } = await supabase
-      .from("users")
-      .select("role")
+    // admins y drivers son tablas independientes (nunca se mezclan):
+    // pertenecer a una nunca implica pertenecer a la otra.
+    const { data: adminProfile } = await supabase
+      .from("admins")
+      .select("id")
       .eq("id", user.id)
       .maybeSingle();
-    const isAdmin = profile?.role === "admin";
+    const isAdmin = Boolean(adminProfile);
 
     if (isLoginRoute || isRootRoute) {
       const url = request.nextUrl.clone();

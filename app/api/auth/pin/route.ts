@@ -1,32 +1,32 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const GENERIC_ERROR = "Correo o PIN incorrectos.";
+const GENERIC_ERROR = "Usuario o PIN incorrectos.";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+  const username = typeof body?.username === "string" ? body.username.trim().toLowerCase() : "";
   const pin = typeof body?.pin === "string" ? body.pin.trim() : "";
 
-  if (!email || !pin) {
+  if (!username || !pin) {
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 400 });
   }
 
   const admin = createAdminClient();
 
-  const { data: userRow } = await admin
-    .from("users")
+  const { data: driverRow } = await admin
+    .from("drivers")
     .select("email, pin_code, is_active")
-    .eq("email", email)
+    .ilike("username", username)
     .maybeSingle();
 
-  if (!userRow || !userRow.is_active || !userRow.pin_code || userRow.pin_code !== pin) {
+  if (!driverRow || !driverRow.is_active || driverRow.pin_code !== pin) {
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
   }
 
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: "magiclink",
-    email: userRow.email,
+    email: driverRow.email,
   });
 
   if (linkError || !linkData?.properties?.hashed_token) {
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({
-    email: userRow.email,
+    email: driverRow.email,
     token_hash: linkData.properties.hashed_token,
   });
 }

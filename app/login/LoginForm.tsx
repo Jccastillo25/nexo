@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { BigButton } from "@/components/BigButton";
 
 const LAST_EMAIL_KEY = "transporte:last-email";
+const LAST_USERNAME_KEY = "transporte:last-username";
 
 export function LoginForm({
   productName,
@@ -22,6 +23,9 @@ export function LoginForm({
     typeof window !== "undefined" ? window.localStorage.getItem(LAST_EMAIL_KEY) ?? "" : "",
   );
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState(
+    typeof window !== "undefined" ? window.localStorage.getItem(LAST_USERNAME_KEY) ?? "" : "",
+  );
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,7 +60,7 @@ export function LoginForm({
       const res = await fetch("/api/auth/pin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, pin }),
+        body: JSON.stringify({ username, pin }),
       });
       const body = await res.json();
 
@@ -67,7 +71,6 @@ export function LoginForm({
 
       const supabase = createClient();
       const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: body.email,
         token_hash: body.token_hash,
         type: "magiclink",
       });
@@ -77,7 +80,7 @@ export function LoginForm({
         return;
       }
 
-      window.localStorage.setItem(LAST_EMAIL_KEY, email);
+      window.localStorage.setItem(LAST_USERNAME_KEY, username);
       router.push("/driver");
       router.refresh();
     } finally {
@@ -143,13 +146,12 @@ export function LoginForm({
         ) : (
           <form onSubmit={handlePinSubmit} className="flex flex-col gap-4">
             <input
-              type="email"
-              inputMode="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
               required
-              placeholder="Correo"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Usuario"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-4 text-lg text-white placeholder:text-slate-500"
             />
             <input

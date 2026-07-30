@@ -10,7 +10,7 @@ export default async function AdminVehiclesPage() {
   } = await supabase.auth.getUser();
 
   const { data: profile } = await supabase
-    .from("users")
+    .from("admins")
     .select("company_id")
     .eq("id", user!.id)
     .single();

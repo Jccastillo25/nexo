@@ -15,24 +15,51 @@ Proyecto Supabase: `transporte-saas` (ref `nqfkbbvzkhssxnfaiwhm`). Todas las mig
 | `phone` | varchar | |
 | `email` | varchar | Contacto de la empresa (no del admin) |
 | `logo_url` | varchar | URL pública en bucket `company-logos` |
-| `max_users` | int, nullable | `NULL` = sin límite. Editable **solo** por Super Admin (columna bloqueada para `authenticated`) |
+| `max_users` | int, nullable | Cupo de **administradores** (tabla `admins`). `NULL` = sin límite. Editable **solo** por Super Admin (columna bloqueada para `authenticated`) |
+| `max_drivers` | int, nullable | Cupo de **conductores** (tabla `drivers`), independiente del anterior. `NULL` = sin límite. Editable **solo** por Super Admin |
 | `is_active` | boolean, default `true` | Editable **solo** por Super Admin. `false` corta el acceso de todos sus usuarios |
 | `created_at` | timestamptz | |
 
-### `users` — admins y conductores de una empresa
+### `admins` — administradores de una empresa
 
-`id` **es** el mismo id de `auth.users` (relación 1:1, no se guarda password propio — Supabase Auth ya lo gestiona).
+`id` **es** el mismo id de `auth.users` (relación 1:1). Tabla independiente de `drivers` (ver [ARCHITECTURE.md](./ARCHITECTURE.md#modelo-de-roles)) — nunca comparten fila ni tabla.
 
 | Columna | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK, FK → `auth.users.id` | |
 | `company_id` | uuid FK → `companies.id`, NOT NULL | |
-| `email` | varchar unique | |
+| `email` | varchar, unique (case-insensitive) | Login por contraseña |
 | `full_name` | varchar | |
-| `role` | enum `user_role` (`admin`, `driver`) | |
-| `pin_code` | varchar(10), nullable | Login rápido por PIN |
 | `is_active` | boolean, default `true` | |
 | `created_at` | timestamptz | |
+
+### `drivers` — conductores de una empresa
+
+`id` **es** el mismo id de `auth.users`. No tienen contraseña — la cuenta de `auth.users` se crea sin `password`; el único login soportado es usuario + PIN.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK, FK → `auth.users.id` | |
+| `company_id` | uuid FK → `companies.id`, NOT NULL | |
+| `email` | varchar, unique (case-insensitive) | Dato de contacto, no se usa para login |
+| `first_name` / `last_name` | varchar, NOT NULL | |
+| `full_name` | varchar, NOT NULL | `first_name + ' ' + last_name`, mantenido en cada escritura para no tocar el resto de la app que ya lee `full_name` |
+| `username` | varchar, NOT NULL, **único en toda la plataforma** (case-insensitive) | Identificador para login por PIN — debe ser global porque el login no conoce todavía la empresa cuando se busca |
+| `pin_code` | varchar(4), NOT NULL, `CHECK` de 4 dígitos, único **por empresa** | Autogenerado al crear el conductor (`lib/generate-pin.ts`); el admin puede verlo y regenerarlo |
+| `national_id` | varchar, NOT NULL | No. de identificación |
+| `license_number` | varchar, nullable | |
+| `license_type` | varchar, nullable | |
+| `license_expiry` | date, NOT NULL | |
+| `is_active` | boolean, default `true` | |
+| `created_at` | timestamptz | |
+
+### `license_categories` — catálogo de categorías de licencia, por empresa
+
+`company_id`, `name`. Mismo patrón que `accessories`: el admin las administra en `/admin/license-categories`, luego se seleccionan al crear/editar un conductor.
+
+### `driver_license_categories` — categorías asignadas a cada conductor
+
+PK compuesta (`driver_id`, `category_id`), ambas `ON DELETE CASCADE`.
 
 ### `vehicles`
 
@@ -65,7 +92,7 @@ Un registro por accesorio revisado en el check-in: `is_present`, `has_damage`, `
 
 ### `platform_admins` — operadores de la plataforma (Super Admin)
 
-Tabla independiente de `users` (ver justificación en [ARCHITECTURE.md](./ARCHITECTURE.md#modelo-de-roles)). Solo `user_id` (FK → `auth.users.id`) y `created_at`. El alta se hace manualmente por SQL — no hay flujo de auto-registro.
+Tabla independiente de `admins`/`drivers` (ver justificación en [ARCHITECTURE.md](./ARCHITECTURE.md#modelo-de-roles)). Solo `user_id` (FK → `auth.users.id`) y `created_at`. El alta se hace manualmente por SQL — no hay flujo de auto-registro.
 
 ### `platform_settings` — configuración de Ruta360 (singleton)
 
@@ -75,7 +102,11 @@ Una única fila (`id = 1`, forzado por `CHECK`). `product_name`, `logo_url` (buc
 
 ### `auth_company_id()` / `auth_role()`
 
-`SECURITY DEFINER`, `STABLE`. Resuelven `company_id`/`role` del usuario autenticado actual **exigiendo `companies.is_active = true`**. Son la base de prácticamente todas las policies RLS del sistema. `EXECUTE` revocado para `anon`/`PUBLIC`, otorgado solo a `authenticated` (no son invocables como RPC pública).
+`SECURITY DEFINER`, `STABLE`. Resuelven `company_id`/`role` del usuario autenticado actual probando primero `admins` y luego `drivers` (una fila de `auth.users` solo puede existir en una de las dos), **exigiendo `companies.is_active = true`**. Son la base de prácticamente todas las policies RLS del sistema. `EXECUTE` revocado para `anon`/`PUBLIC`, otorgado solo a `authenticated` (no son invocables como RPC pública).
+
+### `generateUniquePin()` (`lib/generate-pin.ts`, no es una función SQL)
+
+Genera un PIN de 4 dígitos reintentando hasta encontrar uno no usado dentro de la empresa (`drivers.company_id + pin_code`), respaldado por el índice único `drivers_pin_per_company_idx`. Se usa al crear un conductor y al regenerar su PIN.
 
 ### `sync_vehicle_odometer_on_trip_completion()` {#trigger-sync_vehicle_odometer}
 
@@ -85,8 +116,10 @@ Trigger `AFTER UPDATE ON trips`. Cuando `status` pasa a `completed` con `end_odo
 
 | Tabla | SELECT | INSERT/UPDATE | DELETE |
 |---|---|---|---|
-| `companies` | Propia empresa | Solo nombre/RUC/dirección/teléfono/correo/logo (admin propio); `max_users`/`is_active` solo Super Admin (columna bloqueada) | — |
-| `users` | Miembros de la empresa | Admin de la empresa (alta vía Route Handler con `service_role`) | Admin de la empresa |
+| `companies` | Propia empresa | Solo nombre/RUC/dirección/teléfono/correo/logo (admin propio); `max_users`/`max_drivers`/`is_active` solo Super Admin (columna bloqueada) | — |
+| `admins` | Admins de la misma empresa | Admin de la empresa (alta vía Route Handler con `service_role`) | Admin de la empresa |
+| `drivers` | Admin de la misma empresa, o el propio conductor (solo su fila) | **Solo admin** — un conductor no puede escribir ni su propia fila | Admin de la empresa |
+| `license_categories`, `driver_license_categories` | Solo admin de la empresa | Solo admin | Solo admin |
 | `vehicles`, `accessories`, `vehicle_accessories` | Toda la empresa | Solo admin | Solo admin |
 | `trips` | Toda la empresa | Conductor dueño o admin | — (se cancela vía `status`, no se borra) |
 | `trip_events`, `trip_inspections` | Toda la empresa | Conductor dueño del viaje o admin | — (inmutable) |
@@ -116,3 +149,5 @@ Trigger `AFTER UPDATE ON trips`. Cuando `status` pasa a `completed` con `end_odo
 | 0009 | Fix de privilegios de columna (REVOKE de tabla + GRANT de columnas específicas) |
 | 0010 | Policy de `company-logos` para bypass de Super Admin |
 | 0011 | `platform_settings` + bucket `platform-assets` |
+| 0012 | Separa `users` en `admins` + `drivers` (tablas independientes); agrega `license_categories`/`driver_license_categories`; `trips.driver_id` ahora referencia `drivers`; reescribe `auth_company_id`/`auth_role` |
+| 0013 | `companies.max_drivers`: cupo de conductores independiente del cupo de administradores (`max_users`) |

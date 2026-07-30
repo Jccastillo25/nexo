@@ -11,6 +11,8 @@ const NAV_ITEMS = [
   { href: "/admin/vehicles", label: "Vehículos" },
   { href: "/admin/accessories", label: "Accesorios" },
   { href: "/admin/drivers", label: "Conductores" },
+  { href: "/admin/license-categories", label: "Categorías de Licencia" },
+  { href: "/admin/admins", label: "Administradores" },
   { href: "/admin/company", label: "Empresa" },
 ];
 

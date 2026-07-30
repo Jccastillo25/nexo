@@ -12,12 +12,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase
-    .from("users")
-    .select("full_name, role, company_id")
+    .from("admins")
+    .select("full_name, company_id")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile || profile.role !== "admin") {
+  if (!profile) {
     redirect("/driver");
   }
 

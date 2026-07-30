@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -38,6 +40,41 @@ export type Database = {
           },
         ]
       }
+      admins: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          email: string
+          full_name: string
+          id: string
+          is_active?: boolean
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admins_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -46,6 +83,7 @@ export type Database = {
           id: string
           is_active: boolean
           logo_url: string | null
+          max_drivers: number | null
           max_users: number | null
           name: string
           phone: string | null
@@ -58,6 +96,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           logo_url?: string | null
+          max_drivers?: number | null
           max_users?: number | null
           name: string
           phone?: string | null
@@ -70,10 +109,144 @@ export type Database = {
           id?: string
           is_active?: boolean
           logo_url?: string | null
+          max_drivers?: number | null
           max_users?: number | null
           name?: string
           phone?: string | null
           ruc?: string | null
+        }
+        Relationships: []
+      }
+      driver_license_categories: {
+        Row: {
+          category_id: string
+          driver_id: string
+        }
+        Insert: {
+          category_id: string
+          driver_id: string
+        }
+        Update: {
+          category_id?: string
+          driver_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_license_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "license_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_license_categories_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drivers: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          email: string
+          first_name: string
+          full_name: string
+          id: string
+          is_active: boolean
+          last_name: string
+          license_expiry: string
+          license_number: string | null
+          license_type: string | null
+          national_id: string
+          pin_code: string
+          username: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          email: string
+          first_name: string
+          full_name: string
+          id: string
+          is_active?: boolean
+          last_name: string
+          license_expiry: string
+          license_number?: string | null
+          license_type?: string | null
+          national_id: string
+          pin_code: string
+          username: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          email?: string
+          first_name?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          last_name?: string
+          license_expiry?: string
+          license_number?: string | null
+          license_type?: string | null
+          national_id?: string
+          pin_code?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drivers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_categories: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_admins: {
+        Row: {
+          created_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -98,21 +271,6 @@ export type Database = {
           logo_url?: string | null
           product_name?: string
           updated_at?: string | null
-        }
-        Relationships: []
-      }
-      platform_admins: {
-        Row: {
-          created_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          user_id?: string
         }
         Relationships: []
       }
@@ -257,7 +415,7 @@ export type Database = {
             foreignKeyName: "trips_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "drivers"
             referencedColumns: ["id"]
           },
           {
@@ -265,47 +423,6 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      users: {
-        Row: {
-          company_id: string
-          created_at: string | null
-          email: string
-          full_name: string
-          id: string
-          is_active: boolean | null
-          pin_code: string | null
-          role: Database["public"]["Enums"]["user_role"]
-        }
-        Insert: {
-          company_id: string
-          created_at?: string | null
-          email: string
-          full_name: string
-          id: string
-          is_active?: boolean | null
-          pin_code?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-        }
-        Update: {
-          company_id?: string
-          created_at?: string | null
-          email?: string
-          full_name?: string
-          id?: string
-          is_active?: boolean | null
-          pin_code?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "users_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

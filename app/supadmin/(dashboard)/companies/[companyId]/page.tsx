@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { countAdmins, countDrivers } from "@/lib/company-quota";
 import { EditCompanyForm } from "./EditCompanyForm";
 
 export default async function SupadminEditCompanyPage({
@@ -12,22 +13,24 @@ export default async function SupadminEditCompanyPage({
 
   const { data: company } = await admin
     .from("companies")
-    .select("id, name, ruc, address, phone, email, logo_url, max_users, is_active")
+    .select("id, name, ruc, address, phone, email, logo_url, max_users, max_drivers, is_active")
     .eq("id", companyId)
     .maybeSingle();
 
   if (!company) redirect("/supadmin");
 
-  const { count: userCount } = await admin
-    .from("users")
-    .select("id", { count: "exact", head: true })
-    .eq("company_id", companyId);
+  const [adminCount, driverCount] = await Promise.all([
+    countAdmins(admin, companyId),
+    countDrivers(admin, companyId),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-100">{company.name}</h1>
-        <p className="text-slate-400">{userCount ?? 0} usuario(s) registrados en esta empresa.</p>
+        <p className="text-slate-400">
+          {adminCount} administrador(es) · {driverCount} conductor(es)
+        </p>
       </div>
       <EditCompanyForm company={company} />
     </div>

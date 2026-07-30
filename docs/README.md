@@ -23,7 +23,7 @@ Super Admin (plataforma Ruta360)
      └─ Empresa B, C, ... (mismo patrón, datos completamente aislados entre sí)
 ```
 
-Los tres niveles están **aislados por diseño**: un Super Admin no tiene fila en `public.users` (no pertenece a ninguna empresa), y ningún usuario de empresa puede convertirse en Super Admin sin una inserción manual en `platform_admins`. Ver [ARCHITECTURE.md](./ARCHITECTURE.md#modelo-de-roles) para el detalle.
+Los tres niveles están **aislados por diseño**, cada uno en su propia tabla de identidad (`platform_admins`, `admins`, `drivers`) que nunca se mezcla con las otras: un Super Admin no pertenece a ninguna empresa, y ningún usuario de empresa puede convertirse en Super Admin sin una inserción manual en `platform_admins`. Ver [ARCHITECTURE.md](./ARCHITECTURE.md#modelo-de-roles) para el detalle.
 
 ## Quick start (desarrollo local)
 
