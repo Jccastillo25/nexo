@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { compressImage } from "@/lib/image-compression";
 
 export function PhotoCaptureInput({
   label,
@@ -13,11 +14,22 @@ export function PhotoCaptureInput({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [compressing, setCompressing] = useState(false);
 
-  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    setPreviewUrl(file ? URL.createObjectURL(file) : null);
-    onCapture(file);
+  async function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const rawFile = event.target.files?.[0] ?? null;
+    if (!rawFile) {
+      setPreviewUrl(null);
+      onCapture(null);
+      return;
+    }
+
+    setCompressing(true);
+    const compressed = await compressImage(rawFile);
+    setCompressing(false);
+
+    setPreviewUrl(URL.createObjectURL(compressed));
+    onCapture(compressed);
   }
 
   return (
@@ -39,10 +51,11 @@ export function PhotoCaptureInput({
 
       <button
         type="button"
+        disabled={compressing}
         onClick={() => inputRef.current?.click()}
-        className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-600 bg-slate-800 px-4 py-6 text-base font-semibold text-slate-200 active:bg-slate-700"
+        className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-600 bg-slate-800 px-4 py-6 text-base font-semibold text-slate-200 active:bg-slate-700 disabled:opacity-50"
       >
-        {previewUrl ? "Volver a tomar foto" : "Tomar foto"}
+        {compressing ? "Optimizando foto..." : previewUrl ? "Volver a tomar foto" : "Tomar foto"}
       </button>
 
       {previewUrl && (

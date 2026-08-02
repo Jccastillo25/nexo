@@ -5,15 +5,38 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-const NAV_ITEMS = [
+type NavItem = { href: string; label: string };
+type NavGroup = { label: string; items: NavItem[] };
+
+const STANDALONE_ITEMS: NavItem[] = [
   { href: "/admin", label: "Dashboard" },
-  { href: "/admin/fleet-trips", label: "Flota y Viajes" },
-  { href: "/admin/vehicles", label: "Vehículos" },
-  { href: "/admin/accessories", label: "Accesorios" },
-  { href: "/admin/drivers", label: "Conductores" },
-  { href: "/admin/license-categories", label: "Categorías de Licencia" },
-  { href: "/admin/admins", label: "Administradores" },
-  { href: "/admin/company", label: "Empresa" },
+  { href: "/admin/authorizations", label: "Autorizaciones" },
+];
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Flota",
+    items: [
+      { href: "/admin/fleet-trips", label: "Flota y Viajes" },
+      { href: "/admin/vehicles", label: "Vehículos" },
+      { href: "/admin/accessories", label: "Accesorios" },
+    ],
+  },
+  {
+    label: "Conductores",
+    items: [
+      { href: "/admin/drivers", label: "Conductores" },
+      { href: "/admin/license-categories", label: "Categorías de Licencia" },
+    ],
+  },
+  {
+    label: "Configuración",
+    items: [
+      { href: "/admin/incident-categories", label: "Categorías de Novedad" },
+      { href: "/admin/admins", label: "Administradores" },
+      { href: "/admin/company", label: "Empresa" },
+    ],
+  },
 ];
 
 export function AdminSidebar({
@@ -28,6 +51,10 @@ export function AdminSidebar({
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const activeGroup = NAV_GROUPS.find((g) => g.items.some((i) => pathname.startsWith(i.href)));
+    return new Set(activeGroup ? [activeGroup.label] : []);
+  });
 
   async function handleLogout() {
     const supabase = createClient();
@@ -38,6 +65,15 @@ export function AdminSidebar({
 
   function isActive(href: string) {
     return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
+  }
+
+  function toggleGroup(label: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
   }
 
   const brand = (
@@ -52,20 +88,55 @@ export function AdminSidebar({
 
   const navLinks = (
     <nav className="flex flex-col gap-1">
-      {NAV_ITEMS.map((item) => (
+      {STANDALONE_ITEMS.map((item) => (
         <Link
           key={item.href}
           href={item.href}
           onClick={() => setMobileOpen(false)}
           className={`rounded-lg px-3 py-2 text-sm font-semibold ${
-            isActive(item.href)
-              ? "bg-amber-400 text-slate-900"
-              : "text-slate-300 hover:bg-slate-800"
+            isActive(item.href) ? "bg-amber-400 text-slate-900" : "text-slate-300 hover:bg-slate-800"
           }`}
         >
           {item.label}
         </Link>
       ))}
+
+      {NAV_GROUPS.map((group) => {
+        const isOpen = openGroups.has(group.label);
+        const groupHasActive = group.items.some((i) => isActive(i.href));
+        return (
+          <div key={group.label} className="mt-1">
+            <button
+              type="button"
+              onClick={() => toggleGroup(group.label)}
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold ${
+                groupHasActive ? "text-amber-400" : "text-slate-300 hover:bg-slate-800"
+              }`}
+            >
+              {group.label}
+              <span className={`transition-transform ${isOpen ? "rotate-90" : ""}`}>›</span>
+            </button>
+            {isOpen && (
+              <div className="ml-2 flex flex-col gap-1 border-l border-slate-800 pl-2">
+                {group.items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold ${
+                      isActive(item.href)
+                        ? "bg-amber-400 text-slate-900"
+                        : "text-slate-400 hover:bg-slate-800"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </nav>
   );
 
@@ -84,7 +155,7 @@ export function AdminSidebar({
 
       {mobileOpen && (
         <div className="fixed inset-0 z-40 flex md:hidden">
-          <div className="w-64 shrink-0 bg-slate-900 p-4">
+          <div className="w-64 shrink-0 overflow-y-auto bg-slate-900 p-4">
             {brand}
             <p className="mb-4 text-sm font-semibold text-slate-100">{fullName}</p>
             {navLinks}
@@ -100,7 +171,7 @@ export function AdminSidebar({
       )}
 
       {/* Sidebar fijo en desktop */}
-      <aside className="hidden w-56 shrink-0 flex-col justify-between border-r border-slate-800 bg-slate-900 p-4 md:flex">
+      <aside className="hidden w-56 shrink-0 flex-col justify-between overflow-y-auto border-r border-slate-800 bg-slate-900 p-4 md:flex">
         <div>
           {brand}
           <p className="mb-1 text-sm font-semibold text-slate-100">{fullName}</p>

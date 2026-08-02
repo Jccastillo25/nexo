@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 
 // Bucket privado "evidence": ruta {company_id}/{trip_id}/{filename}.
 // Se guarda y retorna el path del objeto (no una URL pública), consistente
@@ -12,6 +14,18 @@ export async function uploadEvidencePhoto(file: File, path: string): Promise<str
 
   if (error) throw error;
   return path;
+}
+
+// El bucket "evidence" es privado: para mostrar una foto (ej. al admin
+// revisando una novedad) hace falta una URL firmada, no la URL pública.
+// Recibe el cliente de quien llama (server o browser) para respetar su RLS.
+export async function getEvidencePhotoSignedUrl(
+  supabase: SupabaseClient<Database>,
+  path: string,
+  expiresInSeconds = 3600,
+): Promise<string | null> {
+  const { data } = await supabase.storage.from("evidence").createSignedUrl(path, expiresInSeconds);
+  return data?.signedUrl ?? null;
 }
 
 // Bucket público "company-logos": ruta {company_id}/logo.{ext}.

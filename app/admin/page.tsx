@@ -27,6 +27,7 @@ export default async function AdminDashboardPage() {
     { count: activeVehicles },
     { count: activeDrivers },
     { count: tripsInProgress },
+    { count: pendingAuthorizations },
     { data: recentTrips },
   ] = await Promise.all([
     supabase.from("vehicles").select("id", { count: "exact", head: true }).eq("status", "active"),
@@ -38,6 +39,10 @@ export default async function AdminDashboardPage() {
       .from("trips")
       .select("id", { count: "exact", head: true })
       .not("status", "in", "(completed,cancelled)"),
+    supabase
+      .from("trips")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending_authorization"),
     supabase
       .from("trips")
       .select("status, created_at")
@@ -79,6 +84,18 @@ export default async function AdminDashboardPage() {
         <h1 className="text-2xl font-bold text-slate-100">Dashboard</h1>
         <p className="text-slate-400">Resumen operativo de los últimos 30 días.</p>
       </div>
+
+      {(pendingAuthorizations ?? 0) > 0 && (
+        <Link
+          href="/admin/authorizations"
+          className="flex items-center justify-between rounded-xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-red-200 hover:bg-red-950/60"
+        >
+          <span className="font-semibold">
+            {pendingAuthorizations} viaje{pendingAuthorizations === 1 ? "" : "s"} esperando autorización
+          </span>
+          <span className="text-sm font-semibold text-red-300">Revisar →</span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard label="Vehículos activos" value={activeVehicles ?? 0} />

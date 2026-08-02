@@ -30,14 +30,10 @@ export default async function NewTripPage({
 
   if (!vehicle) redirect("/driver");
 
-  const { data: vehicleAccessories } = await supabase
-    .from("vehicle_accessories")
-    .select("accessory:accessories(id, name)")
-    .eq("vehicle_id", vehicleId);
-
-  const accessories = (vehicleAccessories ?? [])
-    .map((row) => row.accessory)
-    .filter((a): a is { id: string; name: string } => a !== null);
+  const { data: anomalyCategories } = await supabase
+    .from("anomaly_categories")
+    .select("id, name, blocks_trip")
+    .order("name");
 
   return (
     <main className="px-4 py-6">
@@ -47,7 +43,7 @@ export default async function NewTripPage({
         companyId={profile!.company_id}
         driverId={user!.id}
         vehicleId={vehicle.id}
-        accessories={accessories}
+        anomalyCategories={anomalyCategories ?? []}
       />
     </main>
   );

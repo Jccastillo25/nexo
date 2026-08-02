@@ -105,6 +105,21 @@ export function TripCycle({
 
       {error && <p className="text-red-400">{error}</p>}
 
+      {status === "pending_authorization" && (
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/40 bg-red-950/40 px-6 py-10 text-center">
+          <p className="text-lg font-bold text-red-300">
+            Novedad reportada. Esperando autorización del panel de control para iniciar ruta.
+          </p>
+          <p className="text-sm text-red-200/80">
+            No podrás iniciar el viaje hasta que un administrador autorice la excepción o envíe la
+            unidad a mantenimiento.
+          </p>
+          <BigButton variant="neutral" disabled>
+            Iniciar Viaje
+          </BigButton>
+        </div>
+      )}
+
       {status === "inspected" && (
         <BigButton loading={loading} onClick={() => runAction("start_trip", "in_transit", true)}>
           Iniciar Viaje

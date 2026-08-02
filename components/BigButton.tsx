@@ -2,12 +2,13 @@
 
 import type { ButtonHTMLAttributes } from "react";
 
-type Variant = "primary" | "danger" | "neutral";
+type Variant = "primary" | "danger" | "neutral" | "success";
 
 const VARIANT_CLASSES: Record<Variant, string> = {
   primary: "bg-amber-400 text-slate-900 active:bg-amber-300",
   danger: "bg-red-600 text-white active:bg-red-500",
   neutral: "bg-slate-700 text-white active:bg-slate-600",
+  success: "bg-emerald-500 text-slate-950 active:bg-emerald-400",
 };
 
 export function BigButton({

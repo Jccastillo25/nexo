@@ -75,6 +75,38 @@ export type Database = {
           },
         ]
       }
+      anomaly_categories: {
+        Row: {
+          blocks_trip: boolean
+          company_id: string
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          blocks_trip?: boolean
+          company_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          blocks_trip?: boolean
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anomaly_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -273,6 +305,48 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      trip_anomalies: {
+        Row: {
+          category_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          photo_url: string
+          trip_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          photo_url: string
+          trip_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          photo_url?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_anomalies_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "anomaly_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_anomalies_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trip_events: {
         Row: {
@@ -525,6 +599,7 @@ export type Database = {
         | "unloading_completed"
         | "completed"
         | "cancelled"
+        | "pending_authorization"
       user_role: "admin" | "driver"
       vehicle_status: "active" | "maintenance" | "inactive"
     }
@@ -670,6 +745,7 @@ export const Constants = {
         "unloading_completed",
         "completed",
         "cancelled",
+        "pending_authorization",
       ],
       user_role: ["admin", "driver"],
       vehicle_status: ["active", "maintenance", "inactive"],

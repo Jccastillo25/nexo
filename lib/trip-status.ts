@@ -4,6 +4,7 @@ type TripStatus = Database["public"]["Enums"]["trip_status"];
 
 export const TRIP_STATUS_LABEL: Record<TripStatus, string> = {
   created: "Pendiente de inspección",
+  pending_authorization: "Esperando autorización",
   inspected: "Listo para iniciar",
   in_transit: "En ruta",
   at_destination: "En destino",
