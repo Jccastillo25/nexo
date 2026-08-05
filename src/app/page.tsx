@@ -3,6 +3,8 @@ import Link from "next/link";
 import { EMPRESA } from "@/data/empresa";
 
 export default function Home() {
+  const mapQuery = encodeURIComponent(`${EMPRESA.nombre}, ${EMPRESA.direccion}`);
+
   return (
     <div className="flex flex-col">
       <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-4 py-16 text-center sm:px-6 sm:py-24">
@@ -33,12 +35,12 @@ export default function Home() {
           >
             Escríbenos por WhatsApp
           </a>
-          <Link
-            href="/productos"
+          <a
+            href={EMPRESA.telefonoPbxHref}
             className="rounded-sm border border-acero-medio/40 px-6 py-3 text-sm font-semibold text-acero transition-colors hover:border-naranja hover:text-naranja"
           >
-            Ver productos
-          </Link>
+            Llamar al PBX
+          </a>
         </div>
       </section>
 
@@ -74,6 +76,43 @@ export default function Home() {
               {EMPRESA.whatsappNumero}
             </a>
           </div>
+        </div>
+      </section>
+
+      <section className="border-t border-acero-medio/15">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+          <h2 className="font-display text-xl text-acero">Visítanos</h2>
+          <p className="mt-1 max-w-xl font-mono text-sm text-acero-medio">
+            {EMPRESA.direccion}
+          </p>
+          <div className="mt-5 h-72 overflow-hidden rounded-md border border-acero-medio/20 sm:h-96">
+            <iframe
+              title="Ubicación en el mapa"
+              src={`https://www.google.com/maps?q=${mapQuery}&output=embed`}
+              className="h-full w-full"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-acero-medio/15 bg-white/40">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 py-12 text-center sm:px-6">
+          <p className="font-mono text-xs uppercase tracking-wide text-acero-medio">
+            Muy pronto
+          </p>
+          <p className="max-w-md text-sm text-acero">
+            Estamos preparando las páginas de{" "}
+            <Link href="/quienes-somos" className="text-naranja hover:underline">
+              Quiénes somos
+            </Link>{" "}
+            y{" "}
+            <Link href="/productos" className="text-naranja hover:underline">
+              Productos
+            </Link>
+            .
+          </p>
         </div>
       </section>
     </div>
