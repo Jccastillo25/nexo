@@ -11,8 +11,8 @@ export default function Home() {
         <Image
           src="/logo.png"
           alt={EMPRESA.nombre}
-          width={280}
-          height={112}
+          width={480}
+          height={284}
           priority
           className="h-20 w-auto sm:h-28"
         />
