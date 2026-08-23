@@ -67,7 +67,9 @@ Ver [[overview#fuera-de-alcance-actual]].
 `docs/ARCHITECTURE.md`, `docs/DATABASE.md` y `docs/ROADMAP.md` se actualizaron para reflejar la
 extensión de inspección por excepción (`pending_authorization`, `trip_anomalies`,
 `anomaly_categories`, panel de autorizaciones, sidebar reagrupado) — ya no están desfasados
-respecto a esta página. Sigue abierto el hallazgo sobre `docs/01_Requisitos/*`, ver [[index]].
+respecto a esta página. El intento previo `docs/01_Requisitos/*` y carpetas hermanas, nunca
+versionado y ya desactualizado, se eliminó del repo el mismo día a pedido del usuario. Ver
+[[index]].
 
 ## Fuentes
 

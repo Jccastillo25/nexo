@@ -14,10 +14,11 @@ crudas, wiki generada, y este esquema.
 
 `docs/ARCHITECTURE.md`, `docs/DATABASE.md`, `docs/ROADMAP.md` y `docs/README.md` son la
 **referencia técnica estable** del proyecto — completa, pero reescrita a mano de golpe cada vez
-(sin historial de decisiones, sin trazabilidad a fuentes). `docs/01_Requisitos/`,
-`docs/02_Arquitectura/`, `docs/03_Agentes/`, `docs/04_Tareas/`, `docs/99_Recursos/` fueron un
-primer intento de reorganizar esa documentación al estilo wiki, pero quedaron mayormente vacíos
-o con contenido ya desactualizado (extraído del PDF original, sin reflejar el sistema real).
+(sin historial de decisiones, sin trazabilidad a fuentes). Existió un primer intento
+(`docs/01_Requisitos/`, `02_Arquitectura/`, `03_Agentes/`, `04_Tareas/`, `99_Recursos/`) de
+reorganizar esa documentación al estilo wiki, pero quedó mayormente vacío o desactualizado
+(extraído del PDF original, sin reflejar el sistema real) y nunca se versionó en git; el usuario
+pidió eliminarlo el 2026-08-22 y ya no existe en el repo.
 
 **Esta wiki (`wiki/`) es donde vive el conocimiento vivo de aquí en adelante.** No borres ni
 reescribas `docs/` sin que el usuario lo pida explícitamente — si detectas que algo en `docs/`

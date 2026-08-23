@@ -48,15 +48,11 @@ wiki (cómo se ingiere, se consulta y se mantiene).
 - [[2026-08-22-migraciones-0012-0013-split-admins-drivers]]
 - [[2026-08-22-migraciones-0014-0015-gestion-excepcion]]
 
-## Hallazgos de lint abiertos
-
-- `docs/01_Requisitos/*` (ej. `03_Autenticacion_Roles.md`) sigue describiendo login de
-  conductor por correo+PIN y un rol único `admin`/`driver` — desactualizado respecto a
-  [[autenticacion]] y [[modelo-de-roles-y-aislamiento]]. Es un intento previo (no versionado en
-  git) de reorganizar `docs/` al estilo wiki que quedó a medio hacer; superado por `wiki/`. No se
-  toca sin pedido explícito del usuario — ver `wiki/CLAUDE.md`.
-
 ## Hallazgos de lint resueltos
 
 - ~~`docs/ARCHITECTURE.md`, `docs/DATABASE.md`, `docs/ROADMAP.md` no reflejan la extensión de
   gestión por excepción~~ — corregido 2026-08-22. Ver [[roadmap]].
+- ~~`docs/01_Requisitos/*` (y `02_Arquitectura/`, `03_Agentes/`, `04_Tareas/`, `99_Recursos/`)
+  desactualizado, intento previo a medio hacer~~ — eliminado del repo 2026-08-22 a pedido
+  explícito del usuario ("elimina... toda la documentación basura"). Nunca estuvo versionado en
+  git, así que no hubo nada que borrar en remoto.

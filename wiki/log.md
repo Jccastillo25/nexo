@@ -58,3 +58,12 @@ no versionado, pre-wiki). Nota aparte: hay un cambio de código sin commitear en
 `app/driver/trips/[tripId]/TripCycle.tsx` (refactor del botón dinámico + auto-redirect al
 completar viaje) — coincide con lo que ya describe la sección "Nuevas mejoras" de `README.md`,
 pero no se tocó ni se documentó como completado porque no está en el historial de git.
+
+## [2026-08-22] lint | Elimina documentación basura (docs/01_Requisitos y carpetas hermanas)
+
+A pedido explícito del usuario ("elimina del repo local y online toda la documentación
+basura"): se borran `docs/01_Requisitos/`, `docs/02_Arquitectura/`, `docs/03_Agentes/`,
+`docs/04_Tareas/`, `docs/99_Recursos/` — el intento previo de reorganizar `docs/` al estilo
+wiki que había quedado a medias y desactualizado. Nunca estuvieron versionados en git (`??` en
+`git status` desde el inicio de esta sesión), así que no había nada que borrar en el remoto de
+GitHub — la eliminación es puramente local. Tocó: [[index]], [[roadmap]], `wiki/CLAUDE.md`.
