@@ -50,10 +50,13 @@ wiki (cómo se ingiere, se consulta y se mantiene).
 
 ## Hallazgos de lint abiertos
 
-- `docs/ARCHITECTURE.md`, `docs/DATABASE.md`, `docs/ROADMAP.md` no reflejan la extensión de
-  gestión por excepción (`anomaly_categories`, `pending_authorization`,
-  `/admin/authorizations`, sidebar por grupos). Ver nota en [[roadmap]].
 - `docs/01_Requisitos/*` (ej. `03_Autenticacion_Roles.md`) sigue describiendo login de
   conductor por correo+PIN y un rol único `admin`/`driver` — desactualizado respecto a
-  [[autenticacion]] y [[modelo-de-roles-y-aislamiento]]. Es contenido pre-wiki, no se tocó en
-  este ingest.
+  [[autenticacion]] y [[modelo-de-roles-y-aislamiento]]. Es un intento previo (no versionado en
+  git) de reorganizar `docs/` al estilo wiki que quedó a medio hacer; superado por `wiki/`. No se
+  toca sin pedido explícito del usuario — ver `wiki/CLAUDE.md`.
+
+## Hallazgos de lint resueltos
+
+- ~~`docs/ARCHITECTURE.md`, `docs/DATABASE.md`, `docs/ROADMAP.md` no reflejan la extensión de
+  gestión por excepción~~ — corregido 2026-08-22. Ver [[roadmap]].

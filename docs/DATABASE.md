@@ -77,7 +77,7 @@ PK compuesta (`vehicle_id`, `accessory_id`).
 
 | Columna | Notas |
 |---|---|
-| `status` | enum `trip_status`: `created` → `inspected` → `in_transit` → `at_destination` → `unloading` → `unloading_completed` → `completed` (o `cancelled`) |
+| `status` | enum `trip_status`: `created` → `inspected` → `in_transit` → `at_destination` → `unloading` → `unloading_completed` → `completed` (o `cancelled`). Rama lateral: desde `created`, si la inspección reporta una novedad bloqueante, pasa a `pending_authorization` en vez de `inspected` — ver [gestión por excepción](./ARCHITECTURE.md#gestión-por-excepción-inspección-diaria) |
 | `start_odometer` / `end_odometer` | `CHECK (end_odometer >= start_odometer)` |
 | `start_odometer_photo_url` (NOT NULL) / `end_odometer_photo_url` | Evidencia fotográfica obligatoria en el bucket `evidence` |
 | `completed_at` | |
@@ -88,7 +88,30 @@ Un evento por hito del viaje (`start_trip`, `arrival_destination`, `start_unload
 
 ### `trip_inspections` — checklist de inspección previa
 
-Un registro por accesorio revisado en el check-in: `is_present`, `has_damage`, `issue_description`, `issue_photo_url`. Igual que `trip_events`, sin UPDATE/DELETE.
+Un registro por accesorio revisado en el check-in: `is_present`, `has_damage`, `issue_description`, `issue_photo_url`. Igual que `trip_events`, sin UPDATE/DELETE. Coexiste con `trip_anomalies`: el checklist de accesorios no desapareció, dejó de ser el gate obligatorio de la pantalla principal de inspección (ver gestión por excepción abajo).
+
+### `trip_anomalies` — reportes de novedad (gestión por excepción)
+
+Agregada en la migración `0014` con un enum fijo de categorías; la `0015` lo reemplaza por FK al catálogo editable. Log inmutable — solo `SELECT`/`INSERT`, sin `UPDATE`/`DELETE`, mismo patrón que `trip_events`.
+
+| Columna | Notas |
+|---|---|
+| `trip_id` | FK → `trips.id`, `ON DELETE CASCADE` |
+| `category_id` | FK → `anomaly_categories.id` |
+| `description` | Nullable |
+| `photo_url` | Bucket `evidence`, requiere URL firmada para mostrarse (`getEvidencePhotoSignedUrl`) |
+
+### `anomaly_categories` — catálogo editable de categorías de novedad
+
+Migración `0015`. Por empresa, mismo patrón que `license_categories`/`accessories`: cada empresa administra su propio catálogo desde `/admin/incident-categories`.
+
+| Columna | Notas |
+|---|---|
+| `company_id` | FK → `companies.id` |
+| `name` | |
+| `blocks_trip` | boolean, default `true`. Si es `true`, reportar esta categoría en la inspección lleva el viaje a `pending_authorization` en vez de `inspected` |
+
+Seed inicial (una fila por empresa existente al migrar): "Llantas y pernos" y "Frenos y fugas" con `blocks_trip = true`; "Sujeción de carga (eslingas/toldo)", "Luces" y "Documentos" con `blocks_trip = false`.
 
 ### `platform_admins` — operadores de la plataforma (Super Admin)
 
@@ -122,7 +145,8 @@ Trigger `AFTER UPDATE ON trips`. Cuando `status` pasa a `completed` con `end_odo
 | `license_categories`, `driver_license_categories` | Solo admin de la empresa | Solo admin | Solo admin |
 | `vehicles`, `accessories`, `vehicle_accessories` | Toda la empresa | Solo admin | Solo admin |
 | `trips` | Toda la empresa | Conductor dueño o admin | — (se cancela vía `status`, no se borra) |
-| `trip_events`, `trip_inspections` | Toda la empresa | Conductor dueño del viaje o admin | — (inmutable) |
+| `trip_events`, `trip_inspections`, `trip_anomalies` | Toda la empresa | Conductor dueño del viaje o admin | — (inmutable) |
+| `anomaly_categories` | Toda la empresa | Solo admin | Solo admin (`UPDATE`; no hay `DELETE`) |
 | `platform_admins` | Solo la propia fila | — (alta manual) | — |
 | `platform_settings` | Pública | — (solo vía Route Handler `service_role`) | — |
 
@@ -151,3 +175,5 @@ Trigger `AFTER UPDATE ON trips`. Cuando `status` pasa a `completed` con `end_odo
 | 0011 | `platform_settings` + bucket `platform-assets` |
 | 0012 | Separa `users` en `admins` + `drivers` (tablas independientes); agrega `license_categories`/`driver_license_categories`; `trips.driver_id` ahora referencia `drivers`; reescribe `auth_company_id`/`auth_role` |
 | 0013 | `companies.max_drivers`: cupo de conductores independiente del cupo de administradores (`max_users`) |
+| 0014 | `trips.status` agrega `pending_authorization`; tabla `trip_anomalies` (novedades de inspección, categoría fija por enum) |
+| 0015 | `anomaly_categories`: catálogo editable por empresa (reemplaza el enum de `trip_anomalies.category`), con seed de las 5 categorías originales |

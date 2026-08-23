@@ -61,6 +61,14 @@ Los botones de estado del ciclo de viaje (`Iniciar Viaje`, `Llegada a Destino`, 
 
 El Service Worker (`public/sw.js`) solo cachea el app-shell estático (íconos, manifest, página `/offline`) — deliberadamente no cachea datos ni pantallas autenticadas, para no servir contenido stale de otro tenant.
 
+## Gestión por excepción (inspección diaria)
+
+La pantalla de inspección previa al viaje no es un checklist largo por accesorio: es una **certificación de un toque**. El conductor ve un recordatorio estático de puntos a revisar (generado desde el catálogo de la empresa) y elige entre **"Todo en Orden - Iniciar Turno"** o **"Reportar Novedad / Daño"** (categoría + descripción opcional + foto obligatoria).
+
+La regla de qué novedad bloquea el viaje no está hardcodeada: cada empresa administra su propio catálogo de categorías (`anomaly_categories`, en `/admin/incident-categories`), cada una con un flag `blocks_trip`. Esto responde a una regla de negocio explícita del usuario — *si la falla es mecánica y le impide moverse a la unidad, debe bloquear; si es estética o de un extra que no afecta el movimiento libre, no debe bloquear* — implementada como dato editable en vez de lógica fija, porque el usuario pidió poder agregar categorías y decidir cuáles bloquean sin depender de un cambio de código.
+
+Cuando la novedad reportada bloquea, el viaje entra en `trips.status = 'pending_authorization'` en vez de `inspected`: el conductor ve una pantalla de espera y no puede iniciar ruta hasta que un admin resuelva la excepción desde `/admin/authorizations` (autorizar → `inspected`, o denegar y enviar la unidad a mantenimiento → `cancelled` + `vehicles.status = 'maintenance'`). Ver el detalle de tablas en [DATABASE.md](./DATABASE.md#trip_anomalies--reportes-de-novedad).
+
 ## Modelo de seguridad
 
 Ver el detalle de políticas en [DATABASE.md](./DATABASE.md). Resumen de las decisiones clave:

@@ -64,6 +64,18 @@ A pedido explícito del usuario: "los usuarios administrativos del sistema y con
 
 Archivos clave: `app/admin/drivers/**`, `app/admin/admins/**`, `app/admin/license-categories/**`, `app/api/admin/drivers/**`, `app/api/admin/admins/**`, `lib/admin-auth.ts`, `lib/generate-pin.ts`, `lib/company-quota.ts`.
 
+## ✅ Extensión post-plan — Gestión por excepción en inspección diaria + panel de autorización
+
+Rediseño de la pantalla de inspección previa del conductor: de un checklist largo por accesorio a una **certificación de un toque** ("Todo en Orden - Iniciar Turno" / "Reportar Novedad / Daño"). Ver el detalle de la regla de negocio en [ARCHITECTURE.md](./ARCHITECTURE.md#gestión-por-excepción-inspección-diaria).
+
+- Migración `0014`: `trips.status` agrega `pending_authorization`; tabla `trip_anomalies` (categoría por enum fijo en esta migración).
+- Migración `0015`, a pedido posterior del usuario de poder agregar categorías propias: `anomaly_categories` reemplaza el enum por un catálogo **editable por empresa** (`name` + `blocks_trip`), administrable en `/admin/incident-categories`. Seed: "Llantas y pernos" y "Frenos y fugas" bloquean; "Sujeción de carga", "Luces" y "Documentos" no.
+- **Panel de autorizaciones** (`/admin/authorizations`) — a pedido explícito del usuario, agrupa las solicitudes pendientes por el módulo que las originó (hoy solo "Inspección diaria", pensado para sumar módulos futuros sin rediseño). Por cada solicitud: vehículo, conductor, categoría, descripción, foto de evidencia (URL firmada), odómetro. Dos acciones: **Autorizar Excepción** (`trips.status → 'inspected'`) o **Denegar y Enviar a Mantenimiento** (`trips.status → 'cancelled'` + `vehicles.status → 'maintenance'`).
+- Dashboard de `/admin` muestra un banner de alerta cuando hay solicitudes pendientes, enlazando al panel.
+- **Sidebar del admin reagrupado** (`components/AdminSidebar.tsx`): Dashboard y Autorizaciones fijos; Flota, Conductores y Configuración como grupos desplegables (el que contiene la ruta activa se auto-expande), para reducir botones visibles tras sumar el módulo de autorizaciones.
+
+Archivos clave: `app/admin/authorizations/**`, `app/admin/incident-categories/**`, `app/driver/trips/**` (pantalla de inspección), `components/AdminSidebar.tsx`.
+
 ## Pendiente / fuera de alcance actual
 
 - **Leaked Password Protection** de Supabase Auth (HaveIBeenPwned) — requiere plan **Pro** de Supabase (de pago). Evaluado y pausado a pedido explícito del usuario; no bloqueante para el MVP.

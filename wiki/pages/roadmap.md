@@ -62,13 +62,12 @@ desplegables. Migraciones `0014`–`0015`. Ver
 
 Ver [[overview#fuera-de-alcance-actual]].
 
-## ⚠️ Nota de lint
+## ✅ Nota de lint resuelta (2026-08-22)
 
-`docs/ARCHITECTURE.md`, `docs/DATABASE.md` y `docs/ROADMAP.md` no reflejan todavía la última
-extensión (inspección por excepción / `anomaly_categories` / panel de autorizaciones) — quedaron
-al día de la extensión anterior (admins/drivers). Esta página (`wiki/pages/roadmap.md`) sí está
-al día. Pendiente decidir con el usuario si se actualiza `docs/` o se deja que `wiki/` sea la
-referencia viva de aquí en adelante.
+`docs/ARCHITECTURE.md`, `docs/DATABASE.md` y `docs/ROADMAP.md` se actualizaron para reflejar la
+extensión de inspección por excepción (`pending_authorization`, `trip_anomalies`,
+`anomaly_categories`, panel de autorizaciones, sidebar reagrupado) — ya no están desfasados
+respecto a esta página. Sigue abierto el hallazgo sobre `docs/01_Requisitos/*`, ver [[index]].
 
 ## Fuentes
 

@@ -43,3 +43,18 @@ extensión de gestión por excepción; `docs/01_Requisitos/*` desactualizado res
 roles y autenticación actual (login por correo, rol único). No se corrigió `docs/` en este
 paso — queda anotado en [[roadmap]] e [[index]] a la espera de decisión del usuario. Ver
 `wiki/CLAUDE.md` sobre la relación entre `wiki/` y `docs/`.
+
+## [2026-08-22] query | Análisis de fase actual + sincronización de docs/
+
+A pedido del usuario ("analizar el repositorio, ver en qué fase estamos y actualizar toda la
+documentación"): confirmado que no hay migraciones nuevas desde `0015` ni commits nuevos desde
+`46db0db`/`aeacae3` — la fase actual sigue siendo la extensión de gestión por excepción, ya
+documentada en [[roadmap]], [[gestion-por-excepcion]], [[trips]] y [[panel-autorizaciones]]. Se
+corrigió el hallazgo de lint pendiente: `docs/ARCHITECTURE.md` (nueva sección "Gestión por
+excepción"), `docs/DATABASE.md` (`trip_anomalies`, `anomaly_categories`, migraciones `0014`–`0015`
+en la tabla de historial) y `docs/ROADMAP.md` (nueva extensión post-plan) ya reflejan las
+migraciones `0014`–`0015`. Queda abierto solo el hallazgo sobre `docs/01_Requisitos/*` (contenido
+no versionado, pre-wiki). Nota aparte: hay un cambio de código sin commitear en
+`app/driver/trips/[tripId]/TripCycle.tsx` (refactor del botón dinámico + auto-redirect al
+completar viaje) — coincide con lo que ya describe la sección "Nuevas mejoras" de `README.md`,
+pero no se tocó ni se documentó como completado porque no está en el historial de git.
