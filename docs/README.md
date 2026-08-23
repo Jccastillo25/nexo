@@ -10,6 +10,11 @@ Este directorio contiene la documentación técnica del sistema. Para el avance 
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** — Stack técnico, modelo de tres niveles (Super Admin / Empresa / Conductor), flujos de autenticación, estrategia offline-first, modelo de seguridad.
 - **[DATABASE.md](./DATABASE.md)** — Referencia completa del esquema: tablas, RLS, funciones, triggers, buckets de Storage.
 
+> **Wiki viva:** además de estos documentos (reescritos a mano en cada actualización), el
+> proyecto mantiene una wiki auto-mantenida por Claude en [`../wiki/`](../wiki/index.md) —
+> páginas interlinkadas por entidad/concepto/módulo, con historial de fuentes y un log
+> cronológico. Ver [`wiki/CLAUDE.md`](../wiki/CLAUDE.md) para las convenciones.
+
 ## Los tres niveles del sistema
 
 ```
