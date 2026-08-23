@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminSidebar } from "@/components/AdminSidebar";
+import { FinancialAlertsListener } from "@/components/FinancialAlertsListener";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -37,6 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>
+      <FinancialAlertsListener companyId={profile.company_id} />
     </div>
   );
 }

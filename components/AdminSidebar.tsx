@@ -11,6 +11,7 @@ type NavGroup = { label: string; items: NavItem[] };
 const STANDALONE_ITEMS: NavItem[] = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/authorizations", label: "Autorizaciones" },
+  { href: "/admin/settlements", label: "Liquidaciones" },
 ];
 
 const NAV_GROUPS: NavGroup[] = [

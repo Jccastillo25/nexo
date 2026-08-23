@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDuration } from "@/lib/duration";
 import { TRIP_STATUS_LABEL } from "@/lib/trip-status";
+import { TripFinancialCell } from "./TripFinancialCell";
 import type { Database } from "@/lib/supabase/database.types";
 
 type TripEventType = Database["public"]["Enums"]["trip_event_type"];
@@ -9,7 +11,13 @@ function eventTime(events: { event_type: TripEventType; recorded_at: string | nu
   return events.find((e) => e.event_type === type)?.recorded_at ?? null;
 }
 
-export default async function AdminFleetTripsPage() {
+export default async function AdminFleetTripsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ financial?: string }>;
+}) {
+  const { financial } = await searchParams;
+  const financialPending = financial === "pending";
   const supabase = await createClient();
 
   const { data: vehicles } = await supabase
@@ -17,13 +25,18 @@ export default async function AdminFleetTripsPage() {
     .select("id, license_plate, brand, model, status, current_odometer")
     .order("license_plate");
 
-  const { data: trips } = await supabase
+  let tripsQuery = supabase
     .from("trips")
     .select(
-      "id, status, start_odometer, end_odometer, created_at, vehicle:vehicles(license_plate), driver:drivers(full_name), trip_events(event_type, recorded_at)",
+      "id, status, start_odometer, end_odometer, created_at, invoice_number, trip_value, settlement_id, vehicle:vehicles(license_plate), driver:drivers(full_name), trip_events(event_type, recorded_at), settlement:settlements(status)",
     )
-    .order("created_at", { ascending: false })
-    .limit(30);
+    .order("created_at", { ascending: false });
+
+  tripsQuery = financialPending
+    ? tripsQuery.eq("status", "completed").or("trip_value.is.null,invoice_number.is.null").limit(100)
+    : tripsQuery.limit(30);
+
+  const { data: trips } = await tripsQuery;
 
   return (
     <div className="flex flex-col gap-8">
@@ -63,7 +76,17 @@ export default async function AdminFleetTripsPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-xl font-bold text-slate-100">Viajes recientes</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xl font-bold text-slate-100">Viajes recientes</h2>
+          <Link
+            href={financialPending ? "/admin/fleet-trips" : "/admin/fleet-trips?financial=pending"}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+              financialPending ? "bg-amber-400 text-slate-900" : "bg-slate-800 text-slate-300"
+            }`}
+          >
+            {financialPending ? "✕ Quitar filtro" : "Pendiente de Datos Financieros"}
+          </Link>
+        </div>
         <div className="overflow-x-auto rounded-xl border border-slate-800">
           <table className="w-full text-sm text-slate-200">
             <thead className="bg-slate-900 text-left text-slate-400">
@@ -73,6 +96,7 @@ export default async function AdminFleetTripsPage() {
                 <th className="px-3 py-2">Estado</th>
                 <th className="px-3 py-2">Tiempo en ruta</th>
                 <th className="px-3 py-2">Tiempo de descarga</th>
+                <th className="px-3 py-2">Facturación</th>
               </tr>
             </thead>
             <tbody>
@@ -93,13 +117,23 @@ export default async function AdminFleetTripsPage() {
                     <td className="px-3 py-2">{TRIP_STATUS_LABEL[t.status]}</td>
                     <td className="px-3 py-2">{enRuta}</td>
                     <td className="px-3 py-2">{descarga}</td>
+                    <td className="px-3 py-2">
+                      <TripFinancialCell
+                        tripId={t.id}
+                        invoiceNumber={t.invoice_number}
+                        tripValue={t.trip_value}
+                        locked={t.settlement?.status === "completed"}
+                      />
+                    </td>
                   </tr>
                 );
               })}
               {(trips ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                    Sin viajes registrados todavía.
+                  <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
+                    {financialPending
+                      ? "No hay viajes con datos financieros pendientes."
+                      : "Sin viajes registrados todavía."}
                   </td>
                 </tr>
               )}

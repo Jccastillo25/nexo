@@ -149,6 +149,58 @@ export type Database = {
         }
         Relationships: []
       }
+      driver_advances: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string | null
+          description: string | null
+          driver_id: string
+          id: string
+          settlement_id: string | null
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string | null
+          description?: string | null
+          driver_id: string
+          id?: string
+          settlement_id?: string | null
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string | null
+          description?: string | null
+          driver_id?: string
+          id?: string
+          settlement_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_advances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_advances_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_advances_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "settlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_license_categories: {
         Row: {
           category_id: string
@@ -181,8 +233,10 @@ export type Database = {
       }
       drivers: {
         Row: {
+          commission_percentage: number
           company_id: string
           created_at: string | null
+          current_vehicle_id: string | null
           email: string
           first_name: string
           full_name: string
@@ -197,8 +251,10 @@ export type Database = {
           username: string
         }
         Insert: {
+          commission_percentage?: number
           company_id: string
           created_at?: string | null
+          current_vehicle_id?: string | null
           email: string
           first_name: string
           full_name: string
@@ -213,8 +269,10 @@ export type Database = {
           username: string
         }
         Update: {
+          commission_percentage?: number
           company_id?: string
           created_at?: string | null
+          current_vehicle_id?: string | null
           email?: string
           first_name?: string
           full_name?: string
@@ -234,6 +292,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drivers_current_vehicle_id_fkey"
+            columns: ["current_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -305,6 +370,69 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      settlements: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          driver_id: string
+          end_date: string
+          final_payout: number | null
+          fuel_cost: number
+          id: string
+          sealed_at: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["settlement_status"]
+          total_advances: number | null
+          total_freight: number | null
+          variable_expenses: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          driver_id: string
+          end_date: string
+          final_payout?: number | null
+          fuel_cost?: number
+          id?: string
+          sealed_at?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["settlement_status"]
+          total_advances?: number | null
+          total_freight?: number | null
+          variable_expenses?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          driver_id?: string
+          end_date?: string
+          final_payout?: number | null
+          fuel_cost?: number
+          id?: string
+          sealed_at?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["settlement_status"]
+          total_advances?: number | null
+          total_freight?: number | null
+          variable_expenses?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlements_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trip_anomalies: {
         Row: {
@@ -446,9 +574,12 @@ export type Database = {
           end_odometer: number | null
           end_odometer_photo_url: string | null
           id: string
+          invoice_number: string | null
+          settlement_id: string | null
           start_odometer: number
           start_odometer_photo_url: string
           status: Database["public"]["Enums"]["trip_status"]
+          trip_value: number | null
           vehicle_id: string
         }
         Insert: {
@@ -459,9 +590,12 @@ export type Database = {
           end_odometer?: number | null
           end_odometer_photo_url?: string | null
           id?: string
+          invoice_number?: string | null
+          settlement_id?: string | null
           start_odometer: number
           start_odometer_photo_url: string
           status?: Database["public"]["Enums"]["trip_status"]
+          trip_value?: number | null
           vehicle_id: string
         }
         Update: {
@@ -472,9 +606,12 @@ export type Database = {
           end_odometer?: number | null
           end_odometer_photo_url?: string | null
           id?: string
+          invoice_number?: string | null
+          settlement_id?: string | null
           start_odometer?: number
           start_odometer_photo_url?: string
           status?: Database["public"]["Enums"]["trip_status"]
+          trip_value?: number | null
           vehicle_id?: string
         }
         Relationships: [
@@ -490,6 +627,13 @@ export type Database = {
             columns: ["driver_id"]
             isOneToOne: false
             referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "settlements"
             referencedColumns: ["id"]
           },
           {
@@ -584,6 +728,7 @@ export type Database = {
       }
     }
     Enums: {
+      settlement_status: "draft" | "completed"
       trip_event_type:
         | "start_trip"
         | "arrival_destination"
@@ -729,6 +874,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      settlement_status: ["draft", "completed"],
       trip_event_type: [
         "start_trip",
         "arrival_destination",

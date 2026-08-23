@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { BigButton } from "@/components/BigButton";
 
 type Category = { id: string; name: string };
+type Vehicle = { id: string; license_plate: string };
 
 type Driver = {
   id: string;
@@ -17,15 +18,19 @@ type Driver = {
   license_type: string | null;
   license_expiry: string;
   is_active: boolean;
+  commission_percentage: number;
+  current_vehicle_id: string | null;
 };
 
 export function EditDriverForm({
   driver,
   categories,
+  vehicles,
   initiallyAssignedIds,
 }: {
   driver: Driver;
   categories: Category[];
+  vehicles: Vehicle[];
   initiallyAssignedIds: string[];
 }) {
   const router = useRouter();
@@ -38,6 +43,10 @@ export function EditDriverForm({
   const [licenseExpiry, setLicenseExpiry] = useState(driver.license_expiry);
   const [isActive, setIsActive] = useState(driver.is_active);
   const [categoryIds, setCategoryIds] = useState<string[]>(initiallyAssignedIds);
+  const [commissionPercentage, setCommissionPercentage] = useState(
+    String(driver.commission_percentage),
+  );
+  const [currentVehicleId, setCurrentVehicleId] = useState(driver.current_vehicle_id ?? "");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -53,6 +62,11 @@ export function EditDriverForm({
 
     if (categoryIds.length === 0) {
       setError("Selecciona al menos una categoría de licencia.");
+      return;
+    }
+    const commission = Number(commissionPercentage);
+    if (!Number.isFinite(commission) || commission < 0 || commission > 100) {
+      setError("El porcentaje de comisión debe estar entre 0 y 100.");
       return;
     }
 
@@ -71,6 +85,8 @@ export function EditDriverForm({
         license_type: licenseType.trim() || null,
         license_expiry: licenseExpiry,
         is_active: isActive,
+        commission_percentage: commission,
+        current_vehicle_id: currentVehicleId || null,
       })
       .eq("id", driver.id);
 
@@ -196,6 +212,38 @@ export function EditDriverForm({
           onChange={(e) => setLicenseExpiry(e.target.value)}
           className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
         />
+      </div>
+
+      <div className="flex gap-4">
+        <div className="flex flex-1 flex-col gap-2">
+          <label className="text-sm font-medium text-slate-300">Comisión (%)</label>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            max={100}
+            step="0.01"
+            required
+            value={commissionPercentage}
+            onChange={(e) => setCommissionPercentage(e.target.value)}
+            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+          />
+        </div>
+        <div className="flex flex-1 flex-col gap-2">
+          <label className="text-sm font-medium text-slate-300">Vehículo asignado</label>
+          <select
+            value={currentVehicleId}
+            onChange={(e) => setCurrentVehicleId(e.target.value)}
+            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+          >
+            <option value="">Sin asignar</option>
+            {vehicles.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.license_plate}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
