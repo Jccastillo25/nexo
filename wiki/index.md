@@ -1,6 +1,6 @@
 ---
 type: index
-updated: 2026-08-22
+updated: 2026-08-23
 ---
 
 # Índice — wiki de Ruta360
@@ -11,7 +11,7 @@ wiki (cómo se ingiere, se consulta y se mantiene).
 ## Overview y roadmap
 
 - [[overview]] — punto de entrada: los tres niveles del sistema, stack, mapa completo.
-- [[roadmap]] — qué se construyó, en qué orden, qué falta. _(actualizado 2026-08-22)_
+- [[roadmap]] — qué se construyó, en qué orden, qué falta. _(actualizado 2026-08-23)_
 
 ## Conceptos
 
@@ -22,21 +22,25 @@ wiki (cómo se ingiere, se consulta y se mantiene).
 - [[offline-first]] — cola de eventos IndexedDB, sync, Service Worker. _(2026-08-22)_
 - [[gestion-por-excepcion]] — certificación de un toque, categorías de novedad editables,
   bloqueo/autorización. _(2026-08-22)_
+- [[liquidaciones]] — comisión, gastos, anticipos, sellado inmutable, recibo en PDF.
+  _(2026-08-23)_
 
 ## Entidades
 
 - [[companies]] — el tenant, cupos independientes de admins/drivers. _(2026-08-22)_
 - [[admins]] — administradores de empresa. _(2026-08-22)_
-- [[drivers]] — conductores, perfil ampliado, login por PIN. _(2026-08-22)_
+- [[drivers]] — conductores, perfil ampliado, login por PIN, comisión, vehículo asignado.
+  _(2026-08-23)_
 - [[fleet]] — vehículos, accesorios, categorías de licencia. _(2026-08-22)_
-- [[trips]] — ciclo de viaje, eventos, inspecciones, novedades. _(2026-08-22)_
+- [[trips]] — ciclo de viaje, eventos, inspecciones, novedades, datos financieros. _(2026-08-23)_
 - [[platform]] — `platform_admins`, `platform_settings`. _(2026-08-22)_
+- [[settlements]] — `settlements`, `driver_advances`. _(2026-08-23)_
 
 ## Módulos
 
-- [[driver-app]] — `/driver`, flujo completo del conductor. _(2026-08-22)_
-- [[panel-admin]] — `/admin`, sidebar por grupos desplegables, CRUD de la empresa.
-  _(2026-08-22)_
+- [[driver-app]] — `/driver`, Dashboard Central, ciclo de viaje de 3 taps. _(2026-08-23)_
+- [[panel-admin]] — `/admin`, sidebar por grupos desplegables, CRUD de la empresa, Liquidaciones,
+  alertas en tiempo real. _(2026-08-23)_
 - [[panel-supadmin]] — `/supadmin`, gestión de empresas y plataforma. _(2026-08-22)_
 - [[panel-autorizaciones]] — `/admin/authorizations`, resolución de novedades bloqueantes.
   _(2026-08-22)_
@@ -47,6 +51,12 @@ wiki (cómo se ingiere, se consulta y se mantiene).
 - [[2026-08-22-baseline-migraciones-0001-0011]]
 - [[2026-08-22-migraciones-0012-0013-split-admins-drivers]]
 - [[2026-08-22-migraciones-0014-0015-gestion-excepcion]]
+- [[2026-08-23-panel-conductor-simplificado-y-liquidaciones]]
+
+## Hallazgos de lint abiertos
+
+- `docs/ARCHITECTURE.md`, `docs/DATABASE.md`, `docs/ROADMAP.md` no reflejan la extensión de
+  Dashboard Central / ciclo de 3 taps / Liquidaciones (2026-08-23). Ver nota en [[roadmap]].
 
 ## Hallazgos de lint resueltos
 

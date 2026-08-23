@@ -1,7 +1,7 @@
 ---
 type: entity
-updated: 2026-08-22
-sources: [[2026-08-22-migraciones-0012-0013-split-admins-drivers]]
+updated: 2026-08-23
+sources: [[2026-08-22-migraciones-0012-0013-split-admins-drivers]], [[2026-08-23-panel-conductor-simplificado-y-liquidaciones]]
 ---
 
 # `drivers`
@@ -25,6 +25,8 @@ contraseña** — la cuenta se crea sin `password`; el único login soportado es
 | `license_expiry` | date, NOT NULL | |
 | `is_active` | boolean, default `true` | |
 | `created_at` | timestamptz | |
+| `commission_percentage` | numeric(5,2), `CHECK` 0–100, default `0` | Agregada en `0017` — base del cálculo de [[liquidaciones]] |
+| `current_vehicle_id` | uuid, FK → `vehicles.id`, nullable | Agregada en `0016`. Vehículo asignado por el admin; el dashboard del conductor lo usa para saltarse la selección en el caso común (sigue siendo cambiable caso a caso) |
 
 Categorías de licencia asignadas vía `driver_license_categories` (M:N contra
 `license_categories`, catálogo por empresa) — ver [[fleet]].
@@ -42,9 +44,12 @@ Independiente de `admins` vía `companies.max_drivers` — ver [[companies]].
 
 ## Dónde se gestiona
 
-`/admin/drivers` (alta con todos los campos, filtros, edición, panel de PIN) — ver
-[[panel-admin]]. Login del conductor en `/login` (modo PIN) — ver [[driver-app]].
+`/admin/drivers` (alta con todos los campos, filtros, edición, panel de PIN, comisión y vehículo
+asignado) — ver [[panel-admin]]. Login del conductor en `/login` (modo PIN) — ver [[driver-app]].
+Anticipos (`driver_advances`, ver [[settlements]]) se registran en la misma página de edición del
+conductor.
 
 ## Fuentes
 
 - [[2026-08-22-migraciones-0012-0013-split-admins-drivers]]
+- [[2026-08-23-panel-conductor-simplificado-y-liquidaciones]]

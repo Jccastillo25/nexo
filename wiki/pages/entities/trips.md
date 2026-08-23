@@ -1,7 +1,7 @@
 ---
 type: entity
-updated: 2026-08-22
-sources: [[2026-08-22-baseline-migraciones-0001-0011]], [[2026-08-22-migraciones-0014-0015-gestion-excepcion]]
+updated: 2026-08-23
+sources: [[2026-08-22-baseline-migraciones-0001-0011]], [[2026-08-22-migraciones-0014-0015-gestion-excepcion]], [[2026-08-23-panel-conductor-simplificado-y-liquidaciones]]
 ---
 
 # Ciclo de viaje — `trips`, `trip_events`, `trip_inspections`, `trip_anomalies`, `anomaly_categories`
@@ -10,11 +10,13 @@ sources: [[2026-08-22-baseline-migraciones-0001-0011]], [[2026-08-22-migraciones
 
 | Columna | Notas |
 |---|---|
-| `status` | enum `trip_status`: `created` → `inspected` → `in_transit` → `at_destination` → `unloading` → `unloading_completed` → `completed` (o `cancelled`). Rama lateral: `inspected` puede desviarse a `pending_authorization` si la inspección reporta una novedad bloqueante — ver [[gestion-por-excepcion]] |
+| `status` | enum `trip_status`: `created` → `inspected` → `in_transit` → `at_destination` → `unloading` → `unloading_completed` → `completed` (o `cancelled`). Rama lateral: `inspected` puede desviarse a `pending_authorization` si la inspección reporta una novedad bloqueante — ver [[gestion-por-excepcion]]. Desde 2026-08-23 la UI del conductor ya no escribe `at_destination` como paso propio (se fusionó con `unloading` en un solo tap, ver [[driver-app]]) — el valor del enum se conserva sin uso nuevo, solo por compatibilidad con viajes viejos |
 | `start_odometer` / `end_odometer` | `CHECK (end_odometer >= start_odometer)` |
 | `start_odometer_photo_url` (NOT NULL) / `end_odometer_photo_url` | Evidencia fotográfica obligatoria, bucket `evidence` |
 | `driver_id` | FK → `drivers.id` (antes de la migración `0012`, → `users.id`) |
 | `completed_at` | |
+| `invoice_number`, `trip_value` | Agregadas en `0017`, nullable, opcionales al cerrar el viaje (para no bloquear al conductor en campo). Un viaje `completed` sin alguno de los dos dispara una alerta en tiempo real al admin — ver [[liquidaciones]] |
+| `settlement_id` | Agregada en `0018`, FK → `settlements.id`. Una vez la liquidación queda sellada, un trigger bloquea cualquier `UPDATE` sobre ese viaje — ver [[settlements]] |
 
 ## `trip_events` — log inmutable, append-only
 
@@ -61,3 +63,4 @@ DEFINER` porque quien completa el viaje es normalmente el conductor, que no tien
 
 - [[2026-08-22-baseline-migraciones-0001-0011]]
 - [[2026-08-22-migraciones-0014-0015-gestion-excepcion]]
+- [[2026-08-23-panel-conductor-simplificado-y-liquidaciones]]

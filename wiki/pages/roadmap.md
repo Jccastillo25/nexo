@@ -1,7 +1,7 @@
 ---
 type: roadmap
-updated: 2026-08-22
-sources: [[2026-08-22-mvp-spec-pdf]], [[2026-08-22-baseline-migraciones-0001-0011]], [[2026-08-22-migraciones-0012-0013-split-admins-drivers]], [[2026-08-22-migraciones-0014-0015-gestion-excepcion]]
+updated: 2026-08-23
+sources: [[2026-08-22-mvp-spec-pdf]], [[2026-08-22-baseline-migraciones-0001-0011]], [[2026-08-22-migraciones-0012-0013-split-admins-drivers]], [[2026-08-22-migraciones-0014-0015-gestion-excepcion]], [[2026-08-23-panel-conductor-simplificado-y-liquidaciones]]
 ---
 
 # Roadmap — avance por fases
@@ -58,6 +58,23 @@ desplegables. Migraciones `0014`–`0015`. Ver
 [[2026-08-22-migraciones-0014-0015-gestion-excepcion]], [[gestion-por-excepcion]] y
 [[panel-autorizaciones]].
 
+## ✅ Extensión — Dashboard Central del conductor, ciclo de viaje reducido, módulo de Liquidaciones
+
+A pedido explícito: *"necesitamos hacerlo lo más fácil y simple posible"* (panel del conductor),
+seguido de un documento completo de especificación que extendió el pedido a una capa financiera.
+Migraciones `0016`–`0020`. Ver [[2026-08-23-panel-conductor-simplificado-y-liquidaciones]],
+[[liquidaciones]], [[settlements]].
+
+- **Conductor:** Dashboard Central (vehículo asignado, resumen de ciclo, "Llenado Final de
+  Tanque"); ciclo de viaje de 4 a 3 taps (fusiona "Llegada a Destino" + "Iniciar Descarga");
+  cierre de viaje admite factura/valor opcionales. Ver [[driver-app]].
+- **Admin:** comisión y vehículo asignado por conductor; anticipos; alertas en tiempo real
+  (Supabase Realtime) de viajes sin datos financieros; filtro + edición inline en
+  `/admin/fleet-trips`; módulo `/admin/settlements` completo con sellado inmutable (trigger de
+  DB) y recibo en PDF (`@react-pdf/renderer`, única dependencia nueva). Ver [[panel-admin]].
+- No se pudo probar el flujo autenticado de punta a punta por falta de credenciales de prueba en
+  el entorno — `npm run build`, `tsc --noEmit` y `eslint` sí quedaron limpios antes de pushear.
+
 ## Pendiente / fuera de alcance
 
 Ver [[overview#fuera-de-alcance-actual]].
@@ -71,9 +88,19 @@ respecto a esta página. El intento previo `docs/01_Requisitos/*` y carpetas her
 versionado y ya desactualizado, se eliminó del repo el mismo día a pedido del usuario. Ver
 [[index]].
 
+## ⚠️ Nota de lint (2026-08-23)
+
+`docs/ARCHITECTURE.md`, `docs/DATABASE.md` y `docs/ROADMAP.md` no reflejan esta extensión
+(Dashboard Central, ciclo de 3 taps, `settlements`/`driver_advances`, comisión, vehículo
+asignado, alertas en tiempo real) — quedaron al día solo hasta la extensión de gestión por
+excepción (2026-08-22). No se corrigió en este ingest porque no fue parte del pedido del
+usuario; queda anotado en [[index]] a la espera de que lo pida, igual que se hizo con el
+desfase anterior.
+
 ## Fuentes
 
 - [[2026-08-22-mvp-spec-pdf]]
 - [[2026-08-22-baseline-migraciones-0001-0011]]
 - [[2026-08-22-migraciones-0012-0013-split-admins-drivers]]
 - [[2026-08-22-migraciones-0014-0015-gestion-excepcion]]
+- [[2026-08-23-panel-conductor-simplificado-y-liquidaciones]]

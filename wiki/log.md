@@ -67,3 +67,14 @@ basura"): se borran `docs/01_Requisitos/`, `docs/02_Arquitectura/`, `docs/03_Age
 wiki que había quedado a medias y desactualizado. Nunca estuvieron versionados en git (`??` en
 `git status` desde el inicio de esta sesión), así que no había nada que borrar en el remoto de
 GitHub — la eliminación es puramente local. Tocó: [[index]], [[roadmap]], `wiki/CLAUDE.md`.
+
+## [2026-08-23] ingest | Dashboard Central del conductor, ciclo de 3 taps, módulo de Liquidaciones
+
+Fuente: [[2026-08-23-panel-conductor-simplificado-y-liquidaciones]]. Migraciones `0016`–`0020`
+(vehículo asignado, campos financieros de `trips`, comisión de `drivers`, `settlements`/
+`driver_advances` con triggers de inmutabilidad y enganche automático, Realtime, hardening).
+Dependencia nueva: `@react-pdf/renderer`. No se probó el flujo autenticado de punta a punta por
+falta de credenciales en el entorno; se pusheó a producción tras confirmar con el usuario
+(`npm run build`/`tsc`/`eslint` limpios, migraciones ya aplicadas y aditivas). Tocó:
+[[driver-app]], [[panel-admin]], [[trips]], [[drivers]], [[liquidaciones]] (nueva),
+[[settlements]] (nueva), [[roadmap]], [[index]].
