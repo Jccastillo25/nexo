@@ -15,6 +15,7 @@
 // tapado por el dock colapsado (ver el `main` de cada modulo).
 
 import { useState } from "react";
+import Link from "next/link";
 import { shellFont } from "./shell-font";
 
 // Registro de iconos por nombre, no por referencia a componente: los items
@@ -151,7 +152,7 @@ export function Sidebar({ items }: SidebarProps) {
                   {item.section}
                 </p>
               )}
-              <a
+              <Link
                 href={item.href}
                 title={isExpanded ? undefined : item.label}
                 className={`group flex items-center gap-4 rounded-xl p-2 transition-colors ${
@@ -172,7 +173,7 @@ export function Sidebar({ items }: SidebarProps) {
                 >
                   {item.label}
                 </span>
-              </a>
+              </Link>
             </div>
           );
         })}
