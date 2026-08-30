@@ -1,0 +1,8 @@
+{
+  "name": "@nexo/types",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tipos TypeScript compartidos entre apps de Nexo (core.apps, core.companies, etc.)",
+  "main": "./index.ts",
+  "types": "./index.ts"
+}

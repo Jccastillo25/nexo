@@ -1,0 +1,8 @@
+{
+  "name": "@nexo/permissions",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Motor de permisos unico de la suite Nexo (norma v3.0, DENY BY DEFAULT, 7 dominios)",
+  "main": "./index.ts",
+  "types": "./index.ts"
+}

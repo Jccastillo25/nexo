@@ -1,0 +1,16 @@
+{
+  "name": "nexo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Nexo — panel unico y suite de modulos internos de Materiales J Castillo (estilo Odoo)",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.1.0"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "@nexo/supabase",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Clients tipados de Supabase por schema (core, rrhh, flotilla, crm) y tipos generados",
+  "main": "./index.ts",
+  "types": "./index.ts"
+}
