@@ -10,7 +10,9 @@ import { getPanelUrl } from "@/lib/panel";
 // Oportunidades/Reportes), cada item calcula su propio `active` comparando
 // contra el pathname actual. Con una sola seccion, "Clientes" es siempre la
 // activa: toda ruta de este layout ((app)/clientes/**) es parte de ella.
-const NAV_ITEMS: SidebarItem[] = [{ label: "Clientes", href: "/clientes", active: true }];
+const NAV_ITEMS: SidebarItem[] = [
+  { label: "Clientes", href: "/clientes", icon: "users", active: true },
+];
 
 /**
  * Guard de modulo (norma v3.0): el middleware (ver
@@ -40,12 +42,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-full flex-1 flex-col bg-neutral-100">
       <Header panelUrl={panelUrl} userEmail={user?.email} />
-      <div className="flex flex-1">
+      {/* Sidebar es un dock flotante (position: fixed), no ocupa espacio en
+          el flujo — este pl-24 le deja el margen para que el contenido no
+          quede tapado por el dock colapsado (w-16 + left-4). */}
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-6 pl-24 sm:px-6 sm:pl-28">
         <Sidebar items={NAV_ITEMS} />
-        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-6 sm:px-6">
-          {children}
-        </main>
-      </div>
+        {children}
+      </main>
     </div>
   );
 }

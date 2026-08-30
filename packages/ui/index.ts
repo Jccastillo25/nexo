@@ -5,7 +5,7 @@ export type { ShellBarProps } from "./ShellBar";
 export { BackToPanelLink } from "./BackToPanelLink";
 export type { BackToPanelLinkProps } from "./BackToPanelLink";
 export { Sidebar } from "./Sidebar";
-export type { SidebarProps, SidebarItem } from "./Sidebar";
+export type { SidebarProps, SidebarItem, SidebarIconName } from "./Sidebar";
 export {
   CATEGORY_COLORS,
   DEFAULT_CATEGORY_COLOR,

@@ -38,6 +38,25 @@ Lo único que distingue un módulo de otro es el **color de categoría**
 puntuales (ej. el borde de un widget de la Torre de Control) — nunca en
 tipografía, ni en la paleta general de botones/inputs/tarjetas.
 
+## Regla obligatoria: el negro es solo del login
+
+**El único lugar de toda la suite con fondo oscuro es la pantalla de
+login** (`apps/nexo/src/app/login/page.tsx`). `ShellBar`, `Sidebar`, el
+panel y el contenido de cada módulo usan la paleta clara
+(`neutral-50`/`white` de fondo, `neutral-900` de texto). Antes `ShellBar`
+era oscura (`neutral-900`) en toda la suite — se revirtió a pedido
+explícito del usuario: el oscuro comunica "estás entrando", no "estás
+usando la suite".
+
+## Regla obligatoria: entrar a un módulo aterriza en su contenido, no en una página vacía
+
+**La ruta raíz de cada módulo (`/`, bajo su propio `basePath`) redirige a
+su vista principal — nunca se deja una página en blanco esperando que el
+usuario haga clic en el sidebar.** Ver
+[`apps/crm/src/app/page.tsx`](../apps/crm/src/app/page.tsx): `redirect("/clientes")`.
+Al adaptar un módulo nuevo, su `page.tsx` raíz hace lo mismo hacia la
+vista/dashboard que corresponda.
+
 ## Regla obligatoria: `ShellBar` es LA barra superior, no una opción
 
 **Ningún módulo construye su propio header para reemplazar la barra
@@ -100,9 +119,10 @@ diseño está en
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--nexo-shell-bg` | `#18181B` (neutral-900) | Fondo de `ShellBar` |
-| `--nexo-shell-fg` | `#FAFAFA` (neutral-50) | Texto/iconos de `ShellBar` |
+| `--nexo-shell-bg` | `#FFFFFF` (white) | Fondo de `ShellBar` — **revisado**: era `neutral-900`, ahora el oscuro es exclusivo del login (ver regla obligatoria arriba) |
+| `--nexo-shell-fg` | `#171717` (neutral-900) | Texto/iconos de `ShellBar` |
 | `--nexo-bg` | `#F5F5F5` (neutral-100) | Fondo del contenido del panel |
+| `--nexo-login-bg` | `#0A0A0A` (neutral-950) | Fondo de la pantalla de login — único lugar oscuro de la suite |
 | Categoría Finanzas | verde `#DCFCE7` / texto `#166534` | `packages/ui/category-colors.ts` |
 | Categoría Ventas | rosa `#FCE7F3` / texto `#9D174D` | ídem — CRM vive acá |
 | Categoría Cadena de suministro | morado `#F3E8FF` / texto `#6B21A8` | ídem — Flotilla vive acá |

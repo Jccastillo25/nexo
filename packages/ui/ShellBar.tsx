@@ -3,8 +3,11 @@
 // Barra superior persistente de toda la suite — ver
 // docs/planning/NORMA_DISENO_UNIVERSAL.md §2.1. Este componente ES la
 // barra: ningun modulo construye su propio header que la reemplace (ver
-// docs/DESIGN_SYSTEM.md). La identidad propia de cada modulo va en el
-// CONTENIDO, debajo de esta barra, nunca en la barra misma.
+// docs/DESIGN_SYSTEM.md).
+//
+// Tema claro a proposito (decision explicita del usuario, 2026-08-30): el
+// negro/oscuro queda reservado UNICAMENTE para la pantalla de login — todo
+// lo demas, barra incluida, usa la paleta clara neutral-*/blue-600.
 //
 // "use client" porque el buscador y el menu de usuario son interactivos
 // (input controlado, dropdown) — onSignOut sigue pudiendo ser una server
@@ -96,7 +99,7 @@ function NotificationsMenu() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="Notificaciones"
-        className="rounded-full p-2 text-neutral-300 transition-colors hover:bg-neutral-800 hover:text-white"
+        className="rounded-full p-2 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
       >
         <BellIcon />
       </button>
@@ -128,7 +131,7 @@ function UserMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-sm text-neutral-300 transition-colors hover:bg-neutral-800 hover:text-white"
+        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-sm text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
       >
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
           {initial}
@@ -169,7 +172,7 @@ export function ShellBar({
   showSearch = true,
 }: ShellBarProps) {
   const titleEl = titleHref ? (
-    <Link href={titleHref} className="hover:text-neutral-200">
+    <Link href={titleHref} className="hover:text-neutral-600">
       {title}
     </Link>
   ) : (
@@ -178,13 +181,13 @@ export function ShellBar({
 
   return (
     <div
-      className={`${shellFont.className} flex items-center gap-4 bg-neutral-900 px-6 py-3 text-neutral-50`}
+      className={`${shellFont.className} flex items-center gap-4 border-b border-neutral-200 bg-white px-6 py-3 text-neutral-900`}
     >
       <div className="flex flex-shrink-0 items-center gap-4">
         {backHref && (
           <>
             <BackToPanelLink href={backHref} />
-            <span aria-hidden="true" className="text-neutral-700">
+            <span aria-hidden="true" className="text-neutral-300">
               /
             </span>
           </>
@@ -203,7 +206,7 @@ export function ShellBar({
             }
           }}
         >
-          <label className="flex w-full max-w-md items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-neutral-400 focus-within:border-neutral-500">
+          <label className="flex w-full max-w-md items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-1.5 text-neutral-500 focus-within:border-blue-500 focus-within:bg-white">
             <SearchIcon />
             <input
               name="q"
@@ -212,7 +215,7 @@ export function ShellBar({
                 searchPlaceholder ??
                 (onSearch ? "Buscar en Nexo…" : "Buscar (próximamente)")
               }
-              className="w-full bg-transparent text-sm text-neutral-100 placeholder:text-neutral-500 outline-none"
+              className="w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 outline-none"
             />
           </label>
         </form>
