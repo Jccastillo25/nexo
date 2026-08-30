@@ -54,12 +54,13 @@ Dos capas, sin mezclarlas:
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--nexo-neutral-50` | `#FAFAFA` | Texto sobre fondo oscuro (`ShellBar`) |
+| `--nexo-neutral-50` | `#FAFAFA` | Fondo de hover, ítems no activos |
 | `--nexo-neutral-100` | `#F5F5F5` | Fondo de página (`--nexo-bg`, ya vigente) |
 | `--nexo-neutral-200` | `#E5E5E5` | Bordes, divisores |
 | `--nexo-neutral-400` | `#A3A3A3` | Texto deshabilitado, placeholders |
 | `--nexo-neutral-600` | `#525252` | Texto secundario |
-| `--nexo-neutral-900` | `#18181B` | Texto principal / fondo de `ShellBar` (`--nexo-shell-bg`, ya vigente) |
+| `--nexo-neutral-900` | `#171717` | Texto principal de toda la suite (`ShellBar` incluida — **revisado**: ya no es fondo de `ShellBar`, ver `--nexo-login-bg`) |
+| `--nexo-login-bg` | `#0A0A0A` (neutral-950) | Fondo de la pantalla de login — **único** lugar oscuro de la suite (regla obligatoria en `DESIGN_SYSTEM.md`) |
 | `--nexo-accent` | `#2563EB` (indigo/blue-600) | Botón primario, foco, links, estado activo del sidebar |
 | `--nexo-accent-hover` | `#1D4ED8` | Hover/active del acento |
 | `--nexo-success` | `#16A34A` | Confirmaciones, estados "activo/al día" |
@@ -160,29 +161,47 @@ compartido** — ningún módulo las reimplementa:
   aún no creada — se documenta acá como parte del shell, implementación
   queda en el roadmap.
 
-Estas tres piezas viven en `--nexo-shell-bg` (`neutral-900`), con
-`--nexo-neutral-50` como texto — igual que hoy. Ninguna cambia de color por
-módulo.
+Estas piezas viven en `--nexo-shell-bg` (**revisado**: `white`, no
+`neutral-900` — el oscuro quedó reservado al login, ver regla obligatoria
+en `DESIGN_SYSTEM.md`), con `--nexo-neutral-900` como texto. Ninguna
+cambia de color por módulo. App Launcher todavía pendiente (hoy el acceso
+a otros módulos es solo el link "← Nexo"); Omnibar y Notificaciones ya
+están implementados en `ShellBar` (ver tabla de estado al final).
 
 ### 2.2 Sidebar contextual
 
-Pieza nueva, hoy ningún módulo la tiene (CRM usa solo el header). Reglas:
+**Revisado (2026-08-30) — dock flotante, no acoplado al layout.** La
+primera versión de esta sección describía un sidebar acoplado (ancho fijo
+en el flujo de la página, empujando el contenido). Decisión explícita del
+usuario, con un componente de referencia concreto: es un **dock flotante**
+(`position: fixed`, esquina inferior/centro-izquierda), colapsado a solo
+íconos por default, que se expande al pasar el mouse (con un botón de
+menú como fallback para touch, donde no hay hover). Implementado en
+[`packages/ui/Sidebar.tsx`](../../packages/ui/Sidebar.tsx) y cableado en
+[`apps/crm/src/app/(app)/layout.tsx`](../../apps/crm/src/app/(app)/layout.tsx).
 
 - Aparece **solo** dentro de un módulo (nunca en `apps/nexo`, que ya tiene su
   propia grilla como "sidebar" conceptual).
-- Ancho fijo `240px`, fondo `bg-white`, borde derecho `neutral-200` (el único
-  borde de la pantalla junto con los internos de tablas).
+- `fixed left-4 top-1/2 -translate-y-1/2`, `rounded-2xl`, `bg-white/90` +
+  `backdrop-blur-md`, `border-neutral-200`, `shadow-xl` — colapsado `w-16`,
+  expandido `w-56`. Al ser `fixed`, no reserva espacio en el flujo: el
+  `main` de cada módulo le deja un padding-left fijo (`pl-24`) para que el
+  contenido no quede tapado por el dock colapsado.
+- Los íconos de los ítems son un **nombre de un registro interno**
+  (`SidebarIconName`: `"grid" | "users" | "folder" | "settings" | "chat"`),
+  no una referencia a componente — el layout que arma los `items` suele
+  ser un Server Component (ahí vive el chequeo de permisos), y Next.js no
+  permite pasar una función/componente como prop de Server a Client
+  Component. Un string sí es serializable.
 - Contenido: exclusivamente los ítems de navegación **del módulo activo** —
   nunca mezcla con otro módulo (para eso está el Launcher). Cada módulo
   define su propia lista de secciones (ej. CRM: Clientes, Oportunidades,
   Reportes); el componente `<Sidebar items={...} />` es compartido, la lista
   de `items` es propia del módulo.
-- Ítem activo: texto `--nexo-accent` + fondo `neutral-50`, sin borde
-  izquierdo grueso ni iconografía de color — el acento ya es suficiente
-  señal.
-- Colapsable a solo-íconos (`64px`) con un toggle al pie — el estado se
-  guarda por usuario (localStorage o `core.user_preferences` a futuro), no
-  por módulo, para que la preferencia viaje con la persona.
+- Ítem activo: `bg-blue-50 text-blue-600` — el acento ya es suficiente señal.
+- Sin persistencia de estado a propósito: la expansión es un gesto
+  momentáneo (hover), no una preferencia que valga la pena recordar entre
+  sesiones — a diferencia de la versión acoplada original.
 
 ---
 
@@ -314,7 +333,8 @@ suite, sin importar qué módulo sea ni quién lo escriba:
 | Reglas de componentes `@nexo/ui` (§1.4) | Parcial — `ShellBar`, `Sidebar`, `BackToPanelLink` cumplen; `Button`/`Input`/`Modal`/`DataTable` genéricos **no existen aún** como paquete compartido (el CRM sigue con inputs/botones propios, aunque ya con los tokens correctos) |
 | App Launcher — íconos de categoría (§2.1) | ✅ `packages/ui/category-icons.tsx` — SVG a mano, uno por categoría, sin dependencia externa |
 | Omnibar / Notificaciones / Avatar en `ShellBar` (§2.1) | ✅ UI implementada (buscador sin backend real, notificaciones estáticas) — falta el índice de búsqueda real y `core.notifications` |
-| Sidebar contextual (§2.2) | ✅ Componente listo y **cableado en el CRM** (una sola sección, "Clientes") — falta en RRHH/Flotilla (no migrados aún) |
+| Sidebar contextual (§2.2) | ✅ Dock flotante, **cableado en el CRM** (una sola sección, "Clientes") — falta en RRHH/Flotilla (no migrados aún) |
+| Login oscuro con layout partido | ✅ [`apps/nexo/src/app/login/page.tsx`](../../apps/nexo/src/app/login/page.tsx) — único lugar oscuro de la suite |
 | Torre de Control (§3.1) | **Pendiente** — no existe la vista; depende de que RRHH/Flotilla estén en `nexo-core` para cruzar datos |
 | PWA conductores / Kiosko RRHH (§3.2, §3.3) | **Pendiente** — dependen de las Fases 5/6 del roadmap |
 | Reglas anti-fragmentación (§4) | **Vigente desde hoy** — es proceso, no código; aplica a partir de este commit |
