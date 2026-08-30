@@ -5,6 +5,10 @@ import type { Database } from "./database.types";
 /**
  * Cliente de Supabase para usar en Server Components, Server Actions y Route
  * Handlers. Lee/escribe la sesión desde las cookies de la petición.
+ *
+ * Apunta al proyecto unificado nexo-core. Schema por defecto "public"
+ * (para el RPC has_permission); las queries a clientes usan
+ * `.schema("crm").from("clientes")` explicito. Ver docs/DATABASE.md.
  */
 export async function createClient() {
   const cookieStore = await cookies();

@@ -1,24 +1,11 @@
 // Motor de permisos unico de Nexo — norma v3.0 (DENY BY DEFAULT).
-// Ver docs/PERMISSIONS.md para la guia completa de cuando y como usar esto.
+// Ver docs/PERMISSIONS.md para la guia completa.
 //
-// Contrato clave, distinto de la v2.0 de Gestor360: un permission_code que
-// NO existe en core.permissions_catalog se trata como INVALIDO, no como
-// "sin definir". hasPermission() y requirePermission() fallan cerrado
-// (deniegan) en ese caso, en vez de dejar pasar por accidente. Esto es lo
-// que hace que "olvidarse de registrar el permiso" == "la funcion no
-// funciona para nadie", en vez de "la funcion queda abierta para todos".
-
-export class PermissionNotRegisteredError extends Error {
-  constructor(public readonly code: string) {
-    super(
-      `El permiso "${code}" no existe en core.permissions_catalog. ` +
-        `Registralo primero (ver docs/PERMISSIONS.md) antes de llamar a ` +
-        `requirePermission("${code}") — por diseño, un permiso no ` +
-        `registrado se deniega, nunca se concede.`
-    );
-    this.name = "PermissionNotRegisteredError";
-  }
-}
+// Toda la logica de la norma vive en UNA sola funcion SQL,
+// core.has_permission() (ver supabase/migrations/20260830000001_core_schema.sql),
+// expuesta via el wrapper public.has_permission(). Este paquete es solo un
+// wrapper delgado sobre esa RPC — no duplica la logica en TypeScript, para
+// que nunca se desincronice de lo que de verdad hacen las policies de RLS.
 
 export class PermissionDeniedError extends Error {
   constructor(public readonly code: string) {
@@ -27,72 +14,46 @@ export class PermissionDeniedError extends Error {
   }
 }
 
-/** Forma minima que necesitamos del cliente de Supabase, para no acoplar
- * este paquete a @nexo/supabase todavia (evita dependencia circular
- * mientras ese paquete se termina de construir). */
-interface QueryClient {
-  from(table: string): {
-    select(columns: string): {
-      eq(column: string, value: string): {
-        maybeSingle(): Promise<{ data: unknown; error: unknown }>;
-      };
-    };
-  };
+/** Forma minima que necesitamos del cliente de Supabase. */
+interface RpcClient {
+  rpc(
+    fn: "has_permission",
+    args: { p_company_id: string; p_code: string }
+  ): Promise<{ data: unknown; error: unknown }>;
 }
 
 export interface PermissionContext {
-  supabase: QueryClient;
-  userId: string;
+  supabase: RpcClient;
   companyId: string;
-  /** 'owner' | 'admin' | otro rol de negocio. Solo owners/admins tienen el
-   * bypass heredado de la v2.0 (acceso total si no hay fila explicita). */
-  role?: string;
 }
 
 /**
- * Verifica un permiso. Fail-closed en TODOS los casos ambiguos:
- * - Si el codigo no esta en core.permissions_catalog -> false (denegado).
- * - Si no hay fila en core.user_permissions para ese user+company+code:
- *     - owner/admin -> true (bypass heredado de Gestor360 v2.0)
- *     - cualquier otro rol -> false
- * - Si hay fila con granted=false -> false, sin excepcion para nadie.
- * - Si hay fila con granted=true -> true.
+ * Verifica un permiso llamando a public.has_permission (RPC), que a su vez
+ * llama a core.has_permission(auth.uid(), companyId, code) del lado del
+ * servidor. El user_id sale de la sesion autenticada, nunca de un parametro
+ * que el llamador pueda falsear.
+ *
+ * Fail-closed: cualquier error de red/RPC, o el codigo no registrado en
+ * core.permissions_catalog, deniega. Nunca "permite por las dudas".
  */
 export async function hasPermission(
   ctx: PermissionContext,
   code: string
 ): Promise<boolean> {
-  const catalogEntry = await ctx.supabase
-    .from("permissions_catalog")
-    .select("code")
-    .eq("code", code)
-    .maybeSingle();
+  const { data, error } = await ctx.supabase.rpc("has_permission", {
+    p_company_id: ctx.companyId,
+    p_code: code,
+  });
 
-  if (catalogEntry.error || !catalogEntry.data) {
-    // Codigo no registrado: denegar siempre, incluso para owners/admins.
-    // Esto evita que un typo en el codigo ("rrhh.talento.emplados.crear")
-    // se cuele como "sin definir = permitido".
-    return false;
-  }
-
-  const grant = await ctx.supabase
-    .from("user_permissions")
-    .select("granted")
-    .eq("user_id", ctx.userId)
-    .maybeSingle();
-
-  if (grant.error || !grant.data) {
-    return ctx.role === "owner" || ctx.role === "admin";
-  }
-
-  return Boolean((grant.data as { granted?: boolean }).granted);
+  if (error) return false;
+  return Boolean(data);
 }
 
 /**
  * Igual que hasPermission, pero lanza en vez de devolver false. Usar al
  * inicio de toda server action / route handler nueva:
  *
- *   await requirePermission(ctx, "flotilla.viajes.cancelar");
+ *   await requirePermission({ supabase, companyId }, "flotilla.viajes.cancelar");
  *   // ... el resto de la funcion solo corre si no lanzo
  */
 export async function requirePermission(

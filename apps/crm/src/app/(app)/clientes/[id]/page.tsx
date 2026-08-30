@@ -15,6 +15,7 @@ export default async function ClienteDetallePage({
   const supabase = await createClient();
 
   const { data: cliente, error } = await supabase
+    .schema("crm")
     .from("clientes")
     .select("*")
     .eq("id", id)

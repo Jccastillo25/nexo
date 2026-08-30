@@ -17,6 +17,7 @@ export default async function ClientesPage({
   const supabase = await createClient();
 
   let request = supabase
+    .schema("crm")
     .from("clientes")
     .select("*")
     .order("numero_cliente", { ascending: false });

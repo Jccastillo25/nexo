@@ -19,9 +19,14 @@ mal registrado en un módulo ya no es un bug aislado — es una fuga entre
 productos distintos. Por eso v3.0 agrega una regla que v2.0 no tenía:
 
 > **Un `permission_code` que no existe en `core.permissions_catalog` se
-> trata como INVÁLIDO, no como "sin definir".** El helper de
-> `packages/permissions` deniega en ese caso — para todos, incluidos
-> owners/admins. Ver [`packages/permissions/index.ts`](../packages/permissions/index.ts).
+> trata como INVÁLIDO, no como "sin definir".** Toda la lógica de la norma
+> vive en una sola función SQL, `core.has_permission()` (ver
+> [`supabase/migrations/20260830000001_core_schema.sql`](../supabase/migrations/20260830000001_core_schema.sql)),
+> y deniega en ese caso — para todos, incluidos owners/admins. Las apps la
+> llaman vía RPC (`public.has_permission`) desde
+> [`packages/permissions/index.ts`](../packages/permissions/index.ts); las
+> políticas de RLS la llaman directo. **Una sola fuente de verdad**, no una
+> copia en SQL y otra en TypeScript que se puedan desincronizar.
 
 Consecuencia práctica: si alguien escribe una función nueva y llama a
 `requirePermission(ctx, "flotilla.viajes.cancelar")` pero nadie insertó ese
@@ -65,11 +70,14 @@ nuevos en cualquier `apps/<módulo>`.
    ```ts
    import { requirePermission } from "@nexo/permissions";
 
-   export async function cancelarViaje(ctx: PermissionContext, viajeId: string) {
-     await requirePermission(ctx, "flotilla.viajes.cancelar");
+   export async function cancelarViaje(supabase: SupabaseClient, companyId: string, viajeId: string) {
+     await requirePermission({ supabase, companyId }, "flotilla.viajes.cancelar");
      // ... el resto de la funcion
    }
    ```
+   `requirePermission` llama a `public.has_permission` (RPC) — el `user_id`
+   sale de la sesión autenticada del lado del servidor, nunca de un
+   parámetro que el llamador pueda falsear.
 4. **Oculta/deshabilita en la UI** el botón/checkbox correspondiente cuando
    `hasPermission(...)` devuelva `false` — la verificación de servidor de
    arriba es la que de verdad protege, esto es solo UX.
@@ -94,6 +102,25 @@ propios dominios según su negocio:
 | Flotilla | Viajes, Conductores, Flota, Reportes |
 | CRM | Clientes, Oportunidades |
 | Todos (incluye `nexo`) | `acceso` — dominio reservado para el permiso `<slug>.ver_modulo` que crea el trigger |
+
+## Dos capas de enforcement, no solo una
+
+1. **RLS en la base de datos** (la capa fuerte): cualquier tabla de un
+   módulo que use `core.has_permission()` en sus policies queda protegida
+   aunque alguien se salte por completo el código de la app (una query
+   directa, un bug en la server action, etc.). Ejemplo real en
+   `crm.clientes` (ver [`supabase/migrations/20260830000003_crm_schema.sql`](../supabase/migrations/20260830000003_crm_schema.sql)).
+2. **`requirePermission()` en la server action** (la capa de UX): permite
+   devolver un mensaje de error entendible en vez de que la query falle con
+   un error crudo de Postgres. No es la que de verdad protege los datos —
+   eso lo hace la policy de RLS — pero sin ella el usuario ve un error feo
+   en vez de "No tienes permiso para esto".
+
+`core.has_permission()` necesita saber el **rol** del usuario en la empresa
+para el bypass owner/admin — eso vive en `core.company_memberships`
+(`user_id`, `company_id`, `role`), una tabla que no estaba en el diseño
+original de la Fase 2 y se agregó al implementar la Fase 3 porque
+`hasPermission()` no tenía de dónde sacar el rol sin ella.
 
 ## Multi-tenant: `core.company_apps`
 

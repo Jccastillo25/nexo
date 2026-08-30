@@ -2,6 +2,49 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-08-30 — Fase 3: adaptar `web-corporativo` + `crm`
+
+- **`web-corporativo`**: no requirió ningún cambio. Es contenido estático,
+  vive en el dominio raíz `materialesjcastillo.com` (no en Multi-Zones), no
+  usa Supabase. Se documentó ese hecho en su README para que quede
+  explícito que "no adaptado" no es lo mismo que "pendiente".
+- **`crm`**: adaptado de punta a punta.
+  - `next.config.ts`: `basePath: "/crm"` + `transpilePackages: ["@nexo/permissions"]`.
+  - Cliente/servidor de Supabase re-apuntados a `nexo-core`
+    (`yrbjlmiqhkyxtlcerowh`), en vez del proyecto original
+    `materiales-jcastillo-crm` (`arzadwxsifnaolvfcvqk`).
+  - Las 3 acciones de escritura (`createCliente`, `updateCliente`,
+    `deleteCliente`) llaman a `requirePermission()` de `@nexo/permissions`
+    antes de tocar la base de datos.
+  - Se agregó `core.company_memberships` + la función única
+    `core.has_permission()` (gap detectado al implementar: el diseño
+    original de la Fase 2 no tenía de dónde sacar el rol owner/admin).
+    **El usuario pidió resetear el schema `core` recién creado (sin datos
+    reales) para incorporar esto desde cero en vez de parchearlo** — se hizo
+    con `drop schema core cascade` + recrear, confirmado de bajo riesgo
+    porque `core` no tenía ningún dato real todavía.
+  - `crm.clientes` quedó con RLS real: las 4 policies (ver/crear/editar/eliminar)
+    llaman a `core.has_permission()` directo — la protección de datos no
+    depende solo de que el código de la app se acuerde de chequear.
+  - `get_advisors` detectó y se corrigieron 2 warnings: `search_path`
+    mutable en una función nueva, y el RPC `public.has_permission`
+    ejecutable por el rol `anon` sin sesión (se revocó de `PUBLIC`, se dejó
+    solo para `authenticated`).
+- **Bloqueado, requiere decisión del usuario**: el clasificador de permisos
+  de Claude Code denegó `restore_project` sobre el proyecto pausado
+  `arzadwxsifnaolvfcvqk` (materiales-jcastillo-crm) — no se pudo confirmar
+  si tiene datos reales de clientes ni copiarlos. La estructura de
+  `crm.clientes` se recreó a partir del `database.types.ts` ya generado
+  (2026-08-29), no de una inspección en vivo.
+- **Pendiente manual, fuera del alcance de las herramientas MCP**: exponer
+  el schema `crm` en Settings → API → Data API → Exposed schemas del
+  proyecto `nexo-core`. Sin esto, `apps/crm` no puede conectarse de verdad
+  todavía.
+- **Sin verificar**: no se corrió un dev server real (no existe `apps/nexo`
+  todavía para probar Multi-Zones de punta a punta) — el comportamiento de
+  `proxy.ts`/`middleware.ts` con `basePath` activo queda pendiente de
+  confirmar en la Fase 4.
+
 ## 2026-08-30 — Fase 2: proyecto `nexo-core` + schema `core` + norma v3.0
 
 - Proyecto Supabase `nexo-core` creado (ref `yrbjlmiqhkyxtlcerowh`,

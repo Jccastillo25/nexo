@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { getCompanyId } from "@/lib/company";
 import type { ClienteInsert, ClienteUpdate, Json } from "@/lib/supabase/database.types";
 
 export type ClienteFormState = {
@@ -69,10 +71,20 @@ export async function createCliente(
     return { error: "Tu sesión expiró. Vuelve a iniciar sesión." };
   }
 
+  try {
+    await requirePermission({ supabase, companyId: getCompanyId() }, "crm.clientes.crear");
+  } catch (e) {
+    if (e instanceof PermissionDeniedError) {
+      return { error: "No tienes permiso para crear clientes." };
+    }
+    throw e;
+  }
+
   const parsed = parseClienteForm(formData);
   if ("error" in parsed) return { error: parsed.error };
 
   const { data, error } = await supabase
+    .schema("crm")
     .from("clientes")
     .insert(parsed.data)
     .select("id")
@@ -100,11 +112,20 @@ export async function updateCliente(
     return { error: "Tu sesión expiró. Vuelve a iniciar sesión." };
   }
 
+  try {
+    await requirePermission({ supabase, companyId: getCompanyId() }, "crm.clientes.editar");
+  } catch (e) {
+    if (e instanceof PermissionDeniedError) {
+      return { error: "No tienes permiso para editar clientes." };
+    }
+    throw e;
+  }
+
   const parsed = parseClienteForm(formData);
   if ("error" in parsed) return { error: parsed.error };
 
   const update: ClienteUpdate = parsed.data;
-  const { error } = await supabase.from("clientes").update(update).eq("id", id);
+  const { error } = await supabase.schema("crm").from("clientes").update(update).eq("id", id);
 
   if (error) {
     return { error: `No se pudo guardar el cliente: ${error.message}` };
@@ -130,7 +151,16 @@ export async function deleteCliente(
     return { error: "Tu sesión expiró. Vuelve a iniciar sesión." };
   }
 
-  const { error } = await supabase.from("clientes").delete().eq("id", id);
+  try {
+    await requirePermission({ supabase, companyId: getCompanyId() }, "crm.clientes.eliminar");
+  } catch (e) {
+    if (e instanceof PermissionDeniedError) {
+      return { error: "No tienes permiso para eliminar clientes." };
+    }
+    throw e;
+  }
+
+  const { error } = await supabase.schema("crm").from("clientes").delete().eq("id", id);
 
   if (error) {
     return { error: `No se pudo eliminar el cliente: ${error.message}` };

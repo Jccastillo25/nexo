@@ -1,3 +1,18 @@
+# Web Corporativo — sitio público (NO es módulo de Nexo)
+
+Sitio de marketing de Materiales J Castillo. Vive en `materialesjcastillo.com`
+(dominio raíz), **no** en `nexo.materialesjcastillo.com` — no participa de
+Multi-Zones, no tiene `basePath`, no usa Supabase.
+
+## Estado (Fase 3, 2026-08-30)
+
+**Adaptación: no aplica.** Es contenido estático (home, contáctenos,
+productos, quiénes somos) sin backend propio — no hay nada que apuntar a
+`nexo-core` ni ningún permiso que registrar. Listo para desplegarse tal
+cual está.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
