@@ -34,6 +34,28 @@ extra para el permiso de visibilidad — un trigger de Postgres
 nivel de base de datos; todo lo demás (permisos de funciones dentro del
 módulo) sigue el checklist de arriba.
 
+## Regla obligatoria: Vercel Speed Insights + Analytics
+
+**Toda app en `apps/*` que se despliegue en Vercel debe incluir
+`@vercel/speed-insights` y `@vercel/analytics`** (pedido explícito del
+usuario — "recuerda siempre agregar esto"). Al crear o adaptar un módulo
+nuevo:
+
+```tsx
+// layout.tsx
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
+// ...
+<body>
+  {children}
+  <SpeedInsights />
+  <Analytics />
+</body>
+```
+
+Ya está en `apps/nexo`, `apps/crm` y `apps/web-corporativo`. Falta agregarlo
+a `apps/rrhh` y `apps/flotilla` cuando se adapten en sus fases.
+
 ## Arquitectura (resumen — detalle en `docs/ARCHITECTURE.md`)
 
 - Monorepo Turborepo + pnpm. Un módulo = una app en `apps/*`, desplegable

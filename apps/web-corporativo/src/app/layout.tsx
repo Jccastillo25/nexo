@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo_Black, Work_Sans, IBM_Plex_Mono } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -39,6 +41,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main className="flex-1">{children}</main>
         <Footer />
         <WhatsAppButton />
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );

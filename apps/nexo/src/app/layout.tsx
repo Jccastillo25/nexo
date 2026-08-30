@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 // Tipografia del chrome de Nexo (shell bar + panel) — ver
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full bg-neutral-100 font-sans text-neutral-900">
         {children}
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );

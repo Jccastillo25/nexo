@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Archivo_Black, Work_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const archivoBlack = Archivo_Black({
@@ -34,6 +36,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         {children}
+        <SpeedInsights />
+        <Analytics />
         <Toaster
           position="top-right"
           toastOptions={{
