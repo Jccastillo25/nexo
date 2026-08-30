@@ -43,7 +43,7 @@ export default function SearchBox({
         onChange={(e) => setValue(e.target.value)}
         placeholder="Buscar por nombre, N° o RUC…"
         aria-label="Buscar clientes"
-        className="w-full rounded-sm border border-acero-medio/40 bg-white px-3 py-2 font-mono text-sm text-acero outline-none focus:border-naranja focus:ring-1 focus:ring-naranja"
+        className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
       />
     </div>
   );

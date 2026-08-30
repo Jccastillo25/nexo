@@ -31,7 +31,7 @@ export default function DeleteClienteButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-sm border border-red-700/40 px-4 py-2.5 font-mono text-xs uppercase tracking-wide text-red-800 transition-colors hover:bg-red-700/10"
+        className="rounded-md border border-red-200 px-4 py-2.5 text-xs uppercase tracking-wide text-red-700 transition-colors hover:bg-red-50"
       >
         Eliminar cliente
       </button>
@@ -41,17 +41,17 @@ export default function DeleteClienteButton({
           role="dialog"
           aria-modal="true"
           aria-labelledby="confirm-delete-title"
-          className="fixed inset-0 z-20 flex items-center justify-center bg-acero/50 px-4"
+          className="fixed inset-0 z-20 flex items-center justify-center bg-neutral-900/50 px-4"
         >
-          <div className="w-full max-w-sm rounded-md border border-acero-medio/25 bg-concreto p-5 shadow-lg">
+          <div className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-5 shadow-lg">
             <h2
               id="confirm-delete-title"
-              className="font-display text-lg text-acero"
+              className="text-lg font-semibold text-neutral-900"
             >
               ¿Eliminar cliente?
             </h2>
-            <p className="mt-2 font-mono text-sm text-acero-medio">
-              Se eliminará <span className="text-acero">{nombre}</span> de
+            <p className="mt-2 text-sm text-neutral-500">
+              Se eliminará <span className="text-neutral-900">{nombre}</span> de
               forma permanente. Esta acción no se puede deshacer.
             </p>
 
@@ -60,7 +60,7 @@ export default function DeleteClienteButton({
                 type="button"
                 onClick={() => setOpen(false)}
                 disabled={isPending}
-                className="rounded-sm border border-acero-medio/40 px-4 py-2 font-mono text-xs uppercase tracking-wide text-acero-medio transition-colors hover:border-acero"
+                className="rounded-md border border-neutral-300 px-4 py-2 text-xs uppercase tracking-wide text-neutral-600 transition-colors hover:border-neutral-400"
               >
                 Cancelar
               </button>
@@ -68,7 +68,7 @@ export default function DeleteClienteButton({
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="rounded-sm bg-red-700 px-4 py-2 font-mono text-xs uppercase tracking-wide text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-md bg-red-600 px-4 py-2 text-xs uppercase tracking-wide text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isPending ? "Eliminando…" : "Sí, eliminar"}
                 </button>

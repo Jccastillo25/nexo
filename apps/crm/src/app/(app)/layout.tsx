@@ -1,9 +1,16 @@
 import { redirect } from "next/navigation";
 import { hasPermission } from "@nexo/permissions";
+import { Sidebar, type SidebarItem } from "@nexo/ui";
 import Header from "@/components/Header";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { getPanelUrl } from "@/lib/panel";
+
+// Unica seccion del CRM por ahora — cuando se agregue una segunda (ej.
+// Oportunidades/Reportes), cada item calcula su propio `active` comparando
+// contra el pathname actual. Con una sola seccion, "Clientes" es siempre la
+// activa: toda ruta de este layout ((app)/clientes/**) es parte de ella.
+const NAV_ITEMS: SidebarItem[] = [{ label: "Clientes", href: "/clientes", active: true }];
 
 /**
  * Guard de modulo (norma v3.0): el middleware (ver
@@ -31,11 +38,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ]);
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-concreto">
+    <div className="flex min-h-full flex-1 flex-col bg-neutral-100">
       <Header panelUrl={panelUrl} userEmail={user?.email} />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6">
-        {children}
-      </main>
+      <div className="flex flex-1">
+        <Sidebar items={NAV_ITEMS} />
+        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-6 sm:px-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

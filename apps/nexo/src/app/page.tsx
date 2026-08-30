@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ShellBar, getCategoryColor } from "@nexo/ui";
+import { ShellBar, getCategoryColor, getCategoryIcon } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { signOut } from "./login/actions";
@@ -66,6 +66,7 @@ export default async function PanelPage() {
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
               {categoryApps.map((app) => {
                 const color = getCategoryColor(app.category);
+                const AppIcon = getCategoryIcon(app.category);
                 return (
                   <Link
                     key={app.slug}
@@ -73,9 +74,9 @@ export default async function PanelPage() {
                     className="flex flex-col items-center gap-3 rounded-lg border border-neutral-200 bg-white p-5 text-center transition-shadow hover:shadow-md"
                   >
                     <span
-                      className={`flex h-12 w-12 items-center justify-center rounded-lg text-lg font-semibold ${color.bg} ${color.text}`}
+                      className={`flex h-12 w-12 items-center justify-center rounded-lg ${color.bg} ${color.text}`}
                     >
-                      {app.name.charAt(0)}
+                      <AppIcon className="h-6 w-6" />
                     </span>
                     <span className="text-sm font-medium">{app.name}</span>
                   </Link>

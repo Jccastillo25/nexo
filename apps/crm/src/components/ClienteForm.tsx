@@ -10,9 +10,8 @@ import DeleteClienteButton from "./DeleteClienteButton";
 const initialState: ClienteFormState = { error: null };
 
 const inputClass =
-  "w-full rounded-sm border border-acero-medio/40 bg-white px-3 py-2 font-mono text-sm text-acero outline-none focus:border-naranja focus:ring-1 focus:ring-naranja";
-const labelClass =
-  "text-xs font-mono uppercase tracking-wide text-acero-medio";
+  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+const labelClass = "text-xs uppercase tracking-wide text-neutral-500";
 
 export default function ClienteForm({
   mode,
@@ -44,7 +43,7 @@ export default function ClienteForm({
       {mode === "edit" && cliente && (
         <div className="flex flex-col gap-1.5">
           <span className={labelClass}>Número de cliente</span>
-          <div className="w-fit rounded-sm border border-acero-medio/25 bg-acero-medio/10 px-3 py-2 font-mono text-sm text-acero-medio">
+          <div className="w-fit rounded-md border border-neutral-200 bg-neutral-100 px-3 py-2 text-sm text-neutral-500">
             #{cliente.numero_cliente}
           </div>
         </div>
@@ -138,13 +137,13 @@ export default function ClienteForm({
       {state.error && (
         <p
           role="alert"
-          className="rounded-sm border border-red-700/30 bg-red-700/10 px-3 py-2 text-sm text-red-800"
+          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
         >
           {state.error}
         </p>
       )}
 
-      <div className="flex items-center justify-between gap-3 border-t border-acero-medio/20 pt-4">
+      <div className="flex items-center justify-between gap-3 border-t border-neutral-200 pt-4">
         {mode === "edit" && cliente ? (
           <DeleteClienteButton id={cliente.id} nombre={cliente.nombre} />
         ) : (
@@ -154,7 +153,7 @@ export default function ClienteForm({
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-sm bg-naranja px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-naranja/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending
             ? "Guardando…"

@@ -80,23 +80,27 @@ identifica de qué módulo viene algo — el tile en el launcher, el borde
 izquierdo de un widget en la Torre de Control (ver 3.1), una etiqueta. Nunca
 se usa para botones ni inputs.
 
-**Capa 3 — identidad del módulo puertas adentro**: cada módulo puede tener su
-propia paleta de marca en su contenido (el CRM ya usa Archivo
-Black/Work Sans/IBM Plex Mono). Esto es libre siempre que no invada el shell
-ni los componentes compartidos de `@nexo/ui`.
+**Capa 3 — retirada (2026-08-30).** La versión original de esta norma
+dejaba una "identidad del módulo puertas adentro" libre — paleta y
+tipografía de marca propia en el contenido, siempre que no invadiera el
+shell. El CRM la usó (paleta `concreto`/`acero`/`naranja`, `Archivo
+Black`/`Work Sans`/`IBM Plex Mono`) y el resultado, aun con la barra
+superior ya unificada, seguía sintiéndose como un software distinto por
+dentro. Decisión explícita del usuario: se retira esta capa. Todo el
+contenido de todos los módulos usa la Capa 1 (neutrales + acento) y la
+tipografía única de abajo — no queda ninguna capa de identidad libre por
+módulo, solo el color de categoría (Capa 2) en puntos puntuales.
 
 ### 1.3 Tipografía
 
-- **Chrome compartido (ShellBar, sidebar, launcher, notificaciones,
-  Omnibar):** [Inter](https://fonts.google.com/specimen/Inter) — geométrica,
-  alta legibilidad en tamaños chicos, ya es el estándar vigente. No se
-  negocia por módulo.
-- **Componentes de `@nexo/ui`** (botones, inputs, tablas, modales): Inter
-  también, aunque el módulo que los usa tenga su propia tipografía de marca
-  en el contenido — un `<Button>` de RRHH y uno del CRM se leen con la misma
-  fuente porque son el mismo componente.
-- **Contenido propio del módulo:** libre (regla ya vigente en
-  `DESIGN_SYSTEM.md` §checklist punto 4).
+**Una sola tipografía para toda la suite, sin excepción: Inter.** Chrome
+compartido (`ShellBar`, `Sidebar`, launcher, notificaciones, Omnibar),
+componentes de `@nexo/ui` (botones, inputs, tablas, modales) **y** el
+contenido propio de cada módulo — los tres antes tenían reglas distintas
+(la Capa 3 de arriba lo permitía), ahora es una sola regla. Ver el bug
+real que esto corrigió en `DESIGN_SYSTEM.md` (el CRM cargaba Archivo
+Black/Work Sans/IBM Plex Mono).
+
 - **Escala:** `12px` (metadatos/labels), `14px` (cuerpo, default de
   formularios y tablas), `16px` (cuerpo destacado), `20px`/`24px` (títulos de
   sección), `32px`+ (KPIs de la Torre de Control). Sin tamaños intermedios
@@ -305,10 +309,12 @@ suite, sin importar qué módulo sea ni quién lo escriba:
 
 | Pieza | Estado |
 |---|---|
-| Tokens de neutrales + acento (§1.2 capa 1) | **Pendiente** — hoy solo existen `--nexo-shell-bg`/`--nexo-shell-fg`/`--nexo-bg` y los colores de categoría |
-| Reglas de componentes `@nexo/ui` (§1.4) | Parcial — `ShellBar`, `BackToPanelLink` cumplen; `Button`/`Input`/`Modal`/`DataTable` genéricos **no existen aún** como paquete compartido |
-| App Launcher / Omnibar / Notificaciones en `ShellBar` (§2.1) | **Pendiente** — hoy `ShellBar` solo resuelve marca + volver al panel + usuario/salir |
-| Sidebar contextual (§2.2) | **Pendiente** — ningún módulo la tiene hoy |
+| Tokens de neutrales + acento (§1.2 capa 1) | ✅ En uso — `neutral-*`/`blue-600` de Tailwind directo (sin CSS vars `--nexo-*` todavía, pero el valor y el uso son los documentados) |
+| Capa 3 (identidad propia por módulo) | **Retirada** — ver principio revisado en §1.2. CRM reskineado a la paleta única el mismo día que se escribió esta norma |
+| Reglas de componentes `@nexo/ui` (§1.4) | Parcial — `ShellBar`, `Sidebar`, `BackToPanelLink` cumplen; `Button`/`Input`/`Modal`/`DataTable` genéricos **no existen aún** como paquete compartido (el CRM sigue con inputs/botones propios, aunque ya con los tokens correctos) |
+| App Launcher — íconos de categoría (§2.1) | ✅ `packages/ui/category-icons.tsx` — SVG a mano, uno por categoría, sin dependencia externa |
+| Omnibar / Notificaciones / Avatar en `ShellBar` (§2.1) | ✅ UI implementada (buscador sin backend real, notificaciones estáticas) — falta el índice de búsqueda real y `core.notifications` |
+| Sidebar contextual (§2.2) | ✅ Componente listo y **cableado en el CRM** (una sola sección, "Clientes") — falta en RRHH/Flotilla (no migrados aún) |
 | Torre de Control (§3.1) | **Pendiente** — no existe la vista; depende de que RRHH/Flotilla estén en `nexo-core` para cruzar datos |
 | PWA conductores / Kiosko RRHH (§3.2, §3.3) | **Pendiente** — dependen de las Fases 5/6 del roadmap |
 | Reglas anti-fragmentación (§4) | **Vigente desde hoy** — es proceso, no código; aplica a partir de este commit |

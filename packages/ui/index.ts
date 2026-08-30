@@ -12,6 +12,16 @@ export {
   getCategoryColor,
 } from "./category-colors";
 export type { CategoryColor } from "./category-colors";
+export {
+  CATEGORY_ICONS,
+  getCategoryIcon,
+  VentasIcon,
+  FinanzasIcon,
+  CadenaSuministroIcon,
+  RrhhIcon,
+  ServiciosIcon,
+  DefaultAppIcon,
+} from "./category-icons";
 
 // Pendiente: StatCard, PageHeader — se construyen cuando RRHH/Flotilla se
 // adapten y haya que resolver la duplicacion de StatCard que ya existe

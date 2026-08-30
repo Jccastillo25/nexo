@@ -40,10 +40,10 @@ export default async function ClientesPage({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-        <h1 className="font-display text-2xl text-acero">Clientes</h1>
+        <h1 className="text-2xl font-semibold text-neutral-900">Clientes</h1>
         <Link
           href="/clientes/nuevo"
-          className="inline-flex items-center justify-center rounded-sm bg-naranja px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-naranja/90"
+          className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-700"
         >
           + Nuevo cliente
         </Link>
@@ -51,7 +51,7 @@ export default async function ClientesPage({
 
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <SearchBox initialValue={query} />
-        <p className="font-mono text-xs text-acero-medio">
+        <p className="text-xs text-neutral-500">
           {clientes?.length ?? 0} cliente{clientes?.length === 1 ? "" : "s"}
         </p>
       </div>

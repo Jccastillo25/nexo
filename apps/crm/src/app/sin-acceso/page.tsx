@@ -17,13 +17,15 @@ export default async function SinAccesoPage() {
   const panelUrl = await getPanelUrl();
 
   return (
-    <div className="flex min-h-full flex-1 items-center justify-center bg-concreto px-4 py-16">
+    <div className="flex min-h-full flex-1 items-center justify-center bg-neutral-100 px-4 py-16">
       <div className="w-full max-w-sm text-center">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-acero-medio">
+        <p className="text-xs uppercase tracking-[0.2em] text-neutral-400">
           Materiales J Castillo
         </p>
-        <h1 className="mt-2 font-display text-2xl text-acero">Sin acceso</h1>
-        <p className="mt-4 text-sm text-acero-medio">
+        <h1 className="mt-2 text-2xl font-semibold text-neutral-900">
+          Sin acceso
+        </h1>
+        <p className="mt-4 text-sm text-neutral-500">
           Tu cuenta no tiene el permiso <code>crm.ver_modulo</code> para esta
           empresa. Si crees que es un error, pedile a un administrador que te
           asigne el módulo CRM.
@@ -33,12 +35,12 @@ export default async function SinAccesoPage() {
           <BackToPanelLink
             href={panelUrl}
             label="Volver a Nexo"
-            className="text-xs font-mono uppercase tracking-wide text-acero-medio transition-colors hover:text-naranja"
+            className="text-xs uppercase tracking-wide text-neutral-500 transition-colors hover:text-blue-600"
           />
           <form action={signOut}>
             <button
               type="submit"
-              className="rounded-sm border border-acero-medio/40 px-4 py-2 font-mono text-xs uppercase tracking-wide text-acero-medio transition-colors hover:border-naranja hover:text-naranja"
+              className="rounded-md border border-neutral-300 px-4 py-2 text-xs uppercase tracking-wide text-neutral-600 transition-colors hover:border-neutral-400 hover:text-neutral-900"
             >
               Cerrar sesión
             </button>

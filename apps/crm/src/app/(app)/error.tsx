@@ -15,19 +15,19 @@ export default function AppError({
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
-      <p className="font-mono text-xs uppercase tracking-wide text-red-800">
+      <p className="text-xs uppercase tracking-wide text-red-700">
         Ocurrió un error
       </p>
-      <h1 className="font-display text-xl text-acero">
+      <h1 className="text-xl font-semibold text-neutral-900">
         No se pudo completar la operación
       </h1>
-      <p className="max-w-md font-mono text-sm text-acero-medio">
+      <p className="max-w-md text-sm text-neutral-500">
         {error.message || "Ocurrió un error inesperado. Intenta de nuevo."}
       </p>
       <button
         type="button"
         onClick={reset}
-        className="mt-2 rounded-sm bg-naranja px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-naranja/90"
+        className="mt-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
       >
         Reintentar
       </button>
