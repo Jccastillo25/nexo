@@ -79,6 +79,34 @@ Al crear o adaptar un módulo nuevo:
    gráficos hasta que el dashboard lo pida (ver Torre de Control, §3.1 de
    la norma, para cuando haya que cruzar KPIs de varios módulos).
 
+## Regla obligatoria: navegación dentro del módulo usa `next/link`, nunca `<a>` plano
+
+**Todo link que navega dentro del mismo módulo (sidebar, tabs, breadcrumbs,
+`titleHref` de `ShellBar`, cualquier `<Link>`/botón que cambia de página
+sin cruzar de módulo) usa `next/link`, nunca un `<a href>` nativo.** El
+`basePath` de Next.js (`/crm`, `/rrhh`, `/flotilla`...) se aplica
+automáticamente a `next/link` y `router.push`, pero **no** a un `<a>`
+nativo — un `<a href="/clientes">` navega el navegador literalmente a
+`nexo.materialesjcastillo.com/clientes` (la zona del panel, que no tiene
+esa ruta) en vez de `.../crm/clientes`, y produce un 404 real en
+producción, no solo un error de desarrollo.
+
+Bug real que esto corrigió: [`packages/ui/Sidebar.tsx`](../packages/ui/Sidebar.tsx)
+renderizaba sus ítems con `<a href={item.href}>` — compilaba sin error,
+funcionaba en local por coincidencia (`localhost:3000/crm` sí resuelve
+`/clientes` si por accidente hay una ruta ahí) y rompía en producción real.
+Se detectó porque el usuario lo vio fallar en vivo, no en ningún build ni
+test — otra razón más para verificar los flujos reales en el navegador
+antes de dar algo por terminado (ver `<when_to_verify>` del harness).
+
+**La única excepción, a propósito, es `BackToPanelLink`** (ver
+[`packages/ui/BackToPanelLink.tsx`](../packages/ui/BackToPanelLink.tsx)):
+ese sí es un `<a>` plano, porque cruza de módulo — cruza de *zona* en
+Multi-Zones, así que necesita una navegación real del navegador, nunca
+client-side routing. Antes de agregar un nuevo `<a href>` en cualquier
+componente de `@nexo/ui` o de un módulo, la pregunta es: "¿esto se queda
+en el mismo módulo, o cruza a otro?" — si se queda, es `next/link`.
+
 ## Regla obligatoria: `ShellBar` es LA barra superior, no una opción
 
 **Ningún módulo construye su propio header para reemplazar la barra
