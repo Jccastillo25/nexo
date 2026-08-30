@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ShellBar, getCategoryColor, getCategoryIcon } from "@nexo/ui";
+import { ShellBar, Footer, getCategoryColor, getCategoryIcon } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { getPlatformSettings } from "@/lib/platform-settings";
 import { signOut } from "./login/actions";
 import type { VisibleApp } from "@/lib/supabase/database.types";
 
@@ -31,15 +32,21 @@ export default async function PanelPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: apps, error } = await supabase.rpc("get_visible_apps", {
-    p_company_id: companyId,
-  });
+  const [{ data: apps, error }, settings] = await Promise.all([
+    supabase.rpc("get_visible_apps", { p_company_id: companyId }),
+    getPlatformSettings(supabase),
+  ]);
 
   const groups = groupByCategory(apps ?? []);
 
   return (
     <div className="flex min-h-full flex-col">
-      <ShellBar title="Nexo" userEmail={user?.email} onSignOut={signOut} />
+      <ShellBar
+        title="Nexo"
+        userEmail={user?.email}
+        onSignOut={signOut}
+        settingsHref="/ajustes"
+      />
 
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-10">
         {error && (
@@ -86,6 +93,8 @@ export default async function PanelPage() {
           </section>
         ))}
       </div>
+
+      <Footer text={settings.copyrightText} />
     </div>
   );
 }

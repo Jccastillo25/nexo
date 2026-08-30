@@ -40,6 +40,10 @@ export interface ShellBarProps {
   /** Oculta el buscador — por ahora nunca hace falta, pero deja la puerta
    * abierta para una pantalla angosta que no le entre. */
   showSearch?: boolean;
+  /** Ruta a la config de marca (logo/fondo del login/copyright) — solo
+   * apps/nexo la pasa (ahi vive /ajustes); ningun modulo la tiene, por eso
+   * es opcional y no aparece en el menu si no se pasa. */
+  settingsHref?: string;
 }
 
 function SearchIcon() {
@@ -118,9 +122,11 @@ function NotificationsMenu() {
 function UserMenu({
   email,
   onSignOut,
+  settingsHref,
 }: {
   email?: string | null;
   onSignOut?: () => void | Promise<void>;
+  settingsHref?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useOutsideClick(() => setOpen(false));
@@ -144,6 +150,14 @@ function UserMenu({
             <p className="truncate border-b border-neutral-100 px-2.5 py-2 text-neutral-500">
               {email}
             </p>
+          )}
+          {settingsHref && (
+            <Link
+              href={settingsHref}
+              className="mt-1 block w-full rounded-md px-2.5 py-2 text-left text-neutral-700 transition-colors hover:bg-neutral-50"
+            >
+              Configuración de marca
+            </Link>
           )}
           {onSignOut && (
             <form action={onSignOut}>
@@ -170,6 +184,7 @@ export function ShellBar({
   onSearch,
   searchPlaceholder,
   showSearch = true,
+  settingsHref,
 }: ShellBarProps) {
   const titleEl = titleHref ? (
     <Link href={titleHref} className="hover:text-neutral-600">
@@ -223,7 +238,7 @@ export function ShellBar({
 
       <div className="ml-auto flex flex-shrink-0 items-center gap-1">
         <NotificationsMenu />
-        <UserMenu email={userEmail} onSignOut={onSignOut} />
+        <UserMenu email={userEmail} onSignOut={onSignOut} settingsHref={settingsHref} />
       </div>
     </div>
   );
