@@ -2,6 +2,29 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-08-30 — Fase 2: proyecto `nexo-core` + schema `core` + norma v3.0
+
+- Proyecto Supabase `nexo-core` creado (ref `yrbjlmiqhkyxtlcerowh`,
+  org `Grupo CT`, `us-east-1`, plan gratuito).
+- Aplicadas las migraciones `core_schema` y `core_seed_apps`: 7 tablas del
+  schema `core`, trigger `trg_seed_module_permission`, RLS habilitado en
+  las 7 tablas, `core.apps` sembrada con los 4 módulos actuales.
+- Verificado en vivo: el trigger creó solo los 4 permisos de visibilidad
+  (`nexo.ver_modulo`, `rrhh.ver_modulo`, `flotilla.ver_modulo`,
+  `crm.ver_modulo`) sin ningún INSERT manual.
+- `get_advisors` (security): sin alertas más allá de "RLS sin policy" en
+  las 5 tablas que se dejaron así a propósito (provisional hasta Fase 3+).
+- Se construyó el motor de permisos fail-closed en
+  `packages/permissions/index.ts` (`hasPermission`/`requirePermission`):
+  un `permission_code` no registrado en `core.permissions_catalog` deniega
+  siempre, incluso para owners/admins.
+- Se agregó `CLAUDE.md` en la raíz del repo con la regla obligatoria de
+  permisos, para que se aplique automáticamente en cualquier sesión de
+  Claude Code que trabaje en este monorepo (pedido explícito del usuario:
+  "esto tiene que ser algo que se dispare siempre").
+- Pendiente: nada de esto está conectado todavía a ningún `apps/<módulo>`
+  real — es la base, la integración es la Fase 3+.
+
 ## 2026-08-29 — Import de código real (git subtree, historial preservado)
 
 Se trajo el código de los 4 productos existentes a sus carpetas en `apps/`,
