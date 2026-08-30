@@ -62,6 +62,17 @@ arriba). La identidad visual del módulo va en el contenido, debajo de la
 barra, nunca reemplazándola. Guía completa, ejemplo del bug real que esto
 corrigió, y checklist: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
+## Regla obligatoria: todo módulo aterriza en su Dashboard de KPIs
+
+**La raíz de cada módulo (`/`, bajo su propio `basePath`) redirige
+siempre a un `/dashboard` propio, con las métricas principales de esa
+área — nunca a una lista de contenido ni a una página en blanco.** No
+alcanza con "no dejarlo en blanco": tiene que ser una vista de KPIs (2-3
+tarjetas con datos reales del módulo como mínimo). Ver
+[`apps/crm/src/app/(app)/dashboard/page.tsx`](apps/crm/src/app/(app)/dashboard/page.tsx)
+como referencia y el checklist completo en
+[`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
+
 ## Regla obligatoria: Vercel Speed Insights + Analytics
 
 **Toda app en `apps/*` que se despliegue en Vercel debe incluir
