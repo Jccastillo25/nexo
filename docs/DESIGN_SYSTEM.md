@@ -48,14 +48,36 @@ era oscura (`neutral-900`) en toda la suite — se revirtió a pedido
 explícito del usuario: el oscuro comunica "estás entrando", no "estás
 usando la suite".
 
-## Regla obligatoria: entrar a un módulo aterriza en su contenido, no en una página vacía
+## Regla obligatoria: todo módulo aterriza en su Dashboard de KPIs
 
-**La ruta raíz de cada módulo (`/`, bajo su propio `basePath`) redirige a
-su vista principal — nunca se deja una página en blanco esperando que el
-usuario haga clic en el sidebar.** Ver
-[`apps/crm/src/app/page.tsx`](../apps/crm/src/app/page.tsx): `redirect("/clientes")`.
-Al adaptar un módulo nuevo, su `page.tsx` raíz hace lo mismo hacia la
-vista/dashboard que corresponda.
+**La ruta raíz de cada módulo (`/`, bajo su propio `basePath`) redirige
+siempre a un `/dashboard` propio del módulo, con los KPIs principales de
+esa área — nunca a una lista vacía ni a una página en blanco esperando que
+el usuario haga clic en el sidebar.** No alcanza con redirigir a la
+primera sección de contenido (ej. una tabla): tiene que ser una vista de
+métricas, con al menos 2-3 tarjetas de KPI reales del módulo.
+
+Referencia: [`apps/crm/src/app/(app)/dashboard/page.tsx`](../apps/crm/src/app/(app)/dashboard/page.tsx)
+(total de clientes, nuevos este mes, distribución por tipo) +
+[`apps/crm/src/app/page.tsx`](../apps/crm/src/app/page.tsx) (`redirect("/dashboard")`).
+Nació de un ajuste real: la primera versión redirigía a `/clientes` (la
+tabla) — cumplía la letra de "no aterrizar en blanco" pero no la
+intención real, que es ver de un vistazo cómo está el módulo.
+
+Al crear o adaptar un módulo nuevo:
+
+1. `/dashboard` es la primera sección del `Sidebar`, siempre (ver
+   [`apps/crm/src/components/AppSidebar.tsx`](../apps/crm/src/components/AppSidebar.tsx)),
+   con ícono `"grid"` del registro de `Sidebar` (ver §2.2 de
+   [planning/NORMA_DISENO_UNIVERSAL.md](planning/NORMA_DISENO_UNIVERSAL.md)).
+2. Las tarjetas de KPI son datos reales del módulo (conteos, sumas,
+   distribuciones) — no placeholders ni datos de ejemplo. Con datos en
+   cero (módulo recién estrenado), se muestra `0` con un mensaje
+   explícito, no un estado vacío confuso.
+3. Un gráfico simple (barras de distribución, como en el CRM) es
+   suficiente para el MVP de cada módulo — no hace falta una librería de
+   gráficos hasta que el dashboard lo pida (ver Torre de Control, §3.1 de
+   la norma, para cuando haya que cruzar KPIs de varios módulos).
 
 ## Regla obligatoria: `ShellBar` es LA barra superior, no una opción
 
@@ -162,8 +184,12 @@ suelto en el componente del módulo.
    principio revisado arriba). Si el módulo importado tenía su propia
    identidad visual (fue el caso del CRM: `concreto`/`acero`/`naranja`,
    `Archivo Black`), se reemplaza al adaptarlo, no se preserva.
-6. Si el módulo tiene más de una sección de navegación, monta `Sidebar`
-   de `@nexo/ui` en su layout autenticado (ver
-   [`apps/crm/src/app/(app)/layout.tsx`](../apps/crm/src/app/(app)/layout.tsx))
-   — con una sola sección todavía no aporta, pero apenas se agregue una
-   segunda, se monta.
+6. Monta `Sidebar` de `@nexo/ui` en el layout autenticado — con la regla
+   de abajo (Dashboard + al menos una sección de contenido), todo módulo
+   tiene mínimo 2 ítems desde el día uno, así que esto ya no es opcional.
+   Ver [`apps/crm/src/app/(app)/layout.tsx`](../apps/crm/src/app/(app)/layout.tsx)
+   y [`apps/crm/src/components/AppSidebar.tsx`](../apps/crm/src/components/AppSidebar.tsx)
+   (wrapper cliente que calcula el ítem activo con `usePathname()` — el
+   layout es Server Component).
+7. La raíz del módulo (`page.tsx` en `/`) redirige a `/dashboard`, con
+   KPIs reales — ver la regla obligatoria de arriba.

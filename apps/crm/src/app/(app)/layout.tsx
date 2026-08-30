@@ -1,18 +1,10 @@
 import { redirect } from "next/navigation";
 import { hasPermission } from "@nexo/permissions";
-import { Sidebar, type SidebarItem } from "@nexo/ui";
 import Header from "@/components/Header";
+import AppSidebar from "@/components/AppSidebar";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { getPanelUrl } from "@/lib/panel";
-
-// Unica seccion del CRM por ahora — cuando se agregue una segunda (ej.
-// Oportunidades/Reportes), cada item calcula su propio `active` comparando
-// contra el pathname actual. Con una sola seccion, "Clientes" es siempre la
-// activa: toda ruta de este layout ((app)/clientes/**) es parte de ella.
-const NAV_ITEMS: SidebarItem[] = [
-  { label: "Clientes", href: "/clientes", icon: "users", active: true },
-];
 
 /**
  * Guard de modulo (norma v3.0): el middleware (ver
@@ -44,9 +36,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Header panelUrl={panelUrl} userEmail={user?.email} />
       {/* Sidebar es un dock flotante (position: fixed), no ocupa espacio en
           el flujo — este pl-24 le deja el margen para que el contenido no
-          quede tapado por el dock colapsado (w-16 + left-4). */}
+          quede tapado por el dock colapsado (w-16 + left-4). El item activo
+          lo calcula AppSidebar (Client Component, usePathname). */}
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-6 pl-24 sm:px-6 sm:pl-28">
-        <Sidebar items={NAV_ITEMS} />
+        <AppSidebar />
         {children}
       </main>
     </div>
