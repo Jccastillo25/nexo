@@ -1,6 +1,29 @@
+import { redirect } from "next/navigation";
+import { hasPermission } from "@nexo/permissions";
 import Header from "@/components/Header";
+import { createClient } from "@/lib/supabase/server";
+import { getCompanyId } from "@/lib/company";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+/**
+ * Guard de modulo (norma v3.0): el middleware (ver
+ * lib/supabase/middleware.ts) solo verifica que haya sesion — eso es
+ * AUTENTICACION, no AUTORIZACION. Sin este chequeo, cualquier usuario
+ * autenticado en el Supabase compartido de nexo-core (incluso de otra
+ * empresa, o sin el modulo CRM habilitado) podria ver el shell del CRM con
+ * solo escribir la URL. `crm.ver_modulo` es el permiso que el trigger
+ * `trg_seed_module_permission` crea solo al registrar el modulo en
+ * core.apps — aca es donde se hace cumplir.
+ */
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const canSeeModule = await hasPermission(
+    { supabase, companyId: getCompanyId() },
+    "crm.ver_modulo"
+  );
+  if (!canSeeModule) {
+    redirect("/sin-acceso");
+  }
+
   return (
     <div className="flex min-h-full flex-1 flex-col bg-concreto">
       <Header />
