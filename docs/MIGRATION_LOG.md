@@ -30,12 +30,13 @@ Orden de bitácora: más reciente arriba.
     mutable en una función nueva, y el RPC `public.has_permission`
     ejecutable por el rol `anon` sin sesión (se revocó de `PUBLIC`, se dejó
     solo para `authenticated`).
-- **Bloqueado, requiere decisión del usuario**: el clasificador de permisos
-  de Claude Code denegó `restore_project` sobre el proyecto pausado
-  `arzadwxsifnaolvfcvqk` (materiales-jcastillo-crm) — no se pudo confirmar
-  si tiene datos reales de clientes ni copiarlos. La estructura de
-  `crm.clientes` se recreó a partir del `database.types.ts` ya generado
-  (2026-08-29), no de una inspección en vivo.
+- **Resuelto**: el clasificador de permisos de Claude Code denegó
+  `restore_project` sobre el proyecto pausado `arzadwxsifnaolvfcvqk`
+  (materiales-jcastillo-crm), así que no se pudo inspeccionar en vivo. El
+  usuario confirmó que todo lo que había ahí era de prueba — **no hace
+  falta copiar ningún dato**. La estructura de `crm.clientes` recreada a
+  partir de `database.types.ts` (2026-08-29) es la definitiva, no un
+  placeholder a completar después.
 - **Pendiente manual, fuera del alcance de las herramientas MCP**: exponer
   el schema `crm` en Settings → API → Data API → Exposed schemas del
   proyecto `nexo-core`. Sin esto, `apps/crm` no puede conectarse de verdad

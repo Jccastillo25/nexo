@@ -17,7 +17,7 @@ crean cuando se migren los datos de cada módulo en su fase correspondiente.
 | Schema | Contenido | Origen | Estado |
 |---|---|---|---|
 | `core` | Compañías, membresías/roles, catálogo de apps, catálogo de permisos, permisos efectivos, auditoría, mapa de migración | Nuevo | ✅ Aplicado (2026-08-30) |
-| `crm` | `clientes` | Migrado de materiales-jcastillo (`arzadwxsifnaolvfcvqk`) | ✅ Estructura aplicada (2026-08-30). Datos reales pendientes (proyecto de origen pausado, ver MIGRATION_LOG.md) |
+| `crm` | `clientes` | Migrado de materiales-jcastillo (`arzadwxsifnaolvfcvqk`) | ✅ Completo (2026-08-30). Sin datos que copiar — el usuario confirmó que el proyecto original solo tenía datos de prueba |
 | `rrhh` | Empleados, asistencia, horarios, nómina | Migrado de Gestor360 (`ofeuzkwjhmfsazqfyutu`) | ⏳ Pendiente |
 | `flotilla` | Flota, viajes, conductores, evidencias | Migrado de Ruta360 | ⏳ Pendiente |
 

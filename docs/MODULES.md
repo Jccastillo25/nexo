@@ -9,7 +9,7 @@ sección 4. Esta tabla es el estado real de implementación.
 | Panel (Nexo) | `/` | — | Nuevo | No iniciado |
 | RRHH | `/rrhh` | RRHH | Gestor360 (`marcacion-grupo-ct`) | Código importado (2026-08-29), sin adaptar |
 | Flotilla | `/flotilla` | Cadena de suministro | Ruta360 (`Desktop/Transporte`) | Código importado (2026-08-29), sin adaptar |
-| CRM | `/crm` | Ventas | materiales-jcastillo | ✅ Adaptado (2026-08-30): basePath, nexo-core, permisos con RLS real. Falta exponer schema `crm` en el dashboard (manual) y copiar datos reales |
+| CRM | `/crm` | Ventas | materiales-jcastillo | ✅ Adaptado (2026-08-30): basePath, nexo-core, permisos con RLS real. Sin datos que migrar (proyecto original solo tenía datos de prueba). Falta exponer schema `crm` en el dashboard (manual, en curso) |
 | Web Corporativo | *(dominio aparte, no es módulo del panel)* | — | materiales-jcastillo | ✅ No requiere adaptación — listo tal cual (2026-08-30) |
 | Inventario | `/inventario` | Cadena de suministro | Nuevo (Fase 2) | Planeado |
 | Compras | `/compras` | Cadena de suministro | Nuevo (Fase 2) | Planeado |
