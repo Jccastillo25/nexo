@@ -1,38 +1,25 @@
-import Link from "next/link";
-import { BackToPanelLink } from "@nexo/ui";
+// Barra superior del CRM. Es literalmente <ShellBar> de @nexo/ui — no un
+// header propio (ver docs/planning/NORMA_DISENO_UNIVERSAL.md §2.1): la
+// identidad del CRM (concreto/acero/naranja, font-display/mono) vive en el
+// contenido de cada página ("Clientes", "Editar cliente"...), no en esta
+// barra, que se ve y se comporta igual en toda la suite.
+import { ShellBar } from "@nexo/ui";
 import { signOut } from "@/app/login/actions";
 
-export default function Header({ panelUrl }: { panelUrl: string }) {
+export default function Header({
+  panelUrl,
+  userEmail,
+}: {
+  panelUrl: string;
+  userEmail?: string | null;
+}) {
   return (
-    <header className="sticky top-0 z-10 border-b border-acero-medio/20 bg-concreto/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-3">
-          <BackToPanelLink
-            href={panelUrl}
-            className="text-xs font-mono uppercase tracking-wide text-acero-medio transition-colors hover:text-naranja"
-          />
-          <span aria-hidden="true" className="text-acero-medio/40">
-            /
-          </span>
-          <Link href="/clientes" className="flex flex-col leading-none">
-            <span className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-acero-medio">
-              Materiales J Castillo
-            </span>
-            <span className="font-display text-base text-acero">
-              Panel de clientes
-            </span>
-          </Link>
-        </div>
-
-        <form action={signOut}>
-          <button
-            type="submit"
-            className="rounded-sm border border-acero-medio/40 px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-acero-medio transition-colors hover:border-naranja hover:text-naranja"
-          >
-            Cerrar sesión
-          </button>
-        </form>
-      </div>
-    </header>
+    <ShellBar
+      title="CRM"
+      titleHref="/clientes"
+      backHref={panelUrl}
+      userEmail={userEmail}
+      onSignOut={signOut}
+    />
   );
 }

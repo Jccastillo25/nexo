@@ -25,11 +25,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/sin-acceso");
   }
 
-  const panelUrl = await getPanelUrl();
+  const [panelUrl, { data: { user } }] = await Promise.all([
+    getPanelUrl(),
+    supabase.auth.getUser(),
+  ]);
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-concreto">
-      <Header panelUrl={panelUrl} />
+      <Header panelUrl={panelUrl} userEmail={user?.email} />
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6">
         {children}
       </main>
