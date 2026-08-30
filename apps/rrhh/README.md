@@ -1,0 +1,416 @@
+# Gestor360 — Sistema de Control de Asistencia
+
+> Panel de administración web para el control de asistencia, horarios, empleados y organización de Grupo CT.
+
+---
+
+## 📋 Tabla de contenido
+
+1. [Descripción general](#descripción-general)
+2. [Stack tecnológico](#stack-tecnológico)
+3. [Estructura del proyecto](#estructura-del-proyecto)
+4. [Módulos del sistema](#módulos-del-sistema)
+5. [Base de datos](#base-de-datos)
+6. [Variables de entorno](#variables-de-entorno)
+7. [Instalación y desarrollo](#instalación-y-desarrollo)
+8. [Arquitectura de datos](#arquitectura-de-datos)
+9. [Kiosco de marcación](#kiosco-de-marcación)
+10. [Flujo de autenticación](#flujo-de-autenticación)
+
+---
+
+## Descripción general
+
+**Gestor360** es una aplicación web de gestión de recursos humanos y control de asistencia desarrollada para Grupo CT. El sistema permite:
+
+- Registrar y administrar empleados con perfiles completos.
+- Controlar marcaciones de entrada/salida a través de un **kiosco físico o web** con PIN de 4 dígitos.
+- Gestionar turnos y asignarlos a empleados.
+- Aprobar o rechazar permisos y ausencias.
+- Generar reportes de asistencia, tardanzas e incidencias.
+- Administrar la estructura organizacional: empresas, sucursales y membresías.
+- Configurar dispositivos kiosco por sucursal.
+
+---
+
+## Stack tecnológico
+
+| Categoría        | Tecnología                              |
+|------------------|-----------------------------------------|
+| Framework        | [Next.js 16](https://nextjs.org/) (App Router + Turbopack) |
+| UI Library       | [React 19](https://react.dev/)          |
+| Lenguaje         | TypeScript 5                            |
+| Estilos          | Tailwind CSS v4                         |
+| Backend / DB     | [Supabase](https://supabase.com/) (PostgreSQL + Auth + Storage) |
+| Iconos           | [Lucide React](https://lucide.dev/), Material Symbols |
+| Gráficas         | [Recharts](https://recharts.org/)       |
+| Monitoreo        | Vercel Speed Insights                   |
+| Linting          | ESLint 9 + eslint-config-next           |
+
+---
+
+## Cambios Recientes
+
+### 🛡️ Seguridad SSOT y Gobernanza (2026-04-14)
+
+**Deny by Default:**
+- Implementada política estricta de "Denegado por Defecto" mediante `permissions-manifest.json`.
+- Toda ruta y acción del sistema ahora requiere validación explícita de permisos granulares.
+- **Blindaje de Identidad**: Los campos de identidad legal (provenientes de empleados) se bloquean automáticamente en perfiles de usuario si existe vinculación SSOT.
+
+### 📄 Gestión de Contratos y Live Preview (2026-04-15)
+
+**Motor de Documentos Legales:**
+- Nuevo sistema de plantillas de contrato dinámicas con soporte para variables de sistema.
+- **Live Preview Engine**: Pre-visualización en tiempo real del documento legal mientras se editan las condiciones (salario, horario, etc.).
+- Integración con Storage para subida de archivos firmados con detector de obsolescencia.
+
+### 🚀 Hiring Refactor V2 e INSS (2026-04-16)
+
+**Hiring Wizard:**
+- Nuevo flujo de contratación consolidado en 3 pasos (Organización, Legal, Documentación).
+- **Cumplimiento INSS**: Implementación de periodos de gracia automáticos (5 días) para empleados sin número de seguridad social al momento del alta.
+- **Alertas Proactivas**: Widgets de cumplimiento en el Dashboard para monitorear vencimientos de trámites de seguridad social.
+
+### 🛡️ Estabilidad y Seguridad (2026-04-11)
+
+**Fix de Compilación y Tipado:**
+- Resuelto error de TypeScript en la construcción de producción (Vercel) al pasar permisos al componente cliente.
+- Implementado filtrado binario estricto de permisos en `AdminShell` para garantizar integridad de tipos y evitar fugas de metadatos internos (`profile_id`, etc.).
+
+### 🏗️ Gestión de Turnos: Herencia y Matriz de Diagnóstico (2026-03-27)
+
+**Motor de Herencia (4 Niveles):**
+- Implementado sistema de cascada: **Override > Manual > Global > Sucursal**.
+- Centralizado en `src/lib/shift-resolver.ts` para total paridad entre Kiosco y Admin.
+
+**Matriz de Diagnóstico:**
+- Nueva vista avanzada en `/schedules/matrix` para auditar la resolución de turnos de todo el personal.
+- Indicadores visuales de origen: bordes punteados para herencia, iconos de lápiz para excepciones manuales.
+- Función **"Fijar Turno" (Pin)** para convertir reglas automáticas en fijas con un clic.
+
+**Optimizaciones de Rendimiento:**
+- Migración de "N+1 Queries" a **Batch Fetching** en la matriz.
+- Reducción del overhead de base de datos en >95% para sucursales grandes (100+ empleados).
+
+### ⚡ Optimizaciones de Performance (2026-03-26)
+
+**Base de datos — 9 índices nuevos en Supabase:**
+- `attendance_logs (employee_id, clock_in DESC)` — lookup de log abierto en clock-out
+- `attendance_logs (company_id, clock_in DESC)` — queries del dashboard por empresa y fecha
+- `employees (employee_code, branch_id)` — PIN lookup del kiosco
+- `employee_status_logs (employee_id)` — tracking de descansos (tabla sin índices secundarios)
+- `employee_status_logs (employee_id, end_time_actual) WHERE end_time_actual IS NULL` — búsqueda de breaks abiertos
+
+**Nuevas funciones RPC en PostgreSQL:**
+- `get_weekly_attendance_counts(company_ids, since)` — agrega asistencia semanal en el servidor
+- `get_monthly_top_delays(company_ids, since, limit)` — top tardanzas agregadas en el servidor
+
+**Código — 5 archivos optimizados:**
+
+| Archivo | Mejora |
+|---|---|
+| `app/actions/kiosk.ts` | `verifyKioskPin`: de 2 queries a 1 con join. `processKioskEvent`: operaciones independientes en `Promise.all` |
+| `src/lib/utils.ts` | `generateUniquePin`: de hasta 100 queries en loop a 1 query + filtrado en memoria |
+| `app/(admin)/monitor/monitor-client.tsx` | `createClient()` memoizado. Fix de merge en realtime (preserva campos join). Un solo `setInterval` global reemplaza el timer por tarjeta |
+| `src/hooks/useAttendanceRealtime.ts` | `createClient()` memoizado. Fix de pérdida de `job_positions` en UPDATE de realtime. INSERTs traen solo el empleado nuevo en lugar de refetch completo. Cancellation flag anti-memory-leak |
+| `app/(admin)/dashboard/page.tsx` | `weeklyRecords` y `monthlyDelaysData` reemplazados por RPCs — elimina fetch de miles de filas para procesar en cliente |
+
+### 🐛 Fix: Auto-generación de `employee_code` (2026-03-24)
+
+- Se agregó auto-generación de código único usando UUID (formato: `EMP-XXXXXXXX`)
+- Archivo: `app/actions/employees.ts`
+
+### 🔐 RLS Policies Optimizadas (2026-03-24)
+
+- Consolidadas políticas de Row-Level Security en tabla `employees`
+- Eliminada política circular que causaba "infinite recursion"
+- Implementado patrón de autorización mediante `company_memberships`
+
+---
+
+## Estructura del proyecto
+
+```
+web/
+├── app/                        # Aplicación Next.js (App Router)
+│   ├── (admin)/                # Panel administrativo
+│   ├── (auth)/                 # Autenticación
+│   ├── actions/                # Server Actions
+│   └── ...
+│
+├── docs/                       # Documentación técnica
+│   ├── archive/                # Reportes históricos y resúmenes de sesiones
+│   ├── CONTRIBUTING.md         # Guía para contribuyentes
+│   └── DATABASE.md             # Diccionario de datos y esquema
+│
+├── public/                     # Activos estáticos
+├── scripts/                    # Scripts de mantenimiento y utilidades
+├── src/                        # Código fuente (components, hooks, lib)
+├── supabase/                   # Configuración de Supabase
+├── tsconfig.json               # Configuración de TypeScript
+└── next.config.ts              # Configuración de Next.js
+```
+
+---
+
+## Módulos del sistema
+
+### 🏠 Dashboard
+Pantalla principal del panel. Muestra:
+- **Métricas en tiempo real**: empleados activos, asistencia del día, correcciones pendientes, permisos por aprobar.
+- **Widgets de Cumplimiento**: Alertas de vencimiento de trámites INSS (Grace periods).
+- **Gráfica de asistencia semanal** (Recharts).
+- **Top atrasos del mes** (empleados con más tardanzas acumuladas).
+- **Donut de asistencia en vivo** (presentes vs. total).
+- **Distribución de personal por sucursal**.
+- **Solicitudes de permiso pendientes** con botones de aprobación rápida.
+- **Actividad reciente** (últimas 4 marcaciones).
+
+### 👥 Empleados y Hiring Wizard
+- **Hiring Wizard (Refactor V2)**: Proceso de alta guiado en 3 pasos que garantiza la integridad de datos desde el inicio.
+- Listado maestro con código de empleado, nombre, correo, teléfono, sucursal, fecha de ingreso y estado.
+- Estadísticas: total, activos, inactivos, sin turno asignado.
+- Perfil individual con todos los campos: datos personales, identidad (DUI, INNS, NIT), género, dirección, foto.
+- Crear, editar y activar/desactivar empleados.
+- Generación automática de **PIN único de 4 dígitos** al crear un empleado.
+
+### 📄 Contratos y Expedientes
+- **Gestión de Contratos**: Creación de contratos vinculados a empleados con tipos (Indefinido, Temporal, etc.).
+- **Motor de Plantillas**: Generación dinámica de documentos legales basados en el perfil del empleado y condiciones acordadas.
+- **Live Preview**: Visualización instantánea del PDF/HTML antes de imprimir.
+- **Control de Firmas**: Seguimiento de documentos físicos subidos y alertas de desactualización si cambian las condiciones del contrato.
+
+### ⏱️ Marcaciones
+- **Resumen**: marcaciones del día (entradas, salidas, correcciones, incidencias).
+- **Registros**: historial filtrable por fecha, empleado y sucursal.
+- **Correcciones**: solicitudes enviadas por empleados para ajustar una marcación errónea.
+- **Incidencias**: tardanzas, ausencias, horas extra y salidas fuera de turno.
+
+### 📅 Horarios
+- **Turnos**: definición de nombre, hora de entrada, hora de salida, minutos de descanso, tolerancia de entrada y salida.
+- **Asignaciones**: asignación de un turno a un empleado. La nueva asignación desactiva las anteriores automáticamente.
+
+### ✅ Aprobaciones
+- Gestión de **permisos y ausencias** (vacaciones, permiso médico, día administrativo, etc.).
+- Estados: `pending` → aprobado / rechazado.
+
+### 📊 Reportes
+- Reportes generales, de asistencia, horas trabajadas e incidencias.
+- **Correcciones manuales**: Se implementó una lógica de corrección manual para registros de tiempo desfasados (ej. fix de Bryan).
+- *(Módulo en expansión activa)*
+
+### 🛠️ Herramientas de Mantenimiento
+Se han incluido scripts auxiliares en la carpeta `scripts/` para tareas administrativas específicas:
+- `scripts/db-diag.mjs`: Diagnóstico de salud de la base de datos.
+- `scripts/get_rpc_def.mjs`: Utilidad para obtener definiciones de funciones RPC de la base de datos.
+- `scripts/check_data.ts`: Validación de integridad de datos de asistencia.
+
+> [!NOTE]
+> Reportes detallados de sesiones previas, auditorías de seguridad y análisis de arquitectura se encuentran archivados en `docs/archive/`.
+
+### 🏢 Organización
+- **Empresas**: multitenant — cada empresa tiene su slug único, nombre legal, RUC/NIT, dirección, teléfono y logo de reportes. Se usa el RPC `create_company_with_owner`.
+- **Sucursales**: cada sucursal pertenece a una empresa y puede tener un código único.
+- **Membresías**: control de qué usuarios tienen acceso a qué empresa y con qué rol.
+
+### 🔒 Sistema / Seguridad (SSOT)
+- Módulo de gestión de accesos y configuración del sistema.
+- **Gobernanza SSOT**: Sincronización estricta entre la identidad legal (RRHH) y la digital (Accesos).
+- **Deny by Default**: Control de acceso basado en un manifiesto centralizado de permisos.
+- Roles disponibles: `owner`, `admin`, `rrhh`, `supervisor`, `viewer`.
+
+### 🖥️ Kiosco
+- **Mensaje del kiosco**: texto personalizable que aparece en la pantalla del kiosco.
+- **Dispositivos**: registro de dispositivos físicos. El código se genera automáticamente: `{empresa}-{sucursal}-ki-{nn}`.
+- **Configuración**: personalización de logo, imagen de fondo y nombre de empresa.
+- **Asignación**: vinculación de un kiosco a una sucursal.
+
+---
+
+## Base de datos
+
+Tablas principales en **Supabase (PostgreSQL)**:
+
+| `employees`          | Empleados con todos sus datos y `employee_code` (PIN)    |
+| `employee_pins`      | Historial de PINs por empleado                          |
+| `employee_shifts`    | Asignaciones de turno (una activa por empleado)          |
+| `shifts`             | Definición de turnos (horario, tolerancias)              |
+| `branches`           | Sucursales vinculadas a empresas                         |
+| `companies`          | Empresas (multitenant)                                   |
+| `company_memberships`| Relación usuario-empresa con rol                         |
+| `attendance_logs`    | Marcaciones omnicanal (CLOCK_IN, BREAK, CLOCK_OUT)       |
+| `audit_logs`         | Auditoría de cambios en la base de datos                 |
+| `time_corrections`   | Solicitudes de corrección de marcaciones                 |
+| `incidents`          | Incidencias de asistencia (automáticas o manuales)       |
+| `absence_logs`       | Registro de faltas y permisos aprobados                 |
+| `kiosk_devices`      | Dispositivos kiosco autorizados                          |
+| `app_settings`       | Configuración dinámica (mensaje, logo, etc.)             |
+
+### Funciones RPC
+
+| Función                        | Descripción                                             |
+|--------------------------------|---------------------------------------------------------|
+| `create_company_with_owner`    | Crea una empresa y asigna al usuario actual como `owner`|
+| `rpc_mark_attendance_action`   | Firma de marcación oficial con validación de estado     |
+| `rpc_monitor_mark_attendance`  | Marcación remota por supervisor desde el Monitor        |
+| `get_weekly_attendance_counts` | Agrega asistencia por día (últimos 7 días) en servidor  |
+| `get_monthly_top_delays`       | Top N empleados con más tardanzas en el mes             |
+
+### Storage Buckets
+
+| Bucket             | Uso                                         |
+|--------------------|---------------------------------------------|
+| `employee-photos`  | Fotos de empleados y logos de empresas      |
+
+---
+
+## Variables de entorno
+
+Crea un archivo `.env.local` en la raíz del proyecto `web/`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=tu-anon-key
+```
+
+> ⚠️ Nunca incluyas la `service_role` key en el cliente. Usa siempre la `anon`/`publishable` key en el frontend.
+
+---
+
+## Instalación y desarrollo
+
+### Requisitos previos
+- Node.js 20+
+- npm 10+ (o pnpm/yarn)
+- Cuenta en [Supabase](https://supabase.com) con el proyecto configurado
+
+### Pasos
+
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/jcaatillo/marcacion-grupo-ct.git
+cd marcacion-grupo-ct/web
+
+# 2. Instalar dependencias
+npm install
+
+# 3. Configurar variables de entorno
+cp .env.example .env.local
+# Editar .env.local con tus credenciales de Supabase
+
+# 4. Iniciar servidor de desarrollo
+npm run dev
+```
+
+La aplicación estará disponible en `http://localhost:3000`.
+
+### Scripts disponibles
+
+| Comando        | Descripción                              |
+|----------------|------------------------------------------|
+| `npm run dev`  | Servidor de desarrollo (Next.js Turbopack) |
+| `npm run build`| Construir para producción                |
+| `npm run start`| Iniciar servidor en modo producción      |
+| `npm run lint` | Ejecutar ESLint                          |
+
+---
+
+## Arquitectura de datos
+
+```
+Usuario autenticado (Supabase Auth)
+        │
+        ├─ company_memberships ─────► companies
+        │        (rol: owner/admin/rrhh/supervisor/viewer)    │
+        │                                                      ├─► branches
+        │                                                      │       │
+        │                                                      │       ├─► employees
+        │                                                      │       │       │
+        │                                                      │       │       ├─► employee_pins
+        │                                                      │       │       ├─► employee_shifts ─► shifts
+        │                                                      │       │       ├─► attendance_logs (vía RPC)
+        │                                                      │       │       ├─► time_corrections
+        │                                                      │       │       ├─► incidents
+        │                                                      │       │       └─► absence_logs
+        │                                                      │       │
+        │                                                      │       └─► kiosk_devices
+        │                                                      │
+        │                                                      └─► audit_logs (Triggers)
+        └─ app_settings (configuración global)
+```
+
+### Flujo de marcación (Kiosco)
+
+```
+Empleado ingresa PIN en kiosco
+        │
+        ▼
+Server Action: processKioskEvent(branch_id, pin, event_type)
+        │
+        ▼
+RPC: rpc_mark_attendance_action(...)
+        │ (Valida estado + calcula retrasos + auditoría)
+        ▼
+Actualiza employees.current_status
+        │ (Broadcast Realtime)
+        ▼
+Kiosco muestra confirmación + Monitor se actualiza
+```
+
+---
+
+## Kiosco de marcación
+
+La ruta raíz `/` sirve el kiosco de marcación. Es una página pública (sin autenticación obligatoria) que:
+
+1. Carga configuración desde `app_settings`: logo, imagen de fondo, mensaje y nombre de empresa.
+2. Muestra un teclado numérico para ingresar el PIN de 4 dígitos.
+3. Llama al Server Action `processKioskEvent` al confirmar.
+4. Los dispositivos físicos se identifican con un `device_code` en formato: `{empresa}-{sucursal}-ki-{nn}`.
+
+---
+
+## Flujo de autenticación
+
+```
+/login  ──► signIn (Server Action)
+              │
+              ├─ Validación de email + contraseña
+              ├─ supabase.auth.signInWithPassword()
+              └─ redirect('/dashboard') en éxito
+
+Panel Admin ──► Middleware Supabase
+              │
+              └─ Verifica sesión activa en cada request
+                   Si no hay sesión → redirect('/login')
+
+Cerrar sesión ──► signOut (Server Action)
+              │
+              └─ supabase.auth.signOut() → redirect('/login')
+```
+
+---
+
+## Convenciones de código
+
+- **Server Actions** (`'use server'`): manejo de formularios y mutaciones en `app/actions/`.
+- **Server Components** por defecto: todas las páginas se renderizan en servidor.
+- **Client Components** (`'use client'`): solo donde se requiere interactividad (sidebar, gráficas, kiosco).
+- **Rutas de grupo** `(admin)` y `(auth)`: organizan rutas sin afectar la URL.
+- **Alias de importación**: `@/` apunta a `src/` (configurado en `tsconfig.json`).
+- **CSS Variables**: el tema visual completo se gestiona con variables CSS (`--primary`, `--sidebar-bg`, etc.).
+
+---
+
+## Contribución
+
+1. Crea una rama descriptiva: `feature/nombre-modulo` o `fix/descripcion-bug`.
+2. Asegúrate de que `npm run lint` no reporte errores antes de hacer push.
+3. Los Server Actions deben retornar `ActionState = { error: string } | null`.
+4. Toda operación de base de datos debe usar el cliente de servidor (`@/lib/supabase/server`).
+
+---
+
+*Documentación actualizada el 17 de abril de 2026 — Gestor360 v0.5.0*
+- Última actualización: Hiring Wizard V2, Integración INSS y Motor de Contratos.
