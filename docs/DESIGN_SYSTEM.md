@@ -13,6 +13,13 @@ investigación de [planning/DISENO_UX_UI.md](planning/DISENO_UX_UI.md)
 (estudio de SAP Fiori y Odoo): qué es obligatorio, qué es libre, y el
 checklist para cuando se cree o adapte un módulo nuevo.
 
+La norma completa (paleta agnóstica, App Shell con launcher/omnibar/
+notificaciones, sidebar contextual, Torre de Control, vistas PWA/kiosko y
+reglas anti-fragmentación) vive en
+[planning/NORMA_DISENO_UNIVERSAL.md](planning/NORMA_DISENO_UNIVERSAL.md) —
+este documento se actualiza con el ejemplo real de código a medida que cada
+pieza de esa norma se implementa.
+
 ## Principio: shell consistente, contenido con identidad propia
 
 Igual que SAP Fiori Launchpad y el app switcher de Odoo: el usuario nota
