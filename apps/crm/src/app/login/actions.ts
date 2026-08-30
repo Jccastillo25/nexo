@@ -3,35 +3,15 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export type LoginState = { error: string | null };
-
-export async function signIn(
-  _prevState: LoginState,
-  formData: FormData
-): Promise<LoginState> {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/clientes");
-
-  if (!email || !password) {
-    return { error: "Ingresa correo y contraseña." };
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    return { error: "Correo o contraseña incorrectos." };
-  }
-
-  redirect(next.startsWith("/") ? next : "/clientes");
-}
-
+/**
+ * El login vive en el panel (apps/nexo) — ver
+ * lib/supabase/middleware.ts. Esta zona solo necesita poder cerrar
+ * sesion; redirige a "/" (relativo a esta zona, es decir /crm), y el
+ * middleware se encarga de rebotar al login central ya que no queda
+ * sesion.
+ */
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/login");
+  redirect("/");
 }
