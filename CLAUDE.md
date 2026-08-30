@@ -62,6 +62,19 @@ arriba). La identidad visual del módulo va en el contenido, debajo de la
 barra, nunca reemplazándola. Guía completa, ejemplo del bug real que esto
 corrigió, y checklist: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
+## Regla obligatoria: navegación interna con `next/link`, nunca `<a>` plano
+
+**Todo link que se queda dentro del mismo módulo usa `next/link`, nunca
+un `<a href>` nativo** — el `basePath` (`/crm`, `/rrhh`, `/flotilla`) se
+aplica solo a `next/link`/`router.push`, no a un `<a>` nativo. Un
+`<a href="/clientes">` navega a `dominio.com/clientes` (404 real en
+producción) en vez de `dominio.com/crm/clientes`. Bug real que esto
+corrigió: [`packages/ui/Sidebar.tsx`](packages/ui/Sidebar.tsx) usaba `<a>`
+en sus ítems. Única excepción a propósito:
+[`BackToPanelLink`](packages/ui/BackToPanelLink.tsx), que cruza de zona en
+Multi-Zones y por eso sí necesita un `<a>` plano. Detalle completo:
+[`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
+
 ## Regla obligatoria: todo módulo aterriza en su Dashboard de KPIs
 
 **La raíz de cada módulo (`/`, bajo su propio `basePath`) redirige
