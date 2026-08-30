@@ -2,6 +2,45 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-08-30 — Diseño UX/UI (investigación SAP Fiori + Odoo) aplicado al panel
+
+- Investigación pedida por el usuario, documentada completa en
+  [planning/DISENO_UX_UI.md](planning/DISENO_UX_UI.md): shell bar +
+  agrupación por categoría (Fiori Launchpad/Spaces), estética plana y
+  colores por categoría (Odoo).
+- `packages/ui` dejó de estar vacío: `ShellBar` (barra superior persistente)
+  y `category-colors.ts` (tokens de color por categoría, no por módulo).
+- `apps/nexo`: shell bar agregado, grilla agrupada por categoría (antes era
+  plana), tipografía Inter para el chrome del panel.
+- Nueva función `public.get_visible_apps` corregida: excluía mal a `nexo`
+  de su propia lista (se listaba a sí mismo, un tile circular apuntando a
+  "/") — detectado al escribir el código del home, corregido con una
+  migración nueva antes de verificarlo en vivo.
+- **Verificación real, no solo "debería compilar"**:
+  - `pnpm install` de nuevo (dependencia nueva `@nexo/ui` en `apps/nexo`).
+  - `next build` de `apps/nexo` y de `apps/crm` — ambos compilan y tipan
+    limpio.
+  - En el camino, `next build` de `apps/crm` encontró un bug real de tipos
+    en `packages/permissions` (heredado de la Fase 3, no detectado hasta
+    ahora porque nunca se había corrido un build real de esa app): el tipo
+    `RpcClient.rpc()` pedía un `Promise` estricto pero `supabase.rpc()`
+    devuelve un `PostgrestFilterBuilder` (`PromiseLike`, no `Promise`
+    completo) — corregido.
+  - `turbo run build` de **todo el monorepo** detectó una colisión real:
+    `apps/rrhh` y `apps/web-corporativo` tenían el mismo `name` de paquete
+    (`"web"`, heredado sin tocar de sus `create-next-app` originales) —
+    renombrados a `rrhh` y `web-corporativo`.
+  - Resultado final de `turbo run build`: **4 de 5 apps compilan limpio**
+    (`web-corporativo`, `crm`, `nexo`, `transporte-app`/flotilla). `rrhh`
+    falla por falta de variables de entorno de su propio Supabase original
+    (`ofeuzkwjhmfsazqfyutu`) — **esperado**, esa app no se ha tocado desde
+    el import crudo, le toca configurarse en su propia fase (6), no antes.
+- **No verificado visualmente todavía**: la grilla de módulos con datos
+  reales (tiles agrupados por categoría) — requiere un usuario autenticado
+  con membresía en `core.company_memberships`, que no existe todavía (ver
+  nota de la Fase 4 más abajo). Sí se verificó que compila y tipa sin
+  errores.
+
 ## 2026-08-30 — Fase 4: panel `apps/nexo`, verificado en vivo
 
 - Se construyó `apps/nexo`: login (Supabase Auth), middleware de sesión,

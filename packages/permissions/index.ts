@@ -14,12 +14,19 @@ export class PermissionDeniedError extends Error {
   }
 }
 
-/** Forma minima que necesitamos del cliente de Supabase. */
+/** Forma minima que necesitamos del cliente de Supabase.
+ *
+ * OJO: `supabase.rpc(...)` no devuelve un `Promise` en sentido estricto —
+ * devuelve un `PostgrestFilterBuilder`, que es "thenable" (se puede
+ * `await`) pero no implementa toda la interfaz de `Promise` (le faltan
+ * `catch`/`finally`/etc a nivel de tipos). Usar `Promise<...>` aca rompe
+ * el chequeo de tipos en cualquier app que pase su cliente real de
+ * supabase-js — `PromiseLike` es el tipo correcto para algo "awaitable". */
 interface RpcClient {
   rpc(
     fn: "has_permission",
     args: { p_company_id: string; p_code: string }
-  ): Promise<{ data: unknown; error: unknown }>;
+  ): PromiseLike<{ data: unknown; error: unknown }>;
 }
 
 export interface PermissionContext {

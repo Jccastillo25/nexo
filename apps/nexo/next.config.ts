@@ -13,7 +13,7 @@ import type { NextConfig } from "next";
 const CRM_APP_URL = process.env.CRM_APP_URL ?? "http://localhost:3001";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@nexo/permissions"],
+  transpilePackages: ["@nexo/permissions", "@nexo/ui"],
   async rewrites() {
     return [
       {

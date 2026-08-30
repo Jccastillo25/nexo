@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@theme inline {
+  --font-sans: var(--font-sans);
+}
+
 html,
 body {
   height: 100%;
