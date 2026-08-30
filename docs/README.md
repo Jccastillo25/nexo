@@ -12,6 +12,7 @@
 | [planning/PLAN_UNIFICACION_NEXO.md](planning/PLAN_UNIFICACION_NEXO.md) | Plan original de unificación (arquitectura, migración de BD, cronograma) |
 | [planning/PROPUESTA_MARCA_MODULOS.md](planning/PROPUESTA_MARCA_MODULOS.md) | Naming, rutas, íconos y catálogo de módulos investigado en Odoo/SAP/Oracle |
 | [planning/DISENO_UX_UI.md](planning/DISENO_UX_UI.md) | Estudio de SAP Fiori y Odoo detrás de los tokens de DESIGN_SYSTEM.md |
+| [planning/NORMA_DISENO_UNIVERSAL.md](planning/NORMA_DISENO_UNIVERSAL.md) | Norma de diseño completa: paleta agnóstica, App Shell (launcher/omnibar/notificaciones/sidebar), Torre de Control, PWA operativa, kiosko, reglas anti-fragmentación |
 
 Los documentos de `planning/` son la propuesta original (fuente de verdad
 histórica); ARCHITECTURE.md, DATABASE.md, MODULES.md, PERMISSIONS.md,
