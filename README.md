@@ -6,7 +6,12 @@ Odoo: un dominio, un login, módulos como rutas, permisos unificados.
 Este repo es el destino de la migración descrita en
 [`docs/planning/PLAN_UNIFICACION_NEXO.md`](docs/planning/PLAN_UNIFICACION_NEXO.md)
 y [`docs/planning/PROPUESTA_MARCA_MODULOS.md`](docs/planning/PROPUESTA_MARCA_MODULOS.md).
-Estado: **esqueleto inicial, sin código de módulos migrado todavía.**
+
+Estado: el código de los 4 módulos (RRHH, Flotilla, CRM, Web Corporativo)
+ya está importado en `apps/*` con su historial de git completo (ver
+[`docs/MIGRATION_LOG.md`](docs/MIGRATION_LOG.md)) — **pero todavía sin
+adaptar**: cada uno sigue apuntando a su proyecto Supabase original, sin
+`basePath` de Multi-Zones, sin el panel `nexo` construido todavía.
 
 ## Estructura
 

@@ -10,10 +10,11 @@ sección 4.
 |---|---|---|
 | 0 | Confirmar decisiones (nombre de la suite, dominio, naming de módulos) | ✅ Hecho — suite "Nexo", sin subdominios, Multi-Zones |
 | 1 | Crear repo monorepo, Turborepo, packages compartidos vacíos | ✅ Esqueleto creado (2026-08-29) |
+| 1.5 | Importar el código de los 4 productos existentes a `apps/*` (con historial, vía `git subtree`) | ✅ Hecho (2026-08-29) — ver [MIGRATION_LOG.md](MIGRATION_LOG.md) |
 | 2 | Provisionar `nexo-core`, tabla `core.*`, permisos v3.0 | ⏳ Pendiente |
-| 3 | Migrar `web-corporativo` + `crm` al monorepo y a `nexo-core` | ⏳ Pendiente |
-| 4 | Construir el panel `nexo` funcional sobre los módulos ya migrados | ⏳ Pendiente |
-| 5 | Migrar `flotilla` (app + datos) | ⏳ Pendiente |
-| 6 | Migrar `rrhh` (app + datos) | ⏳ Pendiente |
+| 3 | Adaptar `web-corporativo` + `crm` (basePath, Supabase → `nexo-core`) | ⏳ Pendiente — código ya está en el repo, falta adaptar |
+| 4 | Construir el panel `nexo` funcional sobre los módulos ya adaptados | ⏳ Pendiente |
+| 5 | Adaptar `flotilla` (app + datos → `nexo-core`) | ⏳ Pendiente — código ya está en el repo, falta adaptar |
+| 6 | Adaptar `rrhh` (app + datos → `nexo-core`) | ⏳ Pendiente — código ya está en el repo, falta adaptar |
 | 7 | Apagar proyectos Supabase/repos viejos (pausar, no borrar) | ⏳ Pendiente |
 | 8 | Documentación final + módulos de Fase 2 (Inventario, Compras, Ventas, Contabilidad) | ⏳ Pendiente |
