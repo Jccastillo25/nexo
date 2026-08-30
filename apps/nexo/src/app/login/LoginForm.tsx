@@ -16,7 +16,7 @@ export default function LoginForm() {
       <input type="hidden" name="next" value={next} />
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="email" className="text-xs font-medium text-neutral-500">
+        <label htmlFor="email" className="text-xs font-medium text-neutral-400">
           Correo
         </label>
         <input
@@ -25,12 +25,12 @@ export default function LoginForm() {
           type="email"
           autoComplete="username"
           required
-          className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500"
+          className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2.5 text-sm text-neutral-50 outline-none placeholder:text-neutral-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-xs font-medium text-neutral-500">
+        <label htmlFor="password" className="text-xs font-medium text-neutral-400">
           Contraseña
         </label>
         <input
@@ -39,12 +39,15 @@ export default function LoginForm() {
           type="password"
           autoComplete="current-password"
           required
-          className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500"
+          className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2.5 text-sm text-neutral-50 outline-none placeholder:text-neutral-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
       </div>
 
       {state.error && (
-        <p role="alert" className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p
+          role="alert"
+          className="rounded-lg border border-red-900 bg-red-950 px-3 py-2 text-sm text-red-300"
+        >
           {state.error}
         </p>
       )}
@@ -52,9 +55,9 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="mt-2 rounded-md bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isPending ? "Ingresando…" : "Ingresar"}
+        {isPending ? "Ingresando…" : "Iniciar sesión"}
       </button>
     </form>
   );

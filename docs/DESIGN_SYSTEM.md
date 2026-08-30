@@ -115,11 +115,20 @@ suelto en el componente del módulo.
    agrega una nueva siguiendo el paso anterior).
 2. El shell del módulo incluye `BackToPanelLink`/`ShellBar` con
    `backHref` — ver la regla obligatoria arriba.
-3. Si el módulo necesita un componente de datos genérico (tabla, tarjeta
+3. **`globals.css` de la app agrega
+   `@source "../../../../packages/ui/**/*.{ts,tsx}";`** justo después de
+   `@import "tailwindcss";` (ajustar la profundidad de `../` según dónde
+   viva el archivo). Tailwind v4 solo escanea el árbol de la propia app por
+   default — sin este `@source`, cualquier clase usada *solo* dentro de
+   `@nexo/ui` (ej. `rounded-full`, `hover:bg-neutral-800`, `md:flex`)
+   nunca se genera: el componente compila sin error pero se renderiza roto
+   en el navegador (fue un bug real, detectado recién al verificar
+   `ShellBar` en vivo — no alcanza con que el build pase).
+4. Si el módulo necesita un componente de datos genérico (tabla, tarjeta
    de estadística, selector de vista) que ya existe en otro módulo,
    muévelo a `packages/ui` en vez de duplicarlo — ejemplo pendiente real:
    `StatCard` existe hoy 3 veces distintas entre RRHH/Flotilla, hay que
    unificarlo cuando se adapten a Multi-Zones (Fases 5/6).
-4. La tipografía y paleta de marca del **contenido** del módulo son
+5. La tipografía y paleta de marca del **contenido** del módulo son
    libres — no hace falta adoptar Inter ni los colores de categoría
    puertas adentro.

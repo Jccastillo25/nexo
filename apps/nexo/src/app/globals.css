@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Tailwind v4 solo escanea el arbol de esta app por default — @nexo/ui
+   vive en packages/ui, fuera de ese arbol, asi que sin esto cualquier
+   clase usada UNICAMENTE ahi (ej. rounded-full, hover:bg-neutral-800,
+   md:flex) nunca se genera y el componente compartido se renderiza roto,
+   aunque compile sin errores. Repetir este @source en cada app que
+   consuma @nexo/ui (ver docs/DESIGN_SYSTEM.md). */
+@source "../../../../packages/ui/**/*.{ts,tsx}";
+
 @theme inline {
   --font-sans: var(--font-sans);
 }

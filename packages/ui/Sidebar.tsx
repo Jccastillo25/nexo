@@ -8,6 +8,7 @@
 // responsabilidad de la app que lo usa (compara con el pathname actual).
 
 import { useEffect, useState, type ComponentType } from "react";
+import { shellFont } from "./shell-font";
 
 export interface SidebarItem {
   /** Texto del item. */
@@ -20,6 +21,12 @@ export interface SidebarItem {
   icon?: ComponentType<{ size?: number }>;
   /** Si esta seccion es la activa — lo decide la app comparando pathname. */
   active?: boolean;
+  /** Etiqueta de grupo (ej. "Gestión"). Si difiere de la del item
+   * anterior en la lista, se renderiza un encabezado de sección antes de
+   * este item — mismo patrón visual que un dashboard con "Dashboard/
+   * Analytics/Customers" sueltos arriba y "Team/Settings" agrupados bajo
+   * "Management" más abajo. */
+  section?: string;
 }
 
 export interface SidebarProps {
@@ -55,33 +62,43 @@ export function Sidebar({ items }: SidebarProps) {
     });
   }
 
+  let lastSection: string | undefined;
+
   return (
     <aside
-      className={`flex flex-shrink-0 flex-col border-r border-neutral-200 bg-white transition-[width] duration-150 ${
+      className={`${shellFont.className} flex flex-shrink-0 flex-col border-r border-neutral-200 bg-white transition-[width] duration-150 ${
         collapsed ? "w-16" : "w-60"
       }`}
     >
       <nav className="flex flex-1 flex-col gap-1 p-3">
         {items.map((item) => {
           const Icon = item.icon;
+          const showSectionHeader = item.section && item.section !== lastSection;
+          lastSection = item.section;
           return (
-            <a
-              key={item.href}
-              href={item.href}
-              title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                item.active
-                  ? "bg-neutral-50 text-blue-600"
-                  : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
-              }`}
-            >
-              {Icon && (
-                <span className="flex flex-shrink-0 items-center justify-center">
-                  <Icon size={20} />
-                </span>
+            <div key={item.href} className="flex flex-col">
+              {showSectionHeader && !collapsed && (
+                <p className="mb-1 mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-neutral-400 first:mt-1">
+                  {item.section}
+                </p>
               )}
-              {!collapsed && <span className="truncate">{item.label}</span>}
-            </a>
+              <a
+                href={item.href}
+                title={collapsed ? item.label : undefined}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  item.active
+                    ? "bg-blue-50 text-blue-600"
+                    : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
+                }`}
+              >
+                {Icon && (
+                  <span className="flex flex-shrink-0 items-center justify-center">
+                    <Icon size={20} />
+                  </span>
+                )}
+                {!collapsed && <span className="truncate">{item.label}</span>}
+              </a>
+            </div>
           );
         })}
       </nav>
