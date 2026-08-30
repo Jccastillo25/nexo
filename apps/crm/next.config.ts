@@ -6,8 +6,8 @@ import type { NextConfig } from "next";
 // vivan bajo ese prefijo.
 const nextConfig: NextConfig = {
   basePath: "/crm",
-  // @nexo/permissions vive como fuente TS sin compilar en el workspace.
-  transpilePackages: ["@nexo/permissions"],
+  // @nexo/permissions y @nexo/ui viven como fuente TS sin compilar en el workspace.
+  transpilePackages: ["@nexo/permissions", "@nexo/ui"],
 };
 
 export default nextConfig;

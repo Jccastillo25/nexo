@@ -1,7 +1,9 @@
 // Punto de entrada del design system compartido de Nexo.
-// Ver docs/planning/DISENO_UX_UI.md.
+// Ver docs/DESIGN_SYSTEM.md (regla obligatoria) y docs/planning/DISENO_UX_UI.md (investigacion).
 export { ShellBar } from "./ShellBar";
 export type { ShellBarProps } from "./ShellBar";
+export { BackToPanelLink } from "./BackToPanelLink";
+export type { BackToPanelLinkProps } from "./BackToPanelLink";
 export {
   CATEGORY_COLORS,
   DEFAULT_CATEGORY_COLOR,

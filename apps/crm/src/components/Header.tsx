@@ -1,18 +1,28 @@
 import Link from "next/link";
+import { BackToPanelLink } from "@nexo/ui";
 import { signOut } from "@/app/login/actions";
 
-export default function Header() {
+export default function Header({ panelUrl }: { panelUrl: string }) {
   return (
     <header className="sticky top-0 z-10 border-b border-acero-medio/20 bg-concreto/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link href="/clientes" className="flex flex-col leading-none">
-          <span className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-acero-medio">
-            Materiales J Castillo
+        <div className="flex items-center gap-3">
+          <BackToPanelLink
+            href={panelUrl}
+            className="text-xs font-mono uppercase tracking-wide text-acero-medio transition-colors hover:text-naranja"
+          />
+          <span aria-hidden="true" className="text-acero-medio/40">
+            /
           </span>
-          <span className="font-display text-base text-acero">
-            Panel de clientes
-          </span>
-        </Link>
+          <Link href="/clientes" className="flex flex-col leading-none">
+            <span className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-acero-medio">
+              Materiales J Castillo
+            </span>
+            <span className="font-display text-base text-acero">
+              Panel de clientes
+            </span>
+          </Link>
+        </div>
 
         <form action={signOut}>
           <button

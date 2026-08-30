@@ -17,6 +17,9 @@ importers:
       '@nexo/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions
+      '@nexo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@supabase/ssr':
         specifier: ^0.12.4
         version: 0.12.5(@supabase/supabase-js@2.112.4)

@@ -34,6 +34,34 @@ extra para el permiso de visibilidad — un trigger de Postgres
 nivel de base de datos; todo lo demás (permisos de funciones dentro del
 módulo) sigue el checklist de arriba.
 
+## Regla obligatoria: login único (SSO), ningún módulo tiene su propio
+
+**Ningún `apps/<módulo>` implementa su propio formulario de login.** El
+login vive solo en `apps/nexo` (el panel). Al crear o adaptar un módulo:
+
+1. El middleware/proxy del módulo, sin sesión válida, redirige a
+   `${NEXO_PANEL_URL:-origin}/login?next=<ruta-con-basePath>` — nunca a un
+   `/login` propio del módulo. Ver
+   [`apps/crm/src/lib/supabase/middleware.ts`](apps/crm/src/lib/supabase/middleware.ts)
+   como referencia.
+2. `NEXO_PANEL_URL` es un override opcional (dev local con puertos
+   distintos, o acceso directo al deployment `*.vercel.app` del módulo sin
+   pasar por el rewrite) — en producción no hace falta configurarlo porque
+   Multi-Zones sirve todo bajo el mismo dominio público.
+3. Esto funciona sin nada especial porque las cookies de sesión de
+   Supabase son del dominio público compartido, no de cada deploy — un
+   solo login vale para toda la suite.
+
+## Regla obligatoria: volver al panel, siempre visible
+
+**Todo módulo autenticado ofrece una forma persistente de volver a la
+grilla de módulos de Nexo, en toda página autenticada, no solo en la de
+inicio.** Guía completa, tokens compartidos y checklist:
+[`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md). Resumen: usar
+`BackToPanelLink` de `@nexo/ui` (o `ShellBar` con `backHref`), con la URL
+resuelta por un helper `getPanelUrl()` propio del módulo — mismo patrón
+que la regla de SSO de arriba.
+
 ## Regla obligatoria: Vercel Speed Insights + Analytics
 
 **Toda app en `apps/*` que se despliegue en Vercel debe incluir

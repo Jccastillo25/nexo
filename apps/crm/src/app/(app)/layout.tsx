@@ -3,6 +3,7 @@ import { hasPermission } from "@nexo/permissions";
 import Header from "@/components/Header";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { getPanelUrl } from "@/lib/panel";
 
 /**
  * Guard de modulo (norma v3.0): el middleware (ver
@@ -24,9 +25,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/sin-acceso");
   }
 
+  const panelUrl = await getPanelUrl();
+
   return (
     <div className="flex min-h-full flex-1 flex-col bg-concreto">
-      <Header />
+      <Header panelUrl={panelUrl} />
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6">
         {children}
       </main>
