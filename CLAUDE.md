@@ -52,15 +52,15 @@ login vive solo en `apps/nexo` (el panel). Al crear o adaptar un módulo:
    Supabase son del dominio público compartido, no de cada deploy — un
    solo login vale para toda la suite.
 
-## Regla obligatoria: volver al panel, siempre visible
+## Regla obligatoria: `ShellBar` es la barra superior, ningún módulo la reemplaza
 
-**Todo módulo autenticado ofrece una forma persistente de volver a la
-grilla de módulos de Nexo, en toda página autenticada, no solo en la de
-inicio.** Guía completa, tokens compartidos y checklist:
-[`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md). Resumen: usar
-`BackToPanelLink` de `@nexo/ui` (o `ShellBar` con `backHref`), con la URL
-resuelta por un helper `getPanelUrl()` propio del módulo — mismo patrón
-que la regla de SSO de arriba.
+**Ningún `apps/<módulo>` construye su propio header de navegación.**
+`ShellBar` de `@nexo/ui` es la barra superior persistente de toda la
+suite — se usa tal cual, con `backHref` resuelto por un helper
+`getPanelUrl()` propio del módulo (mismo patrón que la regla de SSO de
+arriba). La identidad visual del módulo va en el contenido, debajo de la
+barra, nunca reemplazándola. Guía completa, ejemplo del bug real que esto
+corrigió, y checklist: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
 ## Regla obligatoria: Vercel Speed Insights + Analytics
 

@@ -32,6 +32,26 @@ hay una lista corta de piezas de navegación que sí son obligatorias y
 compartidas, y todo lo demás (colores de marca, tipografía del contenido,
 componentes de datos) queda libre por módulo.
 
+## Regla obligatoria: `ShellBar` es LA barra superior, no una opción
+
+**Ningún módulo construye su propio header para reemplazar la barra
+superior persistente.** `ShellBar` de `@nexo/ui` **es** esa barra — se
+usa tal cual (con las props que necesite: `title`, `titleHref`, `backHref`,
+`userEmail`, `onSignOut`), nunca como inspiración para un componente propio.
+Así se ve y se comporta exactamente igual en toda la suite, que es todo el
+punto del principio de arriba.
+
+Esta regla nació de un bug real: el CRM tenía su propio header (paleta
+`concreto`/`acero`/`naranja`, `font-mono`) que solo importaba
+`BackToPanelLink` — cumplía la letra de la regla vieja pero producía dos
+diseños de navegación completamente independientes, justo lo que esta
+guía existe para evitar. Corregido en
+[`apps/crm/src/components/Header.tsx`](../apps/crm/src/components/Header.tsx):
+hoy es un wrapper delgado de `ShellBar`, y la identidad del CRM se quedó
+donde corresponde — en el contenido de cada página (el `<h1
+className="font-display text-acero">` de "Clientes", por ejemplo), no en
+la barra.
+
 ## Regla obligatoria: volver al panel, siempre visible
 
 **Todo módulo autenticado tiene que ofrecer una forma persistente de
@@ -39,8 +59,11 @@ volver a la grilla de módulos de Nexo — visible en toda página, no solo
 en la de inicio del módulo.** Antes de dar por terminado un módulo nuevo
 (o una página nueva de un módulo existente), verificá:
 
-1. El header/shell de la página autenticada incluye `BackToPanelLink` de
-   `@nexo/ui` (o usa `ShellBar` con la prop `backHref`, que ya lo integra).
+1. El header/shell de la página autenticada es `ShellBar` con la prop
+   `backHref` (regla de arriba) — o, en una pantalla fuera del layout
+   autenticado normal (ej. `sin-acceso`, que no puede montar el layout sin
+   caer en loop de redirect), al menos `BackToPanelLink` de `@nexo/ui`
+   suelto.
 2. La URL que le pasás sale de un helper `getPanelUrl()` propio de tu app
    (ver [`apps/crm/src/lib/panel.ts`](../apps/crm/src/lib/panel.ts)) — **no
    la hardcodees**. El patrón es siempre el mismo: `NEXO_PANEL_URL` como
