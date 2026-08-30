@@ -1,0 +1,83 @@
+# Roadmap — avance por fases
+
+Plan original: 4 fases (documento `MVP_SaaS_Control_Transporte_Especificacion_Tecnica.pdf`). El orden real de construcción se adelantó (Fase 4 antes que Fase 3, a pedido explícito), y se agregó una capa completa no contemplada en el documento original: el panel Super Admin.
+
+## ✅ Fase 1 — Base de Datos y Autenticación
+
+**Entregado:** DDL completo (Sección 4 del documento), roles `admin`/`driver` conectados a Supabase Auth nativo, políticas RLS de aislamiento por `company_id`.
+
+- Migración [`0001_init_schema_auth_rls.sql`](../supabase/migrations/0001_init_schema_auth_rls.sql)
+- Desviación deliberada del documento: `users.id` referencia `auth.users.id` (sin `password_hash` propio) para conectar con Auth nativo, tal como pedía la instrucción de esta fase.
+
+## ✅ Fase 2 — Web App Móvil Conductor
+
+**Entregado:** flujo completo del conductor en `/driver`.
+
+- Login por usuario/contraseña **o** PIN de 4 dígitos (magic link server-side).
+- Selección de vehículo → inspección previa (odómetro + foto obligatoria + checklist de accesorios con evidencia de daños) → ciclo de viaje (5 botones de estado, cada uno con GPS + hora real vía `navigator.geolocation`) → checkout (odómetro final + foto).
+- Offline-first: cola de eventos en IndexedDB, sync automático sin depender de Background Sync API.
+- PWA instalable (manifest, Service Worker de app-shell).
+- UI mobile-first (390px), alto contraste.
+
+Archivos clave: `app/driver/**`, `lib/trip-events.ts`, `lib/offline/**`, `lib/geolocation.ts`.
+
+## ✅ Fase 4 — Panel Admin *(construida antes que la Fase 3, a pedido del usuario)*
+
+Evolucionó en varias iteraciones dentro de la misma fase:
+
+1. **Versión inicial:** nav superior, dashboard con tabla de flota + tabla de viajes con tiempos calculados (`arrival - start`, `end_unloading - start_unloading`).
+2. **CRUD completo:** vehículos (alta + checklist de accesorios por unidad), catálogo de accesorios, gestión de conductores/admins (alta vía `service_role`, activar/desactivar).
+3. **Rediseño a pedido del usuario:** sidebar izquierdo fijo (colapsable en mobile) reemplazando el nav superior; `/admin` pasó a ser un dashboard de KPIs (vehículos activos, conductores activos, viajes en curso, completados 30 días) + gráficas (viajes por día, viajes por estado); las tablas originales se movieron a `/admin/fleet-trips`.
+4. **Perfil de empresa** (`/admin/company`): nombre, RUC, dirección fiscal, teléfono, correo, logo — editable por el admin de esa empresa.
+
+Archivos clave: `app/admin/**`, `components/AdminSidebar.tsx`, `components/StatCard.tsx`.
+
+## ✅ Fase 3 — Lógica de Negocio
+
+**Entregado:** trigger de base de datos (no lógica de aplicación) que, al completar un viaje, actualiza `vehicles.current_odometer` — garantizado sin importar desde qué pantalla o cliente se complete el viaje.
+
+- Migración [`0004_sync_vehicle_odometer_on_trip_completion.sql`](../supabase/migrations/0004_sync_vehicle_odometer_on_trip_completion.sql)
+
+## ✅ Extensión post-plan — Panel Super Admin (`/supadmin`)
+
+No estaba en el documento original; se agregó a pedido del usuario como un nivel por encima de las empresas.
+
+- Tabla `platform_admins`, **separada** de las tablas de usuarios de empresa por diseño explícito (nunca se mezclan usuarios de plataforma con usuarios de empresa).
+- Login propio (`/supadmin/login`), completamente aislado del `/login` de empresas — su propia rama en `proxy.ts`.
+- Listado de empresas con conteo de usuarios (`/supadmin/companies`), alta de empresa + su primer admin (`/supadmin/companies/new`), edición de perfil (idéntica a la de empresa, más cupos y activar/desactivar).
+- Desactivar una empresa corta el acceso de **todos** sus usuarios de inmediato (verificado a nivel de RLS, no solo de UI).
+- Sidebar propio (Dashboard / Empresas / Configuración) y dashboard de KPIs de toda la plataforma.
+- **Configuración de plataforma** (`/supadmin/settings`): nombre del producto, logo y copyright de Ruta360 — dinámico en toda la app (título de pestaña, manifest PWA, pantallas de login), no hardcodeado.
+
+Archivos clave: `app/supadmin/**`, `app/api/supadmin/**`, `lib/supadmin.ts`, `lib/platform-settings.ts`.
+
+## ✅ Extensión post-plan — Administradores y conductores en tablas independientes, perfil de conductor ampliado
+
+A pedido explícito del usuario: "los usuarios administrativos del sistema y conductores... nunca se deben de mezclar, deben de existir 2 tablas diferentes" — mismo principio ya aplicado a `platform_admins`, extendido aquí a admin/conductor.
+
+- Migración `0012`: `public.users` (una tabla con columna `role`) se reemplaza por **`admins`** y **`drivers`**, tablas físicamente independientes. Un conductor ya no puede auto-editar su propia fila (antes sí podía, vía RLS `users_update_admin_or_self` — cerrado como efecto colateral positivo del rediseño).
+- Perfil de conductor ampliado: nombres, apellidos, usuario, identificación, número/tipo de licencia, categorías de licencia (catálogo propio administrable en `/admin/license-categories`, selección múltiple), fecha de vencimiento.
+- **Login de conductor cambia a usuario + PIN** (ya no correo + PIN): el conductor no tiene contraseña. PIN de 4 dígitos autogenerado al crear el conductor, único por empresa, con opción de ver/regenerar desde su perfil (`/admin/drivers/[driverId]`).
+- Nuevo módulo `/admin/admins`: alta, edición y reseteo de contraseña de administradores, separado de `/admin/drivers`.
+- **Cupos independientes**: `companies.max_users` (administradores) y `companies.max_drivers` (conductores) — migración `0013`. Antes era un único cupo combinado; ahora cada uno se define y se hace cumplir por separado en sus respectivas rutas de alta.
+- Fix de bug preexistente encontrado durante esta extensión: `supabase.auth.verifyOtp()` en el login por PIN enviaba `email` junto con `token_hash`, que la API de Supabase Auth rechaza (`validation_failed`) — era la causa real de que el login de conductor fallara silenciosamente. Corregido en `app/login/LoginForm.tsx`.
+
+Archivos clave: `app/admin/drivers/**`, `app/admin/admins/**`, `app/admin/license-categories/**`, `app/api/admin/drivers/**`, `app/api/admin/admins/**`, `lib/admin-auth.ts`, `lib/generate-pin.ts`, `lib/company-quota.ts`.
+
+## ✅ Extensión post-plan — Gestión por excepción en inspección diaria + panel de autorización
+
+Rediseño de la pantalla de inspección previa del conductor: de un checklist largo por accesorio a una **certificación de un toque** ("Todo en Orden - Iniciar Turno" / "Reportar Novedad / Daño"). Ver el detalle de la regla de negocio en [ARCHITECTURE.md](./ARCHITECTURE.md#gestión-por-excepción-inspección-diaria).
+
+- Migración `0014`: `trips.status` agrega `pending_authorization`; tabla `trip_anomalies` (categoría por enum fijo en esta migración).
+- Migración `0015`, a pedido posterior del usuario de poder agregar categorías propias: `anomaly_categories` reemplaza el enum por un catálogo **editable por empresa** (`name` + `blocks_trip`), administrable en `/admin/incident-categories`. Seed: "Llantas y pernos" y "Frenos y fugas" bloquean; "Sujeción de carga", "Luces" y "Documentos" no.
+- **Panel de autorizaciones** (`/admin/authorizations`) — a pedido explícito del usuario, agrupa las solicitudes pendientes por el módulo que las originó (hoy solo "Inspección diaria", pensado para sumar módulos futuros sin rediseño). Por cada solicitud: vehículo, conductor, categoría, descripción, foto de evidencia (URL firmada), odómetro. Dos acciones: **Autorizar Excepción** (`trips.status → 'inspected'`) o **Denegar y Enviar a Mantenimiento** (`trips.status → 'cancelled'` + `vehicles.status → 'maintenance'`).
+- Dashboard de `/admin` muestra un banner de alerta cuando hay solicitudes pendientes, enlazando al panel.
+- **Sidebar del admin reagrupado** (`components/AdminSidebar.tsx`): Dashboard y Autorizaciones fijos; Flota, Conductores y Configuración como grupos desplegables (el que contiene la ruta activa se auto-expande), para reducir botones visibles tras sumar el módulo de autorizaciones.
+
+Archivos clave: `app/admin/authorizations/**`, `app/admin/incident-categories/**`, `app/driver/trips/**` (pantalla de inspección), `components/AdminSidebar.tsx`.
+
+## Pendiente / fuera de alcance actual
+
+- **Leaked Password Protection** de Supabase Auth (HaveIBeenPwned) — requiere plan **Pro** de Supabase (de pago). Evaluado y pausado a pedido explícito del usuario; no bloqueante para el MVP.
+- No hay vista de "impersonar" o entrar como una empresa desde el Super Admin — deliberadamente fuera de alcance (no se pidió).
+- No hay exportes (CSV/PDF) de reportes — no forma parte del documento original ni se ha pedido.

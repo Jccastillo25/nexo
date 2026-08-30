@@ -1,0 +1,29 @@
+import type { MetadataRoute } from "next";
+import { getPlatformSettings } from "@/lib/platform-settings";
+
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const { productName } = await getPlatformSettings();
+
+  return {
+    name: productName,
+    short_name: productName,
+    description: "Control operativo de viajes para conductores",
+    start_url: "/driver",
+    display: "standalone",
+    background_color: "#0f172a",
+    theme_color: "#0f172a",
+    orientation: "portrait",
+    icons: [
+      {
+        src: "/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+  };
+}
