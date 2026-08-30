@@ -63,7 +63,7 @@ export default function DatosExtraEditor({
       <input type="hidden" name="datos_extra_json" value={json} />
 
       {pairs.length === 0 && (
-        <p className="font-mono text-xs text-acero-medio">
+        <p className="text-xs text-neutral-500">
           Sin datos adicionales todavía.
         </p>
       )}
@@ -75,20 +75,20 @@ export default function DatosExtraEditor({
             value={pair.key}
             onChange={(e) => updatePair(pair.id, "key", e.target.value)}
             placeholder="clave"
-            className="w-2/5 rounded-sm border border-acero-medio/40 bg-white px-2.5 py-1.5 font-mono text-sm text-acero outline-none focus:border-naranja focus:ring-1 focus:ring-naranja"
+            className="w-2/5 rounded-md border border-neutral-300 bg-white px-2.5 py-1.5 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
           <input
             type="text"
             value={pair.value}
             onChange={(e) => updatePair(pair.id, "value", e.target.value)}
             placeholder="valor"
-            className="flex-1 rounded-sm border border-acero-medio/40 bg-white px-2.5 py-1.5 font-mono text-sm text-acero outline-none focus:border-naranja focus:ring-1 focus:ring-naranja"
+            className="flex-1 rounded-md border border-neutral-300 bg-white px-2.5 py-1.5 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
           <button
             type="button"
             onClick={() => removePair(pair.id)}
             aria-label="Eliminar par"
-            className="shrink-0 rounded-sm border border-acero-medio/30 px-2 py-1.5 font-mono text-xs text-acero-medio transition-colors hover:border-red-700/50 hover:text-red-700"
+            className="shrink-0 rounded-md border border-neutral-200 px-2 py-1.5 text-xs text-neutral-500 transition-colors hover:border-red-300 hover:text-red-700"
           >
             ✕
           </button>
@@ -98,7 +98,7 @@ export default function DatosExtraEditor({
       <button
         type="button"
         onClick={addPair}
-        className="mt-1 self-start rounded-sm border border-dashed border-acero-medio/50 px-3 py-1.5 font-mono text-xs text-acero-medio transition-colors hover:border-naranja hover:text-naranja"
+        className="mt-1 self-start rounded-md border border-dashed border-neutral-300 px-3 py-1.5 text-xs text-neutral-500 transition-colors hover:border-blue-500 hover:text-blue-600"
       >
         + agregar par clave-valor
       </button>

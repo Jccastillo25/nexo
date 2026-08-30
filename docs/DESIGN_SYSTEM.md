@@ -20,17 +20,23 @@ reglas anti-fragmentación) vive en
 este documento se actualiza con el ejemplo real de código a medida que cada
 pieza de esa norma se implementa.
 
-## Principio: shell consistente, contenido con identidad propia
+## Principio: un solo sistema de diseño, sin identidad propia por módulo
 
-Igual que SAP Fiori Launchpad y el app switcher de Odoo: el usuario nota
-"estoy en Nexo" por una barra/navegación que se ve y se comporta **igual**
-en todos lados, y "estoy en el CRM" (o RRHH, o Flotilla) por el contenido
-de adentro, que puede tener su propia tipografía y paleta de marca.
+**Revisado (2026-08-30) — ya no hay "contenido con identidad propia".**
+La versión anterior de este principio (inspirada en SAP Fiori/Odoo) dejaba
+la tipografía y paleta del contenido libres por módulo; en la práctica eso
+produjo el CRM con su propia marca industrial (`concreto`/`acero`/`naranja`,
+`Archivo Black`/`Work Sans`/`IBM Plex Mono`) — que, aun con la barra
+superior unificada, seguía sintiéndose como un software distinto por
+dentro. Decisión explícita del usuario: **toda la suite, barra Y
+contenido, usa el mismo sistema de diseño** — paleta neutra + acento azul,
+tipografía Inter, mismos componentes de `@nexo/ui`. Ningún módulo nuevo
+adopta tipografía ni paleta de marca propia, ni siquiera puertas adentro.
 
-Esto **no** significa que todo tenga que verse idéntico — significa que
-hay una lista corta de piezas de navegación que sí son obligatorias y
-compartidas, y todo lo demás (colores de marca, tipografía del contenido,
-componentes de datos) queda libre por módulo.
+Lo único que distingue un módulo de otro es el **color de categoría**
+(ver tabla de tokens abajo) en el ícono del App Launcher y en acentos
+puntuales (ej. el borde de un widget de la Torre de Control) — nunca en
+tipografía, ni en la paleta general de botones/inputs/tarjetas.
 
 ## Regla obligatoria: `ShellBar` es LA barra superior, no una opción
 
@@ -47,10 +53,11 @@ Esta regla nació de un bug real: el CRM tenía su propio header (paleta
 diseños de navegación completamente independientes, justo lo que esta
 guía existe para evitar. Corregido en
 [`apps/crm/src/components/Header.tsx`](../apps/crm/src/components/Header.tsx):
-hoy es un wrapper delgado de `ShellBar`, y la identidad del CRM se quedó
-donde corresponde — en el contenido de cada página (el `<h1
-className="font-display text-acero">` de "Clientes", por ejemplo), no en
-la barra.
+hoy es un wrapper delgado de `ShellBar`. En una segunda pasada (mismo día)
+se extendió la corrección al **contenido** también — el CRM ya no tiene
+ninguna paleta ni tipografía propia (ver el principio revisado arriba):
+`apps/crm/src/app/(app)/clientes/page.tsx` y el resto de sus páginas usan
+los mismos tokens neutros/azul que el panel.
 
 ## Regla obligatoria: volver al panel, siempre visible
 
@@ -101,7 +108,8 @@ diseño está en
 | Categoría Cadena de suministro | morado `#F3E8FF` / texto `#6B21A8` | ídem — Flotilla vive acá |
 | Categoría RRHH | ámbar `#FEF3C7` / texto `#92400E` | ídem |
 | Categoría Servicios | índigo `#E0E7FF` / texto `#3730A3` | ídem |
-| Tipografía del shell | [Inter](https://fonts.google.com/specimen/Inter) | Todo el chrome compartido — el contenido de cada módulo puede usar otra (el CRM usa Archivo Black/Work Sans/IBM Plex Mono como marca propia) |
+| Tipografía | [Inter](https://fonts.google.com/specimen/Inter) | **Toda** la suite — barra Y contenido. Ningún módulo carga otra tipografía (ver principio revisado arriba) |
+| Acento | `#2563EB` (blue-600) / hover `#1D4ED8` (blue-700) | Botón primario, foco de inputs, links, ítem activo del `Sidebar` — en todos los módulos |
 
 **Categoría nueva** (ej. al adaptar un módulo que no encaja en las 5 de
 arriba): agregala a `CATEGORY_COLORS` en
@@ -129,6 +137,13 @@ suelto en el componente del módulo.
    muévelo a `packages/ui` en vez de duplicarlo — ejemplo pendiente real:
    `StatCard` existe hoy 3 veces distintas entre RRHH/Flotilla, hay que
    unificarlo cuando se adapten a Multi-Zones (Fases 5/6).
-5. La tipografía y paleta de marca del **contenido** del módulo son
-   libres — no hace falta adoptar Inter ni los colores de categoría
-   puertas adentro.
+5. El contenido del módulo usa Inter y la paleta neutra+acento de la
+   tabla de arriba — **no** una tipografía o paleta de marca propia (ver
+   principio revisado arriba). Si el módulo importado tenía su propia
+   identidad visual (fue el caso del CRM: `concreto`/`acero`/`naranja`,
+   `Archivo Black`), se reemplaza al adaptarlo, no se preserva.
+6. Si el módulo tiene más de una sección de navegación, monta `Sidebar`
+   de `@nexo/ui` en su layout autenticado (ver
+   [`apps/crm/src/app/(app)/layout.tsx`](../apps/crm/src/app/(app)/layout.tsx))
+   — con una sola sección todavía no aporta, pero apenas se agregue una
+   segunda, se monta.

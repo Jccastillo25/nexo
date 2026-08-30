@@ -1,8 +1,7 @@
 // Barra superior del CRM. Es literalmente <ShellBar> de @nexo/ui — no un
-// header propio (ver docs/planning/NORMA_DISENO_UNIVERSAL.md §2.1): la
-// identidad del CRM (concreto/acero/naranja, font-display/mono) vive en el
-// contenido de cada página ("Clientes", "Editar cliente"...), no en esta
-// barra, que se ve y se comporta igual en toda la suite.
+// header propio (ver docs/planning/NORMA_DISENO_UNIVERSAL.md §2.1). El CRM
+// ya no tiene paleta/tipografía de marca propia — todo el módulo, barra y
+// contenido, usa el mismo sistema de diseño que el resto de la suite.
 import { ShellBar } from "@nexo/ui";
 import { signOut } from "@/app/login/actions";
 
