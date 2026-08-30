@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "crm",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "pnpm@9", "--filter", "materiales-jcastillo-crm", "run", "dev:zone"],
+      "port": 3001
+    },
+    {
+      "name": "nexo",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "pnpm@9", "--filter", "nexo-panel", "dev"],
+      "port": 3000
+    }
+  ]
+}

@@ -2,6 +2,40 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-08-30 — Fase 4: panel `apps/nexo`, verificado en vivo
+
+- Se construyó `apps/nexo`: login (Supabase Auth), middleware de sesión,
+  home (`/`) que llama a `public.get_visible_apps(companyId)` para armar la
+  grilla de módulos — nunca hardcodea qué mostrar.
+- Nueva función `public.get_visible_apps`: cruza `core.company_apps`
+  (contratado) y `core.has_permission` (autorizado). Mismo patrón que
+  `has_permission` — wrapper en `public` para no depender de exponer el
+  schema `core`.
+- `next.config.ts` de `apps/nexo` implementa el rewrite de Multi-Zones
+  hacia `/crm` (el único módulo adaptado hasta ahora).
+- **Se corrió de verdad, no solo se escribió**: `pnpm install` en todo el
+  monorepo (vía `npx pnpm@9`, porque no había pnpm global instalable sin
+  permisos de administrador), y ambas apps (`crm` en :3001, `nexo` en :3000)
+  levantadas con el Browser pane. Verificado en vivo:
+  - `http://localhost:3000/` → redirige a `/login` sin sesión (middleware
+    funcionando).
+  - Login de Nexo con credenciales falsas → `"Correo o contraseña
+    incorrectos."`, confirmando conexión real end-to-end con Supabase Auth
+    de `nexo-core` (no un error de red).
+  - `http://localhost:3000/crm` → la URL se queda en el puerto 3000 (un
+    solo dominio) pero el contenido servido es el login real de la app CRM
+    (`/crm/login`, con su branding y su propio middleware de auth) — **el
+    rewrite de Multi-Zones funciona de punta a punta**.
+  - Consola del navegador sin errores en ninguna de las dos pantallas.
+- Se creó/corrigió `.claude/launch.json` en el directorio de trabajo
+  principal (`jcastillo`, no `Nexo` — el Browser pane lee el launch.json
+  del working directory principal de la sesión) con configuraciones `crm` y
+  `nexo` que corren `pnpm --filter <app> dev` con `pnpm -C` apuntando al
+  monorepo real.
+- **No verificado todavía**: la grilla de módulos con un usuario real
+  autenticado (`core.company_memberships` está vacío — hace falta crear un
+  usuario y una membresía manualmente, ver `apps/nexo/README.md`).
+
 ## 2026-08-30 — Fase 3: adaptar `web-corporativo` + `crm`
 
 - **`web-corporativo`**: no requirió ningún cambio. Es contenido estático,

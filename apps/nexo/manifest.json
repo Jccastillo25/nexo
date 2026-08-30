@@ -1,0 +1,10 @@
+{
+  "slug": "nexo",
+  "nombre": "Nexo",
+  "categoria": null,
+  "icono": null,
+  "color": "gris",
+  "ruta": "/",
+  "depends": [],
+  "nota": "Zona raiz de Multi-Zones, no un modulo instalable comun — ya sembrada a mano en core.apps (migracion 20260830000002_core_seed_apps.sql). Este manifest existe por consistencia documental, no lo lee ningun script de sync todavia (ver docs/planning/PROPUESTA_MARCA_MODULOS.md seccion 5, pendiente de construir el sync real)."
+}

@@ -21,18 +21,18 @@ crean cuando se migren los datos de cada módulo en su fase correspondiente.
 | `rrhh` | Empleados, asistencia, horarios, nómina | Migrado de Gestor360 (`ofeuzkwjhmfsazqfyutu`) | ⏳ Pendiente |
 | `flotilla` | Flota, viajes, conductores, evidencias | Migrado de Ruta360 | ⏳ Pendiente |
 
-## ⚠️ Paso manual pendiente: exponer schemas en la API
+## Exponer schemas en la API (paso manual, ya hecho para `crm`)
 
 `supabase-js` solo puede leer/escribir en schemas que Supabase expone via
-PostgREST — por defecto solo `public`. Para que las apps puedan hacer
-`.schema("crm").from("clientes")` hace falta, **una sola vez por schema**,
-en el dashboard del proyecto `nexo-core`:
+PostgREST — por defecto solo `public`. El usuario ya expuso `crm` a mano en
+el dashboard (Settings → API → Data API → Exposed schemas → `public`,
+`graphql_public`, `crm`). No hay herramienta MCP para este ajuste, hay que
+repetirlo a mano para `rrhh` y `flotilla` cuando les toque su fase.
 
-> Settings → API → Data API → Exposed schemas → agregar `crm`
-
-Pendiente de hacer. No hay una herramienta MCP para este ajuste (es
-configuración de plataforma, no SQL) — hay que hacerlo a mano en el
-dashboard. Se repetirá para `rrhh` y `flotilla` cuando les toque su fase.
+`core` queda deliberadamente **sin exponer** — todo lo que las apps
+necesitan de `core` (permisos, catálogo de módulos) pasa por wrappers en
+`public` (`public.has_permission`, `public.get_visible_apps`), así se
+evita exponer tablas sensibles como `user_permissions` directo a la API.
 
 ## Tablas de `core` (aplicadas)
 
