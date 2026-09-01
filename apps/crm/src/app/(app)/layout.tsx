@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import { hasPermission } from "@nexo/permissions";
+import { Footer } from "@nexo/ui";
 import Header from "@/components/Header";
 import AppSidebar from "@/components/AppSidebar";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { getPanelUrl } from "@/lib/panel";
+import { getCopyrightText } from "@/lib/platform-settings";
 
 /**
  * Guard de modulo (norma v3.0): el middleware (ver
@@ -26,9 +28,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/sin-acceso");
   }
 
-  const [panelUrl, { data: { user } }] = await Promise.all([
+  const [panelUrl, { data: { user } }, copyrightText] = await Promise.all([
     getPanelUrl(),
     supabase.auth.getUser(),
+    getCopyrightText(supabase),
   ]);
 
   return (
@@ -42,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <AppSidebar />
         {children}
       </main>
+      <Footer text={copyrightText} />
     </div>
   );
 }

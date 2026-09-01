@@ -33,6 +33,18 @@ export type Database = {
         Args: { p_code: string; p_company_id: string };
         Returns: boolean;
       };
+      get_platform_settings: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          logo_url: string | null;
+          login_background_url: string | null;
+          eyebrow_text: string;
+          heading_text: string;
+          tagline: string;
+          bullets: Json;
+          copyright_text: string;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;
