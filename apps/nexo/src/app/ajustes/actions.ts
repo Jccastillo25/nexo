@@ -48,7 +48,19 @@ export async function updateSettings(
     return { error: "No se pudo verificar el permiso.", success: false };
   }
 
-  const admin = createAdminClient();
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch (err) {
+    // supabase-js tira sincrono ("supabaseKey is required") si falta
+    // SUPABASE_SERVICE_ROLE_KEY en el entorno — sin este try/catch, esto
+    // reventaba la pagina entera (error 500 generico de Next.js) en vez de
+    // mostrar un error legible en el formulario.
+    return {
+      error: `No se pudo inicializar el cliente de Storage: ${(err as Error).message}. Revisá que SUPABASE_SERVICE_ROLE_KEY esté configurada en el entorno de este deploy.`,
+      success: false,
+    };
+  }
 
   let logoUrl: string | null = null; // null = no tocar
   const logoFile = formData.get("logo");
