@@ -3,9 +3,12 @@
 // `public` viene del generador real
 // (generate_typescript_types/`supabase gen types typescript`, regenerado
 // 2026-09-02) — incluye `has_permission`, `get_platform_settings`,
-// `get_visible_apps`, `update_platform_settings` y, agregados en esta
-// misma pasada, los wrappers de RRHH `registrar_marca_kiosko` y
-// `set_pin_empleado` (supabase/migrations/20260902000006_rrhh_schema_and_tables.sql).
+// `get_visible_apps`, `update_platform_settings`, los wrappers de RRHH
+// `registrar_marca_kiosko` y `set_pin_empleado`
+// (supabase/migrations/20260902000006_rrhh_schema_and_tables.sql) y,
+// agregados en esta misma pasada, `validar_acceso_operativo` y
+// `crear_empleado`
+// (supabase/migrations/20260902000008_rrhh_nicaragua_and_contracts.sql).
 //
 // `crm`, `core` y `rrhh` estan escritos a mano porque esos schemas
 // todavia no estan expuestos en la API de Supabase (Settings > API >
@@ -22,8 +25,11 @@
 // 20260902000002_partition_core_audit_log.sql (RBAC de 3 capas +
 // particionamiento) — no el resto de `core`. El bloque `rrhh` cubre las 6
 // tablas de 20260902000006_rrhh_schema_and_tables.sql (Expedientes,
-// Asistencia/kiosko, Planillas). Ver
-// docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §2 y §3.
+// Asistencia/kiosko, Planillas) mas lo agregado por
+// 20260902000008_rrhh_nicaragua_and_contracts.sql: columnas nuevas en
+// `empleados`/`empleado_compensacion` y las tablas `parametros_ley` y
+// `seguridad_accesos`. Ver docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §2
+// y §3.
 //
 // Cuando se expongan `crm`/`core`/`rrhh`, regenerar con la herramienta y
 // reemplazar los bloques de abajo por los reales.
@@ -86,6 +92,32 @@ export type Database = {
       set_pin_empleado: {
         Args: { p_company_id: string; p_empleado_id: string; p_pin: string };
         Returns: undefined;
+      };
+      validar_acceso_operativo: {
+        Args: { p_nombre_usuario: string; p_pin: string };
+        Returns: string;
+      };
+      crear_empleado: {
+        Args: {
+          p_apellido: string;
+          p_company_id: string;
+          p_departamento?: string;
+          p_documento_identidad?: string;
+          p_email?: string;
+          p_fecha_ingreso?: string;
+          p_modalidad_contrato?: string;
+          p_nombre: string;
+          p_nombre_usuario?: string;
+          p_pin?: string;
+          p_puesto?: string;
+          p_salario_base?: number;
+          p_telefono?: string;
+        };
+        Returns: {
+          empleado_id: string;
+          nombre_usuario: string;
+          pin_kiosko: string;
+        }[];
       };
       update_platform_settings: {
         Args: {
@@ -305,8 +337,17 @@ export type Database = {
           fecha_baja: string | null;
           estado: "activo" | "inactivo" | "baja";
           // Hash bcrypt, nunca el PIN en texto plano — jamas escribir
-          // este campo directo desde la app, usar el RPC set_pin_empleado.
+          // este campo directo desde la app, usar el RPC set_pin_empleado
+          // o crear_empleado. Desde 20260902000008 tiene doble proposito:
+          // marcacion fisica (registrar_marca_kiosko) Y login al modulo
+          // movil (validar_acceso_operativo) — es el mismo PIN.
           pin_hash: string | null;
+          // Agregado en 20260902000008 — credenciales/estado de acceso
+          // operativo del modulo movil de choferes.
+          nombre_usuario: string; // unico por company_id, autogenerado por crear_empleado o editable a mano
+          pin_bloqueado: boolean; // true a los 3 intentos fallidos consecutivos, ver rrhh.fn_validar_acceso_operativo
+          intentos_fallidos: number;
+          user_id: string | null; // auth.users.id vinculado — null hasta que se provisiona la cuenta (ver nota Next.js en la migracion)
           created_at: string;
           updated_at: string;
         };
@@ -324,7 +365,11 @@ export type Database = {
           fecha_ingreso?: string;
           fecha_baja?: string | null;
           estado?: "activo" | "inactivo" | "baja";
-          pin_hash?: never; // nunca via Insert directo, usar RPC set_pin_empleado
+          pin_hash?: never; // nunca via Insert directo, usar RPC set_pin_empleado o crear_empleado
+          nombre_usuario: string; // NOT NULL — en la practica siempre via RPC crear_empleado, no Insert directo
+          pin_bloqueado?: boolean;
+          intentos_fallidos?: number;
+          user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -343,6 +388,10 @@ export type Database = {
           fecha_baja?: string | null;
           estado?: "activo" | "inactivo" | "baja";
           pin_hash?: never;
+          nombre_usuario?: string;
+          pin_bloqueado?: boolean; // via Update directo: es el camino de desbloqueo, protegido por la policy de empleados.editar
+          intentos_fallidos?: number;
+          user_id?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -355,6 +404,10 @@ export type Database = {
           empleado_id: string;
           company_id: string;
           salario_base: number;
+          // Agregado en 20260902000008 — gobierna como el motor de
+          // planillas interpreta salario_base/comisiones para este
+          // empleado.
+          modalidad_contrato: "nomina_estandar" | "comisionista_destajo";
           updated_at: string;
           updated_by: string | null;
         };
@@ -362,6 +415,7 @@ export type Database = {
           empleado_id: string;
           company_id: string;
           salario_base?: number;
+          modalidad_contrato?: "nomina_estandar" | "comisionista_destajo";
           updated_at?: string;
           updated_by?: string | null;
         };
@@ -369,6 +423,7 @@ export type Database = {
           empleado_id?: string;
           company_id?: string;
           salario_base?: number;
+          modalidad_contrato?: "nomina_estandar" | "comisionista_destajo";
           updated_at?: string;
           updated_by?: string | null;
         };
@@ -538,6 +593,83 @@ export type Database = {
         };
         Relationships: [];
       };
+      // Agregada en 20260902000008. Versionada por vigente_desde/
+      // vigente_hasta — nunca se sobreescribe un valor historico. Solo
+      // una fila "activa" (vigente_hasta null) por codigo por empresa.
+      parametros_ley: {
+        Row: {
+          id: string;
+          company_id: string;
+          codigo: string; // 'inss_laboral' | 'inss_patronal' | 'inatec' | 'techo_inss'
+          unidad: "porcentaje" | "monto";
+          valor: number;
+          vigente_desde: string;
+          vigente_hasta: string | null;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          company_id?: string; // tiene DEFAULT rrhh.default_company_id()
+          codigo: string;
+          unidad: "porcentaje" | "monto";
+          valor: number;
+          vigente_desde?: string;
+          vigente_hasta?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          codigo?: string;
+          unidad?: "porcentaje" | "monto";
+          valor?: number;
+          vigente_desde?: string;
+          vigente_hasta?: string | null;
+          created_by?: string | null;
+        };
+        Relationships: [];
+      };
+      // Agregada en 20260902000008. Particionada por rango mensual desde
+      // el dia 1 — no cambia la forma de Row/Insert/Update. Solo
+      // intentos FALLIDOS, insertados por rrhh.fn_validar_acceso_operativo
+      // (security definer) — sin policy de RLS para authenticated
+      // (deny-by-default, mismo criterio que core.audit_log), por eso en
+      // la practica esta tabla no se lee ni escribe via el cliente normal
+      // desde la app, solo referencia de forma para consultas admin.
+      seguridad_accesos: {
+        Row: {
+          id: string;
+          company_id: string;
+          nombre_usuario: string;
+          empleado_id: string | null;
+          exitoso: boolean;
+          ip_origen: string | null;
+          intentado_en: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          nombre_usuario: string;
+          empleado_id?: string | null;
+          exitoso?: boolean;
+          ip_origen?: string | null;
+          intentado_en?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          nombre_usuario?: string;
+          empleado_id?: string | null;
+          exitoso?: boolean;
+          ip_origen?: string | null;
+          intentado_en?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -571,5 +703,8 @@ export type KioskoDispositivo = Database["rrhh"]["Tables"]["kiosko_dispositivos"
 export type AsistenciaMarca = Database["rrhh"]["Tables"]["asistencia_marcas"]["Row"];
 export type Planilla = Database["rrhh"]["Tables"]["planillas"]["Row"];
 export type PlanillaDetalle = Database["rrhh"]["Tables"]["planilla_detalles"]["Row"];
+export type ParametroLey = Database["rrhh"]["Tables"]["parametros_ley"]["Row"];
+export type SeguridadAcceso = Database["rrhh"]["Tables"]["seguridad_accesos"]["Row"];
 export type EstadoEmpleado = "activo" | "inactivo" | "baja";
 export type EstadoPlanilla = "borrador" | "aprobada" | "anulada";
+export type ModalidadContrato = "nomina_estandar" | "comisionista_destajo";
