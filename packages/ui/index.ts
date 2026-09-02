@@ -6,6 +6,10 @@ export { BackToPanelLink } from "./BackToPanelLink";
 export type { BackToPanelLinkProps } from "./BackToPanelLink";
 export { Sidebar } from "./Sidebar";
 export type { SidebarProps, SidebarItem, SidebarIconName } from "./Sidebar";
+export { AppShell } from "./AppShell";
+export type { AppShellProps } from "./AppShell";
+export { StatCard } from "./StatCard";
+export type { StatCardProps } from "./StatCard";
 export {
   CATEGORY_COLORS,
   DEFAULT_CATEGORY_COLOR,
@@ -23,6 +27,4 @@ export {
   DefaultAppIcon,
 } from "./category-icons";
 
-// Pendiente: StatCard, PageHeader — se construyen cuando RRHH/Flotilla se
-// adapten y haya que resolver la duplicacion de StatCard que ya existe
-// hoy en Gestor360 (3 implementaciones distintas).
+// Pendiente: PageHeader.

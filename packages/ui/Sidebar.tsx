@@ -54,6 +54,21 @@ const ICONS = {
   chat: (
     <path d="M3 4.5h14v9H8l-3.5 3v-3H3v-9Z" />
   ),
+  // Agregados para RRHH (Kiosco/Planillas) — set aditivo, no rompe los
+  // nombres existentes.
+  clock: (
+    <>
+      <circle cx="10" cy="10" r="7" />
+      <path d="M10 6v4l2.8 2.2" strokeLinecap="round" />
+    </>
+  ),
+  cash: (
+    <>
+      <rect x="2.5" y="6" width="15" height="9" rx="1.5" />
+      <circle cx="10" cy="10.5" r="2.2" />
+      <path d="M5.5 8v0M14.5 13v0" strokeLinecap="round" />
+    </>
+  ),
 } as const;
 
 export type SidebarIconName = keyof typeof ICONS;
