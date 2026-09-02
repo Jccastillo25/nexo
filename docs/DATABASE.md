@@ -79,3 +79,16 @@ alertas de seguridad más allá de ese "RLS sin policy" esperado
 | CRM | `crm` | No iniciado (código ya importado en `apps/crm`) |
 
 Ver bitácora en [MIGRATION_LOG.md](MIGRATION_LOG.md).
+
+## Escalabilidad (particionamiento, pooling, read replicas)
+
+Diseño completo, con SQL, en
+[planning/ARQUITECTURA_MVP_ESCALABLE.md §2](planning/ARQUITECTURA_MVP_ESCALABLE.md#2-estrategia-de-escalabilidad-extrema).
+Resumen: toda tabla de hechos (transacciones, históricos, logs) nace
+particionada por rango mensual desde su primera migración —
+`core.audit_log` ya se convirtió (`20260902000002_partition_core_audit_log.sql`,
+pendiente de aplicar al proyecto remoto). Server Components/Actions usan
+siempre el pooler de Supavisor en modo transacción (puerto `6543`);
+migraciones y `pg_cron` usan conexión directa/sesión (`5432`). Read
+replicas se aprovisionan recién cuando aparezca el primer reporte
+cross-módulo pesado (Torre de Control) — no antes.

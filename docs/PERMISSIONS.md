@@ -129,3 +129,17 @@ módulo si la empresa del usuario no lo tiene contratado. El panel siempre
 cruza `core.company_apps` (¿la empresa tiene el módulo activo?) **y**
 `core.user_permissions` (¿el usuario tiene `<slug>.ver_modulo` concedido?)
 — las dos condiciones, no una sola.
+
+## Extensión: rol por app (capa 2, entre suite y permiso fino)
+
+`core.company_memberships.role` (owner/admin/member) es un rol de
+**suite** — todo o nada por empresa. `core.user_permissions` es un
+permiso **fino** — uno por uno. Falta la capa intermedia para el caso
+"admin de RRHH pero solo lectura en Contabilidad" sin otorgar 20
+permisos a mano: `core.app_roles` / `core.app_role_permissions` /
+`core.user_app_roles`, más una versión extendida (retrocompatible) de
+`core.has_permission()` que evalúa las 3 capas en orden. Diseño completo
+y migración SQL en
+[planning/ARQUITECTURA_MVP_ESCALABLE.md §3](planning/ARQUITECTURA_MVP_ESCALABLE.md#3-matriz-de-roles-y-permisos-granulares-rbacabac)
+(`supabase/migrations/20260902000001_app_scoped_roles.sql`, pendiente de
+aplicar al proyecto remoto).

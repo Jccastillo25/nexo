@@ -35,6 +35,15 @@ la misma experiencia de usuario (un dominio, sin re-login) sin ese riesgo:
 cada módulo se migra de forma incremental (*strangler fig*), un módulo a la
 vez.
 
+## Escalabilidad, RBAC de 2 capas, atomicidad inter-módulo, playbook de app nueva
+
+Extensión de staff-architect sobre esta misma arquitectura (no la
+cambia): particionamiento nativo, Supavisor, read replicas, rol por app,
+la función cross-schema que garantiza atomicidad entre módulos (ej.
+aprobar planilla en RRHH → asiento en Contabilidad, sin datos huérfanos
+si algo falla), y el checklist único para dar de alta un módulo. Ver
+[planning/ARQUITECTURA_MVP_ESCALABLE.md](planning/ARQUITECTURA_MVP_ESCALABLE.md).
+
 ## Pendiente de documentar aquí a medida que se implementa
 
 - [ ] Configuración exacta de `next.config.js` de la zona raíz (`apps/nexo`)

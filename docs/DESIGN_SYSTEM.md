@@ -38,15 +38,30 @@ Lo único que distingue un módulo de otro es el **color de categoría**
 puntuales (ej. el borde de un widget de la Torre de Control) — nunca en
 tipografía, ni en la paleta general de botones/inputs/tarjetas.
 
-## Regla obligatoria: el negro es solo del login
+## Regla obligatoria: dark mode por defecto + glassmorphism en toda la suite
 
-**El único lugar de toda la suite con fondo oscuro es la pantalla de
-login** (`apps/nexo/src/app/login/page.tsx`). `ShellBar`, `Sidebar`, el
-panel y el contenido de cada módulo usan la paleta clara
-(`neutral-50`/`white` de fondo, `neutral-900` de texto). Antes `ShellBar`
-era oscura (`neutral-900`) en toda la suite — se revirtió a pedido
-explícito del usuario: el oscuro comunica "estás entrando", no "estás
-usando la suite".
+**Revisado (2026-09-02) — reemplaza la regla anterior ("el negro es solo
+del login").** Decisión explícita del usuario: toda la suite —
+`ShellBar`, `Sidebar`, el panel y el contenido de cada módulo, no solo el
+login — usa tema oscuro por defecto (`darkMode: "class"`, fijo, no
+depende de `prefers-color-scheme` del SO) con paneles `glassmorphism`
+(`backdrop-filter: blur` + fondo semitransparente + borde de 1px sutil) y
+dashboards compactos de alta densidad de información. Tokens CSS,
+configuración de Tailwind y la clase `.nexo-glass` reusable viven en
+[planning/ARQUITECTURA_MVP_ESCALABLE.md §4](planning/ARQUITECTURA_MVP_ESCALABLE.md#4-estándares-de-uiux-y-frontend)
+— ese documento es ahora la fuente de verdad de esta regla, esta sección
+queda como resumen operativo.
+
+**Deuda técnica reconocida, no bloqueante:** `packages/ui/ShellBar.tsx`,
+`Sidebar.tsx` y el contenido de `apps/crm` fueron construidos a propósito
+para el tema claro anterior (el propio `ShellBar.tsx` documenta esa
+decisión en un comentario del código) — **no se reescribieron** como
+parte de este cambio de norma. Hasta que se migren, CRM queda
+visualmente inconsistente con cualquier módulo que nazca ya con los
+tokens dark/glass nuevos; es una inconsistencia temporal aceptada, no un
+bug a reportar. Un módulo **nuevo** (o una página nueva) usa los tokens
+dark/glass desde el día uno — no replica la paleta clara vieja de
+`ShellBar`/`Sidebar` como si siguiera vigente.
 
 ## Regla obligatoria: todo módulo aterriza en su Dashboard de KPIs
 
@@ -169,10 +184,10 @@ diseño está en
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--nexo-shell-bg` | `#FFFFFF` (white) | Fondo de `ShellBar` — **revisado**: era `neutral-900`, ahora el oscuro es exclusivo del login (ver regla obligatoria arriba) |
-| `--nexo-shell-fg` | `#171717` (neutral-900) | Texto/iconos de `ShellBar` |
-| `--nexo-bg` | `#F5F5F5` (neutral-100) | Fondo del contenido del panel |
-| `--nexo-login-bg` | `#0A0A0A` (neutral-950) | Fondo de la pantalla de login — único lugar oscuro de la suite |
+| `--nexo-shell-bg` | `rgba(18,18,26,0.72)` + `backdrop-filter: blur` | Fondo de `ShellBar` — **revisado de nuevo (2026-09-02)**: pasó de oscuro (`neutral-900`) → claro (`white`) → oscuro/glass otra vez, ahora por defecto en toda la suite, no solo el login (ver regla obligatoria arriba). Detalle completo de tokens: [planning/ARQUITECTURA_MVP_ESCALABLE.md §4.1](planning/ARQUITECTURA_MVP_ESCALABLE.md#41-cambio-de-norma-dark-mode-por-defecto--glassmorphism) |
+| `--nexo-shell-fg` | `#F5F5F7` | Texto/iconos de `ShellBar` |
+| `--nexo-bg` | `#0A0A0F` | Fondo del contenido del panel y de cada módulo |
+| `--nexo-login-bg` | `#0A0A0A` (neutral-950) | Fondo de la pantalla de login — ya no es el único lugar oscuro de la suite, pero se mantiene como valor de referencia |
 | Categoría Finanzas | verde `#DCFCE7` / texto `#166534` | `packages/ui/category-colors.ts` |
 | Categoría Ventas | rosa `#FCE7F3` / texto `#9D174D` | ídem — CRM vive acá |
 | Categoría Cadena de suministro | morado `#F3E8FF` / texto `#6B21A8` | ídem — Flotilla vive acá |

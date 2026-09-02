@@ -86,6 +86,30 @@ tarjetas con datos reales del módulo como mínimo). Ver
 como referencia y el checklist completo en
 [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
+## Regla obligatoria: dark mode por defecto + glassmorphism (reemplaza "negro solo en login")
+
+**Desde 2026-09-02, toda la suite usa tema oscuro por defecto** (no solo
+el login) **con paneles `glassmorphism`** (`.nexo-glass`: fondo
+semitransparente + `backdrop-filter: blur` + borde de 1px sutil) **y
+dashboards compactos de alta densidad**. `darkMode: "class"` fijo, nunca
+`prefers-color-scheme`. Tokens CSS y config de Tailwind:
+[`docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §4`](docs/planning/ARQUITECTURA_MVP_ESCALABLE.md#4-estándares-de-uiux-y-frontend).
+`ShellBar`/`Sidebar`/CRM siguen en paleta clara (deuda técnica reconocida,
+no se reescriben solos por esto) — un módulo o página **nueva** usa los
+tokens dark/glass desde el día uno, no copia la paleta clara vieja.
+
+## Regla obligatoria: toda tabla de hechos nace particionada
+
+**Al crear una tabla nueva que registra un evento de negocio que se sigue
+insertando sin límite (transacciones, históricos, marcas, logs,
+auditoría), la migración la crea particionada por `RANGE` mensual desde
+el primer `create table`** — nunca se agrega el particionamiento después.
+Catálogos/dimensiones (clientes, empleados, `permissions_catalog`) no se
+particionan. Plantilla SQL, índices obligatorios (B-Tree en toda FK,
+`(company_id, fecha)` compuesto, GIN en JSONB) y el mecanismo de
+particiones futuras vía `pg_cron`:
+[`docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §2`](docs/planning/ARQUITECTURA_MVP_ESCALABLE.md#2-estrategia-de-escalabilidad-extrema).
+
 ## Regla obligatoria: Vercel Speed Insights + Analytics
 
 **Toda app en `apps/*` que se despliegue en Vercel debe incluir

@@ -10,6 +10,7 @@
 | [MIGRATION_LOG.md](MIGRATION_LOG.md) | Bitácora fecha a fecha de la migración, rollback notes |
 | [ROADMAP.md](ROADMAP.md) | Fases del proyecto, próximos módulos |
 | [planning/PLAN_UNIFICACION_NEXO.md](planning/PLAN_UNIFICACION_NEXO.md) | Plan original de unificación (arquitectura, migración de BD, cronograma) |
+| [planning/ARQUITECTURA_MVP_ESCALABLE.md](planning/ARQUITECTURA_MVP_ESCALABLE.md) | Particionamiento, pooling/read replicas, RBAC de 3 capas (rol por app), atomicidad inter-módulo, playbook de app nueva, dark mode + glassmorphism |
 | [planning/PROPUESTA_MARCA_MODULOS.md](planning/PROPUESTA_MARCA_MODULOS.md) | Naming, rutas, íconos y catálogo de módulos investigado en Odoo/SAP/Oracle |
 | [planning/DISENO_UX_UI.md](planning/DISENO_UX_UI.md) | Estudio de SAP Fiori y Odoo detrás de los tokens de DESIGN_SYSTEM.md |
 | [planning/NORMA_DISENO_UNIVERSAL.md](planning/NORMA_DISENO_UNIVERSAL.md) | Norma de diseño completa: paleta agnóstica, App Shell (launcher/omnibar/notificaciones/sidebar), Torre de Control, PWA operativa, kiosko, reglas anti-fragmentación |
