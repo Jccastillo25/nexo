@@ -26,5 +26,13 @@ export {
   ServiciosIcon,
   DefaultAppIcon,
 } from "./category-icons";
+export {
+  BULLET_ICONS,
+  BULLET_ICON_NAMES,
+  BulletIcon,
+} from "./bullet-icons";
+export type { BulletIconName } from "./bullet-icons";
+export { Footer } from "./Footer";
+export type { FooterProps } from "./Footer";
 
 // Pendiente: PageHeader.

@@ -1,0 +1,11 @@
+-- Mismo gotcha que 20260830000007_fix_has_permission_execute_grant.sql:
+-- Postgres otorga EXECUTE a PUBLIC por defecto en toda funcion nueva, y
+-- Supabase ademas tiene default privileges de schema que le dan EXECUTE
+-- explicito a anon/authenticated/service_role al crearla — revocar de
+-- "public" (el pseudo-rol) no alcanza para sacarle el acceso a anon.
+-- update_platform_settings ya rechaza a anon adentro (auth.uid() es null,
+-- no encuentra company_id, revienta con "No autorizado"), pero cerrar el
+-- EXECUTE explicitamente es mas prolijo y saca el WARN del advisor de
+-- seguridad. get_platform_settings SI necesita anon a proposito (lo llama
+-- el login sin sesion) — no se toca.
+revoke execute on function public.update_platform_settings(text, text, text, text, text, jsonb, text) from anon;

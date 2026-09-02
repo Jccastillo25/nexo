@@ -47,11 +47,21 @@ evita exponer tablas sensibles como `user_permissions` directo a la API.
 - `core.user_permissions`, `core.audit_log`, `core.migration_map` — vacías
 - `core.has_permission()` / `public.has_permission()` — función única de la
   norma v3.0, RLS y apps la llaman por igual (ver PERMISSIONS.md)
+- `core.platform_settings` — singleton (id=1) con la marca de Nexo: logo,
+  imagen de fondo del login, textos, bullets (jsonb), copyright de toda la
+  plataforma. Lectura pública vía `public.get_platform_settings()` (el
+  login no tiene sesión), escritura vía `public.update_platform_settings()`
+  (valida `nexo.configuracion.editar` adentro). Editable desde
+  `apps/nexo/src/app/ajustes`. Bucket de Storage asociado:
+  `platform-assets` (público, solo lectura por RLS).
 
 Migraciones aplicadas, en orden: `20260830000001_core_schema` →
 `20260830000002_core_seed_apps` → `20260830000003_crm_permissions_catalog` →
 `20260830000004_seed_materiales_jcastillo` → `20260830000005_crm_schema` →
-`20260830000006_fix_security_advisors` → `20260830000007_fix_has_permission_execute_grant`.
+`20260830000006_fix_security_advisors` → `20260830000007_fix_has_permission_execute_grant` →
+`20260830000008_get_visible_apps` → `20260830000009_get_visible_apps_exclude_nexo` →
+`20260830000010_fix_crm_schema_grants` → `20260830000011_platform_settings` →
+`20260830000012_fix_update_platform_settings_execute_grant`.
 Todas en [`supabase/migrations/`](../supabase/migrations/).
 
 Nota: `core_schema` se reseteó una vez completo (`drop schema core cascade`

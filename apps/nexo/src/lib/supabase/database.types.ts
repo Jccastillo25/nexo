@@ -38,6 +38,30 @@ export type Database = {
           route: string;
         }[];
       };
+      get_platform_settings: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          logo_url: string | null;
+          login_background_url: string | null;
+          eyebrow_text: string;
+          heading_text: string;
+          tagline: string;
+          bullets: Json;
+          copyright_text: string;
+        }[];
+      };
+      update_platform_settings: {
+        Args: {
+          p_logo_url?: string | null;
+          p_login_background_url?: string | null;
+          p_eyebrow_text?: string | null;
+          p_heading_text?: string | null;
+          p_tagline?: string | null;
+          p_bullets?: Json | null;
+          p_copyright_text?: string | null;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       [_ in never]: never;

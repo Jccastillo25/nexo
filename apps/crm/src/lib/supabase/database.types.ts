@@ -54,18 +54,6 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      get_platform_settings: {
-        Args: Record<PropertyKey, never>;
-        Returns: {
-          bullets: Json;
-          copyright_text: string;
-          eyebrow_text: string;
-          heading_text: string;
-          login_background_url: string;
-          logo_url: string;
-          tagline: string;
-        }[];
-      };
       get_visible_apps: {
         Args: { p_company_id: string };
         Returns: {
@@ -130,6 +118,23 @@ export type Database = {
           p_tagline?: string;
         };
         Returns: undefined;
+      };
+      // Nullable en logo_url/login_background_url (no en HEAD original de
+      // esta sesion) — version de origin/main, mas reciente y correcta:
+      // ver e19302a "login completamente editable" y 44b6ab6 "fix: subir
+      // logo/fondo en /ajustes tiraba la pagina entera", que existia
+      // justamente porque el campo puede no tener imagen todavia.
+      get_platform_settings: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          logo_url: string | null;
+          login_background_url: string | null;
+          eyebrow_text: string;
+          heading_text: string;
+          tagline: string;
+          bullets: Json;
+          copyright_text: string;
+        }[];
       };
     };
     Enums: {
