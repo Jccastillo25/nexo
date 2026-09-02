@@ -1,0 +1,28 @@
+@import "tailwindcss";
+/* Ruta relativa, no el specifier del paquete — mismo criterio que el
+   @source de abajo (ver su comentario): evita depender de que el
+   resolver de CSS de Tailwind/Lightning entienda resolucion de paquetes
+   npm para un @import. */
+@import "../../../../packages/ui/tokens.css";
+
+/* Tailwind v4 solo escanea el arbol de esta app por default — @nexo/ui
+   vive en packages/ui, fuera de ese arbol, asi que sin esto cualquier
+   clase usada UNICAMENTE ahi nunca se genera y el componente compartido
+   se renderiza roto, aunque compile sin errores. Repetir este @source en
+   cada app que consuma @nexo/ui (ver docs/DESIGN_SYSTEM.md, mismo patron
+   que apps/crm). */
+@source "../../../../packages/ui/**/*.{ts,tsx}";
+
+@theme inline {
+  --font-sans: var(--font-sans);
+}
+
+/* Dark mode por defecto (regla obligatoria, ver CLAUDE.md) — a diferencia
+   de un toggle claro/oscuro, RRHH no usa la variante `dark:` de
+   Tailwind: la paleta oscura + glass es la UNICA paleta de este modulo
+   desde el dia uno, aplicada directo (no condicional a una clase). */
+html,
+body {
+  height: 100%;
+  background: var(--nexo-bg);
+}

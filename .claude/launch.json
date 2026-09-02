@@ -12,6 +12,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "pnpm@9", "--filter", "nexo-panel", "dev"],
       "port": 3000
+    },
+    {
+      "name": "rrhh",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "pnpm@9", "--filter", "rrhh", "run", "dev:zone"],
+      "port": 3002
     }
   ]
 }
