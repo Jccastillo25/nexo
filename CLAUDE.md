@@ -86,6 +86,26 @@ tarjetas con datos reales del módulo como mínimo). Ver
 como referencia y el checklist completo en
 [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
+## Regla obligatoria: Paso Cero — matriz de permisos antes que tablas o UI
+
+**Prohibido generar código de frontend o crear tablas de datos para una
+app/módulo nuevo (o una función nueva dentro de uno existente) sin antes
+haber diseñado, presentado como Markdown + SQL, y hecho aprobar
+explícitamente por el usuario su Matriz de Permisos y Roles** —
+`[app].[modulo].[recurso].[accion]`, 4 segmentos estrictos, sin
+excepción para código nuevo — **e insertado esa matriz en el catálogo**
+(`core.permissions_catalog` + `core.app_roles` + `core.app_role_permissions`)
+antes de que exista una tabla de datos del módulo. Precedente: la matriz
+de RRHH (2026-09-02). Detalle:
+[`docs/PERMISSIONS.md`](docs/PERMISSIONS.md) y
+[`docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §6`](docs/planning/ARQUITECTURA_MVP_ESCALABLE.md#6-playbook-para-agregar-una-nueva-app).
+
+**Verificación Remota Obligatoria**: antes de escribir un `insert` hacia
+`core.permissions_catalog`/`core.app_roles`, consultar el estado real del
+proyecto remoto (`core.apps`, `core.permissions_catalog`, `core.app_roles`
+filtrados por `module_slug`, vía el MCP de Supabase) — nunca asumir el
+estado a partir de la documentación local, que puede estar desactualizada.
+
 ## Regla obligatoria: dark mode por defecto + glassmorphism (reemplaza "negro solo en login")
 
 **Desde 2026-09-02, toda la suite usa tema oscuro por defecto** (no solo

@@ -130,6 +130,27 @@ cruza `core.company_apps` (¿la empresa tiene el módulo activo?) **y**
 `core.user_permissions` (¿el usuario tiene `<slug>.ver_modulo` concedido?)
 — las dos condiciones, no una sola.
 
+## Paso Cero — ley, previa a construir cualquier módulo o función nueva
+
+**Prohibido generar código de frontend o crear tablas de datos para una
+app/módulo nuevo sin antes haber diseñado, presentado y hecho aprobar
+explícitamente su Matriz de Permisos y Roles, e insertado esa matriz en
+el catálogo** (`core.permissions_catalog` + `core.app_roles` +
+`core.app_role_permissions` si aplica capa 2) — nomenclatura estricta de
+4 segmentos `[app].[modulo].[recurso].[accion]`, sin excepción para
+código nuevo. Extiende el checklist de la norma v3.0 de más abajo: ese
+checklist ya exigía el permiso *antes* de que la función funcione (falla
+cerrada si falta), Paso Cero exige además que el permiso exista *antes*
+de que exista la tabla o la página. Detalle completo y el precedente real
+(matriz de RRHH): [planning/ARQUITECTURA_MVP_ESCALABLE.md §6](planning/ARQUITECTURA_MVP_ESCALABLE.md#6-playbook-para-agregar-una-nueva-app).
+
+**Verificación Remota Obligatoria** — antes de escribir un script de
+`insert` hacia `core.permissions_catalog`/`core.app_roles`, se consulta
+el estado real del proyecto remoto (`core.apps`, `core.permissions_catalog`,
+`core.app_roles` filtrados por `module_slug`) para confirmar que no hay
+colisión y anclar el script a la realidad — nunca asumir el estado a
+partir de esta documentación, que puede estar desactualizada.
+
 ## Extensión: rol por app (capa 2, entre suite y permiso fino)
 
 `core.company_memberships.role` (owner/admin/member) es un rol de

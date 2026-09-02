@@ -530,8 +530,8 @@ begin
   -- 1. Permiso: solo quien puede aprobar planilla llega aca (capa server
   --    action ya lo valida antes de llamar el RPC; esto es defensa en
   --    profundidad, la misma logica corre si alguien llama el RPC directo).
-  if not core.has_permission(auth.uid(), p_company_id, 'rrhh.nomina.planilla.aprobar') then
-    raise exception 'Permiso denegado: rrhh.nomina.planilla.aprobar';
+  if not core.has_permission(auth.uid(), p_company_id, 'rrhh.planillas.planilla.aprobar') then
+    raise exception 'Permiso denegado: rrhh.planillas.planilla.aprobar';
   end if;
 
   -- 2. Marcar la planilla como aprobada (schema rrhh).
@@ -613,6 +613,38 @@ Consolida en un solo checklist lo que hoy vive disperso en
 [MODULES.md](../MODULES.md), [PERMISSIONS.md](../PERMISSIONS.md) y
 [DESIGN_SYSTEM.md](../DESIGN_SYSTEM.md) — usar este orden exacto, cada
 paso depende del anterior.
+
+### Paso Cero (ley, previa a los pasos 1-10 — sin excepción)
+
+**Prohibido generar código de frontend o crear tablas de datos para una
+app nueva (o un módulo nuevo dentro de una app existente) sin antes
+haber diseñado, presentado y hecho aprobar explícitamente su Matriz de
+Permisos y Roles** — la lista completa de códigos
+`[app].[modulo].[recurso].[accion]` (nomenclatura estricta de 4
+segmentos, sin excepción para código nuevo) y los roles de app que los
+empaquetan (§3.2) — **e insertado esa matriz en el catálogo**
+(`core.permissions_catalog`, `core.app_roles`, `core.app_role_permissions`)
+antes de que exista una sola tabla de datos del módulo. Precedente real:
+la matriz de RRHH (Expedientes/Asistencia/Planillas, 2026-09-02) se
+diseñó, presentó como 2 tablas Markdown + 1 script SQL, se aprobó
+explícitamente, y **recién entonces** se autorizó diseñar
+`rrhh.empleados`/`rrhh.asistencia_marcas`/`rrhh.planillas` — nunca al
+revés. Motivo: diseñar las tablas primero tienta a improvisar permisos
+ad-hoc sobre la marcha (o a olvidar alguno) en vez de pensar el modelo de
+autorización como una decisión completa de una sola vez; también evita
+construir UI o RLS contra permisos que después cambian de nombre.
+
+**Verificación Remota Obligatoria** — antes de escribir cualquier script
+de `insert` hacia `core.permissions_catalog`/`core.app_roles` (sea para
+una matriz nueva o una extensión), se consulta el estado real del
+proyecto remoto (`core.apps`, `core.permissions_catalog`,
+`core.app_roles` filtrados por el `module_slug` en cuestión — vía
+`list_tables`/`execute_sql` del MCP de Supabase, o el equivalente en
+`supabase db diff`/`psql` si no hay MCP disponible) para confirmar que el
+`module_slug` ya existe en `core.apps` y no reinsertar códigos que ya
+estén dados de alta. "Anclar a la realidad" antes de insertar, no asumir
+el estado a partir de la documentación local — la documentación puede
+estar desactualizada, el proyecto remoto no.
 
 1. **`apps/<slug>/manifest.json`** — slug, nombre, categoría (tabla de
    tokens en DESIGN_SYSTEM.md), ícono Lucide, ruta (`/<slug>`), `depends`
