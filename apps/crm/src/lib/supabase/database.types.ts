@@ -2,30 +2,30 @@
 //
 // `public` viene del generador real
 // (generate_typescript_types/`supabase gen types typescript`, regenerado
-// 2026-09-02) — incluye ademas de `has_permission` los RPC
-// `get_platform_settings`/`get_visible_apps`/`update_platform_settings`
-// que se agregaron en migraciones posteriores a la primera version de
-// este archivo y nunca se habian vuelto a generar (deuda ya pagada en
-// este mismo cambio).
+// 2026-09-02) — incluye `has_permission`, `get_platform_settings`,
+// `get_visible_apps`, `update_platform_settings` y, agregados en esta
+// misma pasada, los wrappers de RRHH `registrar_marca_kiosko` y
+// `set_pin_empleado` (supabase/migrations/20260902000006_rrhh_schema_and_tables.sql).
 //
-// `crm` y `core` estan escritos a mano porque esos schemas todavia no
-// estan expuestos en la API de Supabase (Settings > API > Data API >
-// Exposed schemas: solo `public` hoy) — `generate_typescript_types`
-// introspecciona via esa API expuesta, no via conexion directa a
-// Postgres, asi que no puede ver tablas de un schema no expuesto. `core`
-// en particular esta sin exponer **a proposito** (decision de seguridad
-// documentada en docs/DATABASE.md, para no exponer tablas como
-// `user_permissions` cruda a la API REST) — no se expone solo para poder
-// generar tipos.
+// `crm`, `core` y `rrhh` estan escritos a mano porque esos schemas
+// todavia no estan expuestos en la API de Supabase (Settings > API >
+// Data API > Exposed schemas: solo `public` hoy) —
+// `generate_typescript_types` introspecciona via esa API expuesta, no
+// via conexion directa a Postgres, asi que no puede ver tablas de un
+// schema no expuesto. `core` en particular esta sin exponer **a
+// proposito** (decision de seguridad documentada en docs/DATABASE.md,
+// para no exponer tablas como `user_permissions` cruda a la API REST) —
+// no se expone solo para poder generar tipos.
 //
-// El bloque `core` de abajo cubre unicamente las tablas tocadas por
-// supabase/migrations/20260902000001_app_scoped_roles.sql y
+// El bloque `core` cubre unicamente las tablas tocadas por
+// 20260902000001_app_scoped_roles.sql y
 // 20260902000002_partition_core_audit_log.sql (RBAC de 3 capas +
-// particionamiento) — no el resto de `core` (companies, apps,
-// permissions_catalog, etc.), que no cambio en este commit. Ver
-// docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §3 y §2.
+// particionamiento) — no el resto de `core`. El bloque `rrhh` cubre las 6
+// tablas de 20260902000006_rrhh_schema_and_tables.sql (Expedientes,
+// Asistencia/kiosko, Planillas). Ver
+// docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §2 y §3.
 //
-// Cuando se exponga `crm`/`core`, regenerar con la herramienta y
+// Cuando se expongan `crm`/`core`/`rrhh`, regenerar con la herramienta y
 // reemplazar los bloques de abajo por los reales.
 
 export type Json =
@@ -74,6 +74,18 @@ export type Database = {
       has_permission: {
         Args: { p_code: string; p_company_id: string };
         Returns: boolean;
+      };
+      registrar_marca_kiosko: {
+        Args: { p_kiosko_id: string; p_pin: string };
+        Returns: {
+          empleado_nombre: string;
+          marcado_en: string;
+          tipo: string;
+        }[];
+      };
+      set_pin_empleado: {
+        Args: { p_company_id: string; p_empleado_id: string; p_pin: string };
+        Returns: undefined;
       };
       update_platform_settings: {
         Args: {
@@ -275,6 +287,271 @@ export type Database = {
       [_ in never]: never;
     };
   };
+  rrhh: {
+    Tables: {
+      empleados: {
+        Row: {
+          id: string;
+          company_id: string;
+          codigo_empleado: number;
+          nombre: string;
+          apellido: string;
+          documento_identidad: string | null;
+          email: string | null;
+          telefono: string | null;
+          puesto: string | null;
+          departamento: string | null;
+          fecha_ingreso: string;
+          fecha_baja: string | null;
+          estado: "activo" | "inactivo" | "baja";
+          // Hash bcrypt, nunca el PIN en texto plano — jamas escribir
+          // este campo directo desde la app, usar el RPC set_pin_empleado.
+          pin_hash: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id?: string; // tiene DEFAULT rrhh.default_company_id()
+          codigo_empleado?: never; // generated always as identity
+          nombre: string;
+          apellido: string;
+          documento_identidad?: string | null;
+          email?: string | null;
+          telefono?: string | null;
+          puesto?: string | null;
+          departamento?: string | null;
+          fecha_ingreso?: string;
+          fecha_baja?: string | null;
+          estado?: "activo" | "inactivo" | "baja";
+          pin_hash?: never; // nunca via Insert directo, usar RPC set_pin_empleado
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          codigo_empleado?: never;
+          nombre?: string;
+          apellido?: string;
+          documento_identidad?: string | null;
+          email?: string | null;
+          telefono?: string | null;
+          puesto?: string | null;
+          departamento?: string | null;
+          fecha_ingreso?: string;
+          fecha_baja?: string | null;
+          estado?: "activo" | "inactivo" | "baja";
+          pin_hash?: never;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      // Tabla separada de empleados a proposito — compensacion.ver/editar
+      // es un permiso distinto de empleados.ver, ver comentario en la
+      // migracion 20260902000006.
+      empleado_compensacion: {
+        Row: {
+          empleado_id: string;
+          company_id: string;
+          salario_base: number;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          empleado_id: string;
+          company_id: string;
+          salario_base?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          empleado_id?: string;
+          company_id?: string;
+          salario_base?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      kiosko_dispositivos: {
+        Row: {
+          id: string;
+          company_id: string;
+          nombre: string;
+          ubicacion: string | null;
+          activo: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id?: string;
+          nombre: string;
+          ubicacion?: string | null;
+          activo?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          nombre?: string;
+          ubicacion?: string | null;
+          activo?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      // Particionada por rango mensual desde 2026-09-02 (ver
+      // 20260902000006_rrhh_schema_and_tables.sql) — no cambia la forma
+      // de Row/Insert/Update, solo como Postgres almacena las filas.
+      // Las marcas de origen "kiosko" se insertan via el RPC
+      // registrar_marca_kiosko (security definer), no via Insert directo.
+      asistencia_marcas: {
+        Row: {
+          id: string;
+          company_id: string;
+          empleado_id: string;
+          kiosko_id: string | null;
+          tipo: "entrada" | "salida";
+          origen: "kiosko" | "manual";
+          creado_por: string | null;
+          marcado_en: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          empleado_id: string;
+          kiosko_id?: string | null;
+          tipo: "entrada" | "salida";
+          origen?: "kiosko" | "manual";
+          creado_por?: string | null;
+          marcado_en?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          empleado_id?: string;
+          kiosko_id?: string | null;
+          tipo?: "entrada" | "salida";
+          origen?: "kiosko" | "manual";
+          creado_por?: string | null;
+          marcado_en?: string;
+        };
+        Relationships: [];
+      };
+      // NO particionada (volumen acotado: una fila por corrida de
+      // nomina) — ver criterio de particionamiento en
+      // docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §2.1. Transicion
+      // borrador->aprobada via una funcion security definer futura
+      // (core.fn_aprobar_planilla), no via Update directo.
+      planillas: {
+        Row: {
+          id: string;
+          company_id: string;
+          periodo_inicio: string;
+          periodo_fin: string;
+          estado: "borrador" | "aprobada" | "anulada";
+          total: number;
+          generada_por: string | null;
+          generada_en: string;
+          aprobada_por: string | null;
+          aprobada_en: string | null;
+          anulada_por: string | null;
+          anulada_en: string | null;
+          asiento_contable_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id?: string;
+          periodo_inicio: string;
+          periodo_fin: string;
+          estado?: "borrador" | "aprobada" | "anulada";
+          total?: number;
+          generada_por?: string | null;
+          generada_en?: string;
+          aprobada_por?: string | null;
+          aprobada_en?: string | null;
+          anulada_por?: string | null;
+          anulada_en?: string | null;
+          asiento_contable_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          periodo_inicio?: string;
+          periodo_fin?: string;
+          estado?: "borrador" | "aprobada" | "anulada";
+          total?: number;
+          generada_por?: string | null;
+          aprobada_por?: string | null;
+          aprobada_en?: string | null;
+          anulada_por?: string | null;
+          anulada_en?: string | null;
+          asiento_contable_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      planilla_detalles: {
+        Row: {
+          id: string;
+          planilla_id: string;
+          empleado_id: string;
+          company_id: string;
+          salario_base: number;
+          horas_extra: number;
+          bonos: number;
+          deducciones: number;
+          total: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          planilla_id: string;
+          empleado_id: string;
+          company_id: string;
+          salario_base?: number;
+          horas_extra?: number;
+          bonos?: number;
+          deducciones?: number;
+          total?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          planilla_id?: string;
+          empleado_id?: string;
+          company_id?: string;
+          salario_base?: number;
+          horas_extra?: number;
+          bonos?: number;
+          deducciones?: number;
+          total?: number;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
 };
 
 export type Cliente = Database["crm"]["Tables"]["clientes"]["Row"];
@@ -285,3 +562,14 @@ export type TipoCliente = "mayorista" | "detal";
 export type AppRole = Database["core"]["Tables"]["app_roles"]["Row"];
 export type UserAppRole = Database["core"]["Tables"]["user_app_roles"]["Row"];
 export type AuditLogEntry = Database["core"]["Tables"]["audit_log"]["Row"];
+
+export type Empleado = Database["rrhh"]["Tables"]["empleados"]["Row"];
+export type EmpleadoInsert = Database["rrhh"]["Tables"]["empleados"]["Insert"];
+export type EmpleadoUpdate = Database["rrhh"]["Tables"]["empleados"]["Update"];
+export type EmpleadoCompensacion = Database["rrhh"]["Tables"]["empleado_compensacion"]["Row"];
+export type KioskoDispositivo = Database["rrhh"]["Tables"]["kiosko_dispositivos"]["Row"];
+export type AsistenciaMarca = Database["rrhh"]["Tables"]["asistencia_marcas"]["Row"];
+export type Planilla = Database["rrhh"]["Tables"]["planillas"]["Row"];
+export type PlanillaDetalle = Database["rrhh"]["Tables"]["planilla_detalles"]["Row"];
+export type EstadoEmpleado = "activo" | "inactivo" | "baja";
+export type EstadoPlanilla = "borrador" | "aprobada" | "anulada";
