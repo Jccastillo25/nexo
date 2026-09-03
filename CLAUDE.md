@@ -28,6 +28,25 @@ plan original en [`docs/planning/`](docs/planning/).
    correrlo, decirlo explícitamente y ofrecer como contingencia configurar
    el *Install Command* del proyecto en Vercel como
    `npx pnpm install --no-frozen-lockfile`.
+4. **Enrutamiento del Launcher — rewrite de Multi-Zones, nunca URL
+   absoluta en `core.apps`.** `core.apps.route` (lo que arma la grilla del
+   Launcher en `apps/nexo`) **siempre es una ruta relativa** (`/rrhh`,
+   `/crm`, nunca `https://<proyecto>.vercel.app/...`) — así lo consume
+   `next/link` en [`apps/nexo/src/app/page.tsx`](apps/nexo/src/app/page.tsx),
+   y así se sostiene la regla de login único: las cookies de sesión de
+   Supabase son del dominio público compartido, y un link a un dominio
+   `*.vercel.app` distinto las pierde y expone el login propio de ese
+   proyecto — exactamente lo que la regla de SSO prohíbe. La URL absoluta
+   real del deploy de cada módulo **sí existe**, pero como *destino de un
+   rewrite* en `apps/nexo/next.config.ts` (vía una env var tipo
+   `CRM_APP_URL`), no en la base de datos — ver el rewrite de `/crm` ahí
+   como referencia. Al activar un módulo nuevo en `core.apps`
+   (`core.company_apps.enabled = true`) verificá también que
+   `apps/nexo/next.config.ts` tenga su rewrite `source`/`destination`
+   agregado y que el módulo tenga su propio `basePath` configurado — si
+   falta cualquiera de los dos, el link no da 404 por la ruta en sí sino
+   porque nadie la reescribe hacia el deploy real; agregar el rewrite es
+   la corrección, no cambiar `route` a una URL absoluta.
 
 ## Regla obligatoria: permisos (norma v3.0)
 
