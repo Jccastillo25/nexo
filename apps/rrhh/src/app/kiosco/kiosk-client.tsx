@@ -11,7 +11,11 @@ import { marcarAsistencia, type MarcarResult } from "./actions";
 
 const PIN_LENGTH = 4;
 type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
-const KEYS: Digit[] = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"];
+// La grilla del NumPad intercala dos teclas que no son digitos: el hueco
+// vacio (celda muerta para alinear el "0" al centro) y el backspace. Digit
+// solo no las admite -> KeypadKey es la union real de lo que vive en KEYS.
+type KeypadKey = Digit | "" | "⌫";
+const KEYS: KeypadKey[] = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"];
 
 type Status =
   | { kind: "idle" }

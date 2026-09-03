@@ -4,6 +4,31 @@ Monorepo de la suite Nexo (panel único estilo Odoo para Grupo CT /
 Materiales J Castillo). Contexto completo en [`docs/`](docs/README.md),
 plan original en [`docs/planning/`](docs/planning/).
 
+## REGLA CRÍTICA: monorepo, pnpm y despliegues en Vercel
+
+1. **Aislamiento de proyectos (1 app = 1 proyecto).** Este repositorio es
+   un monorepo. Cada directorio dentro de `apps/` (ej. `apps/crm`,
+   `apps/rrhh`) es una aplicación independiente. Al crear un módulo nuevo,
+   **hace falta crear un proyecto nuevo y dedicado en Vercel**,
+   estableciendo su *Root Directory* hacia esa subcarpeta específica.
+   Nunca asumas que una app nueva se despliega bajo un proyecto unificado
+   existente — verificá primero qué proyectos de Vercel existen
+   realmente (vía el MCP de Vercel o pidiéndole al usuario que confirme)
+   en vez de asumirlo a partir de la documentación local.
+2. **Sincronización estricta del lockfile (evitar caídas de CI/CD).** Al
+   crear una app nueva o modificar las dependencias del workspace (ej.
+   integrar `@nexo/ui` o `@nexo/permissions`), el `package.json` cambia.
+   Vercel usa instalación estricta (`frozen-lockfile`) y falla en
+   segundos con `ERR_PNPM_OUTDATED_LOCKFILE` si `pnpm-lock.yaml` en la
+   raíz no coincide.
+3. **Paso obligatorio antes del push.** Antes de ejecutar o pedir un push
+   a la rama principal que involucre dependencias nuevas o modificadas,
+   hay que actualizar el lockfile localmente (`pnpm install`) e incluirlo
+   en el mismo commit. Si no hay Node/pnpm disponible en el entorno para
+   correrlo, decirlo explícitamente y ofrecer como contingencia configurar
+   el *Install Command* del proyecto en Vercel como
+   `npx pnpm install --no-frozen-lockfile`.
+
 ## Regla obligatoria: permisos (norma v3.0)
 
 **Esta regla aplica siempre que se crea o modifica una server action, route
