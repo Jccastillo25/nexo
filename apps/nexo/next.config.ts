@@ -1,9 +1,5 @@
 import type { NextConfig } from "next";
 
-// (sin cambios funcionales — touch para forzar un build real en Vercel,
-// evitando el "skip unaffected projects" de Turborepo mientras
-// depuramos el Install Command de nexocore.)
-
 // Zona raiz de Multi-Zones (ver docs/ARCHITECTURE.md). Esta app posee el
 // dominio nexo.materialesjcastillo.com y "cose" cada modulo bajo su ruta
 // mediante rewrites hacia el deploy real de ese modulo. Cada modulo fija su
