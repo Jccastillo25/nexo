@@ -33,19 +33,25 @@ Supabase en ningún momento.
 
 ## 1. Estado de commits en `security/rrhh-audit-hardening`
 
-Todo lo de la primera vuelta ya está commiteado y pusheado a la rama
-`security/rrhh-audit-hardening` (no a `main`, sin PR, sin merge):
+Ya commiteado y pusheado a la rama `security/rrhh-audit-hardening` (no a
+`main`, sin PR, sin merge):
 
 ```
-f43ae8b docs: sincronizar CLAUDE.md y docs/ con el estado real de Supabase/Vercel
+2acfddd fix(rrhh): revocar EXECUTE de PUBLIC en fn_crear_empleado/fn_set_pin_empleado
 fa5d27f security(rrhh): cerrar hallazgos de get_advisors en RPC y RLS antes del MVP
+f43ae8b docs: sincronizar CLAUDE.md y docs/ con el estado real de Supabase/Vercel
 ```
 
-El hallazgo de esta segunda vuelta (sección 2b) agrega un tercer commit
-en la misma rama con:
+**Pendiente de commit** (sección 2c) — reconstrucción de
+`20260905000005`, autorizada explícitamente por el usuario porque los
+archivos originales (validados en otra máquina) no son accesibles desde
+esta sesión. Sin commitear todavía, a la espera de que el usuario revise
+el SQL completo, el diff de `actions.ts` y la matriz de pruebas antes de
+aprobar el commit:
 
 ```
-?? supabase/migrations/20260905000004_revoke_rrhh_internal_public_execute.sql
+?? supabase/migrations/20260905000005_rrhh_public_auth_hardening.sql
+ M apps/rrhh/src/app/kiosco/actions.ts   (solo comentario, sin cambios de lógica/interfaz)
  M docs/SECURITY_VALIDATION_HANDOFF.md
 ```
 
@@ -193,6 +199,123 @@ del repo desde cero, incluida `20260905000004`) en la PC con Docker y
 completar esta tabla con el resultado real — no dar el hallazgo por
 cerrado hasta esa confirmación.
 
+## 2c. Migración `20260905000005` — rate-limit persistente del kiosko + fix de `RAISE EXCEPTION`
+
+**Origen**: diseño especificado íntegramente por el usuario (dice haberlo
+validado localmente en otra máquina, no accesible desde esta sesión) y
+reconstruido en esta rama exactamente según esa especificación — no es un
+diseño propio de esta sesión, y **todavía no se volvió a validar** con
+Docker desde que se reconstruyó acá.
+
+### Por qué hacía falta
+
+1. **Rate-limiting del kiosko era solo en memoria.** El `Map` de
+   `apps/rrhh/src/app/kiosco/actions.ts` se resetea en cada cold start,
+   no se comparte entre instancias serverless de Vercel, y no protege una
+   llamada RPC directa (`POST /rest/v1/rpc/registrar_marca_kiosko`) que
+   se salte la Server Action por completo — exactamente el vector que
+   esta auditoría viene cerrando desde `20260905000001`.
+2. **Bug confirmado por lectura de código en `rrhh.fn_validar_acceso_operativo`**
+   (y, por el mismo patrón, en el `rrhh.fn_registrar_marca_kiosko`
+   anterior): ambas usaban `RAISE EXCEPTION` para rechazar un intento
+   **después** de un `INSERT`/`UPDATE` en el mismo bloque (registrar el
+   fallo, incrementar el contador). Una excepción no atrapada aborta la
+   transacción completa del statement que la generó — cuando la función
+   se llama como una única sentencia RPC (el caso real vía PostgREST),
+   la excepción revierte también el `INSERT`/`UPDATE` previos. El candado
+   de "bloquear al 3er fallo" nunca llegaba a persistir. Verificado contra
+   la semántica documentada de PostgreSQL (una excepción no capturada
+   revierte hasta el último punto de guardado implícito, que para un
+   statement RPC de PostgREST es el statement completo) — no se probó
+   empíricamente en esta sesión por no tener Docker disponible.
+
+### Qué cambia
+
+| Objeto | Cambio | Migración |
+|---|---|---|
+| `rrhh.kiosko_rate_limits` (nueva tabla) | 1 fila por kiosko: `window_started_at`, `intentos_en_ventana`, `bloqueado_hasta`. Sin PIN/nombre/empleado/IP. RLS habilitado sin policies + `REVOKE ALL` explícito de `PUBLIC`/`anon`/`authenticated` | `20260905000005` |
+| `rrhh.fn_registrar_marca_kiosko` | `CREATE OR REPLACE` (mismo tipo de retorno): valida formato de PIN antes de bcrypt, aplica el límite persistente (`SELECT ... FOR UPDATE` sobre la fila del kiosko), rechaza con `RETURN` (cero filas) en vez de excepción | `20260905000005` |
+| `rrhh.fn_validar_acceso_operativo` | `CREATE OR REPLACE` (mismo tipo de retorno `uuid`): mismo fix, rechaza con `RETURN NULL` en vez de excepción | `20260905000005` |
+| `rrhh.fn_registrar_marca_kiosko(text, uuid)` y `rrhh.fn_validar_acceso_operativo(text, text)` | `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated` — mismo patrón que `20260905000004` aplicó a `fn_crear_empleado`/`fn_set_pin_empleado` | `20260905000005` |
+| `public.registrar_marca_kiosko`, `public.validar_acceso_operativo` | Recreados con `search_path = rrhh, pg_temp` (antes `rrhh, public`); `REVOKE ... FROM PUBLIC` + `GRANT ... TO anon, authenticated` explícitos | `20260905000005` |
+
+Ningún wrapper público pierde funcionalidad: ambos son `SECURITY DEFINER`
+y llaman a la función interna con los privilegios de su dueño
+(`postgres`), no del caller — el `REVOKE` sobre la función interna nunca
+afectó esa invocación (mismo razonamiento ya validado en `20260905000004`).
+
+### Sin secretos ni datos personales — confirmado
+
+`rrhh.kiosko_rate_limits` no tiene ninguna columna de PIN, nombre,
+documento, empleado ni IP — solo un UUID de kiosko (ya público por
+diseño, es la credencial del dispositivo, no un dato personal) y
+metadatos temporales/numéricos del propio contador. Repetido el mismo
+`grep` de la sección 4 sobre este archivo y sobre esta sección del
+handoff: cero coincidencias.
+
+### Funciones internas del kiosko — cierre completo
+
+Con esta migración, las 4 funciones internas del schema `rrhh` que el
+pedido original de esta auditoría cubría quedan sin `EXECUTE` para nadie
+más que su dueño: `fn_crear_empleado`, `fn_set_pin_empleado` (desde
+`20260905000004`), `fn_registrar_marca_kiosko`, `fn_validar_acceso_operativo`
+(desde `20260905000005`). Los únicos dos endpoints anónimos que quedan en
+pie son `public.registrar_marca_kiosko` y `public.validar_acceso_operativo`
+— exactamente los dos que el diseño del kiosko/acceso operativo requiere.
+
+### Matriz de pruebas — inyección, ACL, PIN, rate-limit (pendiente de correr)
+
+Ninguna fila de esta tabla se ejecutó todavía — se suma a la matriz de la
+sección 5, misma condición (pendiente de Docker en la otra PC).
+
+| # | Prueba | Cómo | Resultado esperado |
+|---|---|---|---|
+| A1 | Inyección vía `p_pin` con comillas/operadores SQL (`' or '1'='1`, `';--`, etc.) | Llamar `registrar_marca_kiosko` con esos valores | Rechazado por el chequeo de formato `^[0-9]{4}$` antes de tocar bcrypt o la tabla — nunca llega a ejecutar SQL dinámico (no lo hay: todo el acceso a datos usa parámetros tipados, no `EXECUTE format()` con el PIN) |
+| A2 | Aislamiento por empresa: un `kiosko_id` real y activo de la Empresa B, con el PIN de un empleado que solo existe en la Empresa A | Crear un empleado de prueba únicamente en la Empresa A, y llamar `registrar_marca_kiosko` con su PIN pero pasando el `kiosko_id` de un kiosko de la Empresa B | Rechazado — la función nunca recibe ni acepta un `company_id` como parámetro (no está en su firma); siempre lo deriva del propio `kiosko_id` (`v_kiosko.company_id`) y filtra los empleados por ese valor, así que un kiosko real de otra empresa no es un ataque, es simplemente una terminal que nunca va a encontrar coincidencia para un empleado ajeno a su empresa. Repetir la misma llamada con el `kiosko_id` de la Empresa A sí debe aceptar el PIN, confirmando que el filtro es por identidad del kiosko, no un accidente |
+| A3 | `anon` ejecuta `rrhh.fn_registrar_marca_kiosko`/`fn_validar_acceso_operativo` directo (`Content-Profile: rrhh`) | `has_function_privilege('anon', ..., 'EXECUTE')` | `false` |
+| A4 | `authenticated` ejecuta las mismas dos funciones internas directo | `has_function_privilege('authenticated', ..., 'EXECUTE')` | `false` |
+| A5 | PIN válido, kiosko activo, sin bloqueo previo | `registrar_marca_kiosko` | Marca registrada, `tipo`/`marcado_en` sin nombre del empleado |
+| A6 | 8 PINes inválidos seguidos contra el mismo `kiosko_id` dentro de 1 minuto | 8 llamadas a `registrar_marca_kiosko` con PIN incorrecto | Las primeras 7 rechazadas genérico; la 8ª deja `bloqueado_hasta = now() + 5 min` en `rrhh.kiosko_rate_limits` |
+| A7 | PIN correcto en al menos dos momentos distintos **entre el minuto 1 y el minuto 5** posteriores al octavo fallo de A6 (ej. a los 90s y de nuevo a los 4 minutos) — el punto exacto que exponía la falla ya corregida (ver más abajo) | `registrar_marca_kiosko` con el PIN real del empleado de prueba, repetido en esos dos momentos | Rechazado en **ambos** momentos, igual que un PIN incorrecto — el bloqueo de 5 minutos prevalece sobre el vencimiento de la ventana de 1 minuto, sin distinguir causa |
+| A8 | Repetir A7 pasados los 5 minutos completos desde el octavo fallo | Igual llamada, después de esperar | Aceptado, marca registrada |
+| A9 | 3 PINes operativos incorrectos seguidos para el mismo `nombre_usuario` | 3 llamadas a `validar_acceso_operativo` con PIN incorrecto | Las 3 devuelven `NULL`; tras la 3ª, `rrhh.empleados.pin_bloqueado = true` **y persiste** (confirma el fix del `RAISE EXCEPTION`) — verificar con una lectura directa a la tabla, no solo el valor de retorno |
+| A10 | `validar_acceso_operativo` con `nombre_usuario` inexistente | Llamada directa | `NULL`, sin insertar en `rrhh.seguridad_accesos` (esa tabla es solo para usuarios que sí existen, ver la función) |
+| A11 | PIN operativo correcto para un empleado con `user_id is null` | Llamada directa | `NULL` (sin cuenta de acceso provisionada todavía), sin resetear `intentos_fallidos` en falso positivo |
+
+**Riesgo del reseteo de ventana — corregido (2026-09-05, segunda vuelta).**
+La primera versión de esta migración chequeaba primero si la ventana de
+1 minuto había expirado y, de ser así, reseteaba `intentos_en_ventana`,
+`window_started_at` **y** `bloqueado_hasta` juntos, sin mirar si el
+bloqueo seguía vigente — un bloqueo de 5 minutos fijado a los 50s de
+iniciada la ventana se borraba ~10s después, cuando la ventana cumplía
+el minuto. Orden corregido, ahora reflejado en el SQL de arriba: **el
+bloqueo se chequea primero** (`if bloqueado_hasta > now() then return`)
+y solo si no hay bloqueo vigente se evalúa si la ventana expiró.
+`bloqueado_hasta` nunca se borra mientras siga en el futuro. La prueba
+A7 quedó redefinida para probar específicamente esta franja (entre el
+minuto 1 y el minuto 5 después del octavo fallo), que es exactamente
+donde la versión anterior fallaba.
+
+### Protección de contraseñas filtradas (Supabase Auth) — verificado, no aplicable hoy
+
+Confirmado contra la documentación oficial de Supabase
+(`search_docs`, 2026-09-05): *"Leaked password protection is available
+on the Pro Plan and above."* La organización `Grupo CT` está en plan
+**Free** (confirmado con `get_organization` en la sesión anterior) — esta
+protección **no se puede activar** en `nexo-core` mientras el proyecto
+siga en ese plan, sin importar qué se configure en el dashboard. La
+ruta exacta cuando el plan lo permita es Dashboard → Authentication →
+Sign In / Providers → Password Security
+(`/dashboard/project/_/auth/providers?provider=Email` según la
+documentación) → "Prevent use of leaked passwords". No afecta al kiosko
+de PIN de ninguna manera (ese flujo no usa `auth.users`/contraseñas en
+absoluto).
+
+**No se recomienda habilitar OAuth Server** como alternativa — es una
+funcionalidad completamente ajena al kiosko (server-to-server OAuth para
+integraciones de terceros, no tiene relación con contraseñas filtradas
+ni con el flujo de PIN) y no resuelve la limitación de plan.
+
 ## 3. Cambios de código — enumerados
 
 - **`apps/rrhh/src/app/kiosco/actions.ts`**: se quitó `empleadoNombre` de
@@ -282,11 +405,12 @@ npx supabase init
 # 3. Levantar el stack local (Postgres + Auth + PostgREST + Studio)
 npx supabase start
 
-# 4. Aplicar TODAS las migraciones del repo (23 ya existentes + las 3
-#    nuevas de esta auditoria) contra la base local desde cero
+# 4. Aplicar TODAS las migraciones del repo (23 previas + las 5 de esta
+#    auditoria, 20260905000001 a 005) contra la base local desde cero
 npx supabase db reset
 
-# 5. Confirmar que las 3 migraciones nuevas quedaron aplicadas sin error
+# 5. Confirmar que las 5 migraciones nuevas quedaron aplicadas sin error,
+#    en orden, y que ninguna reescribe una version ya aplicada
 npx supabase migration list --local
 
 # 6. Pruebas de la matriz de la sección 5 — via `psql` directo a la
