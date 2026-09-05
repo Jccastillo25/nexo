@@ -1,0 +1,76 @@
+-- =============================================================================
+-- Nexo — corrige un fallo confirmado por validacion local (Docker) de
+-- 20260905000001: `anon` seguia pudiendo ejecutar directo
+-- rrhh.fn_crear_empleado y rrhh.fn_set_pin_empleado pese al
+-- "revoke ... from anon" de esa migracion.
+--
+-- Causa raiz verificada localmente (no es una hipotesis): ambas
+-- funciones conservan EXECUTE para el pseudo-rol PUBLIC. `anon` es un
+-- rol real que hereda todo permiso otorgado a PUBLIC (todo rol lo
+-- hereda, es el comportamiento base de Postgres) — revocar solo del rol
+-- `anon` puntual no alcanza mientras el grant siga vivo en PUBLIC, la
+-- herencia lo repone. 20260905000001 revoco de `anon` porque esa era la
+-- fila que devolvia `has_function_privilege('anon', ..., 'EXECUTE') =
+-- true` en la auditoria anterior, pero nunca se verifico el grant a
+-- PUBLIC en si — el diagnostico de esa migracion quedo incompleto,
+-- corregido aca.
+--
+-- Confirmado en la misma validacion local: public.get_visible_apps(uuid)
+-- SI quedo bien bloqueada para anon (esa nunca tuvo el grant a PUBLIC —
+-- su unico problema era el grant directo a anon, que 20260905000001 si
+-- corrigio bien) y public.registrar_marca_kiosko(text, uuid) sigue
+-- accesible para anon, como corresponde (deliberado, no se toca).
+--
+-- =============================================================================
+-- Revision estatica en todo el monorepo (2026-09-05) — buscado
+-- "fn_crear_empleado" y "fn_set_pin_empleado" en todo `apps/`, `packages/`
+-- y `supabase/`:
+--
+--   - apps/rrhh/src/app/(app)/expedientes/nuevo/actions.ts:72 — UNICO
+--     call site real de todo el monorepo para el alta de empleado:
+--     `supabase.rpc("crear_empleado", {...})`, sin `.schema("rrhh")` —
+--     resuelve contra el wrapper `public.crear_empleado`, nunca contra
+--     `rrhh.fn_crear_empleado` directo. El resto de menciones de
+--     "fn_crear_empleado" en ese archivo y en
+--     apps/rrhh/.../expedientes/nuevo/page.tsx y nuevo-empleado-form.tsx
+--     son comentarios explicando donde vive el chequeo real de permiso,
+--     no llamadas.
+--   - NINGUN archivo de `apps/` llama a `.rpc("set_pin_empleado", ...)` ni
+--     a `.rpc("fn_set_pin_empleado", ...)` — el flujo de cambiar/reasignar
+--     un PIN despues del alta inicial todavia no tiene UI (consistente
+--     con docs/RRHH_MVP.md, seccion "Exclusiones": no hay pantalla de
+--     administracion de credenciales todavia). Las unicas menciones son
+--     comentarios en apps/rrhh/.../expedientes/nuevo/actions.ts (explica
+--     que ese es el camino para reasignar un PIN "despues", no lo llama)
+--     y tipos manuales en apps/rrhh/src/lib/supabase/database.types.ts y
+--     apps/crm/src/lib/supabase/database.types.ts (esta ultima declara el
+--     tipo pero `apps/crm` no tiene ningun codigo que lo invoque — es
+--     boilerplate de tipos compartido, no una llamada real).
+--
+-- Conclusion (Verificacion Remota/estatica Obligatoria, no se asume):
+-- ninguna aplicacion llama a las funciones internas `rrhh.fn_crear_empleado`
+-- ni `rrhh.fn_set_pin_empleado` directamente — solo a sus wrappers
+-- publicos (`public.crear_empleado`, callable; `public.set_pin_empleado`,
+-- sin caller todavia pero ya con su propio grant correcto desde
+-- 20260902000006). Por lo tanto NO hace falta compensar el revoke de
+-- PUBLIC con ningun grant nuevo a `authenticated` sobre las funciones
+-- internas: el wrapper en `public` es `SECURITY DEFINER`, y una funcion
+-- SECURITY DEFINER que llama a otra funcion en su cuerpo SQL lo hace con
+-- los privilegios del DUEÑO de la funcion (postgres), no con los del
+-- caller original — el grant/revoke de la funcion interna nunca afecto
+-- la capacidad del wrapper de invocarla. Revocar de PUBLIC sin agregar
+-- ningun grant nuevo dejar el wrapper funcionando exactamente igual y
+-- cierra el acceso directo.
+-- =============================================================================
+
+revoke execute on function rrhh.fn_crear_empleado(
+  uuid, text, text, text, text, text, text, text, text, text, date, text, numeric
+) from public;
+
+revoke execute on function rrhh.fn_set_pin_empleado(uuid, uuid, text) from public;
+
+-- Sin grant a anon ni a authenticated a proposito — ver la revision
+-- estatica arriba: nada en el monorepo necesita ejecutar estas dos
+-- funciones directo, solo sus wrappers en `public`, que siguen
+-- funcionando igual (SECURITY DEFINER corre como el dueño de la
+-- funcion, no como el caller).
