@@ -1,10 +1,14 @@
-# Handoff — validación local pendiente de la auditoría de seguridad de RRHH
+# Handoff — validación local de la auditoría de seguridad de RRHH
 
-Estado: **nada de lo listado abajo está aplicado a ningún lado** (ni a
-`nexo-core`, ni a una rama de Supabase, ni a un Supabase local). Todo es
-código y SQL preparado, sin ejecutar, a la espera de validarse en la PC
-que tiene Docker funcionando. No se hizo `commit` ni `push` de nada de
-esto — sigue en el working tree.
+Estado (actualizado 2026-09-05, segunda vuelta): las migraciones
+`20260905000001` a `003` y el código del kiosco se commitearon y
+pushearon a la rama `security/rrhh-audit-hardening` (no a `main`, sin PR,
+sin merge). La validación local con Docker en la otra PC **ya corrió una
+vez y encontró un fallo real** en `20260905000001` — ver "Hallazgo de la
+validación local" más abajo. La corrección (`20260905000004`) está
+escrita y commiteada en la misma rama, **todavía sin volver a validar
+localmente** — nada de esto se aplicó a `nexo-core` ni a ninguna rama de
+Supabase en ningún momento.
 
 ## Por qué se llegó a este punto (contexto de la sesión)
 
@@ -27,32 +31,26 @@ esto — sigue en el working tree.
    `nexo-core`** para esta validación, y **retomar en la PC que sí tiene
    Docker funcionando**.
 
-## 1. Archivos modificados (estado real del working tree)
+## 1. Estado de commits en `security/rrhh-audit-hardening`
+
+Todo lo de la primera vuelta ya está commiteado y pusheado a la rama
+`security/rrhh-audit-hardening` (no a `main`, sin PR, sin merge):
 
 ```
- M CLAUDE.md                                    (de la tarea anterior, sin commitear)
- M README.md                                    (de la tarea de documentación anterior)
- M apps/rrhh/src/app/kiosco/actions.ts           ← esta auditoría
- M apps/rrhh/src/app/kiosco/kiosk-client.tsx     ← esta auditoría
- M apps/rrhh/src/lib/supabase/database.types.ts  ← esta auditoría
- M docs/ARCHITECTURE.md                         (de la tarea de documentación anterior)
- M docs/DATABASE.md                             (de la tarea de documentación anterior)
- M docs/MIGRATION_LOG.md                        (de la tarea de documentación anterior)
- M docs/MODULES.md                              (de la tarea de documentación anterior)
- M docs/README.md                               (de la tarea de documentación anterior)
- M docs/ROADMAP.md                              (de la tarea de documentación anterior)
-?? docs/RRHH_MVP.md                             (de la tarea de documentación anterior)
-?? docs/SECURITY_VALIDATION_HANDOFF.md          ← este archivo
-?? supabase/migrations/20260905000001_revoke_rrhh_internal_anon_execute.sql       ← esta auditoría
-?? supabase/migrations/20260905000002_kiosko_minimize_exposure_and_bloqueo_check.sql ← esta auditoría
-?? supabase/migrations/20260905000003_rrhh_rls_wrap_auth_uid_initplan.sql         ← esta auditoría
+f43ae8b docs: sincronizar CLAUDE.md y docs/ con el estado real de Supabase/Vercel
+fa5d27f security(rrhh): cerrar hallazgos de get_advisors en RPC y RLS antes del MVP
 ```
 
-Los archivos marcados "de la tarea anterior" son de la sesión de
-documentación previa (ya reportados en su momento) — se listan para que
-el estado del working tree sea inequívoco, no son parte de esta
-auditoría de seguridad. Nada de esto se commiteó: `git log` no tiene
-ningún commit nuevo desde el inicio de esta sesión.
+El hallazgo de esta segunda vuelta (sección 2b) agrega un tercer commit
+en la misma rama con:
+
+```
+?? supabase/migrations/20260905000004_revoke_rrhh_internal_public_execute.sql
+ M docs/SECURITY_VALIDATION_HANDOFF.md
+```
+
+Ningún commit de esta auditoría tocó `main` ni se aplicó a `nexo-core` o
+a ninguna rama de Supabase.
 
 ## 2. Las 3 migraciones nuevas — resumen, privilegios, motivo
 
@@ -113,6 +111,88 @@ patrón que la documentación de Supabase recomienda corregir así. `crm` y
 esta migración**, quedan anotadas como pendiente aparte en
 `docs/DATABASE.md` porque el pedido fue específicamente sobre RRHH.
 
+## 2b. Hallazgo confirmado por validación local — corregido en `20260905000004`
+
+La primera vuelta de validación local (Docker, otra PC) corrió las
+pruebas 1-15 de la matriz de la sección 5 contra `20260905000001-003`
+aplicadas desde cero (`supabase db reset`). Resultado real, no asumido:
+
+| Prueba | Resultado obtenido | Esperado |
+|---|---|---|
+| `anon` ejecuta `rrhh.fn_crear_empleado(...)` directo | **Permitido** ❌ | Denegado |
+| `anon` ejecuta `rrhh.fn_set_pin_empleado(...)` directo | **Permitido** ❌ | Denegado |
+| `anon` ejecuta `public.get_visible_apps(uuid)` | Denegado ✅ | Denegado |
+| `anon` ejecuta `public.registrar_marca_kiosko(text, uuid)` | Permitido ✅ (deliberado) | Permitido |
+
+**Causa verificada**: `20260905000001` revocó `EXECUTE` de `anon`
+puntualmente en `rrhh.fn_crear_empleado` y `rrhh.fn_set_pin_empleado`,
+pero nunca tocó el `EXECUTE` que ambas funciones conservaban para el
+pseudo-rol `PUBLIC` desde su creación (`create function` en Postgres
+otorga `EXECUTE` a `PUBLIC` por defecto salvo que se revoque
+explícitamente — es el mismo patrón que motivó el
+`revoke ... from public` de `public.crear_empleado` en `20260902000009`,
+pero esa vez nunca se replicó contra las funciones *internas* del schema
+`rrhh`). Todo rol, incluido `anon`, hereda cualquier permiso otorgado a
+`PUBLIC` — por eso revocar solo de `anon` no alcanza mientras `PUBLIC`
+siga teniendo el grant: la herencia lo repone.
+
+`public.get_visible_apps` no tuvo este problema porque nunca tuvo el
+grant a `PUBLIC` en primer lugar (su único problema real era el grant
+directo a `anon`, que si se corrigió bien).
+
+### Revisión estática — quién llama a estas funciones (2026-09-05)
+
+Búsqueda de `fn_crear_empleado`/`fn_set_pin_empleado` en todo el
+monorepo (`apps/`, `packages/`, `supabase/`):
+
+| Archivo | Qué contiene | Es una llamada real |
+|---|---|---|
+| [`apps/rrhh/src/app/(app)/expedientes/nuevo/actions.ts:72`](../apps/rrhh/src/app/(app)/expedientes/nuevo/actions.ts) | `supabase.rpc("crear_empleado", {...})` — **sin** `.schema("rrhh")` | ✅ Sí — pero resuelve contra el wrapper `public.crear_empleado`, nunca contra `rrhh.fn_crear_empleado` directo |
+| `apps/rrhh/.../expedientes/nuevo/{actions.ts,page.tsx,nuevo-empleado-form.tsx}` (resto de menciones) | Comentarios explicando dónde vive el chequeo de permiso real | No |
+| `apps/rrhh/src/lib/supabase/database.types.ts`, `apps/crm/src/lib/supabase/database.types.ts` | Declaración manual de tipos para `set_pin_empleado` (el wrapper público) | No — son tipos, no invocaciones. `apps/crm` no tiene ningún código que llame a esta función; el tipo está ahí como referencia/boilerplate compartido |
+| Cualquier archivo de `apps/` | `.rpc("set_pin_empleado", ...)` o `.rpc("fn_set_pin_empleado", ...)` | **Ninguno encontrado** — no existe todavía una pantalla para cambiar/reasignar el PIN de un empleado ya creado (consistente con "Exclusiones" en `docs/RRHH_MVP.md`) |
+
+**Conclusión**: ninguna aplicación llama a las funciones internas del
+schema `rrhh` directamente, solo a sus wrappers en `public`. Por eso la
+corrección no necesita compensar con ningún `GRANT` nuevo a
+`authenticated`: un wrapper `SECURITY DEFINER` invoca la función interna
+en su cuerpo SQL con los privilegios de su **dueño** (`postgres`), no con
+los del caller original — el `GRANT`/`REVOKE` de la función interna nunca
+afectó ni afecta la capacidad del wrapper de llamarla. Revocar de
+`PUBLIC` sin agregar ningún grant nuevo dejó (a falta de la próxima
+validación local) el wrapper funcionando igual y cierra el acceso
+directo.
+
+### Migración `20260905000004_revoke_rrhh_internal_public_execute.sql`
+
+```sql
+revoke execute on function rrhh.fn_crear_empleado(
+  uuid, text, text, text, text, text, text, text, text, text, date, text, numeric
+) from public;
+
+revoke execute on function rrhh.fn_set_pin_empleado(uuid, uuid, text) from public;
+```
+
+Sin `GRANT` de compensación a `anon` ni a `authenticated` (justificado
+arriba). No modifica ninguna migración existente — es un archivo nuevo,
+inmutable como las anteriores. No toca `public.registrar_marca_kiosko`.
+
+### Matriz esperada para la próxima validación local
+
+| Comprobación | Resultado esperado |
+|---|---|
+| `has_function_privilege('anon', rrhh.fn_crear_empleado, 'EXECUTE')` | `false` |
+| `has_function_privilege('anon', rrhh.fn_set_pin_empleado, 'EXECUTE')` | `false` |
+| `has_function_privilege('anon', public.get_visible_apps, 'EXECUTE')` | `false` |
+| `has_function_privilege('anon', public.registrar_marca_kiosko, 'EXECUTE')` | `true` |
+| `has_function_privilege('PUBLIC', rrhh.fn_crear_empleado, 'EXECUTE')` | `false` |
+| `has_function_privilege('PUBLIC', rrhh.fn_set_pin_empleado, 'EXECUTE')` | `false` |
+
+Pendiente: correr `supabase db reset` de nuevo (aplica las 27 migraciones
+del repo desde cero, incluida `20260905000004`) en la PC con Docker y
+completar esta tabla con el resultado real — no dar el hallazgo por
+cerrado hasta esa confirmación.
+
 ## 3. Cambios de código — enumerados
 
 - **`apps/rrhh/src/app/kiosco/actions.ts`**: se quitó `empleadoNombre` de
@@ -148,17 +228,20 @@ un UUID aleatorio no-secreto por diseño — es la credencial pública del
 dispositivo, no un dato personal ni una clave (ver el comentario de
 `rrhh.kiosko_dispositivos` en `docs/DATABASE.md`).
 
-## 5. Matriz de validación local — pendiente de ejecutar
+## 5. Matriz de validación local — primera vuelta corrida, un fallo en corrección
 
-Ninguna fila de esta tabla se ejecutó todavía. "Evidencia ya reunida"
-marca lo que **sí** se verificó de forma read-only contra `nexo-core`
-antes de escribir las migraciones (sin aplicar nada) — el resto requiere
-levantar Supabase local con Docker.
+Esta tabla ya se ejecutó una vez completa contra `20260905000001-003`
+(sección 2b tiene el detalle de las filas 1 y 2, que fallaron). Falta
+una segunda vuelta contra `20260905000001-004` para confirmar que la
+corrección funcionó — ninguna fila de esa segunda vuelta está corrida
+todavía. "Evidencia ya reunida" marca lo que se verificó de forma
+read-only contra `nexo-core` antes de escribir las migraciones (sin
+aplicar nada).
 
 | # | Prueba | Rol | Resultado esperado | Evidencia |
 |---|---|---|---|---|
-| 1 | `anon` intenta ejecutar `crear_empleado`/`fn_crear_empleado` | `anon` | Denegado (`REVOKE` explícito, error de permiso de Postgres antes de llegar al chequeo interno) | Pendiente local |
-| 2 | `anon` intenta ejecutar `set_pin_empleado`/`fn_set_pin_empleado` | `anon` | Denegado igual que #1 | Pendiente local |
+| 1 | `anon` intenta ejecutar `crear_empleado`/`fn_crear_empleado` | `anon` | Denegado | **1ª vuelta: FALLÓ** (`fn_crear_empleado` directo permitido, ver 2b) — corregido en `20260905000004`, pendiente 2ª vuelta local |
+| 2 | `anon` intenta ejecutar `set_pin_empleado`/`fn_set_pin_empleado` | `anon` | Denegado igual que #1 | **1ª vuelta: FALLÓ** (mismo motivo que #1) — corregido en `20260905000004`, pendiente 2ª vuelta local |
 | 3 | `authenticated` sin `rrhh.expedientes.empleados.ver` lee `rrhh.empleados` | `authenticated` (sin permiso) | 0 filas (RLS deny), no error | Pendiente local |
 | 4 | Igual que #3 sobre `empleado_compensacion`, `asistencia_marcas`, `planillas` | `authenticated` (sin permiso) | 0 filas en cada una | Pendiente local |
 | 5 | `authenticated` con `rrhh.expedientes.empleados.crear` (+`compensacion.editar` si fija salario) crea un empleado de prueba | `authenticated` (admin de prueba) | Alta exitosa, PIN devuelto en texto plano una sola vez | Pendiente local |
@@ -170,7 +253,7 @@ levantar Supabase local con Docker.
 | 11 | Más de 8 intentos en 60s desde el mismo `kiosko_id`+IP | `anon` (vía Server Action, no SQL puro) | "Demasiados intentos" | Pendiente local (requiere levantar `apps/rrhh` contra el Supabase local) |
 | 12 | `SELECT` directo a `rrhh.asistencia_marcas_2026_09` (o la partición vigente al momento de la prueba) | `authenticated` sin policy que lo permita | 0 filas | **Evidencia ya reunida** contra `nexo-core` (read-only, `SET LOCAL ROLE authenticated`): 0 filas, confirmado 2026-09-05 |
 | 13 | Antes/después de la migración 3: mismo usuario, mismo permiso, misma consulta sobre `rrhh.empleados` | `authenticated` (con y sin permiso) | Resultado de autorización idéntico antes y después (la migración no cambia qué se permite, solo cómo se evalúa) | Pendiente local |
-| 14 | `get_visible_apps` ejecutado por `anon` | `anon` | Denegado después de la migración 1 (antes: permitido, confirmado por `get_advisors`) | Pendiente local |
+| 14 | `get_visible_apps` ejecutado por `anon` | `anon` | Denegado después de la migración 1 | **1ª vuelta: OK**, confirmado denegado |
 | 15 | `get_platform_settings` ejecutado por `anon` | `anon` | Sigue permitido — decisión deliberada, sin cambios (necesario para la pantalla de login) | Pendiente local (regresión) |
 | 16 | `get_advisors(type=security)` | — | Sin el WARN de `fn_crear_empleado`/`fn_set_pin_empleado`/`get_visible_apps` ejecutables por `anon` | **No reproducible en Supabase local** — `get_advisors` es un servicio de la plataforma hospedada, atado a un `project_id` real. Solo se puede re-correr después de aplicar a una rama de pago o a `nexo-core` |
 | 17 | `get_advisors(type=performance)` | — | Sin los 25 WARN `auth_rls_initplan` de tablas `rrhh.*` | **No reproducible en Supabase local**, mismo motivo que #16 |
@@ -223,18 +306,23 @@ npx supabase stop
 
 ## 7. Qué falta después de la validación local
 
-1. Ejecutar la matriz completa de la sección 5 (puntos 1-15) en la PC con
-   Docker y volcar los resultados reales en la tabla de la sección 5 (o
-   en un archivo nuevo, a decidir).
-2. Con la validación local en verde, decidir junto con el usuario cómo
-   aplicar a `nexo-core` real: directo (con `apply_migration`, mismo
-   patrón que todas las migraciones anteriores de este repo) o esperar a
-   una rama de pago — **no se asume, se pregunta**.
-3. Recién ahí correr los puntos 16-18 (advisors + deploy) contra el
+1. Correr `supabase db reset` de nuevo en la PC con Docker (ahora aplica
+   también `20260905000004`) y repetir **al menos** las filas 1, 2 y la
+   matriz nueva de la sección 2b — confirmar que `PUBLIC` y `anon` quedan
+   en `false` para ambas funciones internas y que `public.crear_empleado`
+   (la única llamada real, vía `expedientes/nuevo/actions.ts`) sigue
+   funcionando de punta a punta para un usuario autenticado con permiso.
+2. Completar el resto de la matriz de la sección 5 (3-13, 15) que todavía
+   no se corrió.
+3. Con la validación local en verde (incluida la reconfirmación del
+   punto 1), decidir junto con el usuario cómo aplicar a `nexo-core`
+   real: directo (con `apply_migration`) o esperar a una rama de pago —
+   **no se asume, se pregunta**.
+4. Recién ahí correr los puntos 16-18 (advisors + deploy) contra el
    entorno real.
-4. Solo después de eso, decidir si se hace `commit`/`push` — en dos
-   commits separados como se pidió (seguridad/migraciones por un lado,
-   documentación por otro), y solo con aprobación explícita.
+5. Solo después de eso, actualizar `docs/DATABASE.md`, `docs/RRHH_MVP.md`
+   y `docs/MIGRATION_LOG.md` con el estado verificado, y decidir sobre
+   merge a `main` — con aprobación explícita en cada paso.
 
 ## 8. Actualización pendiente de documentación (no hecha todavía a propósito)
 
