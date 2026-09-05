@@ -203,9 +203,10 @@ function SuccessPanel({ result }: { result: MarcarResult }) {
         {isEntrada ? "→" : "←"}
       </span>
       <p className="text-2xl font-semibold text-white">{result.message}</p>
-      {result.empleadoNombre && (
-        <p className="text-lg text-white/70">{result.empleadoNombre}</p>
-      )}
+      {/* A proposito: sin nombre del empleado. El kiosko es un
+          dispositivo sin sesion — el feedback nunca revela la identidad
+          de quien marco (2026-09-05, regla obligatoria del kiosko
+          anonimo). Ver rrhh.fn_registrar_marca_kiosko. */}
     </div>
   );
 }

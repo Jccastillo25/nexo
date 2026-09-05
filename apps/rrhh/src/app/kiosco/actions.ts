@@ -52,7 +52,6 @@ function checkRateLimit(key: string): { ok: true } | { ok: false; message: strin
 export interface MarcarResult {
   ok: boolean;
   message: string;
-  empleadoNombre?: string;
   tipo?: "entrada" | "salida";
 }
 
@@ -106,8 +105,11 @@ export async function marcarAsistencia(pin: string): Promise<MarcarResult> {
 
   return {
     ok: true,
+    // A proposito: sin empleadoNombre. rrhh.fn_registrar_marca_kiosko ya
+    // no devuelve datos personales del empleado (2026-09-05, regla
+    // obligatoria del kiosko anonimo) — el feedback en pantalla es solo
+    // el tipo de marca, nunca la identidad de quien marco.
     message: row.tipo === "entrada" ? "Entrada registrada" : "Salida registrada",
-    empleadoNombre: row.empleado_nombre,
     tipo: row.tipo as "entrada" | "salida",
   };
 }
