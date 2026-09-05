@@ -2,6 +2,77 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-09-05 — Auditoría de seguridad de RRHH cerrada en producción + fix de ruteo del kiosco
+
+Continuación directa de la fase anterior: cierre de los riesgos de
+seguridad documentados el 2026-09-04 (funciones internas de RRHH
+ejecutables por `anon`), más un bug de ruteo real encontrado al
+verificar el kiosco en producción. Detalle completo, matrices de
+prueba y evidencia paso a paso en
+[SECURITY_VALIDATION_HANDOFF.md](SECURITY_VALIDATION_HANDOFF.md).
+
+- **5 migraciones nuevas, aplicadas a `nexo-core` y verificadas**
+  (`20260905000001` a `20260905000005`, rama
+  `security/rrhh-audit-hardening`, mergeada a `main` en el commit
+  `ac9a487`):
+  1. `revoke_rrhh_internal_anon_execute` — revoca `EXECUTE` de `anon` en
+     `rrhh.fn_crear_empleado`, `rrhh.fn_set_pin_empleado` y
+     `public.get_visible_apps`.
+  2. `kiosko_minimize_exposure_and_bloqueo_check` — `fn_registrar_marca_kiosko`
+     deja de devolver `empleado_nombre` (dato personal) y respeta
+     `pin_bloqueado`.
+  3. `rrhh_rls_wrap_auth_uid_initplan` — corrige el patrón de
+     rendimiento `auth_rls_initplan` en las 25 policies de `rrhh`
+     (`(select auth.uid())`), sin cambiar autorización.
+  4. `revoke_rrhh_internal_public_execute` — corrige un fallo confirmado
+     por validación local previa: revoca `EXECUTE` de `PUBLIC` (no solo
+     `anon`) en `fn_crear_empleado`/`fn_set_pin_empleado`, ya que ambas
+     conservaban el grant al pseudo-rol `PUBLIC` desde su creación.
+  5. `rrhh_public_auth_hardening` — nueva tabla `rrhh.kiosko_rate_limits`
+     (rate-limit persistente del kiosko: 8 fallos/1min → bloqueo 5min,
+     sin datos personales, RLS sin policies); corrige un bug real de
+     `RAISE EXCEPTION` post-escritura en `fn_validar_acceso_operativo`
+     (y por diseño en `fn_registrar_marca_kiosko`) que impedía que el
+     bloqueo a 3 fallos consecutivos persistiera; cierra `EXECUTE`
+     directo de ambas funciones internas para todos los roles.
+- **Validación local con Docker no se pudo ejecutar** (el entorno de la
+  sesión no tenía WSL2/Docker operativo pese a instalarlo y reiniciar —
+  se confirmó que la sesión corre en un entorno distinto a la máquina
+  física del usuario). El usuario autorizó explícitamente aplicar
+  directo a `nexo-core`, dado que `20260905000004` ya corregía un
+  fallo real ya confirmado por una validación local anterior. Se
+  verificó en su lugar, contra producción: privilegios (`has_function_privilege`
+  antes/después para las 4 funciones internas + 2 wrappers públicos),
+  RLS y ausencia de acceso directo en `rrhh.kiosko_rate_limits`, y
+  `get_advisors` (security y performance) sin los WARN que esta
+  auditoría vino a cerrar.
+- **Divergencia de historial de migraciones, diagnosticada y reparada**:
+  las 5 migraciones se aplicaron con `apply_migration` (MCP de
+  Supabase), que registra su propio timestamp de versión en vez del que
+  lleva cada archivo — el historial remoto quedó con 5 versiones
+  auto-generadas (`20260905072348` etc.) sin correspondencia con
+  `main`. Reparado con una transacción de `UPDATE` sobre
+  `supabase_migrations.schema_migrations` (verificación interna con
+  `ROLLBACK` automático ante discrepancia, sin tocar el esquema ni
+  volver a ejecutar SQL de las migraciones) — historial remoto alineado
+  1:1 con los 5 archivos de `main`.
+- **Bug de ruteo real encontrado al verificar el kiosco en producción**:
+  `/rrhh/kiosco` redirigía a `/login` del panel pese a que
+  `apps/rrhh/src/proxy.ts` ya excluía `/kiosco` de su propio guard de
+  sesión correctamente. Causa: `apps/nexo/src/proxy.ts` (zona raíz de
+  Multi-Zones) interceptaba `/rrhh/*` antes de que el rewrite lo
+  entregara a la zona `rrhh` — su `matcher` excluía `crm` de su guard
+  pero nunca `rrhh`, pese a que esa zona tiene el mismo patrón de
+  middleware propio. Corregido agregando `rrhh` a la misma exclusión
+  (rama `fix/rrhh-kiosco-public-route`, mergeada a `main` en el commit
+  `a3bcc5d`). Verificado en producción: `/rrhh/kiosco` carga sin
+  sesión, `/rrhh/expedientes` sigue redirigiendo a login, `/crm` y `/`
+  sin regresión.
+- **Qué sigue sin cambiar**: el motor de consolidación de horas y el
+  generador de planillas (pasos 3 y 4 del flujo del MVP) siguen sin
+  construir — ninguno de estos dos cierres declara el MVP de RRHH
+  completo. Ver [RRHH_MVP.md](RRHH_MVP.md).
+
 ## 2026-09-02 a 2026-09-04 — Adaptación de RRHH: schema, permisos, kiosco, despliegue en producción
 
 Fase 6a del roadmap. A diferencia de CRM (migración de datos de un

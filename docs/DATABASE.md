@@ -1,9 +1,10 @@
 # Base de datos de Nexo
 
-Estado (verificado contra el proyecto remoto, 2026-09-04): schema `core`
+Estado (verificado contra el proyecto remoto, 2026-09-05): schema `core`
 aplicado (2026-08-30), schema `crm` aplicado y en producción (2026-08-30),
-**schema `rrhh` aplicado y en producción (2026-09-02 a 2026-09-04)**.
-`flotilla` todavía no existe.
+**schema `rrhh` aplicado y en producción (2026-09-02 a 2026-09-04),
+auditoría de seguridad cerrada y verificada (2026-09-05)**. `flotilla`
+todavía no existe.
 
 ## Proyecto
 
@@ -12,9 +13,17 @@ aplicado (2026-08-30), schema `crm` aplicado y en producción (2026-08-30),
 - Organización: `Grupo CT` (`uahxpcssvfzlfxcvtvhu`)
 - Región: `us-east-1`
 - Plan: gratuito ($0/mes)
-- 24 migraciones aplicadas al remoto (`list_migrations`, 2026-09-04),
-  todas presentes también en [`supabase/migrations/`](../supabase/migrations/)
-  — sin drift entre local y remoto a esa fecha.
+- 29 migraciones aplicadas al remoto (`list_migrations`, 2026-09-05): las
+  24 previas + las 5 de la auditoría de seguridad de RRHH
+  (`20260905000001` a `20260905000005`), aplicadas con `apply_migration`
+  del MCP de Supabase. El historial remoto (`supabase_migrations.schema_migrations`)
+  quedó momentáneamente con versiones auto-generadas distintas al
+  timestamp de cada archivo — corregido el mismo día con una reparación
+  transaccional (`UPDATE` de la columna `version`, con verificación y
+  `ROLLBACK` automático ante discrepancia; no tocó ninguna otra columna
+  ni el esquema). Confirmado: las 29 versiones en el remoto coinciden
+  1:1 con los archivos de [`supabase/migrations/`](../supabase/migrations/)
+  — sin drift a esta fecha.
 
 ## Schemas
 
@@ -22,7 +31,7 @@ aplicado (2026-08-30), schema `crm` aplicado y en producción (2026-08-30),
 |---|---|---|---|
 | `core` | Compañías, membresías/roles, catálogo de apps, catálogo de permisos, roles por app, auditoría, mapa de migración | Nuevo | ✅ Aplicado (2026-08-30), extendido 2026-09-02 (`app_scoped_roles`) |
 | `crm` | `clientes` | Migrado de materiales-jcastillo | ✅ Completo (2026-08-30), en producción |
-| `rrhh` | Empleados, compensación, kioscos, asistencia, seguridad de accesos, parámetros de ley, planillas — 8 tablas base (14 con particiones) | Diseño nuevo para Nexo (no migración 1:1 de Gestor360) | ✅ Aplicado (2026-09-02 a 2026-09-04), en producción. **MVP operativo sin validar** — ver [RRHH_MVP.md](RRHH_MVP.md) |
+| `rrhh` | Empleados, compensación, kioscos, asistencia, seguridad de accesos, parámetros de ley, planillas, rate-limit de kiosko — 9 tablas base (15 con particiones) | Diseño nuevo para Nexo (no migración 1:1 de Gestor360) | ✅ Aplicado (2026-09-02 a 2026-09-04); auditoría de seguridad cerrada y verificada en producción (2026-09-05). **MVP operativo sin validar** (motor de horas/planillas no construido) — ver [RRHH_MVP.md](RRHH_MVP.md) |
 | `flotilla` | Flota, viajes, conductores, evidencias | Migrado de Ruta360 | ⏳ Pendiente |
 
 ## Exponer schemas en la API (paso manual)
@@ -91,7 +100,24 @@ completo de cada una:
 20260902000009_fix_crear_empleado_anon_grant
 20260903000001_enable_rrhh_company_app
 20260904000001_fix_rrhh_schema_grants
+20260905000001_revoke_rrhh_internal_anon_execute
+20260905000002_kiosko_minimize_exposure_and_bloqueo_check
+20260905000003_rrhh_rls_wrap_auth_uid_initplan
+20260905000004_revoke_rrhh_internal_public_execute
+20260905000005_rrhh_public_auth_hardening
 ```
+
+Las últimas 5 (auditoría de seguridad de RRHH, 2026-09-05) se aplicaron
+directamente a `nexo-core` con `apply_migration` — no hubo validación
+local previa con Docker (bloqueada por falta de WSL2/Docker en el
+entorno de la sesión), autorizado explícitamente por el usuario dado
+que `20260905000004` ya corregía un fallo real confirmado en una
+validación local anterior (ver
+[SECURITY_VALIDATION_HANDOFF.md](SECURITY_VALIDATION_HANDOFF.md) para
+el detalle completo, incluida la verificación de privilegios y
+advisors hecha en su lugar). Aplicadas en la rama
+`security/rrhh-audit-hardening`, mergeada a `main` en el commit
+`ac9a487`.
 
 Nota histórica: `core_schema` se reseteó una vez completo (`drop schema
 core cascade` + recrear) durante la Fase 3, antes de tener datos reales
@@ -123,6 +149,7 @@ hardcodeado en la app (todo pasa por `core.has_permission()`).
 | `rrhh.parametros_ley` | Catálogo versionado | Valores oficiales INSS/INATEC que debe leer el motor de planillas (nunca hardcodeados). Versionado por `vigente_desde`/`vigente_hasta`: nunca se sobreescribe un valor histórico. **`techo_inss` sembrado con un valor de ejemplo (100000.00), no verificado como el oficial vigente** — ver [RRHH_MVP.md](RRHH_MVP.md) "Decisiones de negocio pendientes" |
 | `rrhh.planillas` | Catálogo (no particionada — volumen acotado, una fila por corrida) | Corridas de nómina: `periodo_inicio/fin`, `estado` (`borrador`/`aprobada`/`anulada`), `total`. `asiento_contable_id` queda suelto hasta que exista el schema `contabilidad` |
 | `rrhh.planilla_detalles` | Catálogo (no particionada) | Un renglón por empleado por planilla: `salario_base`, `horas_extra`, `bonos`, `deducciones`, `total` |
+| `rrhh.kiosko_rate_limits` | Catálogo (no particionada — 1 fila por kiosko) | Límite de fuerza bruta persistente del kiosko físico (`20260905000005`): `window_started_at`, `intentos_en_ventana`, `bloqueado_hasta`. Sin PIN, nombre, empleado ni IP. RLS habilitado **sin policies** — solo la lee/escribe `rrhh.fn_registrar_marca_kiosko` (`SECURITY DEFINER`). Verificado en producción (2026-09-05): `anon` y `authenticated` sin `SELECT`/`INSERT` directo |
 
 ### Funciones públicas (RPC) que consume `apps/rrhh`
 
@@ -132,10 +159,18 @@ Todas `SECURITY DEFINER`, con `search_path` fijado explícitamente
 
 | Función (`public.*`, wrapper) | Función real (`rrhh.*`) | Rol que la ejecuta | Qué hace |
 |---|---|---|---|
-| `registrar_marca_kiosko(pin, kiosko_id)` | `fn_registrar_marca_kiosko` | `anon` **a propósito** (el kiosko no tiene sesión) | Valida PIN (bcrypt) contra empleados activos de la empresa del kiosko, alterna entrada/salida según la última marca, inserta en `asistencia_marcas` |
-| `validar_acceso_operativo(nombre_usuario, pin)` | `fn_validar_acceso_operativo` | `anon` **a propósito** (login inicial del módulo móvil) | Valida credencial, bloquea a 3 fallos consecutivos, registra fallidos en `seguridad_accesos`, devuelve `auth.users.id` si es válido |
-| `crear_empleado(...)` | `fn_crear_empleado` | Solo `authenticated` (revocado de `anon`/`PUBLIC` explícitamente) | Alta de empleado, autogenera `nombre_usuario`/PIN si no se proveen, exige `rrhh.expedientes.empleados.crear` y, si fija salario/modalidad, además `rrhh.expedientes.compensacion.editar` |
-| `set_pin_empleado(...)` | `fn_set_pin_empleado` | Solo `authenticated` (revocado de `anon`) | Único camino para asignar/cambiar un PIN — hashea con bcrypt, exige `rrhh.expedientes.empleados.editar` |
+| `registrar_marca_kiosko(pin, kiosko_id)` | `fn_registrar_marca_kiosko` | `anon`, `authenticated` **a propósito** (el kiosko no tiene sesión) — función interna sin `EXECUTE` para nadie más que su dueño desde `20260905000005` | Valida formato de PIN y bcrypt contra empleados activos de la empresa del kiosko (nunca recibe `company_id` del cliente, siempre lo deriva del `kiosko_id`), aplica el rate-limit persistente de `rrhh.kiosko_rate_limits` (8 fallos/1min → bloqueo 5min, el bloqueo siempre prevalece sobre el reinicio de ventana), alterna entrada/salida, inserta en `asistencia_marcas`. Rechaza con `RETURN` (nunca `RAISE EXCEPTION`, para no revertir el contador de intentos). No devuelve datos personales del empleado |
+| `validar_acceso_operativo(nombre_usuario, pin)` | `fn_validar_acceso_operativo` | `anon`, `authenticated` **a propósito** (login inicial del módulo móvil) — función interna sin `EXECUTE` para nadie más que su dueño desde `20260905000005` | Valida credencial, bloquea a 3 fallos consecutivos, registra fallidos en `seguridad_accesos`, devuelve `auth.users.id` si es válido. Rechaza con `RETURN NULL` (corrige un bug real: antes usaba `RAISE EXCEPTION` después de escribir el intento fallido, lo que revertía esa escritura y el bloqueo a 3 fallos nunca persistía) |
+| `crear_empleado(...)` | `fn_crear_empleado` | Solo `authenticated` (revocado de `anon` y `PUBLIC` explícitamente, en la función interna y en el wrapper, desde `20260905000001`/`004`) | Alta de empleado, autogenera `nombre_usuario`/PIN si no se proveen, exige `rrhh.expedientes.empleados.crear` y, si fija salario/modalidad, además `rrhh.expedientes.compensacion.editar` |
+| `set_pin_empleado(...)` | `fn_set_pin_empleado` | Solo `authenticated` (revocado de `anon` y `PUBLIC` explícitamente, en la función interna y en el wrapper, desde `20260905000001`/`004`) | Único camino para asignar/cambiar un PIN — hashea con bcrypt, exige `rrhh.expedientes.empleados.editar` |
+
+Verificado en producción (2026-09-05, `has_function_privilege` contra
+`nexo-core`): `anon` y `authenticated` en `false` para las 4 funciones
+internas del schema `rrhh` (`fn_crear_empleado`, `fn_set_pin_empleado`,
+`fn_registrar_marca_kiosko`, `fn_validar_acceso_operativo`) — el único
+camino de entrada para cada una es su wrapper en `public`, que sigue
+funcionando porque un wrapper `SECURITY DEFINER` invoca la función
+interna con los privilegios de su dueño (`postgres`), no del caller.
 
 `rrhh.fn_asegurar_particion_asistencia_marcas` /
 `rrhh.fn_asegurar_particion_seguridad_accesos` — no son RPC de la app,
@@ -144,7 +179,7 @@ particiones).
 
 ### RLS y permisos — estado verificado
 
-Las 8 tablas base tienen `rowsecurity = true`. Policies por tabla (todas
+Las 9 tablas base tienen `rowsecurity = true`. Policies por tabla (todas
 `for authenticated`, contra `core.has_permission()`): `empleados` (4:
 ver/crear/editar/eliminar), `empleado_compensacion` (3: ver/crear/editar
 — sin delete, se elimina en cascada con el empleado), `kiosko_dispositivos`
@@ -155,7 +190,21 @@ esta policy porque `fn_registrar_marca_kiosko` es `SECURITY DEFINER`),
 (4). `seguridad_accesos` tiene RLS habilitado **sin ninguna policy para
 `authenticated`** a propósito (deny-by-default, mismo criterio que
 `core.audit_log`): solo `fn_validar_acceso_operativo` (`SECURITY
-DEFINER`) escribe ahí.
+DEFINER`) escribe ahí. `kiosko_rate_limits` (nueva desde
+`20260905000005`) sigue el mismo criterio: RLS habilitado, sin
+policies, `REVOKE ALL` explícito de `PUBLIC`/`anon`/`authenticated` —
+verificado en producción el 2026-09-05, sin acceso directo de cliente
+(`SELECT`/`INSERT` en `false` para ambos roles).
+
+Las 25 policies de las 7 tablas de `rrhh` con permiso (todas menos
+`seguridad_accesos` y `kiosko_rate_limits`) fueron corregidas en
+`20260905000003` para envolver `auth.uid()` como
+`(select auth.uid())` (patrón `auth_rls_initplan` recomendado por
+Supabase) — no cambia autorización, solo evita reevaluar `auth.uid()`
+fila por fila. Verificado con `get_advisors(type=performance)` el
+2026-09-05: ninguna de las 25 sigue apareciendo con ese aviso. `crm` y
+`core` tienen el mismo aviso en sus propias policies, fuera de alcance
+de esta auditoría (queda pendiente aparte).
 
 `GRANT` base de Postgres (`USAGE ON SCHEMA rrhh` + `SELECT, INSERT,
 UPDATE, DELETE` en las tablas, para `authenticated`): aplicado en
@@ -168,46 +217,51 @@ con `42501 permission denied` antes de evaluar ninguna policy. Ver el
 checklist en [`CLAUDE.md`](../CLAUDE.md) para no repetir este error en el
 próximo módulo.
 
-### Riesgos de seguridad detectados (pendientes de resolver antes de producción real)
+### Riesgos de seguridad — auditoría cerrada y verificada (2026-09-05)
 
-Verificado con `get_advisors(type=security)` el 2026-09-04, no asumido:
+Los hallazgos de `get_advisors(type=security)` del 2026-09-04 (listados
+originalmente en esta sección) se cerraron con las migraciones
+`20260905000001` a `005`, aplicadas a `nexo-core` y verificadas en
+producción el mismo día. Detalle completo, matrices de prueba y
+evidencia paso a paso en
+[SECURITY_VALIDATION_HANDOFF.md](SECURITY_VALIDATION_HANDOFF.md).
+Resumen verificado:
 
-1. **Las funciones internas `rrhh.fn_crear_empleado` y
-   `rrhh.fn_set_pin_empleado` son ejecutables directamente por `anon`**
-   (WARN `anon_security_definer_function_executable`), pese a que sus
-   wrappers en `public` (`crear_empleado`, `set_pin_empleado`) sí tienen
-   el `EXECUTE` revocado de `anon`/`PUBLIC` explícitamente. Causa
-   probable: el mismo `ALTER DEFAULT PRIVILEGES` del proyecto que ya
-   forzó un fix idéntico en `public.crear_empleado`
-   ([`20260902000009`](../supabase/migrations/20260902000009_fix_crear_empleado_anon_grant.sql))
-   nunca se replicó contra las funciones del schema `rrhh` en sí. Como
-   `rrhh` está expuesto en la Data API, un llamado directo (`POST
-   /rest/v1/rpc/fn_crear_empleado` con header `Content-Profile: rrhh`,
-   sin sesión) es posible a nivel de grant. **Riesgo real hoy: bajo pero
-   no cero** — ambas funciones exigen `core.has_permission(auth.uid(),
-   ...)` puertas adentro, y `auth.uid()` es `null` para `anon`, así que
-   la llamada debería fallar con "Permiso denegado" — pero eso depende
-   enteramente de que ese chequeo interno nunca tenga un bug, no de una
-   capa de defensa independiente. **Acción recomendada (no aplicada
-   todavía, requiere una migración nueva)**: `REVOKE EXECUTE ... FROM
-   anon` explícito en ambas funciones del schema `rrhh`, igual que ya se
-   hizo para sus wrappers en `public`.
-2. **`rrhh.fn_asegurar_particion_asistencia_marcas` también es
-   ejecutable por `anon`** pese a no ser el flujo previsto (no es
-   `SECURITY DEFINER`, corre con los privilegios del que llama — `anon`
-   casi con certeza no tiene `CREATE` en el schema, así que fallaría,
-   pero es una superficie innecesaria). Revisar si conviene revocar
-   igual, por consistencia.
-3. **`auth_leaked_password_protection` deshabilitado** a nivel de
-   proyecto (no específico de RRHH) — Supabase Auth no está chequeando
-   contraseñas filtradas contra HaveIBeenPwned. Recomendado activarlo
-   antes de producción real con usuarios administrativos.
+1. **Resuelto** — `rrhh.fn_crear_empleado` y `rrhh.fn_set_pin_empleado`
+   ya no son ejecutables por `anon` ni por `PUBLIC`
+   (`20260905000001`/`004`). Verificado con `has_function_privilege`
+   contra `nexo-core`: `false` para ambos roles en las dos funciones. El
+   único camino de entrada sigue siendo su wrapper en `public`
+   (`authenticated` con permiso interno), que no perdió funcionalidad.
+2. **Resuelto** — `rrhh.fn_registrar_marca_kiosko` y
+   `rrhh.fn_validar_acceso_operativo` (las otras dos funciones internas
+   de la auditoría) quedaron igual de cerradas desde `20260905000005`,
+   sin `EXECUTE` para nadie más que su dueño. Además: `fn_registrar_marca_kiosko`
+   ya no devuelve `empleado_nombre` (dato personal) y respeta
+   `pin_bloqueado`; `fn_validar_acceso_operativo` corrigió un bug real
+   de `RAISE EXCEPTION` post-escritura que impedía que el bloqueo a 3
+   fallos persistiera; ambas suman un rate-limit persistente en
+   `rrhh.kiosko_rate_limits` (8 fallos/1min → bloqueo 5min) que
+   reemplaza al `Map` en memoria de la Server Action como defensa
+   autoritativa.
+3. **Sin cambios / no cubierto por esta auditoría** —
+   `rrhh.fn_asegurar_particion_asistencia_marcas` ejecutable por `anon`
+   sigue igual (no era parte del alcance de esta auditoría, que cubrió
+   específicamente las 4 funciones de alta de empleado/PIN/kiosko/acceso
+   operativo). Queda como hallazgo abierto para una revisión aparte.
+4. **Sigue pendiente, bloqueado por plan** —
+   `auth_leaked_password_protection` deshabilitado a nivel de proyecto.
+   Confirmado contra la documentación oficial de Supabase: esta
+   protección requiere plan Pro o superior; `Grupo CT` está en plan
+   Free. No es posible activarla hoy sin cambiar de plan — no es una
+   omisión, es una limitación de plan confirmada, no asumida.
 
-Ninguno de estos tres se corrigió en esta sesión de documentación —
-**está documentado, no resuelto**, a la espera de una migración
-dedicada. Ver la sección equivalente en [RRHH_MVP.md](RRHH_MVP.md) para
-el resto de la auditoría de seguridad pendiente (protección del PIN,
-acceso directo a particiones, alcance del kiosko anónimo).
+Verificado además con `get_advisors(type=security)` el 2026-09-05: las
+25 policies de RLS de `rrhh` ya no generan el WARN `auth_rls_initplan`
+(ver sección de RLS arriba). Ver [RRHH_MVP.md](RRHH_MVP.md) para el
+resto de la auditoría (protección del PIN, acceso directo a
+particiones, alcance del kiosko anónimo) y qué de eso sigue sin
+verificar.
 
 ## Escalabilidad (particionamiento, pooling, read replicas)
 

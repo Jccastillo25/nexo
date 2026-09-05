@@ -8,11 +8,28 @@ reales o de prueba realistas, RRHH permanece en "en validación" en
 infraestructura esté desplegada.
 
 Última verificación contra el proyecto remoto (`nexo-core`,
-`yrbjlmiqhkyxtlcerowh`) y Vercel: **2026-09-04**. Estado de datos a esa
+`yrbjlmiqhkyxtlcerowh`) y Vercel: **2026-09-05**. Estado de datos a esa
 fecha: `rrhh.empleados` = 0 filas, `rrhh.asistencia_marcas` = 0 filas,
 `rrhh.planillas` = 0 filas, `rrhh.kiosko_dispositivos` = 1 fila (creada
-ese día para habilitar la marcación física, todavía sin confirmar en
-producción).
+el 2026-09-04 para habilitar la marcación física).
+
+**Actualización 2026-09-05 — auditoría de seguridad cerrada y bug de
+ruteo corregido, MVP funcional sigue sin completar**: las migraciones
+`20260905000001` a `005` (cierre de riesgos de seguridad de las
+funciones internas de RRHH, rate-limit persistente del kiosko) se
+aplicaron a `nexo-core` y se verificaron en producción — ver
+[SECURITY_VALIDATION_HANDOFF.md](SECURITY_VALIDATION_HANDOFF.md) para
+el detalle completo. Además se corrigió (commit `a3bcc5d`, mergeado a
+`main`) un bug real de ruteo: `apps/nexo/src/proxy.ts` interceptaba
+`/rrhh/kiosco` antes de que Multi-Zones lo entregara a la zona `rrhh`,
+redirigiéndolo a `/login` del panel — contradecía la regla obligatoria
+del kiosko anónimo. Verificado en producción el 2026-09-05:
+`https://nexo.materialesjcastillo.com/rrhh/kiosco` carga el NumPad sin
+sesión, y las rutas privadas de RRHH (`/rrhh/expedientes`, etc.) siguen
+redirigiendo a login correctamente. **Ninguno de estos dos cierres
+cambia el estado del MVP funcional**: los pasos 3 y 4 del flujo (motor
+de horas trabajadas, generador de planillas) siguen sin construir — ver
+la tabla de abajo. RRHH **no** se declara MVP completo.
 
 ## Alcance del MVP
 
@@ -37,7 +54,7 @@ ello (ver "Exclusiones" más abajo).
 | Paso | Mecanismo real | Estado |
 |---|---|---|
 | 1. Alta de empleado | UI `/rrhh/expedientes/nuevo` → Server Action `crearEmpleado` → RPC `crear_empleado` → `rrhh.fn_crear_empleado` (autogenera `nombre_usuario` y PIN de 4 dígitos si no se proveen; PIN se hashea con bcrypt, se muestra en texto plano una única vez) | ✅ Construido. **Sin ejecutar con un empleado real** (0 filas en `rrhh.empleados`) |
-| 2. Marca en kiosco | `/rrhh/kiosco` (fuera del guard de sesión, ver `apps/rrhh/src/proxy.ts`) → Server Action `marcarAsistencia` → RPC `registrar_marca_kiosko` → `rrhh.fn_registrar_marca_kiosko` (valida PIN contra `pin_hash`, alterna entrada/salida según la última marca, inserta en `rrhh.asistencia_marcas`) | ✅ Construido, con rate-limiting básico. **Sin ejecutar de punta a punta**: requiere `NEXO_KIOSKO_ID` configurado en el proyecto Vercel `nexo-rrhh` (pendiente de confirmar tras el alta del dispositivo del 2026-09-04) y al menos un empleado con PIN real |
+| 2. Marca en kiosco | `/rrhh/kiosco` (fuera del guard de sesión de la zona raíz y de la propia zona `rrhh`, ver `apps/nexo/src/proxy.ts` y `apps/rrhh/src/proxy.ts`) → Server Action `marcarAsistencia` → RPC `registrar_marca_kiosko` → `rrhh.fn_registrar_marca_kiosko` (valida PIN contra `pin_hash`, aplica rate-limit persistente en `rrhh.kiosko_rate_limits`, alterna entrada/salida según la última marca, inserta en `rrhh.asistencia_marcas`) | ✅ Construido y con rate-limiting persistente en Postgres (2026-09-05). **Ruteo verificado en producción** (`/rrhh/kiosco` carga sin sesión, 2026-09-05). **Sin ejecutar de punta a punta con datos reales**: requiere `NEXO_KIOSKO_ID` configurado en el proyecto Vercel `nexo-rrhh` y al menos un empleado con PIN real |
 | 3. Consolidación de marcas → horas trabajadas | — | ❌ **No existe.** No hay función ni vista que agregue `rrhh.asistencia_marcas` (pares entrada/salida) en horas por empleado por período. Es el primer bloqueador real del MVP |
 | 4. Generar planilla de prueba | `/rrhh/planillas` | ❌ **No existe.** La ruta es un placeholder explícito en el código (`apps/rrhh/src/app/(app)/planillas/page.tsx`): "Motor de planillas — pendiente de construir en un turno aparte". No hay función que inserte en `rrhh.planillas`/`rrhh.planilla_detalles` a partir de horas consolidadas + `rrhh.empleado_compensacion` + `rrhh.parametros_ley` |
 | 5. Informe de planilla por empleado | — | ❌ **No existe** (depende de 3 y 4) |
@@ -233,28 +250,37 @@ construyen hasta que el usuario confirme cada punto:
 
 ## Riesgos de seguridad antes de producción
 
-Auditoría obligatoria de cada función `SECURITY DEFINER` del schema
-`rrhh` antes de dar el MVP por listo para producción real (no solo para
-un entorno de prueba). Hallazgos ya confirmados con
-`get_advisors(type=security)` el 2026-09-04 — ver detalle en
-[DATABASE.md](DATABASE.md#riesgos-de-seguridad-detectados-pendientes-de-resolver-antes-de-producción):
+Auditoría de cada función `SECURITY DEFINER` del schema `rrhh`,
+originada en los hallazgos de `get_advisors(type=security)` del
+2026-09-04. **Cerrada y verificada en producción el 2026-09-05**
+(migraciones `20260905000001` a `005`) — ver detalle completo, matrices
+de prueba y evidencia en
+[SECURITY_VALIDATION_HANDOFF.md](SECURITY_VALIDATION_HANDOFF.md) y el
+resumen en
+[DATABASE.md](DATABASE.md#riesgos-de-seguridad--auditoría-cerrada-y-verificada-2026-09-05).
+Esto **no** implica que el MVP esté completo (ver "Alcance del MVP" más
+arriba) — es el cierre de la auditoría de seguridad, un requisito
+distinto del motor de horas/planillas que sigue sin construir:
 
-1. **`rrhh.fn_crear_empleado` y `rrhh.fn_set_pin_empleado` son
-   ejecutables directamente por `anon`** a nivel de `GRANT` de Postgres,
-   pese a que sus wrappers en `public` sí revocan ese acceso. Mitigado en
-   la práctica por el chequeo interno de `core.has_permission()`, pero es
-   una capa de defensa menos de la que el diseño pretende tener.
-   **Acción pendiente**: `REVOKE EXECUTE ... FROM anon` explícito en
-   ambas funciones del schema `rrhh`, en una migración dedicada.
-2. **Privilegios de ejecución de cada función deben quedar así, y no
-   más amplios**:
-   - `anon` — solo `fn_registrar_marca_kiosko` y
-     `fn_validar_acceso_operativo` (autenticación por credencial física,
-     sin `auth.uid()`, por diseño).
-   - `authenticated` con permiso interno verificado — `fn_crear_empleado`,
-     `fn_set_pin_empleado`.
-   - Nadie más debería tener `EXECUTE` sobre ninguna función interna del
-     schema `rrhh`.
+1. **Resuelto** — `rrhh.fn_crear_empleado` y `rrhh.fn_set_pin_empleado`
+   ya no son ejecutables directamente por `anon` ni por `PUBLIC` a nivel
+   de `GRANT` de Postgres. Verificado con `has_function_privilege`
+   contra `nexo-core`: `false` para ambos roles.
+2. **Privilegios de ejecución de cada función — verificados así en
+   producción, 2026-09-05**:
+   - `anon`/`authenticated` — solo los wrappers públicos
+     `public.registrar_marca_kiosko` y `public.validar_acceso_operativo`
+     (autenticación por credencial física/PIN, sin `auth.uid()`, por
+     diseño). Las funciones internas `rrhh.fn_registrar_marca_kiosko` y
+     `rrhh.fn_validar_acceso_operativo` no tienen `EXECUTE` directo para
+     ningún rol desde `20260905000005`.
+   - `authenticated` con permiso interno verificado — wrappers
+     `public.crear_empleado`, `public.set_pin_empleado`. Las funciones
+     internas `rrhh.fn_crear_empleado`/`rrhh.fn_set_pin_empleado` no
+     tienen `EXECUTE` directo para ningún rol desde
+     `20260905000001`/`004`.
+   - Confirmado: nadie más tiene `EXECUTE` sobre ninguna de las 4
+     funciones internas de esta auditoría.
 3. **`search_path`**: todas las funciones `SECURITY DEFINER` de `rrhh`
    ya fijan `search_path` explícito (`set search_path = rrhh, ...`) —
    confirmado, no es un hallazgo pendiente, pero **cualquier función
@@ -271,9 +297,9 @@ un entorno de prueba). Hallazgos ya confirmados con
    (`pin_hash`, bcrypt vía `pgcrypto`), y el único momento en que existe
    en texto plano es el valor de retorno de `fn_crear_empleado`/UI
    inmediatamente después del alta (gateado por
-   `rrhh.expedientes.compensacion.ver`). Verificar que ningún log de
-   servidor (Vercel `get_runtime_logs`) imprima el PIN en texto plano —
-   no auditado todavía.
+   `rrhh.expedientes.compensacion.ver`). **Sigue sin auditar**: que
+   ningún log de servidor (Vercel `get_runtime_logs`) imprima el PIN en
+   texto plano.
 6. **Acceso directo a particiones**: cada partición mensual de
    `rrhh.asistencia_marcas`/`rrhh.seguridad_accesos` se crea con RLS
    habilitado (confirmado, `get_advisors` no reporta ninguna partición
@@ -282,17 +308,29 @@ un entorno de prueba). Hallazgos ya confirmados con
    automáticamente en Postgres; confirmar explícitamente (no asumido en
    esta auditoría) que una policy modificada en la tabla padre se refleja
    en las particiones ya creadas antes de depender de esto en producción.
-7. **El kiosco anónimo debe mantenerse limitado a registrar marcas, sin
-   exponer datos personales**: `fn_registrar_marca_kiosko` hoy devuelve
-   `empleado_nombre` (nombre completo) en la respuesta — es el mínimo
-   necesario para el feedback visual del kiosko ("Juan Pérez — Entrada
-   registrada"), pero es un dato personal expuesto sin autenticación.
-   Confirmar con el usuario si ese nivel de exposición es aceptable para
-   el MVP o si el feedback debe reducirse (ej. sin apellido, o sin
-   nombre en absoluto).
-8. **`auth_leaked_password_protection` deshabilitado** a nivel de
-   proyecto — no específico de RRHH, pero afecta a cualquier cuenta
-   administrativa que use este módulo. Activar antes de producción real.
+   **Sigue sin confirmar de forma exhaustiva** — solo se probó
+   read-only contra una partición puntual (ver
+   [SECURITY_VALIDATION_HANDOFF.md](SECURITY_VALIDATION_HANDOFF.md)).
+7. **Resuelto (2026-09-05)** — el kiosco anónimo ya no expone
+   `empleado_nombre` ni ningún otro dato personal:
+   `fn_registrar_marca_kiosko` devuelve únicamente `tipo` y
+   `marcado_en` desde `20260905000002`. Además suma un rate-limit
+   persistente en `rrhh.kiosko_rate_limits` (8 fallos/1min → bloqueo
+   5min, verificado con RLS activo y sin acceso directo de cliente) que
+   reemplaza al `Map` en memoria como defensa autoritativa contra fuerza
+   bruta.
+8. **Sigue pendiente, bloqueado por plan** —
+   `auth_leaked_password_protection` deshabilitado a nivel de proyecto.
+   Confirmado contra la documentación oficial de Supabase: requiere plan
+   Pro o superior; `Grupo CT` está en Free. No se puede activar hoy sin
+   cambiar de plan.
 
-Ninguno de estos 8 puntos se corrigió al escribir este documento — es
-una lista de auditoría pendiente, no un checklist ya resuelto.
+De estos 8 puntos, los ítems 1, 2 y 7 (y el rate-limit del kiosko) están
+**resueltos y verificados en producción** desde el 2026-09-05. Los
+ítems 3 y 4 ya estaban confirmados como cumplidos desde antes (patrón a
+mantener en código nuevo). Los ítems 5 y 6 **siguen sin auditar/confirmar
+de forma exhaustiva**. El ítem 8 **sigue bloqueado por el plan Free** —
+no es una tarea pendiente de ejecutar, es una limitación externa
+confirmada. Ninguno de estos cierres declara el MVP funcional completo
+— eso depende exclusivamente de construir el motor de horas/planillas
+(pasos 3 y 4 del flujo, ver arriba).
