@@ -9,6 +9,7 @@
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | Shell compartido, tokens de `packages/ui`, regla de "volver al panel", checklist por módulo |
 | [MIGRATION_LOG.md](MIGRATION_LOG.md) | Bitácora fecha a fecha de la migración, rollback notes |
 | [ROADMAP.md](ROADMAP.md) | Fases del proyecto, próximos módulos |
+| [RRHH_MVP.md](RRHH_MVP.md) | Fuente de verdad del MVP de RRHH: alcance, flujo, permisos, criterios de aceptación, pruebas manuales, decisiones de negocio pendientes, riesgos de seguridad |
 | [planning/PLAN_UNIFICACION_NEXO.md](planning/PLAN_UNIFICACION_NEXO.md) | Plan original de unificación (arquitectura, migración de BD, cronograma) |
 | [planning/ARQUITECTURA_MVP_ESCALABLE.md](planning/ARQUITECTURA_MVP_ESCALABLE.md) | Particionamiento, pooling/read replicas, RBAC de 3 capas (rol por app), atomicidad inter-módulo, playbook de app nueva, dark mode + glassmorphism |
 | [planning/PROPUESTA_MARCA_MODULOS.md](planning/PROPUESTA_MARCA_MODULOS.md) | Naming, rutas, íconos y catálogo de módulos investigado en Odoo/SAP/Oracle |
