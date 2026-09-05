@@ -79,8 +79,10 @@ export type Database = {
       };
       registrar_marca_kiosko: {
         Args: { p_kiosko_id: string; p_pin: string };
+        // Sin empleado_nombre a proposito desde 2026-09-05 (regla
+        // obligatoria del kiosko anonimo: no revelar datos personales) —
+        // ver supabase/migrations/20260905000002_kiosko_minimize_exposure_and_bloqueo_check.sql
         Returns: {
-          empleado_nombre: string;
           marcado_en: string;
           tipo: string;
         }[];
