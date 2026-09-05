@@ -8,19 +8,20 @@ const MAX_ATTEMPTS_PER_WINDOW = 8;
 const MIN_INTERVAL_MS = 600; // debounce estricto entre intentos consecutivos
 
 /**
- * Mitigacion BASICA de fuerza bruta a nivel de Server Action — pedida
- * explicitamente ("rate-limiting basico o debounce estricto... antes de
- * que toque la base de datos"). NO es la defensa real: esa es el bloqueo
- * a 3 fallos consecutivos + comparacion bcrypt dentro de
- * rrhh.fn_registrar_marca_kiosko (security definer,
- * supabase/migrations/20260902000006_rrhh_schema_and_tables.sql). Esta
- * Map vive en memoria de UNA instancia de funcion serverless: se
- * resetea en cada cold start y no se comparte entre instancias — un
- * atacante distribuido (que dispare requests que caigan en distintas
- * instancias calientes de Vercel) la esquiva. Para una defensa real
- * multi-instancia hace falta un store compartido (ej. Upstash
- * Ratelimit/Redis), fuera de alcance de "basico" — anotado para cuando
- * el kiosko este en produccion real con trafico serio.
+ * Freno TEMPRANO de fuerza bruta a nivel de Server Action, por IP —
+ * pedido explicitamente ("rate-limiting basico o debounce estricto...
+ * antes de que toque la base de datos"). NO es la defensa autoritativa:
+ * desde 2026-09-05 esa es el limite persistente en Postgres de
+ * rrhh.kiosko_rate_limits (8 PINes invalidos por kiosko en 1 minuto ->
+ * bloqueo de 5 minutos), aplicado dentro de rrhh.fn_registrar_marca_kiosko
+ * (security definer, supabase/migrations/20260905000005_rrhh_public_auth_hardening.sql)
+ * junto con el bloqueo a 3 fallos consecutivos por empleado + comparacion
+ * bcrypt. Esta Map vive en memoria de UNA instancia de funcion
+ * serverless: se resetea en cada cold start, no se comparte entre
+ * instancias, y no protege una llamada RPC directa que se salte esta
+ * Server Action por completo — por eso el limite real vive en la base de
+ * datos, no aca. Esta Map sigue siendo util como freno rapido por IP
+ * (reduce ruido antes de gastar un round-trip a Postgres), no se quita.
  */
 const attempts = new Map<
   string,
