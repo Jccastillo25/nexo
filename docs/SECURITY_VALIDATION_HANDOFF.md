@@ -1,4 +1,19 @@
-# Handoff — validación local de la auditoría de seguridad de RRHH
+# Handoff — auditoría de seguridad de RRHH
+
+**Estado final (2026-09-05): CERRADA Y VERIFICADA EN PRODUCCIÓN.** Las 5
+migraciones (`20260905000001` a `005`) están aplicadas a `nexo-core`,
+mergeadas a `main` (commit `ac9a487`), con el historial de migraciones
+reparado y alineado, y los privilegios/RLS/advisors verificados
+directamente contra producción. Ver la sección **9. Cierre** al final
+de este documento para el resultado completo. El resto de este
+documento se conserva como bitácora histórica del proceso (incluida la
+validación local que no se pudo completar) — no se reescribe la
+narrativa original, solo se agrega el cierre.
+
+---
+
+*Bitácora histórica (2026-09-05, primera y segunda vuelta) — contexto de
+cómo se llegó al diseño final, conservado sin editar:*
 
 Estado (actualizado 2026-09-05, segunda vuelta): las migraciones
 `20260905000001` a `003` y el código del kiosco se commitearon y
@@ -448,14 +463,150 @@ npx supabase stop
    y `docs/MIGRATION_LOG.md` con el estado verificado, y decidir sobre
    merge a `main` — con aprobación explícita en cada paso.
 
-## 8. Actualización pendiente de documentación (no hecha todavía a propósito)
+## 8. Actualización de documentación — hecha (ver sección 9)
 
-`docs/DATABASE.md`, `docs/RRHH_MVP.md` y `docs/MIGRATION_LOG.md` **todavía
-describen el estado de antes de esta auditoría** (funciones
-`fn_crear_empleado`/`fn_set_pin_empleado` ejecutables por `anon` como
-hallazgo pendiente, `fn_registrar_marca_kiosko` devolviendo
-`empleado_nombre`, los 25 avisos de rendimiento sin corregir) — a
-propósito, porque el pedido fue documentar **solo el estado posterior
-verificado**, y todavía no hay nada verificado (nada se aplicó). Cuando
-la validación de la sección 5 pase, esos 3 documentos se actualizan en un
-commit de documentación aparte, con los resultados reales, no antes.
+`docs/DATABASE.md`, `docs/RRHH_MVP.md` y `docs/MIGRATION_LOG.md` ya
+reflejan el estado posterior verificado (2026-09-05) — ver la sección 9
+para el resumen de qué cambió y qué evidencia lo respalda. Esta
+actualización se hizo **después** de aplicar y verificar las 5
+migraciones en producción, no antes (tal como decía este documento
+originalmente que debía ser).
+
+## 9. Cierre — aplicado y verificado en producción (2026-09-05)
+
+La validación local con Docker descrita en las secciones 5-7 **nunca se
+pudo completar**: la sesión de Claude Code resultó estar corriendo en un
+entorno distinto a la máquina física del usuario (confirmado por
+evidencia concreta — `wsl --status` seguía reportando WSL2 no instalado
+y el `LastBootUpTime` de la máquina no reflejaba ningún reinicio, pese a
+que el usuario había instalado WSL2 y reiniciado su propia PC). Ante
+esto, el usuario autorizó explícitamente aplicar las 5 migraciones
+directo a `nexo-core` sin esa validación adicional, dado que
+`20260905000004` ya corregía un fallo real ya confirmado por la primera
+vuelta de validación local (sección 2b) y el diseño de `20260905000005`
+había sido validado por el usuario en otra máquina.
+
+### Aplicación
+
+Las 5 migraciones se aplicaron en orden con `apply_migration` del MCP de
+Supabase (mecanismo oficial que registra en
+`supabase_migrations.schema_migrations`, no SQL suelto) contra
+`yrbjlmiqhkyxtlcerowh`, verificando `list_migrations` después de cada
+una. Ninguna falló.
+
+### Reparación del historial de migraciones
+
+`apply_migration` registra su propio timestamp de versión (la hora exacta
+de la llamada) en vez del que lleva el nombre de cada archivo — el
+historial remoto quedó con 5 versiones auto-generadas
+(`20260905072348`, `072447`, `072602`, `072637`, `072739`) sin
+correspondencia con los archivos de `main`. Diagnosticado como
+divergencia de numeración (mismo contenido, distinta versión, sin
+migraciones faltantes ni de más) y reparado con autorización explícita
+del usuario, usando `execute_sql` en vez del CLI (`supabase link`
+requería un access token que no estaba disponible en esta sesión, y el
+usuario no quiso compartir uno ni pudo iniciar sesión interactiva):
+
+```sql
+begin;
+
+update supabase_migrations.schema_migrations set version = '20260905000001' where version = '20260905072348';
+update supabase_migrations.schema_migrations set version = '20260905000002' where version = '20260905072447';
+update supabase_migrations.schema_migrations set version = '20260905000003' where version = '20260905072602';
+update supabase_migrations.schema_migrations set version = '20260905000004' where version = '20260905072637';
+update supabase_migrations.schema_migrations set version = '20260905000005' where version = '20260905072739';
+
+do $$
+declare
+  v_old_count int;
+  v_new_count int;
+begin
+  select count(*) into v_old_count from supabase_migrations.schema_migrations
+    where version in ('20260905072348','20260905072447','20260905072602','20260905072637','20260905072739');
+  select count(*) into v_new_count from supabase_migrations.schema_migrations
+    where version in ('20260905000001','20260905000002','20260905000003','20260905000004','20260905000005');
+
+  if v_old_count <> 0 or v_new_count <> 5 then
+    raise exception 'Reparacion de historial fallida: viejas restantes=%, nuevas presentes=%', v_old_count, v_new_count;
+  end if;
+end $$;
+
+commit;
+```
+
+Solo `UPDATE` (no `DELETE`/`INSERT`) sobre la columna `version` — preserva
+`statements`, `name`, `created_by`, `idempotency_key` y `rollback` de
+cada fila. Verificación con `ROLLBACK` automático ante cualquier
+discrepancia (no disparó). Confirmado después: `list_migrations` con las
+29 versiones alineadas 1:1 con `supabase/migrations/`, sin pendientes ni
+extras.
+
+### Verificación de privilegios — antes/después (`has_function_privilege`, `nexo-core`)
+
+| Función | Rol | Antes | Después |
+|---|---|---|---|
+| `rrhh.fn_crear_empleado` | anon / authenticated / public | `true` | `false` |
+| `rrhh.fn_set_pin_empleado` | anon / authenticated / public | `true` | `false` |
+| `rrhh.fn_registrar_marca_kiosko` | anon / authenticated / public | `true` | `false` |
+| `rrhh.fn_validar_acceso_operativo` | anon / authenticated / public | `true` | `false` |
+| `public.get_visible_apps` | anon | `true` | `false` |
+| `public.get_visible_apps` | authenticated | — | `true` (correcto) |
+| `public.registrar_marca_kiosko` | anon / authenticated | `true` | `true` (deliberado) |
+| `public.validar_acceso_operativo` | anon / authenticated | `true` | `true` (deliberado) |
+| `public.crear_empleado` | authenticated | — | `true` (única llamada real, sigue funcionando) |
+
+### `rrhh.kiosko_rate_limits`
+
+`rls_habilitado = true`, `policies = 0`, `anon`/`authenticated` sin
+`SELECT` ni `INSERT` directo — deny-by-default confirmado.
+
+### Advisors — clasificado, no todo es un hallazgo nuevo
+
+`get_advisors(type=security)`: ya no aparecen `fn_crear_empleado`,
+`fn_set_pin_empleado`, `fn_registrar_marca_kiosko`,
+`fn_validar_acceso_operativo` como ejecutables por `anon`/`authenticated`.
+Quedan (esperados, deliberados o ajenos a esta auditoría): los 2
+wrappers públicos del kiosko/acceso operativo ejecutables por
+`anon`/`authenticated` (diseño intencional), `public.crear_empleado`/`get_visible_apps`
+ejecutables por `authenticated` (uso real del panel),
+`public.get_platform_settings`/`has_permission`/`set_pin_empleado`/`update_platform_settings`
+(ajenos a RRHH o sin caller todavía), `auth_leaked_password_protection`
+deshabilitado (bloqueado por plan Free, confirmado), y los
+`rls_enabled_no_policy` INFO en varias tablas (patrón deny-by-default
+deliberado, incluida `kiosko_rate_limits`).
+
+`get_advisors(type=performance)`: los WARN `auth_rls_initplan`
+restantes son solo en `core.company_memberships`, `core.user_app_roles`
+y `crm.clientes` — **ninguno en tablas de `rrhh`**, confirmando que las
+25 policies de `20260905000003` quedaron corregidas.
+
+### Fix de ruteo del kiosco (rama separada, no parte de la auditoría de seguridad en sí)
+
+Al verificar `/rrhh/kiosco` en producción se encontró que redirigía a
+`/login` pese a que `apps/rrhh/src/proxy.ts` ya excluía `/kiosco`
+correctamente. Causa real: `apps/nexo/src/proxy.ts` (zona raíz)
+interceptaba `/rrhh/*` antes del rewrite de Multi-Zones — su `matcher`
+excluía `crm` de su guard de sesión pero nunca `rrhh`. Corregido en la
+rama `fix/rrhh-kiosco-public-route` (no en `security/rrhh-audit-hardening`),
+mergeada a `main` en el commit `a3bcc5d`: se agregó `rrhh` a la misma
+exclusión que ya tenía `crm`. Sin cambios en `apps/rrhh/src/proxy.ts`,
+su middleware, ni los rewrites — ya estaban correctos. Verificado en
+producción: `/rrhh/kiosco` carga el NumPad sin sesión,
+`/rrhh/expedientes` sigue redirigiendo a login sin sesión, `/crm` y `/`
+sin regresión.
+
+### Qué sigue sin hacer
+
+- Protección de contraseñas filtradas (`auth_leaked_password_protection`):
+  confirmado que requiere plan Pro, `Grupo CT` está en Free — no se
+  puede activar hoy, no es una tarea pendiente de ejecutar.
+- Auditoría exhaustiva de logs de servidor para confirmar que el PIN
+  nunca se imprime en texto plano (punto 5 de "Riesgos de seguridad" en
+  `RRHH_MVP.md`) — sin auditar todavía.
+- Confirmación exhaustiva de herencia de policies en particiones nuevas
+  más allá de la prueba puntual ya hecha (punto 6 de la misma sección).
+- `rrhh.fn_asegurar_particion_asistencia_marcas` ejecutable por `anon` —
+  fuera del alcance de esta auditoría, sigue abierto.
+- El motor de consolidación de horas trabajadas y el generador de
+  planillas (pasos 3 y 4 del flujo del MVP) — sin construir. Ninguno de
+  los cierres de esta auditoría declara el MVP de RRHH completo.
