@@ -47,6 +47,45 @@ plan original en [`docs/planning/`](docs/planning/).
    falta cualquiera de los dos, el link no da 404 por la ruta en sí sino
    porque nadie la reescribe hacia el deploy real; agregar el rewrite es
    la corrección, no cambiar `route` a una URL absoluta.
+5. **Checklist de "módulo nuevo desplegado pero no carga"** — tres causas
+   reales y distintas, ya vistas todas al conectar RRHH (2026-09-04), cada
+   una con un síntoma que parece el mismo 500/404 genérico. Verificalas en
+   este orden antes de asumir que el código está mal:
+   1. **Las env vars NO se comparten entre proyectos de Vercel.** Aunque
+      `nexocore` y `nexo-rrhh` sean parte del mismo monorepo y del mismo
+      dominio, son proyectos de Vercel independientes con sus propias
+      Environment Variables. Una variable que un módulo lee en runtime
+      (ej. `NEXO_COMPANY_ID` en `src/lib/company.ts`) hay que configurarla
+      **en el proyecto de Vercel de ESE módulo**, aunque ya exista con el
+      mismo nombre y valor en `nexocore` — verificalo con
+      `get_project`/mirando el dashboard del proyecto correcto, no
+      asumas que "ya está puesta" porque la viste en otro proyecto.
+   2. **`turbo.json` tiene un allowlist de `env` para la tarea `build`** —
+      cualquier variable no listada ahí se descarta silenciosamente antes
+      de correr el build (afecta a `next.config.ts`, no al runtime de
+      Server Components). Si un módulo nuevo introduce una env var propia
+      (ej. `RRHH_APP_URL`), agregala a `tasks.build.env` en `turbo.json` o
+      el build va a usar el valor por defecto/`undefined` sin avisar más
+      que un warning en el log de build ("missing from turbo.json").
+   3. **Un schema Postgres nuevo necesita `GRANT USAGE`/`SELECT` explícito
+      para `authenticated`, además de RLS.** Habilitar RLS en las tablas
+      no alcanza — RLS filtra *filas*, no reemplaza el permiso base de
+      *tabla/schema* de Postgres. Sin el `GRANT`, cualquier query falla
+      con "permission denied for schema/table" antes de evaluar ninguna
+      policy. Ya pasó dos veces (`crm` en
+      [`20260830000010_fix_crm_schema_grants.sql`](supabase/migrations/20260830000010_fix_crm_schema_grants.sql),
+      `rrhh` en
+      [`20260904000001_fix_rrhh_schema_grants.sql`](supabase/migrations/20260904000001_fix_rrhh_schema_grants.sql)) —
+      al crear el schema de un módulo nuevo, el `GRANT USAGE ON SCHEMA
+      ... TO authenticated` + `GRANT SELECT, INSERT, UPDATE, DELETE ON
+      ALL TABLES IN SCHEMA ... TO authenticated` va en la misma migración
+      que crea las tablas, no como fix posterior.
+
+   Para diagnosticar cuál de las tres es, `get_runtime_errors`/
+   `get_runtime_logs` del MCP de Vercel (scopeados al proyecto y
+   deployment exactos) dan el mensaje real del servidor — no asumas la
+   causa por el síntoma en el navegador (404 vs 500 vs pantalla en blanco
+   no distinguen entre estas tres por sí solos).
 
 ## Regla obligatoria: permisos (norma v3.0)
 
@@ -161,6 +200,37 @@ dashboards compactos de alta densidad**. `darkMode: "class"` fijo, nunca
 `ShellBar`/`Sidebar`/CRM siguen en paleta clara (deuda técnica reconocida,
 no se reescriben solos por esto) — un módulo o página **nueva** usa los
 tokens dark/glass desde el día uno, no copia la paleta clara vieja.
+
+## Regla obligatoria: una sola paleta y tipografía — ningún módulo tiene identidad visual propia
+
+**Todo `apps/<módulo>` usa los mismos tokens de color y la misma
+tipografía (Inter) que el resto de la suite, sin excepción — ni siquiera
+en su propio contenido.** No es una preferencia de estilo: ya se intentó
+lo contrario (el CRM tuvo su propia paleta "concreto/acero/naranja" y
+tipografía "Archivo Black/Work Sans/IBM Plex Mono") y el resultado, aun
+con la barra superior ya unificada, seguía sintiéndose como software
+distinto por dentro — por eso el usuario la retiró explícitamente
+(2026-08-30). Un módulo nuevo o adaptado **no reintroduce esta
+fragmentación** aunque tenga su propia identidad de marca/categoría — esa
+identidad va únicamente en el color de categoría del launcher
+(`packages/ui/category-colors.ts`), nunca en botones, inputs, fondos ni
+`font-family` propios.
+
+Fuentes de verdad únicas, no se hardcodea un hex ni una fuente por fuera
+de ellas:
+
+- Color: tokens de [`packages/ui/tokens.css`](packages/ui/tokens.css)
+  (dark/glass) + la escala `neutral-*`/`--nexo-accent` documentada en
+  [`docs/planning/NORMA_DISENO_UNIVERSAL.md §1.2`](docs/planning/NORMA_DISENO_UNIVERSAL.md#12-paleta-de-colores-agnóstica).
+- Tipografía: Inter en toda la suite, cargada vía
+  [`packages/ui/shell-font.ts`](packages/ui/shell-font.ts) para el chrome
+  compartido — un módulo no redefine `font-sans` a su propia fuente de
+  marca (ver el comentario de ese archivo, que documenta exactamente este
+  bug ya corregido una vez).
+- Componentes genéricos (botón, input, modal, tabla, tarjeta de
+  estadística): si ya existe una versión en otro módulo, se generaliza a
+  `packages/ui`, no se duplica ni se reescribe a mano — checklist completo
+  en [`docs/planning/NORMA_DISENO_UNIVERSAL.md §4`](docs/planning/NORMA_DISENO_UNIVERSAL.md#4-reglas-anti-fragmentación).
 
 ## Regla obligatoria: toda tabla de hechos nace particionada
 

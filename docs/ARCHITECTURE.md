@@ -27,6 +27,51 @@ alternativas descartadas en
   [PERMISSIONS.md](PERMISSIONS.md)), extendida con un dominio "Módulos" que
   controla qué apps ve cada usuario en el panel.
 
+## Configuración efectiva de Multi-Zones (verificado en producción, 2026-09-04)
+
+Tres proyectos Vercel independientes, un solo dominio público:
+
+| Proyecto Vercel | App | Root Directory | Dominios asignados |
+|---|---|---|---|
+| `nexocore` (`prj_CnPDGH9SLMpe4WgU74QysVthoGNp`) | `apps/nexo` (zona raíz) | `apps/nexo` | `nexo.materialesjcastillo.com` (producción), `nexocore-*.vercel.app` |
+| `nexo-crm` (`prj_ZkuHO3l8cZxe6tDF0RUeBfnJYib6`) | `apps/crm` | `apps/crm` | `nexo-crm-*.vercel.app` (solo se accede vía rewrite, nunca directo) |
+| `nexo-rrhh` (`prj_6nP4PUDQZH5iq6Cp2t7ytxzrqerM`) | `apps/rrhh` | `apps/rrhh` | `nexo-rrhh-*.vercel.app` (solo se accede vía rewrite, nunca directo) |
+
+Los tres viven en el mismo team de Vercel (`team_4u6S79ER0UN7KtureMhHMiUZ`)
+pero son proyectos separados a propósito (deploys y rollback aislados,
+ver la regla crítica en [`CLAUDE.md`](../CLAUDE.md)) — **cada uno tiene
+sus propias Environment Variables**, no se comparten entre sí aunque
+compartan nombre.
+
+### Contrato de rutas (`apps/nexo/next.config.ts`)
+
+```
+source: "/crm"        → destination: `${CRM_APP_URL}/crm`
+source: "/crm/:path*"  → destination: `${CRM_APP_URL}/crm/:path*`
+source: "/rrhh"         → destination: `${RRHH_APP_URL}/rrhh`
+source: "/rrhh/:path*"   → destination: `${RRHH_APP_URL}/rrhh/:path*`
+```
+
+`CRM_APP_URL`/`RRHH_APP_URL` son las URLs reales del deployment de cada
+módulo (`https://nexo-crm-*.vercel.app`, `https://nexo-rrhh-*.vercel.app`),
+inyectadas como Environment Variable del proyecto `nexocore` — **nunca**
+hardcodeadas y **nunca** puestas como `route` en `core.apps` (esa columna
+siempre es la ruta relativa `/crm`/`/rrhh`, ver la regla de SSO). Ambas
+variables deben estar además en el allowlist `tasks.build.env` de
+`turbo.json` — si falta una, Turborepo la descarta en build silenciosamente
+y el rewrite cae a un default de `localhost`, lo que produce
+`DNS_HOSTNAME_RESOLVED_PRIVATE` en producción (bug real, ya visto y
+corregido para RRHH el 2026-09-04, ver [MIGRATION_LOG.md](MIGRATION_LOG.md)).
+
+Cada módulo fija su propio `basePath` (`/crm`, `/rrhh`) en su propio
+`next.config.ts` — así todas sus rutas internas y assets viven bajo ese
+prefijo sin que el módulo necesite saber que está detrás de un rewrite.
+Única excepción documentada: `/rrhh/kiosco` está explícitamente excluido
+del guard de sesión de Supabase Auth en `apps/rrhh/src/proxy.ts` (el
+kiosco físico se autentica por PIN, no por sesión) — sigue sirviéndose
+bajo el mismo `basePath` y el mismo rewrite, solo cambia el chequeo de
+auth.
+
 ## Por qué no un monolito único
 
 Fusionar RRHH, Flotilla y CRM en una sola app Next.js exigiría reescribir
@@ -46,7 +91,11 @@ si algo falla), y el checklist único para dar de alta un módulo. Ver
 
 ## Pendiente de documentar aquí a medida que se implementa
 
-- [ ] Configuración exacta de `next.config.js` de la zona raíz (`apps/nexo`)
-- [ ] `basePath` y `assetPrefix` de cada módulo
+- [x] Configuración exacta de `next.config.ts` de la zona raíz
+      (`apps/nexo`) — ver "Configuración efectiva de Multi-Zones" arriba
+- [x] `basePath` de cada módulo (`/crm`, `/rrhh`) — ver arriba
+- [ ] `assetPrefix` explícito por módulo (hoy funciona sin fijarlo aparte
+      de `basePath`; revisar si hace falta cuando se sirvan assets desde
+      un CDN separado)
 - [ ] Pipeline de CI/CD por app en Vercel (`turbo-ignore`)
 - [ ] Estrategia de versionado de `packages/ui` entre zonas

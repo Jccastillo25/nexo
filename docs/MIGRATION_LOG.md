@@ -2,6 +2,90 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-09-02 a 2026-09-04 — Adaptación de RRHH: schema, permisos, kiosco, despliegue en producción
+
+Fase 6a del roadmap. A diferencia de CRM (migración de datos de un
+proyecto Supabase existente), RRHH se **diseñó de cero** para Nexo —
+Gestor360/`marcacion-grupo-ct` (importado el 2026-08-29) quedó como
+referencia de producto, no como fuente de esquema a migrar 1:1.
+
+- **Paso Cero cumplido**: matriz de permisos de RRHH (37 códigos bajo
+  `rrhh.*`, dominios `expedientes`/`asistencia`/`planillas`) diseñada y
+  aprobada antes de crear ninguna tabla —
+  [`20260902000005_rrhh_permissions_and_roles.sql`](../supabase/migrations/20260902000005_rrhh_permissions_and_roles.sql).
+  Roles con alcance por app (`app_scoped_roles`, extensión de `core`
+  aplicada el mismo día): `admin`, `supervisor_asistencia`,
+  `gestor_expedientes`, `especialista_planillas`.
+- **Schema `rrhh` aplicado**
+  ([`20260902000006`](../supabase/migrations/20260902000006_rrhh_schema_and_tables.sql)):
+  8 tablas base (`empleados`, `empleado_compensacion`,
+  `kiosko_dispositivos`, `asistencia_marcas`, `parametros_ley`,
+  `seguridad_accesos`, `planillas`, `planilla_detalles`), 2 tablas de
+  hechos particionadas por mes desde el día uno (`asistencia_marcas`,
+  `seguridad_accesos`), RLS en las 8 con policies contra
+  `core.has_permission()`. Extendido el mismo día
+  ([`20260902000008`](../supabase/migrations/20260902000008_rrhh_nicaragua_and_contracts.sql))
+  con parámetros de ley nicaragüense (INSS/INATEC, versionados), modalidad
+  de contrato, y credenciales operativas (`nombre_usuario` + PIN
+  compartido con el kiosko) para un futuro módulo móvil de choferes.
+  Detalle completo de tablas y funciones en [DATABASE.md](DATABASE.md).
+- **Kiosco de marcación** (`/rrhh/kiosco`): numpad de PIN, sin sesión de
+  Supabase Auth a propósito (`rrhh.fn_registrar_marca_kiosko`,
+  `SECURITY DEFINER`, callable por `anon`). Rate-limiting básico a nivel
+  de Server Action (ventana de 60s, máx. 8 intentos, debounce de 600ms)
+  además del bloqueo a 3 fallos consecutivos dentro de la función SQL.
+- **UI de expedientes** (`/rrhh/expedientes`, `/rrhh/expedientes/nuevo`):
+  listado y alta de empleados vía `rrhh.fn_crear_empleado`, que
+  autogenera `nombre_usuario` y PIN si no se proveen y los devuelve en
+  texto plano una única vez (gateado además por
+  `rrhh.expedientes.compensacion.ver` para mostrar el PIN).
+- **Habilitado en el panel**: `core.company_apps` con `rrhh` en
+  `enabled = true`
+  ([`20260903000001_enable_rrhh_company_app.sql`](../supabase/migrations/20260903000001_enable_rrhh_company_app.sql)).
+- **Tres bugs de despliegue distintos, diagnosticados con datos (no
+  supuestos) y corregidos en orden**, ya incorporados como checklist
+  permanente en [`CLAUDE.md`](../CLAUDE.md) punto 5 de la regla crítica:
+  1. `DNS_HOSTNAME_RESOLVED_PRIVATE` en `/rrhh` — `RRHH_APP_URL` faltaba
+     en el allowlist `tasks.build.env` de `turbo.json`, Turborepo la
+     descartaba en build y el rewrite caía a `localhost`. Corregido
+     agregándola al allowlist (`769bb87`).
+  2. 500 genérico en `/rrhh/dashboard` ("Falta NEXO_COMPANY_ID") — la
+     variable existía en el proyecto Vercel `nexocore` pero **no en
+     `nexo-rrhh`** (cada proyecto Vercel tiene sus propias Environment
+     Variables, no se comparten). Se perdió tiempo real porque el
+     usuario editó la variable en el proyecto equivocado dos veces antes
+     de confirmarlo mirando directamente el dashboard de `nexo-rrhh`.
+  3. 500 en `/rrhh/dashboard` con mensaje vacío tras resolver (2) —
+     `42501 permission denied for schema rrhh`. RLS estaba correcto pero
+     la migración que creó el schema nunca hizo el `GRANT USAGE`/`SELECT`
+     base de Postgres para `authenticated` (mismo bug ya resuelto una vez
+     para `crm` en `20260830000010`, nunca replicado al crear `rrhh`).
+     Verificado con `has_schema_privilege()` y un `curl` directo con
+     `Accept-Profile: rrhh` (`42501`, no un 404 — descarta que faltara
+     exponer el schema) antes de escribir el fix. Corregido en
+     [`20260904000001_fix_rrhh_schema_grants.sql`](../supabase/migrations/20260904000001_fix_rrhh_schema_grants.sql),
+     aplicado al remoto y confirmado con `get_runtime_errors` limpio.
+- **Provisión operativa post-fix (2026-09-04)**: creado el primer
+  `rrhh.kiosko_dispositivos` real (`901098a8-dac4-4185-aa1c-530ab69b768b`,
+  "Kiosko principal", sucursal Materiales JCastillo) para poder configurar
+  `NEXO_KIOSKO_ID` en el proyecto `nexo-rrhh` y habilitar la marcación
+  física. Pendiente de confirmar en producción tras esa configuración.
+- **Auditoría de seguridad (`get_advisors`, 2026-09-04)**: confirmó que
+  `rrhh.fn_crear_empleado` y `rrhh.fn_set_pin_empleado` (las funciones
+  internas, no sus wrappers en `public`) son ejecutables directamente por
+  `anon` — inconsistente con el `REVOKE` explícito que sí tienen sus
+  wrappers. Riesgo mitigado en la práctica por el chequeo interno de
+  `core.has_permission()`, pero **no corregido todavía** — ver
+  "Riesgos de seguridad" en [DATABASE.md](DATABASE.md) y
+  [RRHH_MVP.md](RRHH_MVP.md).
+- **Qué falta validar** (por eso RRHH figura como infraestructura lista
+  pero MVP sin validar en [ROADMAP.md](ROADMAP.md)): motor de
+  consolidación de marcas → horas trabajadas, generador de planilla de
+  prueba (`/rrhh/planillas` sigue siendo un placeholder explícito en el
+  código), cero empleados/marcas/planillas reales cargados a esta fecha,
+  y el recorrido completo con los 3 roles (admin/operador/sin permiso)
+  sin ejecutar. Detalle en [RRHH_MVP.md](RRHH_MVP.md).
+
 ## 2026-08-30 — Diseño UX/UI (investigación SAP Fiori + Odoo) aplicado al panel
 
 - Investigación pedida por el usuario, documentada completa en
