@@ -103,6 +103,8 @@ Nada sustituye este E2E.
 
 ## 4.1 Expediente General
 
+**✅ F1.1 cumplida (2026-09-07)**: `/rrhh/expedientes/nuevo` ya solo pide nombre, apellido, documento, correo y teléfono — sin salario, modalidad, fecha de ingreso, PIN ni credencial. Ver `IMPLEMENTATION_STATUS.md` sección 0.11. La UI de expediente individual con pestañas (Datos generales / Expediente laboral / Historial) de abajo sigue pendiente — hoy solo existe el listado y el alta.
+
 UI objetivo:
 
 ```text
@@ -307,16 +309,14 @@ Identidad digital (`core.identidad.cuenta.*`) y habilitación de conductor (`flo
 
 # 10. Deuda heredada que debe migrarse
 
-El código actual conocido contiene:
+Actualizado 2026-09-07 tras F1.0.1/F1.1 — ver `IMPLEMENTATION_STATUS.md` secciones 0.9/0.11:
 
-- `puesto/departamento/fecha_ingreso/estado` dentro de `rrhh.empleados`;
-- `pin_hash` dentro de `rrhh.empleados`;
-- `nombre_usuario` y `user_id` dentro de `rrhh.empleados`;
-- `rrhh.empleado_compensacion` 1:1 con empleado;
-- `fn_crear_empleado` que puede generar PIN;
-- `fn_validar_acceso_operativo()` que usa `nombre_usuario + PIN` para acceso digital.
+- ✅ `fn_crear_empleado` ya NO genera PIN ni acepta puesto/departamento/modalidad/salario (F1.1) — columnas correspondientes en `rrhh.empleados` quedan nullable y `DEPRECADAS` vía `comment on column`, sin eliminarse todavía.
+- ✅ `public.validar_acceso_operativo` ya NO es ejecutable por `anon`/`authenticated` (F1.0.1) — `rrhh.fn_validar_acceso_operativo()` y su wrapper quedan `DEPRECADAS`, sin eliminarse todavía.
+- ⏳ `rrhh.empleado_compensacion` 1:1 con empleado — pendiente de migrar a `rrhh.contrato_compensacion` en F1.2.
+- ⏳ `nombre_usuario`/`user_id`/`pin_hash`/`pin_bloqueado`/`intentos_fallidos` siguen como columnas físicas de `rrhh.empleados` (nullable desde F1.1) — su eliminación real queda para una migración de limpieza posterior a F1.2/F1.3, junto con `rrhh.seguridad_accesos`.
 
-Esas migraciones aplicadas no se editan.
+Ninguna migración aplicada fue editada — todos los cambios de arriba se hicieron con migraciones nuevas.
 
 Se corrigen con migraciones nuevas, backfill si existe información y deprecación progresiva.
 

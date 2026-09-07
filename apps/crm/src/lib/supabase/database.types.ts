@@ -85,26 +85,20 @@ export type Database = {
         Args: { p_nombre_usuario: string; p_pin: string };
         Returns: string;
       };
+      // F1.1 (2026-09-07): firma reducida a solo Expediente General — ver
+      // supabase/migrations/20260907152301_f1_1_separar_expediente_general_laboral.sql.
       crear_empleado: {
         Args: {
           p_apellido: string;
           p_company_id: string;
-          p_departamento?: string;
           p_documento_identidad?: string;
           p_email?: string;
-          p_fecha_ingreso?: string;
-          p_modalidad_contrato?: string;
           p_nombre: string;
-          p_nombre_usuario?: string;
-          p_pin?: string;
-          p_puesto?: string;
-          p_salario_base?: number;
           p_telefono?: string;
         };
         Returns: {
           empleado_id: string;
-          nombre_usuario: string;
-          pin_kiosko: string;
+          codigo_empleado: number;
         }[];
       };
       update_platform_settings: {
@@ -336,23 +330,26 @@ export type Database = {
           documento_identidad: string | null;
           email: string | null;
           telefono: string | null;
+          /** @deprecated F1.1 (2026-09-07) — pertenece a rrhh.contratos (F1.2). */
           puesto: string | null;
+          /** @deprecated F1.1 — pertenece a rrhh.contratos (F1.2). */
           departamento: string | null;
-          fecha_ingreso: string;
+          /** @deprecated F1.1 — pertenece a rrhh.contratos.fecha_inicio (F1.2). Nullable desde F1.1. */
+          fecha_ingreso: string | null;
+          /** @deprecated F1.1 — pertenece a rrhh.contratos.fecha_fin_real (F1.2). */
           fecha_baja: string | null;
-          estado: "activo" | "inactivo" | "baja";
-          // Hash bcrypt, nunca el PIN en texto plano — jamas escribir
-          // este campo directo desde la app, usar el RPC set_pin_empleado
-          // o crear_empleado. Desde 20260902000008 tiene doble proposito:
-          // marcacion fisica (registrar_marca_kiosko) Y login al modulo
-          // movil (validar_acceso_operativo) — es el mismo PIN.
+          /** @deprecated F1.1 — pertenece a rrhh.contratos.estado (F1.2). Default 'sin_contrato' desde F1.1. */
+          estado: "sin_contrato" | "activo" | "inactivo" | "baja";
+          /** @deprecated F1.1 — pasa a rrhh.contrato_credenciales (F1.3). Hash bcrypt, nunca el PIN en texto plano. */
           pin_hash: string | null;
-          // Agregado en 20260902000008 — credenciales/estado de acceso
-          // operativo del modulo movil de choferes.
-          nombre_usuario: string; // unico por company_id, autogenerado por crear_empleado o editable a mano
-          pin_bloqueado: boolean; // true a los 3 intentos fallidos consecutivos, ver rrhh.fn_validar_acceso_operativo
+          /** @deprecated F1.1 — diseño de "PIN de doble propósito" rechazado (docs/DRIVER_ACCESS_AND_KIOSK.md §10). Nullable desde F1.1. */
+          nombre_usuario: string | null;
+          /** @deprecated F1.1 — pasa a rrhh.contrato_credenciales (F1.3). */
+          pin_bloqueado: boolean;
+          /** @deprecated F1.1 — pasa a rrhh.contrato_credenciales (F1.3). */
           intentos_fallidos: number;
-          user_id: string | null; // auth.users.id vinculado — null hasta que se provisiona la cuenta (ver nota Next.js en la migracion)
+          /** @deprecated F1.1 — pertenece a core.identidad (diseño objetivo, sin implementar). */
+          user_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -365,13 +362,19 @@ export type Database = {
           documento_identidad?: string | null;
           email?: string | null;
           telefono?: string | null;
+          /** @deprecated F1.1 */
           puesto?: string | null;
+          /** @deprecated F1.1 */
           departamento?: string | null;
-          fecha_ingreso?: string;
+          /** @deprecated F1.1 — nullable desde F1.1 */
+          fecha_ingreso?: string | null;
+          /** @deprecated F1.1 */
           fecha_baja?: string | null;
-          estado?: "activo" | "inactivo" | "baja";
-          pin_hash?: never; // nunca via Insert directo, usar RPC set_pin_empleado o crear_empleado
-          nombre_usuario: string; // NOT NULL — en la practica siempre via RPC crear_empleado, no Insert directo
+          /** @deprecated F1.1 — default 'sin_contrato' */
+          estado?: "sin_contrato" | "activo" | "inactivo" | "baja";
+          pin_hash?: never; // nunca via Insert directo, usar RPC
+          /** @deprecated F1.1 — nullable desde F1.1 */
+          nombre_usuario?: string | null;
           pin_bloqueado?: boolean;
           intentos_fallidos?: number;
           user_id?: string | null;
@@ -389,11 +392,11 @@ export type Database = {
           telefono?: string | null;
           puesto?: string | null;
           departamento?: string | null;
-          fecha_ingreso?: string;
+          fecha_ingreso?: string | null;
           fecha_baja?: string | null;
-          estado?: "activo" | "inactivo" | "baja";
+          estado?: "sin_contrato" | "activo" | "inactivo" | "baja";
           pin_hash?: never;
-          nombre_usuario?: string;
+          nombre_usuario?: string | null;
           pin_bloqueado?: boolean; // via Update directo: es el camino de desbloqueo, protegido por la policy de empleados.editar
           intentos_fallidos?: number;
           user_id?: string | null;
@@ -710,6 +713,7 @@ export type Planilla = Database["rrhh"]["Tables"]["planillas"]["Row"];
 export type PlanillaDetalle = Database["rrhh"]["Tables"]["planilla_detalles"]["Row"];
 export type ParametroLey = Database["rrhh"]["Tables"]["parametros_ley"]["Row"];
 export type SeguridadAcceso = Database["rrhh"]["Tables"]["seguridad_accesos"]["Row"];
-export type EstadoEmpleado = "activo" | "inactivo" | "baja";
+/** @deprecated F1.1 (2026-09-07) — estado laboral pasa a rrhh.contratos.estado (F1.2); 'sin_contrato' es el nuevo default del Expediente General. */
+export type EstadoEmpleado = "sin_contrato" | "activo" | "inactivo" | "baja";
 export type EstadoPlanilla = "borrador" | "aprobada" | "anulada";
 export type ModalidadContrato = "nomina_estandar" | "comisionista_destajo";

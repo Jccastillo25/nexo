@@ -25,13 +25,15 @@ export default async function DashboardPage() {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  const [empleadosActivos, marcasHoy, planillasPendientes] = await Promise.all([
+  const [expedientes, marcasHoy, planillasPendientes] = await Promise.all([
+    // F1.1 (2026-09-07): ya no filtra por estado = 'activo' — ese
+    // concepto pasa a ser del contrato (F1.2), no del Expediente
+    // General. Cuenta todos los expedientes de la empresa.
     supabase
       .schema("rrhh")
       .from("empleados")
       .select("id", { count: "exact", head: true })
-      .eq("company_id", companyId)
-      .eq("estado", "activo"),
+      .eq("company_id", companyId),
     supabase
       .schema("rrhh")
       .from("asistencia_marcas")
@@ -47,7 +49,7 @@ export default async function DashboardPage() {
   ]);
 
   const firstError =
-    empleadosActivos.error ?? marcasHoy.error ?? planillasPendientes.error;
+    expedientes.error ?? marcasHoy.error ?? planillasPendientes.error;
   if (firstError) {
     throw new Error(`No se pudo cargar el dashboard: ${firstError.message}`);
   }
@@ -58,8 +60,8 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
-          label="Empleados activos"
-          value={empleadosActivos.count ?? 0}
+          label="Expedientes"
+          value={expedientes.count ?? 0}
         />
         <StatCard label="Marcas del día" value={marcasHoy.count ?? 0} />
         <StatCard

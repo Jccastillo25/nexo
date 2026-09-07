@@ -12,25 +12,22 @@ export const metadata: Metadata = {
 /**
  * Guard de recurso: rrhh.expedientes.empleados.crear. La capa que de
  * verdad protege es el chequeo DENTRO de rrhh.fn_crear_empleado (ver
- * 20260902000008) — este chequeo aca es UX (norma v3.0): sin el, alguien
- * sin permiso veria el formulario completo y recien se enteraria del
- * rechazo al enviar.
+ * 20260907152301_f1_1_separar_expediente_general_laboral.sql) — este
+ * chequeo aca es UX (norma v3.0): sin el, alguien sin permiso veria el
+ * formulario completo y recien se enteraria del rechazo al enviar.
  *
- * `canEditarCompensacion` se pasa al formulario para decidir si mostrar
- * los campos de modalidad_contrato/salario_base — sin
- * rrhh.expedientes.compensacion.editar, rrhh.fn_crear_empleado los
- * rechaza igual (separacion de funciones, ver comentario en la
- * migracion), esto es solo ocultar el control que de todas formas no
- * funcionaria (regla obligatoria de permisos, paso 4).
+ * F1.1 (2026-09-07): ya no pasa `canEditarCompensacion` al formulario —
+ * esta pagina solo crea el Expediente General. Compensacion/modalidad de
+ * contrato pasan a formar parte del flujo de Contrato (F1.2).
  */
 export default async function NuevoEmpleadoPage() {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
-  const [canCrear, canEditarCompensacion] = await Promise.all([
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.empleados.crear"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.editar"),
-  ]);
+  const canCrear = await hasPermission(
+    { supabase, companyId },
+    "rrhh.expedientes.empleados.crear"
+  );
 
   if (!canCrear) {
     return (
@@ -50,7 +47,7 @@ export default async function NuevoEmpleadoPage() {
         </Link>
       </div>
       <h1 className="text-2xl font-semibold text-white">Nuevo empleado</h1>
-      <NuevoEmpleadoForm canEditarCompensacion={canEditarCompensacion} />
+      <NuevoEmpleadoForm />
     </div>
   );
 }

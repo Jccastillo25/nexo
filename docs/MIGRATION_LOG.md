@@ -2,7 +2,7 @@
 
 Orden de bitácora: más reciente arriba.
 
-## 2026-09-07 — F1.0 + F1.0.1 (cierre D-06) + Paso Cero (matriz de contratos/credenciales)
+## 2026-09-07 — F1.0 + F1.0.1 (cierre D-06) + Paso Cero + F1.1 (Expediente General/Laboral)
 
 Contexto completo en [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)
 sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
@@ -58,6 +58,33 @@ sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
     exactamente con la tabla de asignación aprobada.
   - Mismo patrón de versión que la migración anterior: aplicada primero,
     archivo de Git escrito después con el `version` real (`20260907151643`).
+- **2 migraciones más, F1.1 (Separar Expediente General/Laboral), aplicadas
+  y verificadas** (rama `docs/f1-1-expediente-general-laboral` → `main`):
+  1. `20260907152301_f1_1_separar_expediente_general_laboral`: columnas
+     laborales/credenciales de `rrhh.empleados` (`puesto`, `departamento`,
+     `fecha_ingreso`, `fecha_baja`, `estado`, `pin_hash`, `nombre_usuario`,
+     `pin_bloqueado`, `intentos_fallidos`, `user_id`) quedan nullable donde
+     aplicaba y marcadas `DEPRECADAS` vía `comment on column` — no se
+     eliminan todavía. `estado` recibe nuevo default `'sin_contrato'`.
+     `rrhh.fn_crear_empleado`/`public.crear_empleado` reemplazadas por una
+     versión de firma reducida (solo Expediente General) — la firma
+     anterior (13 parámetros) se elimina con `drop function`, no se edita
+     in place (Postgres distingue funciones por firma).
+  2. `20260907152500_f1_1_fix_empleados_estado_check`: corrección
+     necesaria — el `CHECK` de `estado` no incluía `'sin_contrato'`.
+     Detectada por una prueba de inserción/borrado antes de dar F1.1 por
+     terminado, sin dejar ninguna fila real inválida.
+  - Verificado: inserción de prueba (borrada en la misma sesión) confirma
+    que un alta con solo datos generales queda con las columnas
+    deprecadas en `null`/default; `rrhh.fn_registrar_marca_kiosko`
+    (kiosko en producción) verificado intacto — sigue exigiendo
+    `estado = 'activo' and pin_hash is not null` hasta que F1.3 lo
+    reemplace por la validación contractual.
+  - Frontend actualizado en el mismo cambio: formulario y listado de
+    `/rrhh/expedientes` (ya no piden/muestran puesto, departamento,
+    compensación, PIN, usuario), dashboard (`Empleados activos` →
+    `Expedientes`). Tipos (`database.types.ts` de `apps/rrhh` y su
+    espejo en `apps/crm`) actualizados a mano.
 
 ## 2026-09-05 — Auditoría de seguridad de RRHH cerrada en producción + fix de ruteo del kiosco
 

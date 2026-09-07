@@ -14,7 +14,7 @@ completados (2026-09-07)**. `flotilla` todavía no existe.
 - Organización: `Grupo CT` (`uahxpcssvfzlfxcvtvhu`)
 - Región: `us-east-1`
 - Plan: gratuito ($0/mes)
-- 32 migraciones aplicadas al remoto (`list_migrations`, 2026-09-07): las
+- 34 migraciones aplicadas al remoto (`list_migrations`, 2026-09-07): las
   24 previas + las 5 de la auditoría de seguridad de RRHH
   (`20260905000001` a `20260905000005`), aplicadas con `apply_migration`
   del MCP de Supabase. El historial remoto (`supabase_migrations.schema_migrations`)
@@ -121,6 +121,8 @@ completo de cada una:
 20260905000005_rrhh_public_auth_hardening
 20260907151106_revoke_validar_acceso_operativo_public_execute
 20260907151643_rrhh_contratos_permission_matrix
+20260907152301_f1_1_separar_expediente_general_laboral
+20260907152500_f1_1_fix_empleados_estado_check
 ```
 
 Las últimas 5 (auditoría de seguridad de RRHH, 2026-09-05) se aplicaron
@@ -157,7 +159,7 @@ hardcodeado en la app (todo pasa por `core.has_permission()`).
 
 | Tabla | Tipo | Propósito |
 |---|---|---|
-| `rrhh.empleados` | Catálogo (no particionada) | Legajo base: nombre, documento, puesto, fecha de ingreso/baja, estado, `pin_hash` (bcrypt, nunca texto plano), `nombre_usuario`, `pin_bloqueado`, `intentos_fallidos`, `user_id` (nullable, se vincula cuando el empleado tiene cuenta de acceso operativo) |
+| `rrhh.empleados` | Catálogo (no particionada) | **Expediente General desde F1.1 (2026-09-07)**: nombre, apellido, documento, email, teléfono. `puesto`, `departamento`, `fecha_ingreso`/`fecha_baja`, `estado` (default `sin_contrato`), `pin_hash`, `nombre_usuario`, `pin_bloqueado`, `intentos_fallidos`, `user_id` siguen existiendo como columnas pero quedan **DEPRECADAS** (nullable, `comment on column` explícito) — pertenecen al contrato (F1.2) o a la credencial de asistencia (F1.3), no al Expediente General. `rrhh.fn_registrar_marca_kiosko` sigue leyendo `estado`/`pin_hash` hasta que F1.3 lo reemplace |
 | `rrhh.empleado_compensacion` | Catálogo, 1:1 con `empleados` | Salario base y `modalidad_contrato` (`nomina_estandar` \| `comisionista_destajo`). **Tabla separada a propósito**: así `compensacion.ver/editar` es un permiso realmente distinto de `empleados.ver` a nivel de RLS (RLS filtra filas, no columnas) |
 | `rrhh.kiosko_dispositivos` | Catálogo (no particionada) | Terminales físicas de marcaje. El `id` (UUID aleatorio) actúa como credencial del dispositivo frente al RPC de marcación |
 | `rrhh.asistencia_marcas` | **Hechos, particionada por mes** (`marcado_en`) | Un renglón por marca de entrada/salida, para siempre. Particiones vigentes: `_2026_09`, `_2026_10`, `_2026_11` (mantenidas por `core.fn_asegurar_particiones_futuras`, 2 meses de anticipación) |

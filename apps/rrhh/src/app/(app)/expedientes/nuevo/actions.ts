@@ -1,52 +1,43 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, hasPermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
 export interface NuevoEmpleadoInput {
   nombre: string;
   apellido: string;
+  documentoIdentidad?: string;
   email?: string;
   telefono?: string;
-  puesto?: string;
-  departamento?: string;
-  modalidadContrato?: "nomina_estandar" | "comisionista_destajo";
-  salarioBase?: number;
 }
 
 export interface CrearEmpleadoResult {
   ok: boolean;
   message?: string;
   empleadoId?: string;
-  nombreUsuario?: string;
-  /** Solo presente si el creador tiene rrhh.expedientes.compensacion.ver
-   * — ver nota mas abajo. */
-  pinKiosko?: string;
-  /** true si el empleado se creo pero el PIN no se muestra porque el
-   * creador no tiene ese permiso adicional. */
-  credencialesOcultas?: boolean;
+  codigoEmpleado?: number;
 }
 
 /**
  * Puente transaccional: recibe los datos del formulario y llama al RPC
  * rrhh.fn_crear_empleado (via el wrapper public.crear_empleado,
- * authenticated-only — ver supabase/migrations/20260902000008). El RPC
- * mismo es security definer y ya valida rrhh.expedientes.empleados.crear
- * (y, si se manda modalidad_contrato/salario_base,
- * rrhh.expedientes.compensacion.editar por separado) — el
- * requirePermission de aca abajo es la capa de UX (norma v3.0): sin el,
- * un usuario sin permiso veria el error crudo de Postgres en vez de un
- * mensaje entendible.
+ * authenticated-only — ver supabase/migrations/20260907152301_f1_1_separar_expediente_general_laboral.sql).
+ * El RPC mismo es security definer y ya valida
+ * rrhh.expedientes.empleados.crear — el requirePermission de aca abajo es
+ * la capa de UX (norma v3.0): sin el, un usuario sin permiso veria el
+ * error crudo de Postgres en vez de un mensaje entendible.
  *
- * Identidad delegada (@kiosko.internal): fn_crear_empleado NO crea la
- * cuenta de auth.users — eso queda para cuando se construya el modulo
- * movil de choferes (ver el comentario de cierre en
- * 20260902000008_rrhh_nicaragua_and_contracts.sql). Este alta solo deja
- * `rrhh.empleados.user_id` en null; el empleado ya puede marcar en el
- * kiosko fisico (PIN valida contra pin_hash sin necesitar auth.users)
- * pero todavia no puede loguearse a un modulo movil propio.
+ * F1.1 (2026-09-07, docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md): "Crear
+ * empleado != contratar empleado". Esta accion crea EXCLUSIVAMENTE el
+ * Expediente General (identidad/datos personales) — puesto,
+ * departamento, modalidad de contrato, salario, nombre_usuario y PIN ya
+ * no existen en esta firma. Todo eso pasa a ser un Contrato (F1.2) que
+ * se crea/activa por separado; el PIN nace solo al activar un contrato
+ * (F1.3), nunca aca. No confundir con el flujo anterior — quedo
+ * documentado en docs/IMPLEMENTATION_STATUS.md D-01/D-02 y en
+ * docs/MIGRATION_LOG.md.
  */
 export async function crearEmpleado(
   input: NuevoEmpleadoInput
@@ -73,19 +64,15 @@ export async function crearEmpleado(
     p_company_id: companyId,
     p_nombre: nombre,
     p_apellido: apellido,
+    p_documento_identidad: input.documentoIdentidad?.trim() || undefined,
     p_email: input.email?.trim() || undefined,
     p_telefono: input.telefono?.trim() || undefined,
-    p_puesto: input.puesto?.trim() || undefined,
-    p_departamento: input.departamento?.trim() || undefined,
-    p_modalidad_contrato: input.modalidadContrato,
-    p_salario_base: input.salarioBase,
   });
 
   if (error) {
-    // rrhh.fn_crear_empleado lanza mensajes ya pensados para el usuario
-    // final (nombre_usuario duplicado, PIN invalido, permiso de
-    // compensacion faltante) — se propagan tal cual, no son datos
-    // sensibles de infraestructura.
+    // rrhh.fn_crear_empleado propaga mensajes ya pensados para el
+    // usuario final (permiso faltante, validaciones) tal cual — no son
+    // datos sensibles de infraestructura.
     return { ok: false, message: error.message };
   }
 
@@ -96,26 +83,9 @@ export async function crearEmpleado(
 
   revalidatePath("/expedientes");
 
-  // Vista protegida (pedido explicito): mostrar el PIN en texto plano
-  // exige ADEMAS rrhh.expedientes.compensacion.ver. Es la UNICA vez que
-  // existe en texto plano — rrhh.fn_crear_empleado no lo vuelve a
-  // devolver nunca (esta bcrypt-hasheado en la tabla) — asi que si el
-  // creador no tiene ese permiso, el empleado queda creado igual pero
-  // las credenciales las tiene que entregar despues alguien que si
-  // tenga el permiso (reasignando un PIN nuevo via
-  // rrhh.fn_set_pin_empleado, que requiere
-  // rrhh.expedientes.empleados.editar — verificado en
-  // 20260902000006_rrhh_schema_and_tables.sql).
-  const puedeVerCredenciales = await hasPermission(
-    { supabase, companyId },
-    "rrhh.expedientes.compensacion.ver"
-  );
-
   return {
     ok: true,
     empleadoId: row.empleado_id,
-    nombreUsuario: row.nombre_usuario,
-    pinKiosko: puedeVerCredenciales ? row.pin_kiosko : undefined,
-    credencialesOcultas: !puedeVerCredenciales,
+    codigoEmpleado: row.codigo_empleado,
   };
 }

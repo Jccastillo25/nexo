@@ -120,6 +120,26 @@ Asignación aplicada y verificada en remoto (`core.app_role_permissions`):
 
 Con esto, el Paso Cero de permisos para F1.1–F1.3 queda cerrado. Próximo paso: F1.1.
 
+## 0.11 F1.1 — Separar Expediente General / Expediente Laboral (ejecutado 2026-09-07)
+
+Objetivo cumplido: "Crear empleado ≠ contratar empleado". `rrhh.fn_crear_empleado`/`public.crear_empleado` quedan con firma reducida (`nombre`, `apellido`, `documento_identidad`, `email`, `telefono` — sin `puesto`/`departamento`/`modalidad_contrato`/`salario_base`/`nombre_usuario`/`pin`). Devuelven `(empleado_id, codigo_empleado)`, sin PIN ni usuario.
+
+Migraciones (aplicadas y verificadas):
+
+- `20260907152301_f1_1_separar_expediente_general_laboral`: columnas laborales/credenciales de `rrhh.empleados` (`puesto`, `departamento`, `fecha_ingreso`, `fecha_baja`, `estado`, `pin_hash`, `nombre_usuario`, `pin_bloqueado`, `intentos_fallidos`, `user_id`) quedan `nullable` donde aplicaba y marcadas `DEPRECADAS` vía `comment on column` — no se eliminan todavía (columnas reales, pendientes de una migración de limpieza posterior tras F1.2). `estado` recibe un nuevo default `'sin_contrato'`. Firma anterior de `fn_crear_empleado`/`crear_empleado` (13 parámetros) eliminada — reemplazada, no editada in place (Postgres distingue funciones por firma).
+- `20260907152500_f1_1_fix_empleados_estado_check`: corrección necesaria (el `CHECK` de `estado` no incluía `'sin_contrato'`) — detectada por una prueba de inserción/borrado **antes** de dar F1.1 por terminado, sin dejar ninguna fila real inválida.
+
+Verificación ejecutada:
+
+- Prueba de esquema (insert + delete inmediato, `rrhh.empleados` en 0 filas antes y después): un alta con solo datos generales queda con `puesto`/`departamento`/`pin_hash`/`nombre_usuario`/`user_id` en `null`, `estado = 'sin_contrato'`.
+- `has_function_privilege`: `rrhh.fn_crear_empleado`/`public.crear_empleado` nuevos — `anon` sin acceso en ningún caso; `authenticated` solo en el wrapper público (mismo patrón que antes).
+- **`rrhh.fn_registrar_marca_kiosko` (kiosko en producción) verificado intacto** — sigue exigiendo `estado = 'activo' and pin_hash is not null and not pin_bloqueado`; compatibilidad deliberada hasta que F1.3 reemplace esa validación por la credencial contractual.
+- `generate_typescript_types` re-ejecutado: confirma la firma nueva de `crear_empleado` en `public`.
+
+Frontend actualizado en el mismo cambio: `apps/rrhh/src/app/(app)/expedientes/nuevo/actions.ts`, `nuevo-empleado-form.tsx` y `page.tsx` (formulario reducido a datos generales, ya no piden compensación/PIN); `apps/rrhh/src/app/(app)/expedientes/page.tsx` (listado ya no filtra por `estado = 'activo'` ni muestra puesto/departamento/usuario — muestra todos los expedientes con una columna de estado de contrato placeholder); `apps/rrhh/src/app/(app)/dashboard/page.tsx` (KPI "Empleados activos" → "Expedientes", cuenta todos los registros). Tipos (`database.types.ts` de `apps/rrhh` y su espejo en `apps/crm`) actualizados a mano con las columnas deprecadas marcadas `@deprecated` y la firma nueva de `crear_empleado`.
+
+**Consecuencia esperada y correcta**: entre F1.1 y F1.3, un empleado recién creado no puede marcar en el kiosko todavía (no tiene `pin_hash`, `estado` queda en `'sin_contrato'`) — el flujo completo (crear → contrato → activar → PIN → marcar) recién queda operable al cerrar F1.3, según el Definition of Done acordado.
+
 ## 0.8 Deuda general no bloqueante para RRHH (detectada de paso)
 
 `get_advisors(performance)` reporta deuda pre-existente fuera del alcance de F1.0: `auth_rls_initplan` sin optimizar todavía en 3 policies de `core.company_memberships`, `core.user_app_roles` y `crm.clientes` (no en `rrhh` — las 25 policies de RRHH ya usan el patrón `(select auth.uid())` desde el 2026-09-05), más FKs sin índice de cobertura e índices sin uso (esperable con 0 filas). No se toca en esta sesión — es candidato a una migración de rendimiento aparte, sin relación con el refactor de contratos/PIN.
@@ -132,9 +152,9 @@ Con esto, el Paso Cero de permisos para F1.1–F1.3 queda cerrado. Próximo paso
 |---|---|---|
 | Nexo Core / Launcher | ✅ Validado | Monorepo, SSO, Multi-Zones, permisos y `nexo-core` operativos según última documentación verificada. |
 | RRHH infraestructura | ✅ Desplegada | Schema, permisos, RLS, expedientes básicos y kiosko existen. |
-| RRHH modelo Expediente General/Laboral | ⚠️ Refactor obligatorio | El código actual mezcla datos laborales y credenciales dentro de `rrhh.empleados`. F1.0 verificó remoto (2026-09-07, sección 0): confirmado, sin datos reales que migrar. Pendiente Paso Cero de permisos antes de F1.1. |
-| RRHH contratos | ⏳ Pendiente | No existe el modelo contractual objetivo del Plan Maestro. |
-| RRHH PIN contractual | ⚠️ Contradice regla nueva | `fn_crear_empleado` actual genera PIN durante alta. Debe reemplazarse por generación exclusiva al activar contrato. |
+| RRHH modelo Expediente General/Laboral | ✅ F1.1 completada | `rrhh.empleados` ya no acepta datos laborales/credenciales en el alta (2026-09-07, sección 0.11). Columnas viejas deprecadas, no eliminadas — limpieza final pendiente de F1.2. |
+| RRHH contratos | ⏳ Pendiente (F1.2) | No existe todavía el modelo contractual objetivo del Plan Maestro. Paso Cero de permisos ya aplicado (sección 0.10). |
+| RRHH PIN contractual | ⏳ Pendiente (F1.3) | `fn_crear_empleado` ya NO genera PIN (F1.1). Falta construir la generación exclusiva al activar contrato. |
 | RRHH jornadas | ⏳ Pendiente funcional | Permisos de turnos existen, pero falta modelo/UI necesario para cálculo real. |
 | RRHH consolidación de asistencia | ⏳ Pendiente | No existe marcas → horas consolidadas. |
 | RRHH planillas | ⏳ Pendiente | Ruta actual es placeholder; falta motor/reporte. |
@@ -171,7 +191,7 @@ Confirmadas en remoto durante **F1.0** (2026-09-07, ver sección 0). Pendientes 
 
 Objetivo: `rrhh.empleados` = Expediente General. Puesto, departamento, fechas laborales, estado y PIN dependen del contrato.
 
-Estado: ⚠️ confirmado. Sin datos reales (0 filas) — el refactor no requiere backfill.
+**Estado: ✅ resuelto en F1.1 (2026-09-07, sección 0.11)** — columnas deprecadas explícitamente (nullable + `comment on column`), `fn_crear_empleado` ya no las acepta. Las columnas en sí siguen existiendo (sin eliminar) hasta una migración de limpieza posterior tras F1.2.
 
 ## D-02 — `fn_crear_empleado` genera PIN
 
@@ -198,7 +218,7 @@ activar contrato
 → generar PIN automáticamente
 ```
 
-Estado: ⚠️ confirmado (`apps/rrhh/src/app/(app)/expedientes/nuevo/actions.ts` — un solo formulario/RPC recibe nombre, apellido, puesto, departamento, modalidad de contrato y salario base a la vez, y `rrhh.fn_crear_empleado` genera y devuelve el PIN en la misma llamada). Prioridad F1.1–F1.3.
+**Estado: ✅ resuelto en F1.1 (2026-09-07)** — `rrhh.fn_crear_empleado` ya no acepta puesto/departamento/modalidad/salario/PIN/nombre_usuario ni los genera. Queda pendiente F1.2 (contratos) y F1.3 (PIN al activar contrato) para que el flujo completo sea utilizable de punta a punta.
 
 ## D-03 — compensación ligada al empleado
 
@@ -267,7 +287,7 @@ Estado: ℹ️ hallazgo nuevo de F1.0, sin urgencia — no contradice el modelo 
 |---|---|---|---|
 | F1.0 | Auditoría real `main` + Supabase + Vercel + permisos + datos | ✅ | Ejecutada 2026-09-07 (sección 0). Sin código/DB pendiente de revisión — el bloqueo real detectado fue de proceso (`main` local desactualizado, sección 0.1), ya resuelto. `fn_validar_acceso_operativo`, `nombre_usuario`, `user_id` y PIN de doble propósito confirmados como D-06. |
 | F1.0.1 | Cierre de acceso operativo PIN heredado (D-06) | ✅ | Ejecutada 2026-09-07 (sección 0.9). Migración `20260907151106`, `EXECUTE` revocado de `anon`/`authenticated`, funciones marcadas deprecadas, verificado post-aplicación. |
-| F1.1 | Separar Expediente General / Expediente Laboral | ⏳ | No tocar migraciones aplicadas. |
+| F1.1 | Separar Expediente General / Expediente Laboral | ✅ | Ejecutada 2026-09-07 (sección 0.11). 2 migraciones, frontend y tipos actualizados. Kiosko verificado intacto. |
 | F1.2 | `rrhh.contratos` + compensación contractual | ⏳ | Paso Cero de permisos antes de tablas/UI. |
 | F1.3 | PIN generado solo al activar contrato | ⏳ | PIN exclusivo de asistencia; revocar al finalizar; regenerar solo por contrato activo. |
 | F1.4 | Jornadas/turnos/feriados mínimos | ⏳ | Requisito del motor de asistencia. |
@@ -425,8 +445,9 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 F1.0   — Auditoría de realidad RRHH        ✅ completada 2026-09-07 (sección 0)
 F1.0.1 — Cierre PIN heredado (D-06)        ✅ completada 2026-09-07 (sección 0.9)
 Paso Cero — Matriz contratos/credenciales  ✅ aplicada 2026-09-07 (sección 0.10)
+F1.1   — Separar Expediente General/Laboral ✅ completada 2026-09-07 (sección 0.11)
  ↓
-F1.1 — Separar Expediente General/Laboral  ⏳ próximo trabajo
+F1.2 — rrhh.contratos + compensación contractual  ⏳ próximo trabajo
 ```
 
 La comparación explícita de F1.0 ya se ejecutó y quedó registrada en la sección 0:

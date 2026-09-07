@@ -9,13 +9,20 @@ export const metadata: Metadata = {
 };
 
 /**
- * Listado denso de empleados activos. Guard de recurso (norma v3.0,
- * checklist paso 3-4): rrhh.expedientes.empleados.ver — distinto del
- * guard de MODULO (rrhh.ver_modulo) que ya paso (app)/layout.tsx. Un
- * usuario sin este permiso especifico ve un panel "sin permiso" ACA
- * mismo (no redirect a /sin-acceso: esa pantalla es para "no tenés el
- * modulo", no para "no tenés este recurso dentro del modulo que si
- * tenés" — el mensaje seria enganoso).
+ * Listado del Expediente General de todos los empleados. Guard de
+ * recurso (norma v3.0, checklist paso 3-4): rrhh.expedientes.empleados.ver
+ * — distinto del guard de MODULO (rrhh.ver_modulo) que ya paso
+ * (app)/layout.tsx. Un usuario sin este permiso especifico ve un panel
+ * "sin permiso" ACA mismo (no redirect a /sin-acceso: esa pantalla es
+ * para "no tenés el modulo", no para "no tenés este recurso dentro del
+ * modulo que si tenés" — el mensaje seria enganoso).
+ *
+ * F1.1 (2026-09-07, docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md): este
+ * listado ya no filtra por `estado = 'activo'` ni muestra
+ * puesto/departamento/usuario — esos son datos laborales/contractuales
+ * (F1.2/F1.3), no del Expediente General. Muestra TODOS los expedientes
+ * de la empresa, con una columna de estado de contrato que por ahora
+ * siempre dice "Sin contrato" (F1.2 la completa).
  *
  * Requiere "rrhh" expuesto en Data API (ver .env.local.example) para el
  * `.schema("rrhh")` de abajo.
@@ -41,11 +48,8 @@ export default async function ExpedientesPage() {
   const { data: empleados, error } = await supabase
     .schema("rrhh")
     .from("empleados")
-    .select(
-      "id, codigo_empleado, nombre, apellido, puesto, departamento, nombre_usuario, pin_bloqueado, fecha_ingreso"
-    )
+    .select("id, codigo_empleado, nombre, apellido, documento_identidad, email, telefono, estado")
     .eq("company_id", companyId)
-    .eq("estado", "activo")
     .order("nombre", { ascending: true });
 
   if (error) {
@@ -73,11 +77,9 @@ export default async function ExpedientesPage() {
               <tr className="border-b border-[var(--nexo-border)] text-xs uppercase tracking-wide text-white/40">
                 <th className="px-4 py-2 font-medium">#</th>
                 <th className="px-4 py-2 font-medium">Nombre</th>
-                <th className="px-4 py-2 font-medium">Puesto</th>
-                <th className="px-4 py-2 font-medium">Departamento</th>
-                <th className="px-4 py-2 font-medium">Usuario</th>
-                <th className="px-4 py-2 font-medium">Ingreso</th>
-                <th className="px-4 py-2 font-medium">Acceso</th>
+                <th className="px-4 py-2 font-medium">Documento</th>
+                <th className="px-4 py-2 font-medium">Contacto</th>
+                <th className="px-4 py-2 font-medium">Contrato</th>
               </tr>
             </thead>
             <tbody>
@@ -92,24 +94,12 @@ export default async function ExpedientesPage() {
                   <td className="px-4 py-2 font-medium text-white">
                     {e.nombre} {e.apellido}
                   </td>
-                  <td className="px-4 py-2 text-white/70">{e.puesto ?? "—"}</td>
-                  <td className="px-4 py-2 text-white/70">{e.departamento ?? "—"}</td>
-                  <td className="px-4 py-2 font-mono text-white/70">
-                    {e.nombre_usuario}
-                  </td>
-                  <td className="px-4 py-2 tabular-nums text-white/50">
-                    {new Date(e.fecha_ingreso).toLocaleDateString("es-NI")}
+                  <td className="px-4 py-2 text-white/70">{e.documento_identidad ?? "—"}</td>
+                  <td className="px-4 py-2 text-white/70">
+                    {e.email ?? e.telefono ?? "—"}
                   </td>
                   <td className="px-4 py-2">
-                    {e.pin_bloqueado ? (
-                      <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-400">
-                        Bloqueado
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                        Activo
-                      </span>
-                    )}
+                    <EstadoContratoBadge estado={e.estado} />
                   </td>
                 </tr>
               ))}
@@ -119,10 +109,32 @@ export default async function ExpedientesPage() {
 
         {(empleados ?? []).length === 0 && (
           <p className="px-4 py-8 text-center text-sm text-white/40">
-            Todavía no hay empleados activos.
+            Todavía no hay expedientes creados.
           </p>
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * F1.1: `rrhh.empleados.estado` es una columna deprecada que hoy solo
+ * distingue "sin_contrato" del resto (heredado del modelo viejo, ver
+ * comment on column en la migracion) — placeholder hasta que F1.2 traiga
+ * el estado real del contrato activo. No confundir con un estado
+ * confiable de "activo/inactivo" laboral.
+ */
+function EstadoContratoBadge({ estado }: { estado: string }) {
+  if (estado === "sin_contrato") {
+    return (
+      <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-white/50">
+        Sin contrato
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
+      {estado} (heredado, pendiente F1.2)
+    </span>
   );
 }
