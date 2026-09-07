@@ -2,7 +2,7 @@
 
 > Tracker operativo. Debe actualizarse en cada sesión que cambie código, base de datos, permisos, despliegue o estado funcional. La fuente del objetivo es `docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`; este archivo registra la realidad verificada.
 
-Última actualización documental: **2026-09-06**.
+Última actualización documental: **2026-09-07** (F1.0 — Auditoría real ejecutada y verificada contra `main`, Supabase `nexo-core` remoto y Vercel; ver sección 0).
 
 ## Estados
 
@@ -14,13 +14,82 @@
 
 ---
 
+# 0. Resultado de F1.0 — Auditoría real (2026-09-07)
+
+Ejecutada íntegramente antes de tocar código/migraciones de F1.1 en adelante, tal como exige el Plan Maestro §21. Alcance: comparación explícita `Plan Maestro` vs `IMPLEMENTATION_STATUS` (esta misma versión, antes de editarla) vs `main` vs migraciones versionadas vs `nexo-core` remoto vs Vercel vs permisos/roles vs datos reales.
+
+## 0.1 Hallazgo de proceso — `main` local estaba 13 commits atrás de `origin/main`
+
+Antes de auditar nada de RRHH, se detectó que el checkout local de `main` apuntaba a `4ec848e` mientras `origin/main` ya tenía `fd381e7` (13 commits `docs:` adelante, sin ningún cambio de código — verificado con `git diff --stat` excluyendo `docs/**`/`CLAUDE.md`, resultado vacío). Esos 13 commits son exactamente los que introdujeron `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`, `IMPLEMENTATION_STATUS.md` (este archivo) y `DRIVER_ACCESS_AND_KIOSK.md`, además de reescribir `CLAUDE.md`, `RRHH_MVP.md`, `ARCHITECTURE.md`, `MODULES.md`, `ROADMAP.md` y `README.md`. Es decir: la documentación "vigente" que este mismo protocolo pide leer primero no estaba en el `main` local hasta este momento.
+
+Causa: la sesión anterior había dejado una rama `feat/rrhh-jornadas-y-horas` con cambios sin commitear (consolidación de permisos v3.0 para el diseño de jornadas) ramificada desde el `main` viejo (`4ec848e`), y nunca se hizo `git pull`/`fetch` de `main` desde entonces.
+
+Resolución aplicada, sin perder nada:
+
+1. `git stash push -u` de los 5 archivos sin commitear en `feat/rrhh-jornadas-y-horas` (quedan en el stash, rama intacta, recuperables con `git stash pop` — no se tocó la carpeta `Grupo CT/`, ajena a este trabajo).
+2. `git checkout main && git merge --ff-only origin/main` — fast-forward limpio (`main` local no tenía commits propios que `origin/main` no tuviera).
+3. Rama nueva `docs/f1-0-auditoria-rrhh` desde el `main` ya actualizado, para los cambios de esta auditoría.
+
+El trabajo de jornadas/evidencia fotográfica sigue intacto en el stash de `feat/rrhh-jornadas-y-horas`; no se descartó ni se fusionó con este `main`. Queda pendiente de una decisión aparte (ver sección "Decisiones de negocio pendientes" del reporte de esta sesión) porque ese diseño se escribió *antes* de que `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`/`DRIVER_ACCESS_AND_KIOSK.md` existieran y no fue revisado contra el modelo de contratos/PIN contractual que el Plan Maestro define ahora.
+
+## 0.2 `main` vs código real en `apps/rrhh` y `apps/flotilla`
+
+Sin divergencia de código detectada: `apps/rrhh` en `main` es exactamente el código ya auditado en la sesión de seguridad del 2026-09-05 (`fn_crear_empleado`, `fn_set_pin_empleado`, `fn_registrar_marca_kiosko`, `fn_validar_acceso_operativo`, proxy/middleware). `apps/flotilla` (Ruta360) sigue siendo una app autocontenida con su propio `app/login`, `app/driver`, `app/supadmin/login` y su propio `supabase/migrations` — no consume ni referencia `rrhh.fn_validar_acceso_operativo` ni ninguna tabla de `nexo-core` todavía. No aparece como proyecto en el Vercel de Nexo (`julio-s-projects7`); el único proyecto de Transporte ahí es `transporte-saas`, de otro repo. Confirma D-07: la adaptación de identidad de conductor es trabajo de Fase 4 aún no iniciado, sin código que lo contradiga hoy.
+
+## 0.3 Migraciones — `main` vs remoto
+
+`list_migrations` contra `nexo-core` (proyecto `yrbjlmiqhkyxtlcerowh`) devuelve 30 migraciones aplicadas, la última `20260905000005_rrhh_public_auth_hardening`. Coincide 1:1 con las migraciones versionadas en `supabase/migrations/` de `main`. Sin migraciones pendientes de aplicar ni aplicadas fuera de Git.
+
+## 0.4 Datos reales en `nexo-core` (verificado 2026-09-07, vía `execute_sql`)
+
+| Tabla | Filas |
+|---|---|
+| `rrhh.empleados` | 0 |
+| `rrhh.empleado_compensacion` | 0 |
+| `rrhh.asistencia_marcas` | 0 |
+| `rrhh.seguridad_accesos` | 0 |
+| `rrhh.planillas` | 0 |
+| `rrhh.kiosko_dispositivos` | 1 (`Kiosko principal`, activo) |
+| `core.companies` | 1 (`materiales-jcastillo`) |
+| `core.company_memberships` | 1 |
+| `core.permissions_catalog` | 45 (36 de `rrhh` + `rrhh.ver_modulo`) |
+| `core.app_roles` (`module_slug='rrhh'`) | 5 |
+
+**Consecuencia directa para F1.1–F1.3**: cero filas dependientes del diseño `nombre_usuario`/PIN-de-doble-propósito. La separación Expediente General/Laboral y el PIN contractual pueden implementarse mediante migraciones nuevas (columnas/tablas) sin backfill de datos reales de empleados — solo hay que decidir qué hacer con `rrhh.kiosko_dispositivos` (1 fila, no afectada por el refactor) y las 45 filas de `permissions_catalog`/5 `app_roles` ya seedeados (sin tocar, se extienden).
+
+## 0.5 Roles RRHH reales — 5, no 4
+
+`core.app_roles` filtrado por `module_slug='rrhh'` en remoto: `admin` (36 permisos), `supervisor_asistencia` (16), `especialista_planillas` (12), `gestor_expedientes` (9) y **`consulta`** (7) — un quinto rol de solo-lectura que no aparecía mencionado en el resumen de sesiones anteriores. Cualquier matriz nueva de permisos (contratos, credenciales) debe decidir explícitamente el alcance de `consulta`, no solo de los otros cuatro.
+
+## 0.6 Hallazgo de seguridad vivo — `public.validar_acceso_operativo` sigue expuesto a `anon` en producción
+
+`get_advisors(security)` sobre `nexo-core` (2026-09-07) reporta, sin cambios desde la auditoría del 2026-09-05, que `public.validar_acceso_operativo(p_nombre_usuario, p_pin)` es `SECURITY DEFINER` y tiene `EXECUTE` concedido a `anon` **y** `authenticated` (confirmado también con `has_function_privilege` directo). Es la función que implementa el "PIN de doble propósito" que `DRIVER_ACCESS_AND_KIOSK.md` rechaza como arquitectura final (sección 10 de ese documento).
+
+Verificado además: **ningún archivo de `apps/`/`packages/` llama a este RPC** — ni desde `apps/rrhh` ni desde `apps/flotilla` ni desde ningún otro módulo. Es infraestructura muerta a nivel de frontend, pero **no muerta a nivel de superficie de ataque**: cualquiera puede llamar hoy `POST /rest/v1/rpc/validar_acceso_operativo` sin sesión y sin pasar por ningún rate-limit por IP (el único freno es el bloqueo a 3 fallos consecutivos *dentro* de la función, por `nombre_usuario` — no hay equivalente al `rrhh.kiosko_rate_limits` persistente que sí protege al kiosko desde el 2026-09-05).
+
+Esto es más barato de corregir que el resto de F1.0–F1.3 y no depende de decidir el modelo de contratos: es candidato a una migración aislada de una sola línea (`revoke execute on function public.validar_acceso_operativo(text, text) from anon, authenticated;`) en cuanto se apruebe el Paso Cero de F1.3, o antes si el usuario prefiere cerrarlo ya como fix de seguridad independiente. **No aplicada en esta sesión** — F1.0 es solo auditoría, sin migraciones, según instrucción explícita.
+
+## 0.7 Vercel — `nexo-rrhh`
+
+- Proyecto `nexo-rrhh` (`prj_6nP4PUDQZH5iq6Cp2t7ytxzrqerM`), equipo `julio-s-projects7`.
+- Último deployment de producción: `dpl_23CzM4LQgVGwi7g7LTGj4itcfRFL`, commit `fd381e7` (el mismo HEAD real de `origin/main`), estado `READY`. Vercel ya había desplegado los 13 commits de documentación que el checkout local tenía atrasados.
+- `get_runtime_errors` (ventana de 7 días, hasta 2026-09-07): sin errores nuevos. Los únicos 2 grupos de error registrados son del 2026-09-04 (`Falta NEXO_COMPANY_ID`, `No se pudo cargar el dashboard`), anteriores a los fixes de `a3bcc5d`/`ac9a487`/`4ec848e` ya documentados — no hay señal de regresión desde entonces.
+- `/rrhh` y `/rrhh/kiosco` operativos según esta misma evidencia (sin errores runtime recientes en `/dashboard` ni otras rutas).
+- No existe proyecto Vercel para `apps/flotilla` en este equipo — confirma que Transporte sigue sin desplegarse bajo Nexo.
+
+## 0.8 Deuda general no bloqueante para RRHH (detectada de paso)
+
+`get_advisors(performance)` reporta deuda pre-existente fuera del alcance de F1.0: `auth_rls_initplan` sin optimizar todavía en 3 policies de `core.company_memberships`, `core.user_app_roles` y `crm.clientes` (no en `rrhh` — las 25 policies de RRHH ya usan el patrón `(select auth.uid())` desde el 2026-09-05), más FKs sin índice de cobertura e índices sin uso (esperable con 0 filas). No se toca en esta sesión — es candidato a una migración de rendimiento aparte, sin relación con el refactor de contratos/PIN.
+
+---
+
 # 1. Estado general
 
 | Área | Estado | Realidad conocida / siguiente paso |
 |---|---|---|
 | Nexo Core / Launcher | ✅ Validado | Monorepo, SSO, Multi-Zones, permisos y `nexo-core` operativos según última documentación verificada. |
 | RRHH infraestructura | ✅ Desplegada | Schema, permisos, RLS, expedientes básicos y kiosko existen. |
-| RRHH modelo Expediente General/Laboral | ⚠️ Refactor obligatorio | El código actual mezcla datos laborales y credenciales dentro de `rrhh.empleados`. F1.0 debe verificar remoto antes de migrar. |
+| RRHH modelo Expediente General/Laboral | ⚠️ Refactor obligatorio | El código actual mezcla datos laborales y credenciales dentro de `rrhh.empleados`. F1.0 verificó remoto (2026-09-07, sección 0): confirmado, sin datos reales que migrar. Pendiente Paso Cero de permisos antes de F1.1. |
 | RRHH contratos | ⏳ Pendiente | No existe el modelo contractual objetivo del Plan Maestro. |
 | RRHH PIN contractual | ⚠️ Contradice regla nueva | `fn_crear_empleado` actual genera PIN durante alta. Debe reemplazarse por generación exclusiva al activar contrato. |
 | RRHH jornadas | ⏳ Pendiente funcional | Permisos de turnos existen, pero falta modelo/UI necesario para cálculo real. |
@@ -40,24 +109,26 @@
 
 # 2. Divergencias conocidas: estado actual vs modelo objetivo
 
-Estas divergencias deben comprobarse en remoto durante **F1.0** y después corregirse mediante migraciones nuevas.
+Confirmadas en remoto durante **F1.0** (2026-09-07, ver sección 0). Pendientes de corregirse mediante migraciones nuevas en F1.1–F1.3.
 
 ## D-01 — `rrhh.empleados` mezcla identidad y relación laboral
 
-Código versionado conocido incluye dentro de `rrhh.empleados`:
+**Confirmado por `information_schema.columns` contra `nexo-core` remoto.** `rrhh.empleados` tiene hoy, en producción:
 
-- `puesto`;
-- `departamento`;
-- `fecha_ingreso`;
-- `fecha_baja`;
-- `estado` laboral;
-- `pin_hash`;
-- `nombre_usuario`;
-- estado/bloqueo de PIN.
+- `puesto` (`text`, nullable);
+- `departamento` (`text`, nullable);
+- `fecha_ingreso` (`date`, **`NOT NULL`**);
+- `fecha_baja` (`date`, nullable);
+- `estado` (`text`, `NOT NULL`);
+- `pin_hash` (`text`, nullable);
+- `nombre_usuario` (`text`, `NOT NULL`, único por `company_id`);
+- `pin_bloqueado` (`boolean`, `NOT NULL default false`);
+- `intentos_fallidos` (`smallint`, `NOT NULL default 0`);
+- `user_id` (`uuid`, nullable, `references auth.users(id)`, único).
 
 Objetivo: `rrhh.empleados` = Expediente General. Puesto, departamento, fechas laborales, estado y PIN dependen del contrato.
 
-Estado: ⚠️.
+Estado: ⚠️ confirmado. Sin datos reales (0 filas) — el refactor no requiere backfill.
 
 ## D-02 — `fn_crear_empleado` genera PIN
 
@@ -84,31 +155,31 @@ activar contrato
 → generar PIN automáticamente
 ```
 
-Estado: ⚠️ prioridad F1.1–F1.3.
+Estado: ⚠️ confirmado (`apps/rrhh/src/app/(app)/expedientes/nuevo/actions.ts` — un solo formulario/RPC recibe nombre, apellido, puesto, departamento, modalidad de contrato y salario base a la vez, y `rrhh.fn_crear_empleado` genera y devuelve el PIN en la misma llamada). Prioridad F1.1–F1.3.
 
 ## D-03 — compensación ligada al empleado
 
-Existe `rrhh.empleado_compensacion` 1:1 con empleado.
+**Confirmado**: `rrhh.empleado_compensacion` tiene `primary key (empleado_id)` — 1:1 real con el empleado, verificado en `pg_constraint` remoto.
 
 Objetivo: compensación ligada al contrato para conservar historial de recontrataciones/cambios.
 
-Estado: ⚠️.
+Estado: ⚠️ confirmado. 0 filas — sin dato histórico que migrar.
 
 ## D-04 — marcas no contienen `contrato_id`
 
 Objetivo: cada marca válida debe quedar contextualizada con el contrato laboral vigente.
 
-Estado: ⚠️/⏳ según remoto.
+Estado: ⚠️ confirmado — `rrhh.asistencia_marcas` no tiene columna `contrato_id` porque el concepto de contrato no existe todavía en el schema (no hay tabla `rrhh.contratos`). Depende de F1.2 antes de poder implementarse.
 
 ## D-05 — planilla sin motor
 
-Las tablas base existen, pero el motor consolidación → planilla no está construido según la última verificación documental.
+Las tablas base (`rrhh.planillas`, `rrhh.planilla_detalles`) existen y están vacías (0 filas); el motor consolidación → planilla no está construido.
 
-Estado: ⏳.
+Estado: ⏳ confirmado.
 
-## D-06 — PIN usado como login operativo
+## D-06 — PIN usado como login operativo, y expuesto a `anon` HOY
 
-Existe una migración que define `nombre_usuario + PIN` y `rrhh.fn_validar_acceso_operativo()` como mecanismo de acceso del chofer.
+Existe la migración `20260902000008_rrhh_nicaragua_and_contracts.sql`, aplicada en remoto, que define `nombre_usuario + PIN` y `rrhh.fn_validar_acceso_operativo()`/`public.validar_acceso_operativo()` como mecanismo de acceso operativo (comparando contra el mismo `pin_hash` del kiosko). **Confirmado en remoto (2026-09-07) que el wrapper público sigue con `EXECUTE` concedido a `anon` y `authenticated`** — ver hallazgo 0.6. Sin consumidor en ningún frontend del monorepo (verificado por búsqueda estática en `apps/`/`packages/`), pero sí es una superficie de ataque real en producción hoy mismo (sin rate-limit persistente, solo bloqueo a 3 fallos dentro de la función).
 
 Nueva decisión:
 
@@ -117,13 +188,13 @@ PIN = solo asistencia en kiosko
 usuario + contraseña = identidad digital Web/Mobile
 ```
 
-El diseño de PIN de doble propósito queda como deuda/refactor.
+El diseño de PIN de doble propósito queda como deuda/refactor, con un componente de seguridad inmediato (revocar el `EXECUTE` de `anon`/`authenticated`) independiente del refactor completo de F1.3.
 
-Estado: ⚠️ prioridad arquitectónica.
+Estado: ⚠️ confirmado, prioridad arquitectónica **y** de seguridad inmediata.
 
 ## D-07 — identidad de conductor no debe ser independiente
 
-Ruta360 legacy mantiene sus propios conceptos de conductor/login.
+Ruta360 legacy (`apps/flotilla`) mantiene sus propios conceptos de conductor/login: `app/login`, `app/driver`, `app/supadmin/login`, con su propio `supabase/migrations` apuntando a un proyecto Supabase distinto al de Nexo. **Confirmado que no consume nada de `nexo-core`** (ni `rrhh.fn_validar_acceso_operativo` ni ninguna otra función/tabla) y que no tiene proyecto Vercel dentro del equipo de Nexo — el único proyecto de Transporte en ese equipo (`transporte-saas`) pertenece a otro repo.
 
 Objetivo:
 
@@ -137,7 +208,13 @@ rrhh.empleado
 
 No crear un segundo usuario si el empleado ya tiene identidad digital Nexo.
 
-Estado: ⚠️ Fase 4, con preparación desde Fase 1/2.
+Estado: ⚠️ confirmado, Fase 4, con preparación desde Fase 1/2. Sin código actual que lo contradiga (Ruta360 todavía no está conectado a Nexo).
+
+## D-08 — quinto rol RRHH no documentado en resúmenes previos: `consulta`
+
+`core.app_roles` (`module_slug='rrhh'`) tiene 5 filas, no 4: `admin` (36 permisos), `supervisor_asistencia` (16), `especialista_planillas` (12), `gestor_expedientes` (9) y **`consulta`** (7, solo lectura). Cualquier Paso Cero de permisos para contratos/credenciales de F1.2–F1.3 debe asignar explícitamente el alcance de `consulta`, no solo de los otros cuatro roles.
+
+Estado: ℹ️ hallazgo nuevo de F1.0, sin urgencia — no contradice el modelo objetivo, solo estaba subdocumentado.
 
 ---
 
@@ -145,7 +222,7 @@ Estado: ⚠️ Fase 4, con preparación desde Fase 1/2.
 
 | ID | Entregable | Estado | Evidencia / nota |
 |---|---|---|---|
-| F1.0 | Auditoría real `main` + Supabase + Vercel + permisos + datos | ⏳ | Debe ser el próximo trabajo. Incluir revisión de `fn_validar_acceso_operativo`, `nombre_usuario`, `user_id` y PIN de doble propósito. |
+| F1.0 | Auditoría real `main` + Supabase + Vercel + permisos + datos | ✅ | Ejecutada 2026-09-07 (sección 0). Sin código/DB pendiente de revisión — el bloqueo real detectado fue de proceso (`main` local desactualizado, sección 0.1), ya resuelto. `fn_validar_acceso_operativo`, `nombre_usuario`, `user_id` y PIN de doble propósito confirmados como D-06; hallazgo de seguridad vivo en 0.6. |
 | F1.1 | Separar Expediente General / Expediente Laboral | ⏳ | No tocar migraciones aplicadas. |
 | F1.2 | `rrhh.contratos` + compensación contractual | ⏳ | Paso Cero de permisos antes de tablas/UI. |
 | F1.3 | PIN generado solo al activar contrato | ⏳ | PIN exclusivo de asistencia; revocar al finalizar; regenerar solo por contrato activo. |
@@ -301,37 +378,45 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 # 7. Próxima acción obligatoria
 
 ```text
-F1.0 — Auditoría de realidad RRHH
+F1.0 — Auditoría de realidad RRHH  ✅ completada 2026-09-07 (sección 0)
+ ↓
+Paso Cero — Permission & Role Matrix Diff para contratos, credenciales
+PIN, identidad digital y habilitación de conductor — presentado en
+Markdown + SQL de referencia, PENDIENTE DE APROBACIÓN explícita del
+usuario. NO aplicar el diff ni las migraciones de F1.1–F1.3 hasta esa
+aprobación.
 ```
 
-Debe comparar explícitamente:
+La comparación explícita de F1.0 ya se ejecutó y quedó registrada en la sección 0:
 
 ```text
 Plan Maestro
 vs
-main
+main               (estaba 13 commits atrás — reconciliado, ver 0.1)
 vs
-migraciones
+migraciones        (30 aplicadas, 1:1 con Git — ver 0.3)
 vs
-nexo-core remoto
+nexo-core remoto   (0 filas reales en las tablas afectadas — ver 0.4)
 vs
-Vercel
+Vercel             (último deploy = HEAD real de main, sin errores nuevos — ver 0.7)
 vs
-permisos
+permisos           (45 códigos, 5 roles incl. `consulta` — ver 0.5/D-08)
 vs
-datos existentes
+datos existentes   (ver 0.4)
 ```
 
-Y revisar específicamente la deuda de autenticación:
+Y se revisó específicamente la deuda de autenticación:
 
 ```text
-nombre_usuario + PIN (actual)
+nombre_usuario + PIN (actual, D-06)
           ↓ refactor
 PIN → solo kiosko/asistencia
 usuario+contraseña → Supabase Auth Web/Mobile
 ```
 
-Solo después se presenta el diff de permisos/arquitectura y se inicia la migración hacia:
+confirmando además que `public.validar_acceso_operativo` sigue con `EXECUTE` para `anon`/`authenticated` en producción sin ningún consumidor real (hallazgo 0.6) — corrección candidata a resolverse junto con el Paso Cero de F1.3, o antes si así se decide.
+
+Solo después de aprobado el Paso Cero se inicia la migración hacia:
 
 ```text
 Persona

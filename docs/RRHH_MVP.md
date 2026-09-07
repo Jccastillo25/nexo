@@ -23,6 +23,8 @@ RRHH no se considera terminado por cantidad de pantallas ni por infraestructura 
 
 La siguiente sesión debe verificar que este estado siga siendo real antes de migrar.
 
+**Re-verificado en F1.0 (2026-09-07, `docs/IMPLEMENTATION_STATUS.md` sección 0):** sigue siendo exacto — 0 filas en `empleados`/`asistencia_marcas`/`planillas`/`empleado_compensacion`/`seguridad_accesos`, 1 fila en `kiosko_dispositivos`. Se agrega un hallazgo nuevo no listado arriba: `public.validar_acceso_operativo` (PIN de doble propósito, sección 10 de `DRIVER_ACCESS_AND_KIOSK.md`) sigue con `EXECUTE` concedido a `anon`/`authenticated` en producción, sin ningún consumidor real en el código — ver `IMPLEMENTATION_STATUS.md` 0.6/D-06.
+
 ---
 
 # 2. Decisiones de dominio vigentes
