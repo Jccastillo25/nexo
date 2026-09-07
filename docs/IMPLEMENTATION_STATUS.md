@@ -275,7 +275,21 @@ rol sobre un permiso YA existente, no un código nuevo, pero cambia quién
 puede hacer qué — no estaba en el diff de Paso Cero aprobado, así que no
 se aplicó unilateralmente. Queda para aprobación aparte antes de F1.5.
 
-**No verificado en navegador/UI** — mismo `EPERM` de entorno (2026-09-05).
+**No verificado en navegador/UI** — mismo `EPERM` de entorno (2026-09-05),
+reconfirmado en esta sesión (`npx tsc --noEmit` falla con el mismo
+`EPERM: operation not permitted, open .../typescript/bin/tsc`). Sustituido
+por la validación equivalente que pide `CLAUDE.md` cuando el entorno local
+sigue bloqueado: **build real de Vercel**, verificado después del push a
+`main` (commit `a68c5e9`) — `get_deployment` confirma `readyState: READY`
+para los 3 proyectos que reconstruyen por el cambio en `packages/ui`:
+`nexo-rrhh` (`dpl_Equ2aDaRAQkZeo2xj1LS3RygomUh`), `nexocore`
+(`dpl_BnyqWBwskpZChmdbUgnxx5Uwoi7a`) y `nexo-crm`
+(`dpl_J5yCKqDZHT2RbkGWtzSt2uFxWbUm`) — es decir, `tsc`/`next build` SÍ se
+ejecutaron, en Vercel, sobre este código exacto, sin error. `get_runtime_errors`
+de `nexo-rrhh` (ventana de 30 min post-deploy): sin errores nuevos. Esto
+verifica que el código **compila y despliega**, no que el flujo funciona
+visualmente en un navegador — la UI de `/rrhh/jornadas` y la sección
+"Jornada" de `/rrhh/expedientes/[id]` no fueron clickeadas por nadie.
 Frontend nuevo: `/rrhh/jornadas` (`page.tsx` + `jornadas-panel.tsx` +
 `feriados-panel.tsx` + `actions.ts`) y sección "Jornada" agregada a
 `contratos-panel.tsx`/`actions.ts` en `/rrhh/expedientes/[id]`. Tipos

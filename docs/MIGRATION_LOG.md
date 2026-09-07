@@ -84,11 +84,17 @@ Es una decisión de rol nueva, no cubierta por la aprobación de este Paso
 Cero — queda señalada para aprobación aparte, no aplicada.
 
 **No verificado en navegador/UI** — mismo `EPERM` de entorno ya
-documentado (2026-09-05). Frontend nuevo: `/rrhh/jornadas` (catálogo de
-jornadas + días + feriados) y sección "Jornada" en
-`/rrhh/expedientes/[id]` (asignar/reasignar por contrato). Verificado por
-revisión estática cuidadosa del código + la verificación exhaustiva de
-esquema/RPC/RLS de arriba.
+documentado (2026-09-05), reconfirmado en esta sesión. Verificación
+equivalente ejecutada después del push a `main` (commit `a68c5e9`): build
+real de Vercel para los 3 proyectos afectados (`nexo-rrhh`, `nexocore`,
+`nexo-crm` — reconstruyen por el cambio en `packages/ui/Sidebar.tsx`),
+los 3 en `readyState: READY`, sin `get_runtime_errors` nuevos en
+`nexo-rrhh`. Frontend nuevo: `/rrhh/jornadas` (catálogo de jornadas +
+días + feriados) y sección "Jornada" en `/rrhh/expedientes/[id]`
+(asignar/reasignar por contrato). Verificado por revisión estática
+cuidadosa del código + la verificación exhaustiva de esquema/RPC/RLS de
+arriba + el build real de Vercel — no por interacción real en un
+navegador.
 
 ## 2026-09-07 — F1.0 a F1.3 completas (auditoría, cierre D-06, Paso Cero, contratos, PIN contractual)
 
