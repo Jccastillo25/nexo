@@ -1,336 +1,381 @@
 # RRHH — MVP operativo: fuente de verdad
 
-Este documento define el **único** alcance que cuenta como "MVP de RRHH
-listo": un recorrido concreto y comprobable, no una lista de features.
-Mientras este recorrido no se haya ejecutado completo contra datos
-reales o de prueba realistas, RRHH permanece en "en validación" en
-[MODULES.md](MODULES.md) y [ROADMAP.md](ROADMAP.md), sin importar cuánta
-infraestructura esté desplegada.
+> Actualizado **2026-09-06**. Este documento define qué significa “RRHH MVP listo”. Debe leerse junto a `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`, `IMPLEMENTATION_STATUS.md` y `DRIVER_ACCESS_AND_KIOSK.md`.
 
-Última verificación contra el proyecto remoto (`nexo-core`,
-`yrbjlmiqhkyxtlcerowh`) y Vercel: **2026-09-05**. Estado de datos a esa
-fecha: `rrhh.empleados` = 0 filas, `rrhh.asistencia_marcas` = 0 filas,
-`rrhh.planillas` = 0 filas, `rrhh.kiosko_dispositivos` = 1 fila (creada
-el 2026-09-04 para habilitar la marcación física).
+RRHH no se considera terminado por cantidad de pantallas ni por infraestructura desplegada. Debe ejecutarse de punta a punta el flujo aprobado.
 
-**Actualización 2026-09-05 — auditoría de seguridad cerrada y bug de
-ruteo corregido, MVP funcional sigue sin completar**: las migraciones
-`20260905000001` a `005` (cierre de riesgos de seguridad de las
-funciones internas de RRHH, rate-limit persistente del kiosko) se
-aplicaron a `nexo-core` y se verificaron en producción — ver
-[SECURITY_VALIDATION_HANDOFF.md](SECURITY_VALIDATION_HANDOFF.md) para
-el detalle completo. Además se corrigió (commit `a3bcc5d`, mergeado a
-`main`) un bug real de ruteo: `apps/nexo/src/proxy.ts` interceptaba
-`/rrhh/kiosco` antes de que Multi-Zones lo entregara a la zona `rrhh`,
-redirigiéndolo a `/login` del panel — contradecía la regla obligatoria
-del kiosko anónimo. Verificado en producción el 2026-09-05:
-`https://nexo.materialesjcastillo.com/rrhh/kiosco` carga el NumPad sin
-sesión, y las rutas privadas de RRHH (`/rrhh/expedientes`, etc.) siguen
-redirigiendo a login correctamente. **Ninguno de estos dos cierres
-cambia el estado del MVP funcional**: los pasos 3 y 4 del flujo (motor
-de horas trabajadas, generador de planillas) siguen sin construir — ver
-la tabla de abajo. RRHH **no** se declara MVP completo.
+---
 
-## Alcance del MVP
+# 1. Estado conocido antes del refactor
 
-El MVP de RRHH es exclusivamente este recorrido de 6 pasos:
+Última verificación remota documentada previa a esta decisión: **2026-09-05**.
 
-1. Un administrador autorizado crea un empleado con datos básicos, fecha
-   de ingreso, modalidad, salario y PIN.
-2. El empleado registra entrada y salida en un kiosco autorizado.
-3. El sistema consolida las marcas del período en horas trabajadas.
-4. Un administrador genera una planilla de prueba.
-5. El informe de planilla muestra por empleado: período, entradas,
-   salidas, horas calculadas, salario base, ajustes/deducciones y total
-   resultante.
-6. El acceso se prueba con administrador, operador autorizado y usuario
-   sin permisos.
+- `rrhh.empleados`: 0 filas;
+- `rrhh.asistencia_marcas`: 0 filas;
+- `rrhh.planillas`: 0 filas;
+- `rrhh.kiosko_dispositivos`: 1 fila;
+- kiosko accesible sin sesión Web;
+- rate-limit persistente implementado;
+- seguridad de RPC reforzada;
+- motor marcas → horas: no existe;
+- motor de planillas: no existe;
+- `/rrhh/planillas`: placeholder.
 
-Nada fuera de esta lista es parte del MVP, aunque exista código para
-ello (ver "Exclusiones" más abajo).
+La siguiente sesión debe verificar que este estado siga siendo real antes de migrar.
 
-## Flujo, paso a paso — qué existe hoy y qué falta
+---
 
-| Paso | Mecanismo real | Estado |
-|---|---|---|
-| 1. Alta de empleado | UI `/rrhh/expedientes/nuevo` → Server Action `crearEmpleado` → RPC `crear_empleado` → `rrhh.fn_crear_empleado` (autogenera `nombre_usuario` y PIN de 4 dígitos si no se proveen; PIN se hashea con bcrypt, se muestra en texto plano una única vez) | ✅ Construido. **Sin ejecutar con un empleado real** (0 filas en `rrhh.empleados`) |
-| 2. Marca en kiosco | `/rrhh/kiosco` (fuera del guard de sesión de la zona raíz y de la propia zona `rrhh`, ver `apps/nexo/src/proxy.ts` y `apps/rrhh/src/proxy.ts`) → Server Action `marcarAsistencia` → RPC `registrar_marca_kiosko` → `rrhh.fn_registrar_marca_kiosko` (valida PIN contra `pin_hash`, aplica rate-limit persistente en `rrhh.kiosko_rate_limits`, alterna entrada/salida según la última marca, inserta en `rrhh.asistencia_marcas`) | ✅ Construido y con rate-limiting persistente en Postgres (2026-09-05). **Ruteo verificado en producción** (`/rrhh/kiosco` carga sin sesión, 2026-09-05). **Sin ejecutar de punta a punta con datos reales**: requiere `NEXO_KIOSKO_ID` configurado en el proyecto Vercel `nexo-rrhh` y al menos un empleado con PIN real |
-| 3. Consolidación de marcas → horas trabajadas | — | ❌ **No existe.** No hay función ni vista que agregue `rrhh.asistencia_marcas` (pares entrada/salida) en horas por empleado por período. Es el primer bloqueador real del MVP |
-| 4. Generar planilla de prueba | `/rrhh/planillas` | ❌ **No existe.** La ruta es un placeholder explícito en el código (`apps/rrhh/src/app/(app)/planillas/page.tsx`): "Motor de planillas — pendiente de construir en un turno aparte". No hay función que inserte en `rrhh.planillas`/`rrhh.planilla_detalles` a partir de horas consolidadas + `rrhh.empleado_compensacion` + `rrhh.parametros_ley` |
-| 5. Informe de planilla por empleado | — | ❌ **No existe** (depende de 3 y 4) |
-| 6. Prueba de acceso con 3 roles | Permisos ya definidos y con RLS real (ver tabla de permisos abajo) | 🟡 Mecanismo listo, **prueba manual sin ejecutar** — ver checklist de pruebas |
+# 2. Decisiones de dominio vigentes
 
-Los pasos 3 y 4 son el trabajo pendiente real para cerrar el MVP — no es
-ajuste de configuración como los pasos 1 y 2, es construir el motor de
-cálculo. No se debe iniciar ese trabajo sin definir primero las
-"Decisiones de negocio pendientes" de más abajo: calcular horas extra o
-descuentos sin esas reglas confirmadas produce un número con apariencia
-correcta que en realidad está inventado.
+## 2.1 Expediente General ≠ Expediente Laboral
 
-## Permisos involucrados
+```text
+Expediente General
+= identidad/datos personales
 
-Todos ya cargados en `core.permissions_catalog` (verificado 2026-09-04),
-con RLS real en las tablas correspondientes — ninguno de estos permisos
-falta por crear.
+Expediente Laboral
+= contratos + puesto + salario + jornada + documentos laborales
+```
 
-| Paso | Código de permiso | Rol que lo tiene por defecto |
-|---|---|---|
-| Alta de empleado | `rrhh.expedientes.empleados.crear` | `admin`, `gestor_expedientes` |
-| Fijar salario/modalidad al dar de alta | `rrhh.expedientes.compensacion.editar` | `admin` |
-| Ver PIN generado en texto plano | `rrhh.expedientes.compensacion.ver` | `admin` |
-| Ver listado de empleados | `rrhh.expedientes.empleados.ver` | `admin`, `gestor_expedientes`, `supervisor_asistencia` |
-| Marca en kiosco | *(sin permiso — autenticación por PIN+kiosko_id, no por `auth.uid()`)* | n/a |
-| Ver marcas de asistencia | `rrhh.asistencia.marcas.ver` | `admin`, `supervisor_asistencia` |
-| Corregir una marca manual | `rrhh.asistencia.marcas.crear` / `.editar` | `admin`, `supervisor_asistencia` |
-| Generar planilla (cuando exista) | `rrhh.planillas.planilla.generar` | `admin`, `especialista_planillas` |
-| Ver planilla | `rrhh.planillas.planilla.ver` | `admin`, `especialista_planillas` |
-| Aprobar planilla | `rrhh.planillas.planilla.aprobar` | `admin` |
-| Ver el módulo en el panel | `rrhh.ver_modulo` | Todo rol de `rrhh` |
+Crear empleado no significa contratarlo.
 
-Catálogo completo (37 códigos) en `core.permissions_catalog`, dominio
-`rrhh.*` — ver [PERMISSIONS.md](PERMISSIONS.md) para la norma general.
+## 2.2 PIN
 
-## Tablas involucradas
+```text
+SIN CONTRATO ACTIVO → SIN PIN
+```
 
-`rrhh.empleados`, `rrhh.empleado_compensacion`, `rrhh.kiosko_dispositivos`,
-`rrhh.asistencia_marcas` (particionada), `rrhh.parametros_ley`,
-`rrhh.planillas`, `rrhh.planilla_detalles`. Detalle de columnas, RLS y
-funciones en [DATABASE.md](DATABASE.md#schema-rrhh--detalle-completo).
-`rrhh.seguridad_accesos` no participa de este flujo (es del módulo móvil
-de choferes, fuera de alcance del MVP — ver Exclusiones).
+El PIN:
 
-## Criterios de aceptación
+- se genera automáticamente al activar contrato;
+- se muestra una sola vez;
+- se guarda solo como hash;
+- se usa exclusivamente para asistencia en kiosko;
+- se revoca al finalizar contrato;
+- no es contraseña Web/Mobile;
+- no crea sesión Supabase Auth.
 
-El MVP se considera **listo** solo cuando, en un entorno de prueba
-(nunca directo en producción con datos reales de empleados), todo lo
-siguiente es verificablemente cierto al mismo tiempo:
+## 2.3 Identidad digital
 
-1. Un usuario con `rrhh.expedientes.empleados.crear` da de alta un
-   empleado de prueba con fecha de ingreso, modalidad de contrato,
-   salario base y PIN, y el alta queda en `rrhh.empleados` +
-   `rrhh.empleado_compensacion`.
-2. Ese empleado marca al menos una entrada y una salida reales en
-   `/rrhh/kiosco` usando su PIN, y ambas marcas quedan en
-   `rrhh.asistencia_marcas` con `origen = 'kiosko'`.
-3. Existe una función/vista que, dado un período, calcula las horas
-   trabajadas de ese empleado a partir de sus pares entrada/salida —
-   con las reglas de jornada, tolerancias y horas extra ya confirmadas
-   por el usuario (no inventadas, ver más abajo).
-4. Un usuario con `rrhh.planillas.planilla.generar` genera una planilla
-   de prueba para ese período y ese empleado queda en
-   `rrhh.planilla_detalles` con horas consolidadas correctas.
-5. El reporte de esa planilla muestra, por empleado: período, hora(s)
-   de entrada, hora(s) de salida, horas calculadas, salario base,
-   ajustes/deducciones aplicados (aunque sean $0 en la prueba) y el
-   total resultante — y ese total es matemáticamente correcto contra
-   los datos de entrada.
-6. Se ejecutó el checklist de acceso con los 3 roles de la sección
-   siguiente y cada resultado fue el esperado.
+El empleado puede tener una identidad digital Nexo separada del PIN:
 
-**No se marca el MVP como listo sin haber ejecutado personalmente los 6
-puntos de arriba en un entorno de prueba** — no alcanza con que el
-código "debería funcionar".
+```text
+usuario + contraseña → Supabase Auth
+```
 
-## Pruebas manuales ejecutables (checklist)
+Esa identidad puede servir a RRHH autoservicio, Panel de Conductor Web, Nexo Mobile u otros módulos según permisos.
 
-Ejecutar en este orden, contra un entorno de prueba (compañía/datos de
-prueba, nunca contra empleados reales hasta pasar el checklist completo):
+Fuente detallada: [`DRIVER_ACCESS_AND_KIOSK.md`](DRIVER_ACCESS_AND_KIOSK.md).
 
-1. **Alta con permiso correcto**: loguearse como un usuario con rol
-   `admin` de `rrhh`, ir a `/rrhh/expedientes/nuevo`, crear un empleado
-   de prueba. Confirmar que aparece en `/rrhh/expedientes` y que
-   `rrhh.empleados`/`rrhh.empleado_compensacion` tienen la fila.
-2. **Alta sin permiso de compensación**: loguearse como un usuario con
-   `rrhh.expedientes.empleados.crear` pero sin
-   `rrhh.expedientes.compensacion.editar`, intentar fijar salario al dar
-   de alta. Confirmar que el alta falla (o se crea sin compensación,
-   según lo que decida la UI) con un mensaje claro, no un error crudo de
-   Postgres.
-3. **Marca en kiosco — caso válido**: en `/rrhh/kiosco`, ingresar el PIN
-   del empleado de prueba. Confirmar mensaje "Entrada registrada", y
-   luego, en un segundo intento, "Salida registrada". Confirmar 2 filas
-   en `rrhh.asistencia_marcas`.
-4. **Marca en kiosco — PIN inválido**: ingresar un PIN que no existe.
-   Confirmar el mensaje genérico ("PIN incorrecto o kiosko inactivo"),
-   nunca un mensaje que distinga "no existe" de "PIN incorrecto" (norma
-   anti-enumeración ya implementada en `fn_registrar_marca_kiosko`).
-5. **Rate limit del kiosco**: intentar más de 8 marcas en menos de 60
-   segundos desde el mismo dispositivo. Confirmar que el kiosko empieza
-   a responder "Demasiados intentos. Esperá un minuto."
-6. **Consolidación de horas** *(bloqueado hasta construir el paso 3 del
-   flujo)*: con las 2 marcas del punto 3, confirmar que el cálculo de
-   horas trabajadas para ese período da el valor esperado a mano.
-7. **Generar planilla de prueba** *(bloqueado hasta construir el paso 4
-   del flujo)*: como usuario con `rrhh.planillas.planilla.generar`,
-   generar la planilla del período de prueba. Confirmar que
-   `rrhh.planillas` queda en `estado = 'borrador'` y que
-   `rrhh.planilla_detalles` tiene una fila para el empleado de prueba.
-8. **Reporte de planilla** *(bloqueado hasta construir el paso 4)*:
-   abrir el detalle de esa planilla y confirmar que muestra período,
-   entradas, salidas, horas, salario base, ajustes/deducciones y total,
-   y que el total es correcto a mano.
-9. **Acceso — administrador**: confirmar que un usuario con rol `admin`
-   de `rrhh` ve expedientes, asistencia y (cuando exista) planillas, y
-   puede ejecutar cada acción de esa sección.
-10. **Acceso — operador autorizado**: confirmar que un usuario con un
-    rol acotado (ej. `supervisor_asistencia`, que no tiene
-    `rrhh.expedientes.empleados.crear` ni `rrhh.planillas.planilla.aprobar`)
-    ve asistencia pero no puede dar de alta empleados ni aprobar
-    planillas — ni desde la UI (botón oculto) ni llamando la Server
-    Action/RPC directamente.
-11. **Acceso — usuario sin permisos**: confirmar que un usuario
-    autenticado sin ningún rol de `rrhh` no ve el módulo en el panel
-    (`rrhh.ver_modulo` ausente) y que, si accede a una URL de `/rrhh/*`
-    a mano, recibe la pantalla de "sin acceso", no un error ni datos
-    parciales.
-12. **`get_advisors(type=security)` limpio de hallazgos nuevos**: correr
-    el linter de seguridad de Supabase después de cualquier migración
-    nueva del motor de planillas, antes de dar el MVP por cerrado.
+---
 
-## Exclusiones (explícitamente fuera de este MVP)
+# 3. Flujo MVP aprobado
 
-- **Módulo móvil de choferes** (`rrhh.fn_validar_acceso_operativo`,
-  `rrhh.seguridad_accesos`, provisión de `auth.users` vía
-  `@kiosko.internal`): la infraestructura de base ya existe (mismo PIN,
-  doble propósito) pero la UI del módulo móvil y la emisión de sesión
-  sin exponer password están documentadas como diseño, no construidas.
-- **Aprobación de planilla y asiento contable** (`rrhh.planillas.planilla.aprobar`,
-  `core.fn_aprobar_planilla`, `asiento_contable_id`): depende del schema
-  `contabilidad`, que no existe todavía (Fase 2 del roadmap). El MVP
-  llega hasta "planilla de prueba en borrador con su reporte", no hasta
-  "planilla aprobada con asiento contable real".
-- **Justificaciones de ausencia, turnos/horarios, documentos de legajo**:
-  tienen permisos ya reservados en el catálogo (`rrhh.asistencia.justificaciones.*`,
-  `rrhh.asistencia.turnos.*`, `rrhh.expedientes.documentos.*`) pero cero
-  tablas o UI construidas — quedan para una fase posterior al MVP.
-- **CRUD de kioscos desde la UI**: hoy un dispositivo nuevo se inserta
-  por SQL directo (no hay pantalla de administración de
-  `rrhh.kiosko_dispositivos` todavía, aunque los 4 permisos y las 4
-  policies ya existen).
-- **Exportación de planilla** (`rrhh.planillas.reportes.exportar`) y
-  edición de movimientos individuales (`rrhh.planillas.movimientos.*`):
-  el MVP pide un reporte visible, no necesariamente exportable ni con
-  edición fila por fila de bonos/deducciones.
+El recorrido obligatorio ahora es:
 
-## Decisiones de negocio pendientes
+```text
+1. Crear Expediente General
+2. Confirmar que NO existe PIN
+3. Crear contrato en borrador
+4. Completar datos laborales, compensación y jornada
+5. Confirmar que todavía NO existe PIN
+6. Activar contrato
+7. Sistema genera PIN automáticamente y lo muestra una vez
+8. Empleado marca entrada en kiosko
+9. Empleado marca salida
+10. Sistema consolida marcas en horas
+11. Resolver incidencias si existen
+12. Generar planilla de prueba
+13. Ver reporte por empleado y validar total
+14. Finalizar contrato
+15. Confirmar que el PIN dejó de funcionar
+16. Confirmar historial intacto
+17. Probar roles, RLS y denegaciones
+```
 
-**Ninguna de estas reglas está definida todavía y ninguna se inventa en
-este documento ni se debe inventar al construir el motor de planillas.**
-El motor de consolidación de horas y el generador de planilla no se
-construyen hasta que el usuario confirme cada punto:
+Nada sustituye este E2E.
 
-- **Frecuencia de pago**: ¿quincenal, mensual, ambas según el tipo de
-  empleado?
-- **Jornada laboral**: horas por día/semana consideradas "tiempo
-  completo", y si varía por puesto o sucursal (Materiales JCastillo,
-  Ferretería la Máxima, Zona Gypsum).
-- **Descansos**: ¿se descuenta tiempo de almuerzo/refrigerio de las
-  horas marcadas, o el empleado marca salida/entrada también para eso?
-- **Tolerancias**: minutos de gracia antes de considerar una entrada
-  tardía o una salida temprana como incidencia.
-- **Horas extra**: umbral a partir del cual una hora cuenta como extra,
-  y si el recargo difiere entre entre semana/fin de semana/feriado (la
-  ley nicaragüense típicamente distingue estos casos, pero el porcentaje
-  exacto a aplicar debe confirmarlo el usuario, no asumirse).
-- **Feriados**: calendario de feriados nacionales/de la empresa y cómo
-  afectan el cálculo (¿se paga el día aunque no se trabaje?, ¿recargo si
-  se trabaja?).
-- **Deducciones**: cuáles aplican por defecto en cada corrida (INSS
-  laboral ya está parametrizado en `rrhh.parametros_ley` con 7%, pero
-  **ese valor y el de INATEC/INSS patronal deben confirmarse como los
-  oficiales vigentes, no darse por buenos solo porque están sembrados**
-  — y `techo_inss` está sembrado con un valor de ejemplo, `100000.00`,
-  explícitamente marcado como no verificado en el código
-  ([`20260902000008`](../supabase/migrations/20260902000008_rrhh_nicaragua_and_contracts.sql)
-  línea ~57)).
-- **Fórmula de nómina exacta**: cómo se combinan salario base + horas
-  extra + bonos − deducciones para el `total` de `rrhh.planilla_detalles`,
-  y cómo se trata la modalidad `comisionista_destajo` (variable, no
-  salario fijo) frente a `nomina_estandar`.
+---
 
-## Riesgos de seguridad antes de producción
+# 4. Qué debe existir
 
-Auditoría de cada función `SECURITY DEFINER` del schema `rrhh`,
-originada en los hallazgos de `get_advisors(type=security)` del
-2026-09-04. **Cerrada y verificada en producción el 2026-09-05**
-(migraciones `20260905000001` a `005`) — ver detalle completo, matrices
-de prueba y evidencia en
-[SECURITY_VALIDATION_HANDOFF.md](SECURITY_VALIDATION_HANDOFF.md) y el
-resumen en
-[DATABASE.md](DATABASE.md#riesgos-de-seguridad--auditoría-cerrada-y-verificada-2026-09-05).
-Esto **no** implica que el MVP esté completo (ver "Alcance del MVP" más
-arriba) — es el cierre de la auditoría de seguridad, un requisito
-distinto del motor de horas/planillas que sigue sin construir:
+## 4.1 Expediente General
 
-1. **Resuelto** — `rrhh.fn_crear_empleado` y `rrhh.fn_set_pin_empleado`
-   ya no son ejecutables directamente por `anon` ni por `PUBLIC` a nivel
-   de `GRANT` de Postgres. Verificado con `has_function_privilege`
-   contra `nexo-core`: `false` para ambos roles.
-2. **Privilegios de ejecución de cada función — verificados así en
-   producción, 2026-09-05**:
-   - `anon`/`authenticated` — solo los wrappers públicos
-     `public.registrar_marca_kiosko` y `public.validar_acceso_operativo`
-     (autenticación por credencial física/PIN, sin `auth.uid()`, por
-     diseño). Las funciones internas `rrhh.fn_registrar_marca_kiosko` y
-     `rrhh.fn_validar_acceso_operativo` no tienen `EXECUTE` directo para
-     ningún rol desde `20260905000005`.
-   - `authenticated` con permiso interno verificado — wrappers
-     `public.crear_empleado`, `public.set_pin_empleado`. Las funciones
-     internas `rrhh.fn_crear_empleado`/`rrhh.fn_set_pin_empleado` no
-     tienen `EXECUTE` directo para ningún rol desde
-     `20260905000001`/`004`.
-   - Confirmado: nadie más tiene `EXECUTE` sobre ninguna de las 4
-     funciones internas de esta auditoría.
-3. **`search_path`**: todas las funciones `SECURITY DEFINER` de `rrhh`
-   ya fijan `search_path` explícito (`set search_path = rrhh, ...`) —
-   confirmado, no es un hallazgo pendiente, pero **cualquier función
-   nueva del motor de planillas debe seguir el mismo patrón desde su
-   creación**, nunca agregarlo como fix posterior.
-4. **Verificación de permisos dentro de cada función, no solo en la
-   RLS de la tabla**: las funciones que hacen `INSERT`/`UPDATE` como
-   `SECURITY DEFINER` (que bypasean la policy de RLS de la tabla porque
-   corren como el dueño de la función) deben seguir llamando a
-   `core.has_permission(auth.uid(), ...)` puertas adentro — es la única
-   capa de control real para esos casos. El motor de planillas que se
-   construya debe respetar exactamente este patrón.
-5. **Protección del PIN**: confirmado — nunca se guarda en texto plano
-   (`pin_hash`, bcrypt vía `pgcrypto`), y el único momento en que existe
-   en texto plano es el valor de retorno de `fn_crear_empleado`/UI
-   inmediatamente después del alta (gateado por
-   `rrhh.expedientes.compensacion.ver`). **Sigue sin auditar**: que
-   ningún log de servidor (Vercel `get_runtime_logs`) imprima el PIN en
-   texto plano.
-6. **Acceso directo a particiones**: cada partición mensual de
-   `rrhh.asistencia_marcas`/`rrhh.seguridad_accesos` se crea con RLS
-   habilitado (confirmado, `get_advisors` no reporta ninguna partición
-   sin RLS más allá del "sin policy" esperado en `seguridad_accesos`) —
-   pero las particiones **heredan las policies de la tabla padre**
-   automáticamente en Postgres; confirmar explícitamente (no asumido en
-   esta auditoría) que una policy modificada en la tabla padre se refleja
-   en las particiones ya creadas antes de depender de esto en producción.
-   **Sigue sin confirmar de forma exhaustiva** — solo se probó
-   read-only contra una partición puntual (ver
-   [SECURITY_VALIDATION_HANDOFF.md](SECURITY_VALIDATION_HANDOFF.md)).
-7. **Resuelto (2026-09-05)** — el kiosco anónimo ya no expone
-   `empleado_nombre` ni ningún otro dato personal:
-   `fn_registrar_marca_kiosko` devuelve únicamente `tipo` y
-   `marcado_en` desde `20260905000002`. Además suma un rate-limit
-   persistente en `rrhh.kiosko_rate_limits` (8 fallos/1min → bloqueo
-   5min, verificado con RLS activo y sin acceso directo de cliente) que
-   reemplaza al `Map` en memoria como defensa autoritativa contra fuerza
-   bruta.
-8. **Sigue pendiente, bloqueado por plan** —
-   `auth_leaked_password_protection` deshabilitado a nivel de proyecto.
-   Confirmado contra la documentación oficial de Supabase: requiere plan
-   Pro o superior; `Grupo CT` está en Free. No se puede activar hoy sin
-   cambiar de plan.
+UI objetivo:
 
-De estos 8 puntos, los ítems 1, 2 y 7 (y el rate-limit del kiosko) están
-**resueltos y verificados en producción** desde el 2026-09-05. Los
-ítems 3 y 4 ya estaban confirmados como cumplidos desde antes (patrón a
-mantener en código nuevo). Los ítems 5 y 6 **siguen sin auditar/confirmar
-de forma exhaustiva**. El ítem 8 **sigue bloqueado por el plan Free** —
-no es una tarea pendiente de ejecutar, es una limitación externa
-confirmada. Ninguno de estos cierres declara el MVP funcional completo
-— eso depende exclusivamente de construir el motor de horas/planillas
-(pasos 3 y 4 del flujo, ver arriba).
+```text
+/rrhh/expedientes/[empleado]
+├── Datos generales
+├── Expediente laboral
+│   ├── Contratos
+│   ├── Compensación
+│   ├── Jornada
+│   └── Documentos laborales
+└── Historial
+```
+
+`/rrhh/expedientes/nuevo` crea solo datos generales.
+
+No debe pedir:
+
+- salario;
+- modalidad contractual;
+- fecha de ingreso laboral;
+- PIN;
+- credencial operacional.
+
+## 4.2 Contratos
+
+Mínimo:
+
+```text
+borrador → activo → finalizado
+```
+
+Un contrato activo simultáneo por empleado/empresa para el MVP.
+
+Debe conservar historial y no borrarse físicamente luego de activación.
+
+## 4.3 Compensación contractual
+
+La compensación pertenece al contrato, no a la identidad general del empleado.
+
+## 4.4 Jornada
+
+El contrato debe tener jornada/asignación suficiente para calcular:
+
+- ordinarias;
+- descanso;
+- tolerancias;
+- tardanza;
+- horas extra;
+- feriados/no laborables.
+
+No hardcodear una jornada universal.
+
+---
+
+# 5. Kiosko
+
+El kiosko mantiene una ruta pública respecto a la sesión Web, pero el dispositivo debe estar autorizado.
+
+```text
+Kiosko autorizado
+→ PIN contractual
+→ contrato activo
+→ determinar entrada/salida
+→ registrar marca
+```
+
+## 5.1 Determinación entrada/salida
+
+Cuando el estado sea inequívoco:
+
+```text
+sin entrada abierta → ENTRADA
+con entrada abierta → SALIDA
+```
+
+Si existe una secuencia anómala, crear incidencia en vez de inventar una transición.
+
+## 5.2 Seguridad
+
+Mantener:
+
+- hash del PIN;
+- mensajes anti-enumeración;
+- rate limit persistente;
+- validación de kiosko activo;
+- validación de contrato activo;
+- `SECURITY DEFINER` endurecido;
+- `search_path` fijo.
+
+---
+
+# 6. Consolidación de asistencia
+
+Debe existir una capa calculada, por ejemplo `rrhh.asistencia_resumen_diario`.
+
+Flujo:
+
+```text
+marcas crudas
+→ pares entrada/salida
+→ contrato + jornada
+→ minutos trabajados
+→ ordinarias/extra/tardanza/etc.
+→ incidencias
+→ resumen validable
+```
+
+Casos mínimos:
+
+- entrada/salida correcta;
+- múltiples pares;
+- marca faltante;
+- tardanza;
+- salida anticipada;
+- descanso;
+- horas extra;
+- feriado;
+- día no laborable;
+- contrato no vigente.
+
+---
+
+# 7. Incidencias y justificaciones
+
+```text
+incidencia detectada
+→ supervisor
+→ corregir / justificar / rechazar
+→ día validado
+```
+
+Una planilla no debe usar silenciosamente marcas anómalas como si fueran correctas.
+
+---
+
+# 8. Planillas
+
+Motor objetivo:
+
+```text
+período
+→ contratos aplicables
+→ asistencia consolidada
+→ compensación contractual
+→ parámetros legales vigentes
+→ bonos/deducciones/ajustes
+→ snapshot
+→ borrador
+→ revisión/cierre
+```
+
+Reporte por empleado debe permitir comprobar:
+
+- período;
+- contrato;
+- marcas/resumen;
+- horas ordinarias/extra;
+- salario aplicado;
+- movimientos;
+- parámetros legales;
+- total.
+
+Una planilla histórica no debe recalcularse usando datos actuales.
+
+Integración contable queda fuera mientras no exista Contabilidad.
+
+---
+
+# 9. Permisos
+
+Paso Cero obligatorio antes de las nuevas tablas/UI.
+
+Evaluar/agregar permisos de:
+
+```text
+rrhh.expedientes.contratos.*
+rrhh.expedientes.credenciales.*
+```
+
+Los permisos actuales de compensación pueden conservar nomenclatura si se documenta su semántica contractual.
+
+Roles a validar:
+
+- admin;
+- gestor_expedientes;
+- supervisor_asistencia;
+- especialista_planillas;
+- consulta;
+- usuario sin RRHH.
+
+---
+
+# 10. Deuda heredada que debe migrarse
+
+El código actual conocido contiene:
+
+- `puesto/departamento/fecha_ingreso/estado` dentro de `rrhh.empleados`;
+- `pin_hash` dentro de `rrhh.empleados`;
+- `nombre_usuario` y `user_id` dentro de `rrhh.empleados`;
+- `rrhh.empleado_compensacion` 1:1 con empleado;
+- `fn_crear_empleado` que puede generar PIN;
+- `fn_validar_acceso_operativo()` que usa `nombre_usuario + PIN` para acceso digital.
+
+Esas migraciones aplicadas no se editan.
+
+Se corrigen con migraciones nuevas, backfill si existe información y deprecación progresiva.
+
+El diseño de **PIN de doble propósito** queda rechazado como arquitectura final.
+
+---
+
+# 11. Panel de Conductor y RRHH
+
+El Panel de Conductor no forma parte del cierre funcional de planillas, pero RRHH debe dejar preparado su modelo correcto:
+
+```text
+Empleado
+├── Contrato → PIN asistencia
+└── Identidad digital → usuario+contraseña
+```
+
+Cuando Transporte habilite al empleado como conductor:
+
+```text
+contrato activo
+→ habilitación conductor
+→ crear/reutilizar auth.users
+→ permisos Transporte
+```
+
+No debe crearse un segundo usuario si ya existe identidad digital Nexo.
+
+---
+
+# 12. Checklist E2E RRHH
+
+1. Crear expediente general sin PIN.
+2. Crear contrato borrador sin PIN.
+3. Intentar marcar antes de activar: debe fallar.
+4. Completar jornada/compensación.
+5. Activar contrato y recibir PIN una sola vez.
+6. PIN inválido: error genérico.
+7. PIN válido: entrada.
+8. Segundo PIN válido: salida.
+9. Verificar marcas con contrato correcto.
+10. Consolidar horas y comprobar manualmente.
+11. Probar una incidencia.
+12. Generar planilla de prueba.
+13. Verificar total manualmente.
+14. Finalizar contrato.
+15. Intentar usar PIN anterior: debe fallar.
+16. Verificar historial intacto.
+17. Probar admin.
+18. Probar supervisor asistencia.
+19. Probar especialista planillas.
+20. Probar usuario sin permiso.
+21. Probar llamada RPC directa intentando evadir UI.
+22. Ejecutar security advisors.
+
+---
+
+# 13. Definition of Done
+
+RRHH solo pasa a `✅ MVP listo` cuando:
+
+- expediente general/laboral están separados;
+- contrato gobierna estado laboral;
+- PIN es contractual y solo de asistencia;
+- jornada funciona;
+- marcas se consolidan;
+- incidencias pueden resolverse;
+- planilla se genera y reporta correctamente;
+- historial es reproducible;
+- permisos/RLS se validan;
+- contrato finalizado revoca PIN;
+- documentación y remoto coinciden.
+
+Hasta entonces permanece **en validación / en progreso**.
