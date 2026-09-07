@@ -4,6 +4,162 @@ Monorepo de la suite Nexo (panel único estilo Odoo para Grupo CT /
 Materiales J Castillo). Contexto completo en [`docs/`](docs/README.md),
 plan original en [`docs/planning/`](docs/planning/).
 
+## REGLA CRÍTICA: `CLAUDE.md` es la puerta de entrada, pero NO la única fuente de verdad
+
+**Claude debe leer y mantener sincronizados los documentos vivos de Nexo.**
+Que `CLAUDE.md` sea el archivo que Claude carga por defecto **no autoriza a
+ignorar el resto de `docs/`**. Esta regla aplica en toda sesión que cambie
+código, base de datos, permisos, despliegues, arquitectura, estado funcional
+o alcance del producto.
+
+### Lectura obligatoria ANTES de programar
+
+Antes de empezar cualquier implementación, corrección estructural o migración,
+Claude debe leer, en este orden:
+
+1. `CLAUDE.md`.
+2. [`docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`](docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md)
+   — **fuente de verdad del objetivo, reglas de dominio, fases y orden de
+   implementación**.
+3. [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md)
+   — **tracker vivo de lo realmente verificado**.
+4. [`docs/README.md`](docs/README.md)
+   — índice para identificar qué documentos específicos aplican a la tarea.
+5. La documentación específica del módulo o subsistema que se va a tocar
+   (`RRHH_MVP.md`, `PERMISSIONS.md`, `DATABASE.md`, `ARCHITECTURE.md`,
+   `DESIGN_SYSTEM.md`, etc.).
+6. El estado remoto real de Supabase/Vercel/GitHub cuando la tarea dependa de
+   esos sistemas.
+
+Claude debe comparar explícitamente:
+
+```text
+PLAN MAESTRO
+vs
+IMPLEMENTATION_STATUS
+vs
+CÓDIGO REAL EN main
+vs
+MIGRACIONES VERSIONADAS
+vs
+BASE DE DATOS REMOTA
+vs
+DEPLOYMENT REAL
+```
+
+**Nunca asumir que un `.md` antiguo describe correctamente el remoto.** Si
+existe divergencia, primero verificar la realidad y después corregir la
+documentación que quedó desactualizada.
+
+### Jerarquía de fuentes
+
+Cuando dos fuentes se contradigan, usar esta jerarquía:
+
+1. **Decisión explícita más reciente del usuario**.
+2. `docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md` para reglas de negocio,
+   arquitectura objetivo, fases y Definition of Done.
+3. Estado remoto verificado + código de `main` para saber qué existe realmente.
+4. `docs/IMPLEMENTATION_STATUS.md` como representación documental de esa
+   realidad.
+5. Documentos vivos específicos (`DATABASE.md`, `MODULES.md`,
+   `PERMISSIONS.md`, `RRHH_MVP.md`, etc.).
+6. `docs/planning/*` como documentación histórica/propuesta original.
+
+**No modificar el Plan Maestro para hacerlo coincidir con una implementación
+incompleta o equivocada.** Si el código contradice una regla vigente del Plan
+Maestro, se corrige el código. El Plan Maestro solo cambia cuando existe una
+nueva decisión funcional/arquitectónica aprobada por el usuario.
+
+### Actualización documental obligatoria DESPUÉS de implementar
+
+Después de cualquier cambio material, Claude debe actualizar la documentación
+en la **misma sesión y en el mismo commit o conjunto inseparable de commits**.
+No dejar para una sesión futura la documentación del estado que acaba de
+cambiar.
+
+#### Siempre actualizar
+
+- [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) cuando
+  cambie el avance, validación, bloqueo, deuda técnica o estado real de una
+  subfase/módulo.
+
+Registrar como mínimo cuando aplique:
+
+```text
+- fecha
+- subfase / entregable
+- estado anterior → estado nuevo
+- commit
+- migración(es)
+- tablas/RPC/rutas afectadas
+- pruebas ejecutadas
+- resultado en remoto/deployment
+- bloqueos o deuda restante
+```
+
+#### Actualizar según el tipo de cambio
+
+- [`docs/RRHH_MVP.md`](docs/RRHH_MVP.md): todo cambio funcional, regla,
+  flujo, aceptación o estado del MVP de RRHH.
+- [`docs/MODULES.md`](docs/MODULES.md): cuando cambie el estado funcional o
+  de integración de un módulo.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md): cuando se complete/inicie una fase,
+  cambie el orden de ejecución o cambie el estado global del roadmap.
+- [`docs/DATABASE.md`](docs/DATABASE.md): tablas, columnas, índices,
+  particiones, funciones/RPC, schemas, relaciones o decisiones persistentes.
+- [`docs/MIGRATION_LOG.md`](docs/MIGRATION_LOG.md): toda migración aplicada,
+  corrección remota relevante y notas de rollback/verificación.
+- [`docs/PERMISSIONS.md`](docs/PERMISSIONS.md): nueva convención de permisos,
+  dominios, roles o cambio estructural del modelo RBAC.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): cambios de arquitectura,
+  routing, SSO, Multi-Zones, integración entre módulos, backend compartido o
+  estrategia móvil.
+- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md): cambios en componentes,
+  tokens o normas visuales universales.
+- [`docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`](docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md):
+  **solo** cuando una decisión aprobada por el usuario cambie el alcance,
+  regla de dominio, orden de fases o arquitectura objetivo.
+- [`docs/README.md`](docs/README.md): cuando se agregue, renombre, reemplace o
+  retire un documento que deba formar parte de la navegación documental.
+
+### Regla especial para Nexo Mobile
+
+Toda decisión actual de backend debe evaluarse también desde el objetivo de
+`Nexo Mobile` Android/iOS definido en el Plan Maestro. Nueva lógica de negocio
+que deba ser usada por Web y Mobile **no debe quedar encerrada únicamente en
+una Server Action de Next.js**: debe existir una capa reutilizable/RPC/servicio
+con autorización del backend.
+
+Cuando cambie la preparación o avance móvil, actualizar como mínimo:
+
+- `docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md` si cambia la estrategia aprobada;
+- `docs/IMPLEMENTATION_STATUS.md` para reflejar el avance real;
+- `docs/ARCHITECTURE.md` cuando exista una decisión arquitectónica ya
+  implementada o aprobada.
+
+### Regla de cierre de tarea
+
+**Una tarea no está terminada si el código quedó actualizado pero los
+documentos vivos quedaron mintiendo sobre el estado.** Antes de cerrar una
+tarea Claude debe comprobar:
+
+```text
+[ ] código/migraciones completados
+[ ] build/tests aplicables ejecutados
+[ ] remoto verificado cuando corresponde
+[ ] IMPLEMENTATION_STATUS actualizado
+[ ] documentos específicos afectados actualizados
+[ ] MIGRATION_LOG/DATABASE actualizados si hubo DB
+[ ] MODULES/ROADMAP actualizados si cambió estado global
+[ ] docs/README actualizado si cambió el mapa documental
+[ ] código + documentación incluidos en Git
+[ ] commit/push realizado cuando la tarea incluye subir cambios
+```
+
+No usar frases como “terminado”, “validado” o “completo” en documentación si
+solo compila o si falta E2E/remoto. Diferenciar siempre **implementado** de
+**validado**.
+
 ## REGLA CRÍTICA: monorepo, pnpm y despliegues en Vercel
 
 1. **Aislamiento de proyectos (1 app = 1 proyecto).** Este repositorio es
