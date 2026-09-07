@@ -1,56 +1,167 @@
 # Catálogo de módulos
 
-Ver el catálogo completo con equivalencias Odoo/SAP/Oracle en
-[planning/PROPUESTA_MARCA_MODULOS.md](planning/PROPUESTA_MARCA_MODULOS.md)
-sección 4. Esta tabla es el estado real de implementación, verificado
-contra Supabase `nexo-core` y Vercel (2026-09-04) — no contra la
-documentación de planeación, que puede estar desactualizada.
+> Estado funcional de alto nivel. Para objetivo y orden de implementación ver `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`; para realidad detallada ver `IMPLEMENTATION_STATUS.md`.
 
-| Módulo | Slug / ruta | Categoría | Origen | Estado |
-|---|---|---|---|---|
-| Panel (Nexo) | `/` | — | Nuevo | ✅ **Operativo** — login, grilla de módulos por permiso, en producción |
-| CRM | `/crm` | Ventas | materiales-jcastillo | ✅ **Operativo** — basePath, `nexo-core`, permisos con RLS real, en producción |
-| RRHH | `/rrhh` | RRHH | Gestor360 (`marcacion-grupo-ct`) | 🟡 **En validación** — infraestructura completa y desplegada (ver detalle abajo), MVP operativo sin probar de punta a punta con datos reales. Ver [RRHH_MVP.md](RRHH_MVP.md) |
-| Flotilla | `/flotilla` | Cadena de suministro | Ruta360 (`Desktop/Transporte`) | ⏳ Código importado (2026-08-29), sin adaptar — sigue apuntando a su Supabase original |
-| Web Corporativo | *(dominio aparte, no es módulo del panel)* | — | materiales-jcastillo | ✅ No requiere adaptación — listo tal cual (2026-08-30) |
-| Inventario | `/inventario` | Cadena de suministro | Nuevo (Fase 2) | Planeado |
-| Compras | `/compras` | Cadena de suministro | Nuevo (Fase 2) | Planeado |
-| Ventas / PdV | `/ventas` | Ventas | Nuevo (Fase 2) | Planeado |
-| Contabilidad | `/contabilidad` | Finanzas | Nuevo (Fase 2) | Planeado |
-| Proyectos | `/proyectos` | Servicios | Nuevo (Fase 3) | Planeado |
-| Mantenimiento | `/mantenimiento` | Cadena de suministro | Nuevo (Fase 3) | Planeado |
-| Soporte | `/soporte` | Servicios | Nuevo (Fase 3) | Planeado |
-| Documentos | `/documentos` | Finanzas | Nuevo (Fase 3) | Planeado |
+Actualizado: **2026-09-06**.
 
-## RRHH — qué significa "en validación"
+| Módulo / superficie | Ruta / plataforma | Estado | Nota |
+|---|---|---|---|
+| Panel Nexo | `/` | ✅ Operativo | Login, launcher y módulos por permiso. |
+| CRM | `/crm` | 🟡 Base operativa | Cliente CRUD + dashboard. Falta CRM completo: leads, oportunidades, actividades, cotizaciones y pedido. |
+| RRHH | `/rrhh` | 🟡 En validación | Infraestructura desplegada. Requiere refactor Expediente General/Laboral, contratos, PIN solo asistencia, jornadas, consolidación y planillas. |
+| Kiosko RRHH | `/rrhh/kiosco` | 🟡 Base funcional | Dispositivo + PIN. Debe migrar a PIN contractual exclusivo de asistencia. |
+| Flotilla / Transporte admin | `/flotilla` | ⏳ Código importado | Ruta360 está en el monorepo pero sin adaptar a `nexo-core`, Multi-Zones ni permisos Nexo. |
+| Panel de Conductor Web | ruta final por definir dentro de `/flotilla` | ⏳ Pendiente de adaptación | Superficie operacional distinta del panel administrativo. Login con usuario+contraseña; misma identidad que Mobile. |
+| Nexo Mobile | Android/iOS (`apps/mobile` futuro) | ⏳ Planeado | App operacional por rol; no replica toda la Web. Primera vertical: conductor/Transporte. |
+| Inventario | `/inventario` | ⏳ Planeado | Requisito previo a Fabricación. |
+| Fabricación | `/fabricacion` | ⏳ Planeado | BOM, órdenes, producción, merma, calidad y producto terminado. |
+| Web Corporativo | dominio aparte | ✅ Operativo | No forma parte del panel Nexo. |
 
-Verificado en vivo (2026-09-04), no asumido:
+---
 
-- **Listo y desplegado**: proyecto Vercel `nexo-rrhh` sirviendo bajo
-  `/rrhh` (rewrite de Multi-Zones confirmado), schema `rrhh` con sus 8
-  tablas (más particiones) aplicado a `nexo-core`, RLS + `GRANT`
-  correctos (`has_schema_privilege('authenticated', 'rrhh', 'USAGE') =
-  true`), permisos v3.0 con 37 códigos bajo `rrhh.*` en
-  `core.permissions_catalog`, `core.company_apps` con `rrhh` habilitado,
-  UI de alta de empleados (`/rrhh/expedientes/nuevo`) y kiosco de
-  marcación (`/rrhh/kiosco`) funcionando.
-- **Sin probar todavía**: no existe ningún empleado real cargado
-  (`rrhh.empleados` en 0 filas al 2026-09-04), ninguna marca de
-  asistencia, ninguna planilla. El motor que consolida marcas en horas
-  trabajadas y genera una planilla **no está construido** —
-  `/rrhh/planillas` es un placeholder explícito en el código. No se ha
-  ejecutado el recorrido completo admin → empleado marca → planilla con
-  datos de prueba.
-- Detalle de alcance, criterios de aceptación y lo que falta:
-  [RRHH_MVP.md](RRHH_MVP.md).
+# RRHH
 
-"Código importado, sin adaptar" (aplica solo a Flotilla) significa: el
-código fuente ya vive en `apps/flotilla` con su historial de git, pero
-todavía no tiene `basePath` de Multi-Zones, todavía usa su proyecto
-Supabase original (no `nexo-core`), y todavía no valida permisos contra
-`core.permissions_catalog`.
+## Estado actual conocido
 
-Cada módulo activo debe tener un `apps/<slug>/manifest.json`
-(convención descrita en
-[planning/PROPUESTA_MARCA_MODULOS.md](planning/PROPUESTA_MARCA_MODULOS.md)
-sección 5) que alimenta esta tabla y la de `core.apps` en Supabase.
+Infraestructura desplegada:
+
+- proyecto Vercel RRHH;
+- Multi-Zone `/rrhh`;
+- schema `rrhh`;
+- RLS/grants;
+- permisos;
+- expediente básico;
+- kiosko;
+- rate-limit y endurecimiento de seguridad.
+
+No validado de punta a punta:
+
+- contratos del nuevo modelo;
+- PIN contractual;
+- jornadas;
+- consolidación de asistencia;
+- incidencias;
+- motor de planillas;
+- E2E completo.
+
+Fuente: [`RRHH_MVP.md`](RRHH_MVP.md).
+
+---
+
+# Transporte / Flotilla
+
+El código de Ruta360 contiene valor reutilizable, pero no se considera adaptado a Nexo.
+
+La adaptación debe separar dos superficies:
+
+```text
+TRANSPORTE WEB
+├── Panel administrativo
+└── Panel de Conductor
+```
+
+## Panel administrativo
+
+Para usuarios con permisos de administración de flota:
+
+- vehículos;
+- conductores;
+- autorizaciones;
+- incidencias;
+- viajes;
+- liquidaciones;
+- configuraciones operativas.
+
+## Panel de Conductor
+
+Para el empleado habilitado como conductor:
+
+- viaje actual;
+- vehículo asignado;
+- inspección;
+- iniciar/continuar/finalizar viaje;
+- GPS/eventos;
+- incidencias;
+- evidencia de entrega;
+- historial;
+- liquidación/gastos cuando aplique.
+
+No debe exponer administración completa.
+
+Acceso:
+
+```text
+Empleado RRHH
++ contrato activo
++ conductor habilitado
++ identidad digital Nexo
+      ↓
+usuario + contraseña
+      ↓
+Supabase Auth
+      ↓
+permisos Transporte
+```
+
+Fuente específica: [`DRIVER_ACCESS_AND_KIOSK.md`](DRIVER_ACCESS_AND_KIOSK.md).
+
+---
+
+# Nexo Mobile
+
+Nexo Mobile no se trata como un espejo de todas las apps Web.
+
+Su contenido depende del rol y del diseño móvil aprobado.
+
+Primera vertical prevista: **conductor/Transporte**.
+
+La misma identidad digital debe servir para:
+
+```text
+Panel Conductor Web
++
+Nexo Mobile Android
++
+Nexo Mobile iOS
+```
+
+Mientras:
+
+```text
+PIN contractual = exclusivamente kiosko/asistencia
+```
+
+---
+
+# Regla de identidad
+
+No duplicar personas ni cuentas por módulo.
+
+```text
+rrhh.empleados
+      ↓
+identidad digital Nexo / auth.users
+      ↓
+roles y permisos por módulo
+```
+
+`flotilla.conductores` es una extensión operacional de un empleado, no una identidad paralela.
+
+---
+
+# Definition of Done de un módulo
+
+Un módulo no se marca `✅` solo porque:
+
+- el schema existe;
+- despliega;
+- una pantalla carga.
+
+Debe completar:
+
+1. infraestructura;
+2. flujo funcional de punta a punta;
+3. permisos/RLS;
+4. integración con fuentes de verdad;
+5. pruebas E2E;
+6. documentación actualizada.
