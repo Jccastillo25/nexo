@@ -1,14 +1,17 @@
 # Nexo — Plan Maestro de Implementación
 
-> **Fuente de verdad de ejecución.** Este documento define el orden de implementación de Nexo y el resultado funcional esperado de cada fase. Antes de modificar código o base de datos, comparar siempre este plan contra el estado remoto real, el código de `main` y `docs/IMPLEMENTATION_STATUS.md`.
+> **Fuente de verdad de ejecución.** Este documento define el orden de implementación de Nexo, sus reglas de dominio y el resultado funcional esperado de cada fase. Antes de modificar código o base de datos, comparar siempre este plan contra el estado remoto real, el código de `main` y `docs/IMPLEMENTATION_STATUS.md`.
 >
-> Decisión de negocio incorporada el **2026-09-06**: RRHH separa estrictamente **Expediente General** y **Expediente Laboral**. El **PIN no pertenece al alta general del empleado**: solo puede ser generado por el sistema al activar un contrato laboral válido. No puede generarse desde el expediente general ni mediante una acción independiente sobre `rrhh.empleados`.
+> Decisiones de negocio incorporadas el **2026-09-06**:
+> 1. RRHH separa estrictamente **Expediente General** y **Expediente Laboral**.
+> 2. El **PIN no pertenece al alta general del empleado**: solo puede ser generado automáticamente al activar un contrato laboral válido. No puede generarse desde el expediente general ni mediante una acción independiente sobre `rrhh.empleados`.
+> 3. Nexo debe quedar preparado desde ahora para una **app móvil única Nexo Mobile en Android e iOS**, compartiendo backend, identidad y permisos con la suite web.
 
 ---
 
-## 1. Objetivo de Nexo
+# 1. Objetivo de Nexo
 
-Nexo será una suite empresarial modular con un solo dominio, un solo login, permisos centralizados y una base de datos compartida por schemas.
+Nexo será una suite empresarial modular con un solo login, permisos centralizados, datos compartidos de forma controlada y flujos conectados de punta a punta.
 
 Flujo operacional objetivo:
 
@@ -17,7 +20,7 @@ CRM
   ↓
 Pedido / necesidad
   ↓
-Inventario ────── si hay existencia ───────────────┐
+Inventario ───── si hay existencia ───────────────┐
   ↓                                                │
 si requiere fabricación                            │
   ↓                                                │
@@ -32,27 +35,39 @@ Entrega / evidencia
 CRM actualizado
 ```
 
-RRHH participa transversalmente como fuente de verdad de las personas que trabajan en la operación:
+RRHH participa transversalmente:
 
 ```text
 RRHH
-├── empleados
-├── contratos
+├── Expediente General
+├── Expediente Laboral / contratos
 ├── jornadas
 ├── asistencia
 ├── planillas
 └── habilitación laboral de conductores/operadores
 ```
 
+Nexo Mobile será la superficie operativa de campo:
+
+```text
+NEXO MOBILE
+├── RRHH / autoservicio del empleado
+├── Transporte / conductor
+├── CRM / vendedor en campo
+└── Fabricación / operador de planta
+```
+
+Los módulos visibles dependerán de permisos y rol; no se crearán cuatro aplicaciones móviles independientes.
+
 ---
 
-## 2. Arquitectura que se conserva
+# 2. Arquitectura que se conserva
 
-Se mantiene la arquitectura ya adoptada por Nexo:
+Se mantiene la arquitectura actual:
 
 - monorepo Turborepo + pnpm;
-- una app Next.js por módulo en `apps/*`;
-- un proyecto Vercel por app;
+- una app Next.js por módulo web en `apps/*`;
+- un proyecto Vercel por app web;
 - dominio público único `nexo.materialesjcastillo.com`;
 - Multi-Zones mediante rewrites de `apps/nexo`;
 - un solo Supabase `nexo-core`;
@@ -67,223 +82,325 @@ No convertir Nexo en microservicios mientras no exista una necesidad técnica re
 
 ---
 
-# 3. Reglas de dominio obligatorias de RRHH
+# 3. Estrategia móvil — Android + iOS
 
-Estas reglas prevalecen sobre cualquier código o documentación anterior que las contradiga.
+## 3.1 Una sola app: `Nexo Mobile`
 
-## 3.1 Expediente General
+Objetivo de arquitectura:
 
-El **Expediente General** representa a la persona/empleado y contiene información que no depende de un contrato específico.
+```text
+apps/
+├── nexo
+├── rrhh
+├── crm
+├── flotilla
+├── fabricacion        futuro
+├── inventario         futuro
+└── mobile             futuro — Android/iOS
+```
 
-Debe incluir, según lo que esté aprobado para el MVP:
+Stack objetivo recomendado: **React Native + Expo + TypeScript**, sujeto a un spike técnico antes de comenzar el desarrollo móvil. La elección encaja con el monorepo TypeScript actual y permite compilar para Android e iOS desde una sola base de código.
 
-- código interno de empleado;
+No usar WebView como arquitectura principal. La app móvil debe ser nativa en sus capacidades operativas: cámara, GPS, almacenamiento seguro, notificaciones y trabajo offline.
+
+## 3.2 Qué debe compartirse
+
+La app móvil reutiliza:
+
+- `nexo-core`;
+- Supabase Auth;
+- `core.has_permission()`;
+- catálogo de permisos;
+- roles por app;
+- RPCs y funciones de dominio;
+- tipos de datos compartidos;
+- validaciones puras reutilizables;
+- tokens de diseño donde sean agnósticos de plataforma.
+
+No se debe intentar reutilizar directamente componentes React DOM de `@nexo/ui` dentro de React Native. Si se necesita, crear una capa `packages/mobile-ui` o compartir únicamente tokens y lógica no visual.
+
+## 3.3 Identidad y seguridad móvil
+
+La autoridad sigue siendo el backend:
+
+```text
+Dispositivo móvil
+   ↓
+Supabase Auth / sesión válida
+   ↓
+core.has_permission()
+   ↓
+RLS / RPC
+```
+
+Requisitos:
+
+- guardar sesión/token en Keychain de iOS / Keystore de Android mediante almacenamiento seguro;
+- no guardar secretos en texto plano;
+- biometría puede desbloquear localmente una sesión existente, pero no reemplaza autorización del servidor;
+- permisos del móvil son exactamente los mismos de la web;
+- una revocación de rol/contrato debe impedir nuevas operaciones aunque el dispositivo conserve UI/cache local;
+- soportar deep links/universal links cuando se implemente recuperación, notificaciones o navegación directa.
+
+## 3.4 Offline-first
+
+No todos los módulos requieren el mismo nivel offline.
+
+Prioridad:
+
+1. **Transporte** — obligatorio: viajes, inspección, GPS, fotos/eventos en cola y sincronización idempotente.
+2. **Fabricación** — deseable: órdenes asignadas, consumos/producción temporal y sincronización controlada en planta.
+3. **CRM** — parcial: clientes, actividades y tareas recientes disponibles; mutaciones sensibles pueden requerir conexión.
+4. **RRHH** — lectura/autoservicio con caché; marcación móvil solo si se aprueba posteriormente como política laboral. El kiosco físico sigue siendo un flujo distinto.
+
+Toda escritura offline debe tener:
+
+- UUID generado cliente/servidor de forma idempotente;
+- timestamp de dispositivo y timestamp autoritativo de servidor;
+- estado `pending/synced/failed`;
+- estrategia explícita de conflictos;
+- reintentos seguros;
+- auditoría de origen móvil.
+
+## 3.5 Capacidades móviles previstas
+
+### RRHH Mobile
+
+- perfil personal;
+- contrato vigente;
+- jornada;
+- historial de asistencia;
+- incidencias/justificaciones;
+- consulta de planillas/comprobantes cuando exista;
+- notificaciones laborales.
+
+El PIN contractual puede usarse en flujos operativos aprobados, pero su primera generación y regeneración siguen dependiendo del contrato y del backend.
+
+### Transporte Mobile — primera prioridad móvil
+
+Reutilizar el valor existente de Ruta360:
+
+- login operativo;
+- vehículo asignado;
+- inspección;
+- cámara;
+- GPS;
+- eventos de viaje;
+- modo offline;
+- novedades;
+- evidencia de entrega;
+- gastos/liquidación si corresponde.
+
+### CRM Mobile
+
+- clientes;
+- contactos;
+- leads;
+- oportunidades;
+- actividades;
+- llamadas/seguimientos;
+- cotización rápida cuando se defina.
+
+### Fabricación Mobile
+
+- órdenes asignadas;
+- estación/línea;
+- inicio/pausa/finalización;
+- consumo de materiales;
+- cantidades producidas;
+- mermas;
+- evidencias/fotos;
+- lectura QR/código cuando se implemente trazabilidad.
+
+## 3.6 Regla de preparación desde hoy
+
+Toda nueva lógica de negocio debe residir en DB/RPC/servicios compartibles, no exclusivamente dentro de un Server Action web.
+
+Incorrecto:
+
+```text
+Botón Next.js → lógica completa dentro de action.ts → DB
+```
+
+Preferido:
+
+```text
+Web ───────┐
+           ├── RPC/servicio de dominio → PostgreSQL
+Mobile ────┘
+```
+
+Los Server Actions web deben ser adaptadores delgados: autentican contexto, llaman permiso/RPC y traducen errores para UI.
+
+---
+
+# 4. Reglas obligatorias de dominio de RRHH
+
+Estas reglas prevalecen sobre código o documentación anterior que las contradiga.
+
+## 4.1 Expediente General
+
+Representa a la persona/empleado y contiene información que no depende de un contrato específico:
+
+- código interno;
 - nombres;
 - apellidos;
 - documento de identidad;
-- información de contacto;
-- dirección u otros datos generales cuando se habiliten;
-- información de emergencia cuando se habilite;
+- contacto;
+- dirección cuando se implemente;
+- contacto de emergencia cuando se implemente;
 - documentos generales de identidad;
-- datos administrativos no contractuales.
+- otros datos administrativos no contractuales.
 
 El Expediente General **NO es la fuente de verdad** de:
 
 - puesto;
 - departamento;
 - sucursal laboral;
-- fecha de ingreso laboral;
-- fecha de salida laboral;
+- fecha de ingreso;
+- fecha de salida;
 - modalidad contractual;
 - salario;
 - jornada;
 - estado laboral vigente;
 - PIN.
 
-Esos datos pertenecen al Expediente Laboral/Contrato.
-
-### Invariante
+Invariante:
 
 ```text
 Crear empleado ≠ contratar empleado
 ```
 
-Debe ser posible tener un Expediente General creado sin contrato y, por tanto, sin PIN y sin permiso de marcación.
+Debe ser posible crear Expediente General sin contrato, sin PIN y sin derecho a marcación.
 
----
+## 4.2 Expediente Laboral
 
-## 3.2 Expediente Laboral
-
-El **Expediente Laboral** es el historial de la relación contractual del empleado con la empresa.
-
-Un empleado puede tener múltiples contratos a lo largo del tiempo:
+Es el historial de relaciones laborales.
 
 ```text
 Empleado
-├── Contrato 2024 ─ finalizado
-├── Contrato 2025 ─ finalizado
-└── Contrato 2026 ─ vigente
+├── Contrato A — finalizado
+├── Contrato B — finalizado
+└── Contrato C — activo
 ```
 
-Para el MVP, salvo decisión futura en contrario, se aplica la regla:
+Para el MVP: un empleado solo puede tener **un contrato activo simultáneo por empresa**, salvo cambio de negocio explícito posterior.
 
-> Un empleado solo puede tener **un contrato activo simultáneo por empresa**.
+Cada contrato contiene o relaciona:
 
-Cada contrato debe contener o relacionar:
-
-- número/código de contrato;
+- número/código;
 - empleado;
 - empresa;
-- fecha de inicio;
-- fecha de finalización prevista, si aplica;
-- fecha real de finalización;
-- estado contractual;
+- fechas;
+- estado;
 - puesto;
 - departamento;
-- sucursal/centro de trabajo cuando se implemente;
+- sucursal/centro de trabajo cuando exista;
 - modalidad contractual;
-- jornada/turno asignado;
-- compensación aplicable;
-- documentos del contrato;
+- compensación;
+- jornada;
+- documentos laborales;
 - observaciones;
-- auditoría de creación, activación, modificación y finalización.
+- auditoría.
 
-Estados mínimos recomendados:
+Estados mínimos:
 
 ```text
-borrador
-   ↓
-activo
-   ↓
-finalizado
+borrador → activo → finalizado
 ```
 
-Estados adicionales permitidos cuando la implementación los necesite:
+Opcionales futuros: anulado/suspendido/vencido, solo con reglas definidas.
 
-- anulado: contrato en borrador cancelado antes de activarse;
-- suspendido: solo si se define una regla operacional clara;
-- vencido: puede derivarse por fecha o persistirse de forma controlada.
+Un contrato activado no se borra físicamente.
 
-Un contrato activado no debe borrarse físicamente. La trazabilidad laboral es histórica.
+## 4.3 PIN contractual
 
----
-
-## 3.3 Regla obligatoria del PIN
-
-El PIN es una **credencial derivada de una relación laboral activa**, no un atributo general de la persona.
-
-### Regla principal
+Regla principal:
 
 ```text
 SIN CONTRATO ACTIVO → SIN PIN
 ```
 
-### Único flujo válido de primera generación
+Único flujo de primera generación:
 
 ```text
 Expediente General
       ↓
-Crear Contrato en borrador
+Contrato borrador
       ↓
-Completar datos laborales obligatorios
+Completar datos laborales
       ↓
-Activar Contrato
+Activar contrato
       ↓
-Sistema genera PIN automáticamente
+Sistema genera PIN
       ↓
-PIN se muestra en texto plano una sola vez
+Mostrar una sola vez
       ↓
-Se almacena exclusivamente su hash
+Guardar solo hash
 ```
 
-### Prohibiciones
+Prohibido:
 
-No se permite:
+- generar PIN al crear empleado;
+- introducir PIN manual en alta general;
+- generar PIN desde la ficha general;
+- mantener `set_pin_empleado` como vía independiente sin `contrato_id`;
+- marcar sin contrato activo;
+- conservar acceso operativo luego de finalizar contrato.
 
-- generar PIN al crear `rrhh.empleados`;
-- enviar un PIN manual en `crearEmpleado`;
-- generar PIN desde una pantalla general del empleado;
-- mantener una función pública tipo `set_pin_empleado` que genere/asigne PIN sin `contrato_id`;
-- habilitar marcación a un empleado sin contrato activo;
-- conservar acceso operativo después de finalizar su contrato.
-
-### Regeneración
-
-Si el PIN debe regenerarse por pérdida o compromiso, la acción sigue perteneciendo al contrato:
+Regeneración:
 
 ```text
-Contrato activo
-   ↓
-Regenerar PIN
-   ↓
-Invalidar credencial anterior
-   ↓
-Generar PIN nuevo automáticamente
+Contrato activo → Regenerar PIN → Revocar anterior → Generar nuevo
 ```
 
-Nunca se acepta un PIN elegido manualmente por el usuario administrativo.
+El administrador no elige manualmente el PIN.
 
-La función de regeneración debe recibir `contrato_id`, comprobar que el contrato está activo y exigir el permiso correspondiente.
+Finalización de contrato:
 
-### Finalización de contrato
+- revoca credencial;
+- impide nuevas marcas;
+- impide nuevo acceso operativo dependiente del contrato;
+- conserva historia.
 
-Al finalizar un contrato:
-
-- el PIN asociado queda inmediatamente revocado;
-- el empleado deja de poder marcar;
-- cualquier acceso operativo dependiente del contrato deja de ser válido;
-- se conserva la trazabilidad histórica del contrato y de sus marcas.
-
-Si posteriormente existe una recontratación:
+Recontratación:
 
 ```text
 Nuevo contrato → nueva credencial → nuevo PIN
 ```
 
----
-
-## 3.4 Fuente única de verdad
-
-Después de la migración:
+## 4.4 Fuente única de verdad
 
 | Dato | Propietario |
 |---|---|
 | identidad/datos generales | `rrhh.empleados` |
 | relación laboral | `rrhh.contratos` |
-| puesto/departamento | contrato activo |
-| fecha de ingreso/salida | contrato |
-| salario/modalidad | compensación del contrato |
-| jornada | contrato/asignación del contrato |
-| PIN | credencial del contrato |
-| estado laboral | contrato activo, no `empleados.estado` |
-| asistencia | marca ligada a empleado **y contrato** |
-| planilla | detalle ligado a empleado **y contrato** |
-
-No duplicar estos datos en dos tablas como fuentes paralelas.
+| puesto/departamento | contrato |
+| fecha ingreso/salida | contrato |
+| salario/modalidad | compensación contractual |
+| jornada | contrato/asignación contractual |
+| PIN | credencial contractual |
+| estado laboral | contrato activo |
+| asistencia | empleado + contrato |
+| planilla | empleado + contrato |
 
 ---
 
-# 4. Modelo de datos objetivo de RRHH
+# 5. Modelo de datos objetivo RRHH
 
-El modelo exacto se implementará mediante migraciones nuevas; nunca editar migraciones ya aplicadas.
+Nunca editar migraciones ya aplicadas. El cambio se hace mediante migraciones nuevas, con backfill y deprecación gradual.
 
-## 4.1 `rrhh.empleados`
+## 5.1 `rrhh.empleados`
 
-Debe quedar como Expediente General.
+Queda como Expediente General.
 
-Campos laborales actuales como `puesto`, `departamento`, `fecha_ingreso`, `fecha_baja`, `estado` laboral y `pin_hash` deben considerarse **deuda de migración** y dejar de ser fuente de verdad.
+Los campos laborales actuales (`puesto`, `departamento`, `fecha_ingreso`, `fecha_baja`, `estado`, `pin_hash`, etc.) pasan a ser deuda de migración y dejan de ser fuente de verdad después del refactor.
 
-La eliminación física de columnas debe hacerse solo después de:
+Eliminar columnas solo después de verificar remoto, migrar datos, adaptar lectores/escritores y validar producción.
 
-1. verificar datos remotos reales;
-2. migrar/backfillear cualquier dato existente;
-3. migrar código lector/escritor;
-4. validar producción;
-5. ejecutar una migración posterior de limpieza.
+## 5.2 `rrhh.contratos`
 
-## 4.2 `rrhh.contratos`
-
-Nueva tabla contractual recomendada:
+Mínimo recomendado:
 
 ```text
 id
@@ -296,7 +413,7 @@ fecha_fin_prevista
 fecha_fin_real
 puesto
 departamento
-sucursal_id (cuando exista catálogo)
+sucursal_id (futuro)
 modalidad_contrato
 created_at / created_by
 activado_at / activado_by
@@ -304,28 +421,25 @@ finalizado_at / finalizado_by
 updated_at
 ```
 
-Debe existir un índice/constraint que impida más de un contrato activo simultáneo por empleado y empresa para el MVP.
+Constraint/índice parcial para un contrato activo simultáneo por empleado/empresa.
 
-## 4.3 `rrhh.contrato_compensacion`
+## 5.3 `rrhh.contrato_compensacion`
 
-La compensación sigue separada por sensibilidad, igual que el diseño actual de `empleado_compensacion`, pero debe pertenecer al contrato.
+Compensación sensible separada y ligada al contrato:
 
 ```text
 contrato_id
 company_id
 salario_base
 frecuencia_pago
-otros parámetros aprobados
 vigente_desde
 updated_at
 updated_by
 ```
 
-`rrhh.empleado_compensacion` se migra/depreca después de verificar datos remotos.
+Migrar/deprecar `rrhh.empleado_compensacion` después de revisar datos reales.
 
-## 4.4 `rrhh.contrato_credenciales`
-
-Credencial 1:1 o versionada por contrato:
+## 5.4 `rrhh.contrato_credenciales`
 
 ```text
 id
@@ -333,20 +447,14 @@ company_id
 contrato_id
 pin_hash
 activo
-creado_at
-creado_by
-revocado_at
-revocado_by
+creado_at / creado_by
+revocado_at / revocado_by
 rotacion_numero
 ```
 
-El PIN se genera solo mediante RPC de activación/regeneración contractual.
+El PIN activo debe ser inequívoco dentro de la empresa para que el kiosco pueda resolverlo.
 
-Requisito adicional: el PIN activo debe ser inequívoco dentro de la empresa para el kiosco, porque el kiosco autentica por PIN sin conocer previamente al empleado.
-
-## 4.5 Jornadas
-
-Mínimo necesario:
+## 5.5 Jornadas
 
 ```text
 rrhh.jornadas
@@ -355,68 +463,52 @@ rrhh.contrato_jornadas
 rrhh.feriados
 ```
 
-La jornada debe relacionarse con el contrato, no con la identidad general del empleado.
+La jornada pertenece a la relación laboral, no a la identidad general.
 
-## 4.6 Asistencia
+## 5.6 Asistencia
 
-`rrhh.asistencia_marcas` debe terminar relacionando:
+`rrhh.asistencia_marcas` debe terminar incluyendo `contrato_id`.
 
-```text
-empleado_id
-contrato_id
-kiosko_id
-tipo
-marcado_en
-origen
-```
-
-Una marca válida debe resolver un **contrato activo** en el instante de marcación.
-
-Nueva capa consolidada:
+Nueva capa:
 
 ```text
 rrhh.asistencia_resumen_diario
 ```
 
-Mínimo por contrato/empleado/día:
+Por contrato/empleado/día:
 
-- primera entrada;
-- última salida;
+- entrada/salida;
 - minutos trabajados;
-- minutos ordinarios;
-- minutos extra;
-- minutos de tardanza;
-- minutos de salida anticipada;
-- descanso aplicado;
-- estado/incidencias;
-- versión/regla utilizada para el cálculo.
+- ordinarios;
+- extra;
+- tardanza;
+- salida anticipada;
+- descanso;
+- incidencias;
+- reglas/versiones usadas.
 
-## 4.7 Planilla
+## 5.7 Planilla
 
-`rrhh.planilla_detalles` debe incorporar `contrato_id` y snapshots suficientes para reconstruir históricamente el cálculo.
+`rrhh.planilla_detalles` debe incorporar `contrato_id` y snapshots históricos:
 
-Una planilla cerrada nunca debe depender del salario o parámetros actuales para mostrar qué ocurrió en el pasado.
-
-Snapshot mínimo recomendado:
-
-- contrato_id;
 - salario aplicado;
-- modalidad aplicada;
-- jornada/reglas aplicadas;
-- horas ordinarias;
-- horas extra;
+- modalidad;
+- jornada/reglas;
+- horas;
 - bonos;
 - deducciones;
-- parámetros legales aplicados;
+- parámetros legales;
 - total.
+
+Una planilla cerrada no se recalcula con valores actuales.
 
 ---
 
-# 5. Matriz de permisos — cambio requerido antes de código nuevo
+# 6. Permisos RRHH — Paso Cero obligatorio
 
-La norma de Nexo exige Paso Cero: antes de crear tablas/UI nuevas, comparar la matriz actual con el remoto y aprobar el diff.
+Antes de tablas/UI nuevas, verificar remoto y presentar el diff de permisos.
 
-La implementación necesita como mínimo evaluar/agregar estos permisos:
+Permisos mínimos a evaluar/agregar:
 
 ```text
 rrhh.expedientes.contratos.ver
@@ -425,65 +517,51 @@ rrhh.expedientes.contratos.editar
 rrhh.expedientes.contratos.activar
 rrhh.expedientes.contratos.finalizar
 rrhh.expedientes.contratos.anular
-
 rrhh.expedientes.credenciales.ver
 rrhh.expedientes.credenciales.regenerar
 ```
 
-Los permisos existentes de `rrhh.expedientes.compensacion.*` pueden conservar su código si su semántica se migra de compensación del empleado a compensación contractual; documentar explícitamente el cambio.
+Los permisos existentes de compensación pueden mantener código si se documenta que pasan a representar compensación contractual.
 
-También revisar la relación de roles:
+Roles a revisar:
 
-- `admin`;
-- `gestor_expedientes`;
-- `supervisor_asistencia`;
-- `especialista_planillas`;
-- `consulta`.
+- admin;
+- gestor_expedientes;
+- supervisor_asistencia;
+- especialista_planillas;
+- consulta.
 
-### Regla de aprobación
-
-Claude debe:
-
-1. consultar `core.permissions_catalog`, `core.app_roles` y `core.app_role_permissions` en `nexo-core`;
-2. comparar contra el SQL versionado;
-3. presentar el diff de matriz;
-4. obtener aprobación explícita antes de aplicar la migración de permisos;
-5. solo entonces crear/migrar tablas y UI.
+Claude debe consultar `core.permissions_catalog`, `core.app_roles` y `core.app_role_permissions`, presentar el diff y obtener aprobación antes de aplicar una nueva matriz.
 
 ---
 
-# 6. FASE 1 — CERRAR RRHH
+# 7. FASE 1 — Cerrar RRHH
 
-**Esta es la primera fase de ejecución. No empezar CRM/Fabricación mientras RRHH no alcance su Definition of Done.**
+**Primera fase de ejecución. No empezar CRM/Fabricación mientras RRHH no alcance su Definition of Done.**
 
 ## F1.0 — Auditoría de realidad y baseline
 
 Antes de tocar código:
 
-- verificar rama `main` actual;
-- revisar commits posteriores a la última documentación;
-- consultar el estado remoto de `nexo-core`;
-- contar filas reales de:
-  - `rrhh.empleados`;
-  - `rrhh.empleado_compensacion`;
-  - `rrhh.asistencia_marcas`;
-  - `rrhh.planillas`;
-  - `rrhh.planilla_detalles`;
-- verificar funciones RPC actuales;
-- verificar permisos actuales;
-- verificar proyecto/deployment Vercel `nexo-rrhh`;
-- ejecutar o revisar security advisors;
-- actualizar `docs/IMPLEMENTATION_STATUS.md` con el baseline real.
+- verificar `main`;
+- revisar commits nuevos;
+- consultar `nexo-core` remoto;
+- contar filas de tablas RRHH;
+- inventariar RPCs actuales;
+- verificar permisos/roles;
+- verificar `nexo-rrhh` en Vercel;
+- revisar security advisors;
+- comparar documentación vs realidad;
+- actualizar `docs/IMPLEMENTATION_STATUS.md`.
 
-No asumir que el estado documentado el 2026-09-05 sigue siendo idéntico.
+No asumir que la verificación del 2026-09-05 sigue vigente.
 
-## F1.1 — Refactor de dominio: Expediente General vs Laboral
+## F1.1 — Separar Expediente General y Laboral
 
-Resultado esperado:
+UI objetivo:
 
 ```text
 /rrhh/expedientes/[empleado]
-
 ├── Datos generales
 ├── Expediente laboral
 │   ├── Contratos
@@ -493,354 +571,290 @@ Resultado esperado:
 └── Historial
 ```
 
-El formulario `expedientes/nuevo` solo crea datos generales.
+`expedientes/nuevo` solo crea datos generales.
 
-Debe desaparecer del alta general:
+Eliminar del alta general:
 
 - salario;
-- modalidad contractual;
-- fecha de ingreso como atributo del empleado;
-- generación/entrada de PIN;
-- cualquier credencial operacional.
+- modalidad;
+- fecha de ingreso laboral;
+- PIN;
+- credencial operacional.
 
-## F1.2 — Contratos y compensación contractual
+## F1.2 — Contratos y compensación
 
 Construir:
 
-- matriz de permisos aprobada;
+- permisos aprobados;
 - `rrhh.contratos`;
-- `rrhh.contrato_compensacion`;
+- compensación contractual;
 - RLS;
-- RPCs/Server Actions;
-- UI de listado/histórico de contratos;
-- crear contrato borrador;
-- editar borrador;
+- RPCs;
+- UI de historial;
+- crear/editar borrador;
 - activar;
-- finalizar/anular según estado.
+- finalizar/anular según reglas.
 
-Activar contrato debe ser una operación transaccional validada.
+## F1.3 — PIN exclusivamente contractual
 
-## F1.3 — PIN ligado exclusivamente al contrato
-
-Refactor obligatorio del flujo actual.
-
-Eliminar conceptualmente:
+Reemplazar:
 
 ```text
-crearEmpleado() → genera PIN
+crearEmpleado() → PIN
 ```
 
-Reemplazar por:
+por:
 
 ```text
-crearEmpleado()
-  → solo expediente general
-
-crearContrato()
-  → borrador, todavía sin PIN
-
-activarContrato()
-  → valida contrato
-  → genera credencial
-  → genera PIN
-  → muestra PIN una vez
+crearEmpleado() → solo expediente general
+crearContrato()  → borrador, sin PIN
+activarContrato()→ genera PIN automáticamente
 ```
 
-Trabajo técnico:
+Implementar:
 
-- crear `rrhh.contrato_credenciales` o estructura equivalente aprobada;
-- crear RPC `activar_contrato(...)`;
-- generación automática de PIN de 4 dígitos;
-- comprobar inequívocamente el PIN dentro de la empresa para credenciales activas;
-- almacenar bcrypt/hash, nunca texto plano;
-- devolver texto plano una sola vez;
-- deprecar `rrhh.fn_set_pin_empleado` como vía independiente;
-- modificar `registrar_marca_kiosko` para validar credencial + contrato activo;
-- finalizar contrato revoca credencial;
-- regeneración solo mediante `contrato_id` activo y permiso específico;
-- tests anti-enumeración/rate-limit existentes deben seguir funcionando.
+- credencial contractual;
+- PIN automático de 4 dígitos;
+- unicidad/inequívoco por empresa entre credenciales activas;
+- bcrypt/hash;
+- retorno en texto plano una sola vez;
+- deprecación de `set_pin_empleado` independiente;
+- kiosco valida contrato activo;
+- finalizar contrato revoca PIN;
+- regeneración recibe `contrato_id` y exige permiso;
+- mantener anti-enumeración/rate-limit.
 
-## F1.4 — Jornadas y turnos mínimos
-
-El motor de asistencia no puede calcular correctamente tardanzas/horas extra sin jornada.
+## F1.4 — Jornadas mínimas
 
 Construir:
 
-- jornada;
-- días y horas de jornada;
+- jornadas;
+- días/horarios;
 - descanso;
 - tolerancias;
-- asignación a contrato;
+- asignación contractual;
 - feriados;
-- UI mínima de configuración/asignación.
+- UI mínima.
 
-No hardcodear una jornada universal en el motor.
+No hardcodear jornada universal.
 
 ## F1.5 — Consolidación de asistencia
 
-Flujo:
-
 ```text
-marcas crudas
-   ↓
-validar pares entrada/salida
-   ↓
-resolver contrato + jornada
-   ↓
-calcular tiempo trabajado
-   ↓
-detectar incidencia
-   ↓
-resumen diario
+marcas → pares → contrato+jornada → cálculo → incidencias → resumen diario
 ```
 
 Casos mínimos:
 
 - entrada/salida correcta;
-- marca impar/faltante;
-- múltiples pares en un día;
+- marca faltante;
+- múltiples pares;
 - tardanza;
 - salida anticipada;
 - descanso;
 - horas extra;
-- día no laborable;
-- feriado;
+- feriado/no laborable;
 - contrato no vigente.
 
 ## F1.6 — Incidencias y justificaciones
 
-Construir flujo de revisión:
-
 ```text
-incidencia detectada
-  ↓
-supervisor
-  ↓
-corregir / justificar / rechazar
-  ↓
-día validado
+incidencia → supervisor → corregir/justificar/rechazar → día validado
 ```
 
-Una planilla no debe calcularse directamente desde marcas crudas no revisadas cuando existen incidencias bloqueantes.
+Planilla no debe usar marcas crudas con incidencias bloqueantes.
 
 ## F1.7 — Motor de planillas
 
-Secuencia:
-
 ```text
-crear período
-  ↓
-seleccionar contratos activos/aplicables
-  ↓
-leer asistencia consolidada
-  ↓
-leer compensación contractual
-  ↓
-leer parámetros legales vigentes
-  ↓
-aplicar movimientos
-  ↓
-generar snapshot por empleado/contrato
-  ↓
-borrador
-  ↓
-revisión/cierre
+período
+ ↓
+contratos aplicables
+ ↓
+asistencia consolidada
+ ↓
+compensación contractual
+ ↓
+parámetros legales
+ ↓
+movimientos
+ ↓
+snapshot
+ ↓
+borrador/revisión/cierre
 ```
 
-Debe existir:
+Construir movimientos, reporte por empleado, totales verificables e histórico.
 
-- generación de planilla;
-- movimientos (bonos, deducciones, ajustes);
-- reporte por empleado;
-- totales matemáticamente verificables;
-- historial inmutable/snapshot suficiente.
-
-La integración contable queda fuera del MVP mientras no exista Contabilidad.
+Contabilidad queda fuera hasta existir su módulo.
 
 ## F1.8 — Administración de kioscos
 
-Construir UI para:
+UI para listar, crear, editar, activar/desactivar y revocar kioscos. Eliminar dependencia de SQL manual para operación diaria.
 
-- listar kioscos;
-- crear;
-- activar/desactivar;
-- editar nombre/ubicación;
-- revocar;
-- ver estado básico.
+## F1.9 — Seguridad, roles y E2E
 
-Eliminar la necesidad operativa de insertar un kiosco mediante SQL manual.
+Probar:
 
-## F1.9 — Seguridad, permisos y E2E
-
-Validar al menos:
-
-- admin RRHH;
+- admin;
 - gestor de expedientes;
-- supervisor de asistencia;
-- especialista de planillas;
-- usuario autenticado sin RRHH;
+- supervisor asistencia;
+- especialista planillas;
+- usuario sin permiso;
 - kiosco anónimo autorizado;
 - kiosco inválido;
 - PIN inválido;
-- PIN de contrato finalizado;
 - empleado sin contrato;
-- rate limiting;
-- llamada RPC directa intentando evadir UI;
+- PIN de contrato finalizado;
+- llamada RPC directa;
 - RLS;
-- `SECURITY DEFINER` con `search_path` fijo;
-- security advisors sin nuevos hallazgos críticos.
+- `SECURITY DEFINER`/`search_path`;
+- security advisors.
 
-## F1.10 — Cierre del MVP RRHH
+## F1.10 — Definition of Done RRHH
 
-RRHH solo se declara terminado cuando el siguiente recorrido se ejecuta de punta a punta con datos de prueba realistas:
+Recorrido obligatorio:
 
 ```text
 1. Crear Expediente General
-2. Confirmar que NO existe PIN
+2. Confirmar SIN PIN
 3. Crear contrato borrador
-4. Confirmar que TODAVÍA NO existe PIN
+4. Confirmar todavía SIN PIN
 5. Completar compensación y jornada
 6. Activar contrato
-7. Recibir PIN generado una sola vez
-8. Marcar entrada en kiosco
+7. Recibir PIN una sola vez
+8. Marcar entrada
 9. Marcar salida
 10. Consolidar horas
-11. Resolver incidencias si existen
+11. Resolver incidencias
 12. Generar planilla de prueba
-13. Revisar reporte y total
-14. Finalizar contrato de prueba
-15. Confirmar que ese PIN ya NO permite marcar/acceder
-16. Confirmar historial general + laboral intacto
-17. Probar roles y denegaciones
+13. Verificar reporte/total
+14. Finalizar contrato
+15. Confirmar PIN revocado
+16. Confirmar historial intacto
+17. Probar roles/denegaciones
 ```
 
 ---
 
-# 7. FASE 2 — Kernel compartido de Nexo
+# 8. FASE 2 — Kernel compartido Nexo
 
-Antes de crear más apps, reducir duplicación de infraestructura.
-
-Objetivo:
+Antes de escalar módulos:
 
 - completar `@nexo/supabase`;
 - completar `@nexo/auth`;
-- centralizar middleware/session refresh;
-- centralizar tipos de base de datos generados;
-- base `tsconfig` compartida;
-- manejo homogéneo de errores de Server Actions;
-- smoke tests de SSO/permisos;
-- CI por aplicación;
-- evitar que cada módulo copie clientes Supabase propios.
+- centralizar sesión/middleware;
+- centralizar tipos generados;
+- base tsconfig;
+- errores de Server Actions homogéneos;
+- smoke tests SSO/permisos;
+- CI por app;
+- preparar contratos/API reutilizables por Nexo Mobile.
 
-No reescribir por reescribir: migrar primero RRHH y CRM a la capa común y validar antes de eliminar wrappers locales.
+Migrar primero RRHH/CRM a la capa común y validar antes de eliminar wrappers locales.
 
 ---
 
-# 8. FASE 3 — CRM MVP real
+# 9. FASE 3 — CRM MVP real
 
-El CRM existente es hoy principalmente gestión de clientes. Evolucionarlo a:
+Evolucionar el gestor actual a:
 
-1. clientes y contactos;
+1. clientes/contactos;
 2. leads;
 3. oportunidades;
 4. pipeline;
-5. actividades/seguimientos;
+5. actividades;
 6. cotizaciones;
 7. pedido comercial MVP;
-8. vista 360 del cliente;
+8. vista 360;
 9. dashboard;
-10. E2E con permisos.
+10. E2E.
 
 Flujo:
 
 ```text
-Lead → Calificado → Oportunidad → Cotización → Pedido
+Lead → Oportunidad → Cotización → Pedido
 ```
 
-El pedido será el punto de integración con Inventario/Fabricación/Transporte.
+Desde el diseño, RPCs y permisos deben poder ser consumidos también por Nexo Mobile.
 
 ---
 
-# 9. FASE 4 — Transporte / Flotilla
+# 10. FASE 4 — Transporte / Flotilla
 
-Aprovechar `apps/flotilla`; no reconstruir desde cero.
+Reutilizar `apps/flotilla`; no reconstruir.
 
-Objetivo de adaptación:
+Adaptar:
 
-- migrar schema al `nexo-core`;
-- adoptar SSO y permisos Nexo;
-- Multi-Zone `/flotilla`;
-- migrar vehículos;
+- schema a `nexo-core`;
+- SSO/permisos;
+- Multi-Zone;
+- vehículos;
 - inspecciones;
 - anomalías/autorizaciones;
 - viajes/eventos GPS;
 - evidencias;
-- liquidaciones;
-- solicitudes de despacho.
+- solicitudes de despacho;
+- liquidaciones.
 
-## Regla de identidad
-
-Transporte no vuelve a crear una persona como conductor.
+Regla de identidad:
 
 ```text
-RRHH empleado + contrato activo
-        ↓
-habilitación de conductor en Transporte
+Empleado RRHH + contrato activo
+       ↓
+Habilitación como conductor
+       ↓
+Transporte
 ```
 
-La extensión de conductor puede almacenar datos operacionales como licencia/categorías, pero nombres, identidad y relación laboral pertenecen a RRHH.
+Transportes no crea personas duplicadas.
 
-Un conductor sin contrato laboral activo no debe iniciar un nuevo viaje.
+**Esta fase debe dejar definida la primera versión operativa de Nexo Mobile**, porque conductor/GPS/cámara/offline es el caso móvil de mayor valor y ya existe lógica aprovechable en Ruta360.
 
 ---
 
-# 10. FASE 5 — Inventario mínimo
+# 11. FASE 5 — Inventario mínimo
 
-Fabricación necesita una fuente real de materiales y existencias.
-
-MVP mínimo:
+Necesario antes de Fabricación:
 
 ```text
-inventario.productos
-inventario.almacenes
-inventario.existencias
-inventario.movimientos
-inventario.reservas
+productos
+almacenes
+existencias
+movimientos
+reservas
 ```
 
-Tipos mínimos de movimiento:
+Movimientos mínimos:
 
 - entrada;
 - salida;
 - transferencia;
-- reserva;
-- liberación;
-- consumo de fabricación;
+- reserva/liberación;
+- consumo fabricación;
 - producción;
 - ajuste.
 
-Los movimientos deben ser trazables e inmutables o modificables solo mediante reversos controlados.
-
 ---
 
-# 11. FASE 6 — Fabricación
+# 12. FASE 6 — Fabricación
 
-No iniciar tablas/UI antes de su Matriz de Permisos aprobada.
+Paso Cero: matriz de permisos antes de tablas/UI.
 
-Módulos internos:
+Módulos:
 
 1. dashboard;
 2. productos fabricables;
-3. BOM/fórmulas versionadas;
-4. órdenes de fabricación;
+3. BOM versionada;
+4. órdenes;
 5. planificación;
-6. reserva de materiales;
+6. reservas;
 7. ejecución;
 8. consumos;
 9. mermas;
-10. control de calidad;
+10. calidad;
 11. producto terminado;
-12. costo estimado vs real;
+12. costos;
 13. integración CRM;
 14. integración Transporte;
 15. E2E.
@@ -848,64 +862,122 @@ Módulos internos:
 Flujo:
 
 ```text
-Pedido CRM
-  ↓
-Necesidad de fabricar
-  ↓
-Orden de fabricación
-  ↓
-BOM versionada
-  ↓
-Reserva de materia prima
-  ↓
-Producción
-  ↓
-Consumo + merma
-  ↓
-Calidad
-  ↓
-Ingreso producto terminado
-  ↓
-Disponible para despacho
+Pedido → Orden → BOM → Reserva → Producción → Consumo/Merma → Calidad → Producto terminado
 ```
 
-El cierre de una orden debe ejecutar consumo + producción + merma + cambio de estado en una sola transacción.
+El cierre debe ser transaccional.
+
+Diseñar las operaciones de planta para que después puedan consumirse desde Nexo Mobile sin duplicar lógica.
 
 ---
 
-# 12. FASE 7 — Integración completa de Nexo
+# 13. FASE 7 — Nexo Mobile Android/iOS
 
-Escenario de aceptación de la suite:
+Aunque se prepara desde Fase 1, aquí se consolida como producto distribuible.
+
+## NM-01 — Spike técnico
+
+Validar:
+
+- React Native + Expo dentro del monorepo;
+- integración con paquetes compartidos;
+- Supabase Auth;
+- almacenamiento seguro;
+- navegación/deep links;
+- cámara/GPS;
+- offline queue;
+- build Android/iOS.
+
+## NM-02 — Shell móvil
+
+- login;
+- sesión persistente segura;
+- selector/home por permisos;
+- perfil;
+- logout/revocación;
+- actualización mínima obligatoria de app cuando exista breaking API.
+
+## NM-03 — Transporte móvil
+
+Primera vertical productiva.
+
+- conductor;
+- viaje;
+- inspección;
+- GPS;
+- cámara;
+- evidencias;
+- offline-first;
+- sincronización idempotente.
+
+## NM-04 — RRHH autoservicio
+
+- datos propios;
+- contrato vigente;
+- jornada;
+- asistencia;
+- justificaciones;
+- planillas/comprobantes.
+
+## NM-05 — CRM móvil
+
+- clientes;
+- leads;
+- oportunidades;
+- actividades;
+- seguimiento.
+
+## NM-06 — Fabricación móvil
+
+- órdenes;
+- consumo;
+- producción;
+- merma;
+- calidad/evidencia;
+- QR/códigos cuando aplique.
+
+## NM-07 — Distribución
+
+Preparar:
+
+- identificadores de bundle/package estables;
+- iconografía/splash;
+- políticas de privacidad;
+- permisos de cámara/ubicación;
+- builds firmados;
+- TestFlight iOS;
+- track de pruebas de Google Play;
+- estrategia de versiones y actualización.
+
+No publicar en stores hasta completar pruebas internas y política de privacidad aplicable.
+
+---
+
+# 14. FASE 8 — Integración completa de Nexo
+
+Escenario de aceptación:
 
 ```text
-1. CRM crea cliente
-2. CRM crea oportunidad
-3. CRM emite cotización
-4. Cotización se acepta
-5. CRM confirma pedido
-6. Inventario analiza disponibilidad
-7. Si falta producto, genera necesidad de fabricación
-8. Fabricación reserva insumos
-9. Fabricación produce
-10. Calidad libera producto
-11. Inventario registra producto terminado
-12. Se genera solicitud de despacho
-13. Transporte asigna vehículo
-14. Transporte selecciona empleado/conductor con contrato RRHH activo
-15. Conductor ejecuta inspección y viaje
-16. Se captura evidencia de entrega
-17. Transporte cierra entrega
-18. CRM refleja pedido entregado
-19. Auditoría permite rastrear el recorrido completo
+1. CRM crea cliente/oportunidad/cotización/pedido
+2. Inventario evalúa disponibilidad
+3. Fabricación produce faltantes
+4. Calidad libera
+5. Inventario registra terminado
+6. Se solicita despacho
+7. Transporte selecciona conductor con contrato RRHH activo
+8. Nexo Mobile ejecuta inspección/viaje/evidencia
+9. Transporte cierra entrega
+10. CRM refleja pedido entregado
+11. Auditoría rastrea todo el recorrido
 ```
 
 ---
 
-# 13. Integraciones internas — regla técnica
+# 15. Integraciones internas — regla técnica
 
-Las apps no deben escribir directamente en schemas ajenos desde la UI.
+Las UIs no escriben directamente en schemas ajenos.
 
-Usar funciones neutrales en `core` para cambios cross-module:
+Usar funciones neutrales:
 
 ```text
 core.fn_confirmar_pedido(...)
@@ -915,82 +987,85 @@ core.fn_solicitar_despacho(...)
 core.fn_cerrar_entrega(...)
 ```
 
-Cuando los schemas viven en el mismo Postgres, estas funciones deben aprovechar transacciones atómicas.
+Web y Mobile consumen la misma lógica.
 
 ---
 
-# 14. Orden definitivo
+# 16. Orden definitivo
 
 ```text
 FASE 1  RRHH completo
-FASE 2  Kernel compartido Nexo
+FASE 2  Kernel compartido Nexo + preparación móvil
 FASE 3  CRM real
-FASE 4  Transporte adaptado
+FASE 4  Transporte adaptado + primera vertical móvil
 FASE 5  Inventario mínimo
 FASE 6  Fabricación
-FASE 7  Integración completa
+FASE 7  Nexo Mobile consolidado Android/iOS
+FASE 8  Integración completa
 ```
 
-No avanzar a la siguiente fase porque “hay muchas pantallas terminadas”. Avanzar cuando el flujo y sus criterios de aceptación estén validados.
+Nexo Mobile no empieza conceptualmente en Fase 7: **la preparación comienza en Fase 1** mediante APIs/RPCs reutilizables, identidad única, permisos y datos sin dependencia exclusiva de Next.js.
 
 ---
 
-# 15. Definition of Done universal de un módulo
-
-Un módulo se declara MVP cuando cumple cuatro niveles:
+# 17. Definition of Done universal
 
 ## Nivel A — Infraestructura
 
-- app;
-- schema;
-- permisos;
-- roles;
+- app/schema;
+- permisos/roles;
 - RLS;
-- SSO;
-- Multi-Zone;
-- deployment.
+- SSO/Auth;
+- deployment/build.
 
 ## Nivel B — Flujo funcional
 
-El caso de uso principal funciona de principio a fin con datos realistas.
+Caso principal funciona de inicio a fin.
 
 ## Nivel C — Integración
 
-Consume y entrega datos a otros módulos sin duplicar fuentes de verdad.
+No duplica fuentes de verdad y conecta módulos correctamente.
 
 ## Nivel D — Validación
 
 - admin;
 - operador;
 - sin permiso;
+- seguridad;
 - errores;
 - auditoría;
-- seguridad;
-- rollback/transacciones;
-- pruebas E2E;
+- transacciones/rollback;
+- E2E;
 - documentación actualizada.
+
+Para móvil además:
+
+- Android probado;
+- iOS probado;
+- permisos nativos correctos;
+- recuperación ante pérdida de conexión;
+- sincronización idempotente;
+- sesión almacenada de forma segura.
 
 ---
 
-# 16. Protocolo obligatorio para Claude al ejecutar este plan
+# 18. Protocolo obligatorio para Claude
 
-Claude debe tratar `docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md` y `docs/IMPLEMENTATION_STATUS.md` como fuentes de verdad operativa.
-
-En **cada sesión de implementación**:
+Claude debe tratar este documento y `docs/IMPLEMENTATION_STATUS.md` como fuentes operativas.
 
 ## Antes de programar
 
 1. Leer `CLAUDE.md`.
 2. Leer este Plan Maestro.
 3. Leer `docs/IMPLEMENTATION_STATUS.md`.
-4. Leer la documentación específica del módulo.
-5. Consultar el estado real remoto cuando la tarea dependa de Supabase/Vercel.
+4. Leer documentación del módulo.
+5. Consultar remoto si depende de Supabase/Vercel.
 6. Comparar:
 
 ```text
-PLAN ESPERADO
+PLAN
 vs
-CÓDIGO EN MAIN
+MAIN
 vs
 BASE REMOTA
 vs
@@ -999,55 +1074,64 @@ vs
 ESTADO DOCUMENTADO
 ```
 
-7. Si existe divergencia, corregir primero `IMPLEMENTATION_STATUS.md` con la realidad; no ejecutar basándose en una suposición antigua.
+7. Si difieren, corregir primero el tracker con la realidad.
 
-## Durante la implementación
+## Durante
 
-- trabajar una subfase concreta;
+- ejecutar una subfase concreta;
 - respetar Paso Cero de permisos;
-- nunca editar migraciones aplicadas;
+- no editar migraciones aplicadas;
 - usar migraciones nuevas;
-- mantener SSO/Multi-Zones/RLS;
-- no crear fuentes duplicadas de verdad;
-- no marcar una tarea como terminada solo porque compila.
+- no duplicar fuentes de verdad;
+- colocar lógica reutilizable en RPC/servicios cuando deba servir a Web + Mobile;
+- no declarar hecho solo porque compila.
 
-## Después de la implementación
+## Después
 
-Claude debe, dentro del mismo trabajo:
+Claude debe:
 
-1. verificar build/tests aplicables;
-2. verificar remoto cuando corresponda;
+1. verificar build/tests;
+2. verificar remoto cuando aplique;
 3. actualizar `docs/IMPLEMENTATION_STATUS.md`;
-4. actualizar el documento específico del módulo si cambió su realidad;
-5. actualizar `docs/ROADMAP.md`/`docs/MODULES.md` si cambió el estado del módulo;
-6. registrar evidencia: fecha, commit, migración y resultado de prueba;
-7. hacer commit de código **y documentación de estado**;
-8. subir/push al repositorio;
-9. no dejar documentación diciendo “pendiente” si ya está verificado ni “hecho” si todavía no pasó E2E.
-
-### Regla de visibilidad de avance
-
-Toda subfase debe reflejarse en GitHub mediante el tracker vivo. El usuario debe poder abrir el repo y saber:
-
-- qué está terminado;
-- qué está en curso;
-- qué está bloqueado;
-- qué falta;
-- qué se verificó realmente;
-- en qué commit/migración quedó.
+4. actualizar documentación específica;
+5. actualizar `ROADMAP.md`/`MODULES.md` si cambia estado global;
+6. registrar fecha, commit, migración y pruebas;
+7. commit de código + documentación;
+8. push al repo;
+9. dejar el estado visible y verificable en GitHub.
 
 ---
 
-# 17. Prioridad inmediata
+# 19. Prioridad inmediata
 
-La siguiente ejecución de Claude debe empezar exclusivamente por **F1.0 — Auditoría de realidad y baseline de RRHH** y luego **F1.1/F1.2**, no por el motor de planilla directamente.
-
-Motivo: el modelo actual genera el PIN durante el alta de empleado y mezcla datos laborales dentro de `rrhh.empleados`. Construir horas/planilla encima de ese modelo consolidaría una relación de dominio que acaba de ser corregida.
-
-Primero se corrige la raíz:
+La próxima ejecución debe empezar por:
 
 ```text
-Persona → Contrato → Credencial/PIN → Jornada → Asistencia → Planilla
+F1.0 Auditoría real de RRHH
+   ↓
+F1.1 Separación Expediente General / Laboral
+   ↓
+F1.2 Contratos
+   ↓
+F1.3 PIN contractual
 ```
 
-Ese es el nuevo orden funcional obligatorio de RRHH.
+No empezar por planillas porque el modelo actual todavía mezcla identidad, relación laboral y credencial.
+
+Nuevo orden obligatorio:
+
+```text
+Persona
+  ↓
+Contrato
+  ↓
+Credencial/PIN
+  ↓
+Jornada
+  ↓
+Asistencia
+  ↓
+Planilla
+```
+
+Y toda esa lógica debe quedar construida de forma reutilizable por la futura **Nexo Mobile para Android e iOS**.
