@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { hasPermission } from "@nexo/permissions";
+import { EmptyState, PageHeader } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import NuevoEmpleadoForm from "./nuevo-empleado-form";
@@ -31,22 +31,16 @@ export default async function NuevoEmpleadoPage() {
 
   if (!canCrear) {
     return (
-      <div className="nexo-glass rounded-2xl px-6 py-10 text-center text-sm text-white/60">
-        No tenés el permiso{" "}
-        <code className="text-white/80">rrhh.expedientes.empleados.crear</code> para
-        dar de alta empleados.
-      </div>
+      <EmptyState
+        title="Sin permiso para dar de alta empleados"
+        description="No tenés el permiso rrhh.expedientes.empleados.crear para esta empresa."
+      />
     );
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <Link href="/expedientes" className="text-sm text-white/50 hover:text-white">
-          ← Expedientes
-        </Link>
-      </div>
-      <h1 className="text-2xl font-semibold text-white">Nuevo empleado</h1>
+      <PageHeader title="Nuevo empleado" breadcrumb={[{ label: "Expedientes", href: "/expedientes" }]} />
       <NuevoEmpleadoForm />
     </div>
   );

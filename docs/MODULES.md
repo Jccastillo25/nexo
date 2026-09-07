@@ -2,7 +2,8 @@
 
 > Estado funcional de alto nivel. Para objetivo y orden de implementación ver `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`; para realidad detallada ver `IMPLEMENTATION_STATUS.md`.
 
-Actualizado: **2026-09-07** (F1.0-F1.4 de RRHH, ver `IMPLEMENTATION_STATUS.md`).
+Actualizado: **2026-09-07** (F1.0-F1.4 de RRHH + rediseño visual "Nexo
+Enterprise UI" transversal, ver `IMPLEMENTATION_STATUS.md`).
 
 | Módulo / superficie | Ruta / plataforma | Estado | Nota |
 |---|---|---|---|

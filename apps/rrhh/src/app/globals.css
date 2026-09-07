@@ -17,12 +17,14 @@
   --font-sans: var(--font-sans);
 }
 
-/* Dark mode por defecto (regla obligatoria, ver CLAUDE.md) — a diferencia
-   de un toggle claro/oscuro, RRHH no usa la variante `dark:` de
-   Tailwind: la paleta oscura + glass es la UNICA paleta de este modulo
-   desde el dia uno, aplicada directo (no condicional a una clase). */
+/* Nexo Enterprise UI (rediseño 2026-09-07) — reemplaza la regla anterior
+   "dark mode por defecto" (2026-09-02, ver docs/DESIGN_SYSTEM.md,
+   seccion actualizada): el fondo base del modulo pasa a ser el token
+   claro empresarial. Los tokens dark/glass (--nexo-bg, .nexo-glass) siguen
+   definidos en tokens.css y en uso exclusivamente por el kiosko
+   (pantalla inmersiva, fuera de alcance de este rediseño). */
 html,
 body {
   height: 100%;
-  background: var(--nexo-bg);
+  background: var(--nexo-enterprise-bg);
 }

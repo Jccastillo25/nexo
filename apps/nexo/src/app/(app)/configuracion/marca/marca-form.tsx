@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { BulletIcon, BULLET_ICON_NAMES } from "@nexo/ui";
+import { BulletIcon, BULLET_ICON_NAMES, FormSection, useToast } from "@nexo/ui";
 import { updateSettings, type SettingsFormState } from "./actions";
 import type { PlatformBullet, PlatformSettings } from "@/lib/platform-settings";
 
@@ -14,11 +14,13 @@ const labelClass = "text-xs font-medium uppercase tracking-wide text-neutral-500
 function ImageField({
   name,
   label,
+  hint,
   currentUrl,
   removeName,
 }: {
   name: string;
   label: string;
+  hint?: string;
   currentUrl: string | null;
   removeName: string;
 }) {
@@ -28,6 +30,7 @@ function ImageField({
   return (
     <div className="flex flex-col gap-2">
       <span className={labelClass}>{label}</span>
+      {hint && <p className="text-xs text-neutral-400">{hint}</p>}
       <div className="flex items-center gap-4">
         <div className="flex h-16 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed border-neutral-300 bg-neutral-50">
           {preview ? (
@@ -74,21 +77,26 @@ function ImageField({
   );
 }
 
-export default function AjustesForm({
-  initial,
-}: {
-  initial: PlatformSettings;
-}) {
-  const [state, formAction, isPending] = useActionState(
-    updateSettings,
-    initialState
-  );
+/**
+ * Editor de core.platform_settings — logo, imagen de fondo, favicon,
+ * textos/bullets del login y copyright de toda la plataforma. Movido de
+ * /ajustes a /configuracion/marca (Nexo Enterprise UI, 2026-09-07) —
+ * misma logica de subida (Storage `platform-assets`, upsert + cache-bust),
+ * ahora con feedback via useToast ademas del mensaje inline existente
+ * (regla obligatoria §1.10: idle→loading→success/error).
+ */
+export default function MarcaForm({ initial }: { initial: PlatformSettings }) {
+  const { show } = useToast();
+  const [state, formAction, isPending] = useActionState(async (prev: SettingsFormState, fd: FormData) => {
+    const res = await updateSettings(prev, fd);
+    if (res.error) show(res.error, "error");
+    else if (res.success) show("Cambios guardados correctamente.", "success");
+    return res;
+  }, initialState);
   const [bullets, setBullets] = useState<PlatformBullet[]>(initial.bullets);
 
   function updateBullet(index: number, patch: Partial<PlatformBullet>) {
-    setBullets((prev) =>
-      prev.map((b, i) => (i === index ? { ...b, ...patch } : b))
-    );
+    setBullets((prev) => prev.map((b, i) => (i === index ? { ...b, ...patch } : b)));
   }
 
   function removeBullet(index: number) {
@@ -96,97 +104,67 @@ export default function AjustesForm({
   }
 
   function addBullet() {
-    setBullets((prev) => [
-      ...prev,
-      { icon: "shield", title: "", description: "" },
-    ]);
+    setBullets((prev) => [...prev, { icon: "shield", title: "", description: "" }]);
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-8">
+    <form action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="bullets_json" value={JSON.stringify(bullets)} />
 
-      <section className="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-neutral-900">Imágenes</h2>
-        <ImageField
-          name="logo"
-          removeName="logo_remove"
-          label="Logo"
-          currentUrl={initial.logoUrl}
-        />
+      <FormSection title="Imágenes">
+        <ImageField name="logo" removeName="logo_remove" label="Logo" currentUrl={initial.logoUrl} />
         <ImageField
           name="background"
           removeName="background_remove"
           label="Imagen de fondo del login"
           currentUrl={initial.loginBackgroundUrl}
         />
-      </section>
+        <ImageField
+          name="favicon"
+          removeName="favicon_remove"
+          label="Favicon"
+          hint="Fuente recomendada 512×512 (PNG/ICO) — se sirve el mismo archivo para todos los tamaños del navegador."
+          currentUrl={initial.faviconUrl}
+        />
+      </FormSection>
 
-      <section className="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-neutral-900">Textos del login</h2>
-
+      <FormSection title="Textos del login">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="eyebrow_text" className={labelClass}>
             Texto pequeño (arriba del nombre)
           </label>
-          <input
-            id="eyebrow_text"
-            name="eyebrow_text"
-            defaultValue={initial.eyebrowText}
-            className={inputClass}
-          />
+          <input id="eyebrow_text" name="eyebrow_text" defaultValue={initial.eyebrowText} className={inputClass} />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="heading_text" className={labelClass}>
             Nombre (se oculta si hay logo)
           </label>
-          <input
-            id="heading_text"
-            name="heading_text"
-            defaultValue={initial.headingText}
-            className={inputClass}
-          />
+          <input id="heading_text" name="heading_text" defaultValue={initial.headingText} className={inputClass} />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="tagline" className={labelClass}>
             Tagline
           </label>
-          <input
-            id="tagline"
-            name="tagline"
-            defaultValue={initial.tagline}
-            className={inputClass}
-          />
+          <input id="tagline" name="tagline" defaultValue={initial.tagline} className={inputClass} />
         </div>
-      </section>
+      </FormSection>
 
-      <section className="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-5">
+      <FormSection title="Bullets del login">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-900">
-            Bullets del login
-          </h2>
-          <button
-            type="button"
-            onClick={addBullet}
-            className="text-xs font-medium text-blue-600 hover:text-blue-700"
-          >
+          <span className="text-xs text-neutral-400">Lista de beneficios a la izquierda del login.</span>
+          <button type="button" onClick={addBullet} className="text-xs font-medium text-blue-600 hover:text-blue-700">
             + agregar bullet
           </button>
         </div>
 
         {bullets.length === 0 && (
-          <p className="text-xs text-neutral-400">
-            Sin bullets — el login se muestra sin la lista de la izquierda.
-          </p>
+          <p className="text-xs text-neutral-400">Sin bullets — el login se muestra sin la lista de la izquierda.</p>
         )}
 
         {bullets.map((bullet, i) => (
-          <div
-            key={i}
-            className="flex flex-col gap-2 rounded-md border border-neutral-200 p-3"
-          >
+          <div key={i} className="flex flex-col gap-2 rounded-md border border-neutral-200 p-3">
             <div className="flex items-center gap-2">
               <select
                 value={bullet.icon}
@@ -219,50 +197,35 @@ export default function AjustesForm({
             </div>
             <input
               value={bullet.description}
-              onChange={(e) =>
-                updateBullet(i, { description: e.target.value })
-              }
+              onChange={(e) => updateBullet(i, { description: e.target.value })}
               placeholder="Descripción"
               className={inputClass}
             />
           </div>
         ))}
-      </section>
+      </FormSection>
 
-      <section className="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-neutral-900">
-          Copyright (toda la plataforma)
-        </h2>
+      <FormSection title="Copyright (toda la plataforma)">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="copyright_text" className={labelClass}>
             Texto de copyright
           </label>
-          <input
-            id="copyright_text"
-            name="copyright_text"
-            defaultValue={initial.copyrightText}
-            className={inputClass}
-          />
+          <input id="copyright_text" name="copyright_text" defaultValue={initial.copyrightText} className={inputClass} />
           <p className="text-xs text-neutral-400">
             Se muestra tal cual en el pie del login, del panel y de cada
             módulo — incluí el año si querés que aparezca (ej. "© 2026 Grupo
             CT").
           </p>
         </div>
-      </section>
+      </FormSection>
 
       {state.error && (
-        <p
-          role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-        >
+        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-          Guardado.
-        </p>
+        <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">Guardado.</p>
       )}
 
       <button

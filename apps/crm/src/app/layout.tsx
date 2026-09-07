@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
@@ -17,6 +16,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// Nexo Enterprise UI (2026-09-07): el <Toaster> de sonner que vivía acá se
+// retiró — ahora lo monta NexoShell (ver packages/ui/Toast.tsx) una sola
+// vez, para toda la suite (evita dos sistemas de toast compitiendo dentro
+// de (app)).
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${inter.variable} h-full antialiased`}>
@@ -24,16 +27,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         <SpeedInsights />
         <Analytics />
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: "#171717",
-              color: "#FAFAFA",
-              border: "1px solid #404040",
-            },
-          }}
-        />
       </body>
     </html>
   );

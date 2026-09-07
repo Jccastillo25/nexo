@@ -2,6 +2,60 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-09-07 — Nexo Enterprise UI: rediseño visual transversal
+
+Contexto completo en [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)
+sección 0.15. Alcance predominantemente de UI/navegación
+(`packages/ui`/`apps/nexo`/`apps/rrhh`/`apps/crm`) — solo 3 migraciones,
+ninguna toca contratos/PIN/jornadas/asistencia/planillas.
+
+**3 migraciones nuevas, aplicadas a `nexo-core` y verificadas con RPC
+real** (mismo patrón: `apply_migration` primero, archivo de Git después
+con el `version` que Supabase asignó):
+
+- `20260907223910_nexo_enterprise_ui_favicon` — aditiva:
+  `core.platform_settings.favicon_url`. `get_platform_settings`/
+  `update_platform_settings` recreadas (`DROP FUNCTION` + `CREATE` —
+  `RETURNS TABLE` cambia el tipo fila compuesto al agregar una columna,
+  `create or replace` lo rechaza con error real, confirmado al
+  intentarlo sin el drop). Probado end-to-end: `update_platform_settings`
+  con favicon → `get_platform_settings` lo devuelve; limpiado después
+  (favicon vuelto a `null`, cero residuo).
+- `20260907224007_nexo_enterprise_ui_eliminar_empleado` —
+  `rrhh.fn_eliminar_empleado`/`public.eliminar_empleado`: completa el
+  hueco de UI de "eliminar empleado" (permiso `rrhh.expedientes.
+  empleados.eliminar` y política RLS `DELETE` ya existían desde F1.1,
+  sin consumidor hasta ahora). Ajuste obligatorio del usuario: valida
+  **explícitamente** contra `rrhh.contratos` (cualquier estado) antes de
+  eliminar, con mensaje de dominio claro — no depende de la violación de
+  la FK. Verificado con 3 casos reales (sin contrato → elimina; con
+  contrato borrador → rechazado por dominio; sin permiso → rechazado),
+  cero residuo de datos de prueba.
+- `20260907224240_fix_eliminar_empleado_anon_grant` — corrección el mismo
+  turno: `get_advisors(security)` detectó que `public.eliminar_empleado`
+  quedaba ejecutable por `anon` (default privileges de Postgres al crear
+  una función nueva en `public`, mismo patrón ya visto en
+  `20260902000009_fix_crear_empleado_anon_grant`) — revocado
+  explícitamente, reverificado con `has_function_privilege`.
+
+**Kit de UI compartido**: `AppShell`/`ShellBar`/`Sidebar`/`StatCard`
+retirados de `packages/ui` (verificado por grep de `"@nexo/ui"` en todo
+el monorepo antes de borrar — cero consumidores fuera de las 3 apps
+migradas en este mismo commit); reemplazados por `NexoShell`/
+`NexoSidebar`/`NexoTopbar`/`MetricCard` + el resto del kit nuevo
+(`Breadcrumb`, `PageHeader`, `DashboardHero`, `ActivityFeed`,
+`QuickActions`, `DataTable`, `FilterBar`, `StatusBadge`, `FormTabs`,
+`FormSection`, `EmptyState`, `ConfirmDialog`, `Toast`/`useToast`).
+`Toast` envuelve `sonner` (ya era dependencia real en uso en
+`apps/crm`/`apps/rrhh`) en vez de duplicar un sistema de notificaciones —
+`sonner` se agregó como dependencia real de `packages/ui` y `apps/nexo`.
+`pnpm-lock.yaml` actualizado con `pnpm install --no-frozen-lockfile
+--lockfile-only` (el `pnpm install` normal fallaba con `EPERM` de entorno
+sobre binarios nativos de `turbo` al materializar `node_modules` — mismo
+tipo de bloqueo de Windows/OneDrive ya documentado para `tsc`; el modo
+`--lockfile-only` no escribe `node_modules`, evita el problema por
+completo).
+
 ## 2026-09-07 — F1.4: Jornadas mínimas
 
 Contexto completo en [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)

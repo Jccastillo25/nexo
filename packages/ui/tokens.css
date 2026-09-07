@@ -1,16 +1,31 @@
-/* Tokens de tema oscuro + glassmorphism — regla obligatoria "dark mode por
-   defecto + glassmorphism" (ver CLAUDE.md y docs/DESIGN_SYSTEM.md).
-   Importar junto al @source existente en cada app que consuma @nexo/ui
-   (ver docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §4.1):
+/* Tokens de Nexo. Importar junto al @source existente en cada app que
+   consuma @nexo/ui (ver docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §4.1):
 
      @import "@nexo/ui/tokens.css";
 
-   ShellBar/Sidebar/CRM NO usan estos tokens todavia (paleta clara,
-   migracion pendiente y explicitamente diferida — ver el comentario en
-   ShellBar.tsx). Un modulo o pantalla NUEVA (ej. RRHH desde 2026-09-02)
-   los usa desde el dia uno para su propio contenido: AppShell, StatCard,
-   dashboards, pantallas inmersivas como el kiosko. */
+   === Nexo Enterprise UI (tema claro, por defecto desde 2026-09-07) ===
+   Decision explicita del usuario: Light es el tema empresarial principal.
+   Reemplaza la regla anterior "dark mode por defecto" de 2026-09-02 (ver
+   docs/DESIGN_SYSTEM.md, seccion actualizada). NexoShell/NexoSidebar/
+   NexoTopbar/MetricCard y el resto del kit de packages/ui usan estos
+   tokens. Dark puede volver mas adelante como opcion — no se borra el set
+   dark/glass de abajo, sigue vigente para el kiosko (pantalla inmersiva,
+   fuera de alcance de este rediseño). */
 
+:root {
+  --nexo-enterprise-bg: #f3f4f6; /* neutral-100, fondo de la app */
+  --nexo-enterprise-surface: #ffffff; /* cards, topbar */
+  --nexo-enterprise-border: #e5e7eb; /* neutral-200 */
+  --nexo-enterprise-sidebar-bg: #0f2a5c; /* azul marino persistente */
+  --nexo-enterprise-sidebar-active: #1d4ed8; /* blue-700 */
+  --nexo-enterprise-accent: #2563eb; /* blue-600 — ya documentado en DESIGN_SYSTEM.md */
+  --nexo-enterprise-accent-hover: #1d4ed8; /* blue-700 */
+}
+
+/* === Tema oscuro + glassmorphism (kiosko unicamente) ===
+   Regla "dark mode por defecto" original de 2026-09-02, hoy acotada al
+   kiosko (pantalla inmersiva de marcacion) — ver
+   apps/rrhh/src/app/kiosco. Ningun componente del kit Enterprise UI la usa. */
 :root {
   --nexo-bg: #0a0a0f; /* fondo base, casi negro con tinte azul */
   --nexo-bg-elevated: #12121a; /* superficie de card antes del glass */
@@ -22,8 +37,7 @@
   --nexo-accent-hover: #60a5fa;
 }
 
-/* Utility de glass — una sola clase, reusada en AppShell, StatCard,
-   pantallas inmersivas (kiosko). */
+/* Utility de glass — reusada por el kiosko. */
 .nexo-glass {
   background: var(--nexo-shell-bg);
   backdrop-filter: blur(var(--nexo-glass-blur)) saturate(160%);

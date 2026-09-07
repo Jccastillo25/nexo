@@ -7,6 +7,7 @@ type MinimalSupabaseClient = {
 interface RawPlatformSettings {
   logo_url: string | null;
   login_background_url: string | null;
+  favicon_url: string | null;
   eyebrow_text: string | null;
   heading_text: string | null;
   tagline: string | null;
@@ -30,6 +31,7 @@ export interface PlatformBullet {
 export interface PlatformSettings {
   logoUrl: string | null;
   loginBackgroundUrl: string | null;
+  faviconUrl: string | null;
   eyebrowText: string;
   headingText: string;
   tagline: string;
@@ -40,6 +42,7 @@ export interface PlatformSettings {
 export const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   logoUrl: null,
   loginBackgroundUrl: null,
+  faviconUrl: null,
   eyebrowText: "Grupo CT",
   headingText: "Nexo",
   tagline: "El panel unificado de Materiales J Castillo / Grupo CT.",
@@ -79,6 +82,7 @@ export async function getPlatformSettings(
   return {
     logoUrl: data.logo_url ?? null,
     loginBackgroundUrl: data.login_background_url ?? null,
+    faviconUrl: data.favicon_url ?? null,
     eyebrowText: data.eyebrow_text ?? DEFAULT_PLATFORM_SETTINGS.eyebrowText,
     headingText: data.heading_text ?? DEFAULT_PLATFORM_SETTINGS.headingText,
     tagline: data.tagline ?? DEFAULT_PLATFORM_SETTINGS.tagline,

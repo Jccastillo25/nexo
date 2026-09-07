@@ -88,6 +88,23 @@ export async function updateSettings(
     backgroundUrl = "";
   }
 
+  // Favicon (Nexo Enterprise UI, 2026-09-07): mismo patron upsert +
+  // cache-bust que logo/fondo — ver migración
+  // 20260907223910_nexo_enterprise_ui_favicon.sql. Fuente recomendada
+  // 512x512, sin pipeline de generación de variantes (16/32/48/180/192).
+  let faviconUrl: string | null = null;
+  const faviconFile = formData.get("favicon");
+  const faviconRemove = formData.get("favicon_remove") === "on";
+  if (faviconFile instanceof File && faviconFile.size > 0) {
+    try {
+      faviconUrl = await uploadImage(admin, faviconFile, "favicon");
+    } catch (err) {
+      return { error: (err as Error).message, success: false };
+    }
+  } else if (faviconRemove) {
+    faviconUrl = "";
+  }
+
   let bullets: ReturnType<JSON["parse"]> | null = null;
   const bulletsRaw = formData.get("bullets_json");
   if (typeof bulletsRaw === "string" && bulletsRaw.trim()) {
@@ -107,15 +124,17 @@ export async function updateSettings(
     p_bullets: bullets,
     p_copyright_text:
       String(formData.get("copyright_text") ?? "").trim() || null,
+    p_favicon_url: faviconUrl,
   });
 
   if (error) {
     return { error: error.message, success: false };
   }
 
-  revalidatePath("/ajustes");
+  revalidatePath("/configuracion/marca");
   revalidatePath("/login");
   revalidatePath("/");
+  revalidatePath("/", "layout");
 
   return { error: null, success: true };
 }

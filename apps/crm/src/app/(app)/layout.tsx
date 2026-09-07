@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { hasPermission } from "@nexo/permissions";
-import { Footer } from "@nexo/ui";
-import Header from "@/components/Header";
-import AppSidebar from "@/components/AppSidebar";
+import { NexoShell } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { getPanelUrl } from "@/lib/panel";
 import { getCopyrightText } from "@/lib/platform-settings";
+import { CRM_NAV_ITEMS } from "@/lib/nav";
+import { signOut } from "@/app/login/actions";
 
 /**
  * Guard de modulo (norma v3.0): el middleware (ver
@@ -17,6 +17,10 @@ import { getCopyrightText } from "@/lib/platform-settings";
  * solo escribir la URL. `crm.ver_modulo` es el permiso que el trigger
  * `trg_seed_module_permission` crea solo al registrar el modulo en
  * core.apps — aca es donde se hace cumplir.
+ *
+ * Nexo Enterprise UI (2026-09-07): NexoShell reemplaza al grid manual +
+ * Header + AppSidebar (retirados) — mismo componente compartido que RRHH,
+ * cero duplicacion de shell entre modulos (ajuste obligatorio §8).
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -28,24 +32,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/sin-acceso");
   }
 
-  const [panelUrl, { data: { user } }, copyrightText] = await Promise.all([
+  const [panelUrl, {
+    data: { user },
+  }, copyrightText] = await Promise.all([
     getPanelUrl(),
     supabase.auth.getUser(),
     getCopyrightText(supabase),
   ]);
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-neutral-100">
-      <Header panelUrl={panelUrl} userEmail={user?.email} />
-      {/* Sidebar es un dock flotante (position: fixed), no ocupa espacio en
-          el flujo — este pl-24 le deja el margen para que el contenido no
-          quede tapado por el dock colapsado (w-16 + left-4). El item activo
-          lo calcula AppSidebar (Client Component, usePathname). */}
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-6 pl-24 sm:px-6 sm:pl-28">
-        <AppSidebar />
-        {children}
-      </main>
-      <Footer text={copyrightText} />
-    </div>
+    <NexoShell
+      moduleLabel="CRM"
+      moduleHref="/dashboard"
+      items={CRM_NAV_ITEMS}
+      userEmail={user?.email}
+      onSignOut={signOut}
+      backHref={panelUrl}
+      footerText={copyrightText}
+    >
+      {children}
+    </NexoShell>
   );
 }

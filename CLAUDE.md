@@ -345,17 +345,36 @@ proyecto remoto (`core.apps`, `core.permissions_catalog`, `core.app_roles`
 filtrados por `module_slug`, vía el MCP de Supabase) — nunca asumir el
 estado a partir de la documentación local, que puede estar desactualizada.
 
-## Regla obligatoria: dark mode por defecto + glassmorphism (reemplaza "negro solo en login")
+## Regla obligatoria: Nexo Enterprise UI — tema claro por defecto (reemplaza "dark mode por defecto")
 
-**Desde 2026-09-02, toda la suite usa tema oscuro por defecto** (no solo
-el login) **con paneles `glassmorphism`** (`.nexo-glass`: fondo
-semitransparente + `backdrop-filter: blur` + borde de 1px sutil) **y
-dashboards compactos de alta densidad**. `darkMode: "class"` fijo, nunca
-`prefers-color-scheme`. Tokens CSS y config de Tailwind:
-[`docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §4`](docs/planning/ARQUITECTURA_MVP_ESCALABLE.md#4-estándares-de-uiux-y-frontend).
-`ShellBar`/`Sidebar`/CRM siguen en paleta clara (deuda técnica reconocida,
-no se reescriben solos por esto) — un módulo o página **nueva** usa los
-tokens dark/glass desde el día uno, no copia la paleta clara vieja.
+**Desde 2026-09-07, "Nexo Enterprise UI" es la dirección visual aprobada
+de toda la suite: tema CLARO por defecto** — reemplaza la regla anterior
+de 2026-09-02 ("dark mode por defecto + glassmorphism"), que queda
+revertida por decisión explícita del usuario. Componentes:
+
+- sidebar azul persistente, colapsable en desktop, `Drawer` en
+  mobile/tablet (nunca fijo en pantalla angosta);
+- topbar con breadcrumb automático (a partir del árbol de navegación),
+  buscador, notificaciones y avatar;
+- contenido claro, cards blancas, dashboards de alta densidad con KPIs
+  reales (nunca datos mock — usar "Pendiente de integración"/
+  "Pendiente de consolidación"/`EmptyState` cuando no hay fuente real).
+
+Kit compartido en `packages/ui` (única fuente — ningún módulo duplica
+shell/topbar/sidebar/tablas/KPIs): `NexoShell`, `NexoSidebar`,
+`NexoTopbar`, `Breadcrumb`, `PageHeader`, `DashboardHero`, `MetricCard`,
+`ActivityFeed`, `QuickActions`, `DataTable`, `FilterBar`, `StatusBadge`,
+`FormTabs`, `FormSection`, `Toast`/`useToast`, `ConfirmDialog`,
+`EmptyState`. Reemplazan a `AppShell`/`ShellBar`/`Sidebar`/`StatCard`
+(retirados de `packages/ui`, ver `docs/DESIGN_SYSTEM.md`).
+
+El tema oscuro + `.nexo-glass` (tokens `--nexo-bg`/`--nexo-shell-fg`/etc.,
+`tokens.css`) sigue existiendo mismo, acotado exclusivamente al kiosko de
+RRHH (pantalla inmersiva de marcación) — ningún componente del kit
+Enterprise UI lo usa. Dark como opción general de tema podrá volver más
+adelante; no se reconstruye ahora un sistema completo de temas si no
+existe. Detalle completo, qué reemplaza a qué, y el árbol de navegación
+de referencia: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
 ## Regla obligatoria: una sola paleta y tipografía — ningún módulo tiene identidad visual propia
 

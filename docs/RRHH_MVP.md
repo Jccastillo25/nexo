@@ -175,6 +175,13 @@ pendiente, no inventada): tardanza/hora extra (regla de cálculo), pago de
 feriado, nocturnidad, doble turno, jornada especial, redondeos, turnos
 que cruzan medianoche. Ver sección 14 de este documento.
 
+**Nexo Enterprise UI (2026-09-07)**: la pantalla se separó en dos rutas —
+`/jornadas` (plantillas) y `/feriados` (calendario) — para reflejar el
+árbol de navegación "Contratación → Jornadas / Feriados". Mismos
+componentes/RPC/RLS de F1.4, sin cambios de lógica ni de DB;
+`feriados-panel.tsx` se reutiliza desde la carpeta `jornadas/` en vez de
+duplicarse.
+
 ---
 
 # 5. Kiosko
@@ -460,3 +467,41 @@ migración nueva (nunca editando `rrhh.jornada_dias`/`rrhh.feriados` para
 "forzar" el caso) y se actualiza esta sección.
 
 Hasta entonces permanece **en validación / en progreso**.
+
+# 15. Decisiones de negocio pendientes (perfil ampliado y KPIs, Nexo Enterprise UI)
+
+**No inventadas ni construidas por Claude** — quedaron explícitamente
+fuera del commit de rediseño visual (2026-09-07) porque requieren tablas/
+Storage/permisos que todavía no existen, y el propio rediseño no debía
+mezclar UI/navegación con schema nuevo:
+
+- **Catálogo Nicaragua (departamento/municipio)**: no existe ningún
+  catálogo de geografía en `core` — el `departamento` actual de
+  `rrhh.contratos` es texto libre y significa "departamento de trabajo"
+  (ej. "Ventas"), no departamento administrativo de Nicaragua. Un
+  catálogo real necesita su propia Paso Cero (¿vive en `core` para que
+  otros módulos lo reutilicen? ¿se carga con un seed fijo de los 15
+  departamentos/153 municipios oficiales?).
+- **Perfil de empleado ampliado**: dirección estructurada, familiares,
+  contacto de emergencia, tallas de uniforme, licencia (número/
+  categorías/fechas/documento), cuentas bancarias, beneficiario,
+  documentos adjuntos (cédula, INSS). Ninguno de estos campos/tablas
+  existe en `rrhh.empleados` hoy. Las pestañas correspondientes en
+  `/expedientes/[id]` (`FormTabs`) están preparadas y deshabilitadas con
+  un `EmptyState` explícito — no hay datos inventados ni columnas nuevas
+  todavía.
+- **Documentos/Storage de RRHH**: no existe ningún bucket de Storage para
+  documentos de empleado (cédula, INSS, licencia) — el único bucket real
+  hoy es `platform-assets` (marca de Nexo, no RRHH). Necesita su propia
+  decisión de privacidad (¿público o firmado?) antes de construirse.
+- **KPIs cruzados del dashboard de Nexo** (empleados/clientes/viajes en
+  un solo panel): cada dato vive en el schema de su propio módulo: una
+  agregación real requeriría una RPC nueva por módulo (o una vista
+  materializada en `core`), con su propio análisis de permisos —
+  fuera de alcance de un cambio "solo visual". El dashboard de Nexo hoy
+  muestra "Pendiente de integración" en vez de inventar un número.
+
+Cuando se apruebe cualquiera de estas decisiones, se documenta la Paso
+Cero correspondiente (matriz de permisos si aplica + modelo de datos)
+antes de escribir la migración — mismo criterio que el resto de este
+documento.

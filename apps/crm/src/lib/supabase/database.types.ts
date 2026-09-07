@@ -158,11 +158,20 @@ export type Database = {
           p_bullets?: Json;
           p_copyright_text?: string;
           p_eyebrow_text?: string;
+          p_favicon_url?: string;
           p_heading_text?: string;
           p_login_background_url?: string;
           p_logo_url?: string;
           p_tagline?: string;
         };
+        Returns: undefined;
+      };
+      // Nexo Enterprise UI (2026-09-07) — ver
+      // supabase/migrations/20260907224007_nexo_enterprise_ui_eliminar_empleado.sql.
+      // Valida en el propio RPC que el empleado no tenga ningun
+      // rrhh.contratos (cualquier estado) antes de eliminar.
+      eliminar_empleado: {
+        Args: { p_company_id: string; p_empleado_id: string };
         Returns: undefined;
       };
       // F1.4 (2026-09-07) — ver
@@ -207,6 +216,7 @@ export type Database = {
         Returns: {
           logo_url: string | null;
           login_background_url: string | null;
+          favicon_url: string | null;
           eyebrow_text: string;
           heading_text: string;
           tagline: string;

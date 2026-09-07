@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { hasPermission } from "@nexo/permissions";
+import { EmptyState, FormTabs, PageHeader } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import ContratosPanel, {
@@ -18,12 +18,22 @@ export const metadata: Metadata = {
 
 /**
  * F1.2/F1.3 (2026-09-07, docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md): ficha
- * de un empleado — Expediente General (F1.1, arriba) + Expediente
- * Laboral (contratos + credencial de asistencia, F1.2/F1.3, abajo).
- * Todos los guards de recurso son UX (norma v3.0 paso 4) — la proteccion
- * real vive en RLS y en los RPC rrhh.fn_crear_contrato/fn_editar_contrato/
- * fn_activar_contrato/fn_finalizar_contrato/fn_regenerar_pin_contrato/
+ * de un empleado — Expediente General (F1.1, pestaña "Datos personales") +
+ * Expediente Laboral (contratos + credencial de asistencia, F1.2/F1.3,
+ * seccion aparte abajo — perfil y contrato son procesos separados, regla
+ * obligatoria del rediseño §1.7). Todos los guards de recurso son UX
+ * (norma v3.0 paso 4) — la proteccion real vive en RLS y en los RPC
+ * rrhh.fn_crear_contrato/fn_editar_contrato/fn_activar_contrato/
+ * fn_finalizar_contrato/fn_regenerar_pin_contrato/
  * fn_estado_credencial_contrato.
+ *
+ * Nexo Enterprise UI (2026-09-07): el perfil ampliado (Dirección con
+ * catálogo Nicaragua, Información complementaria, Cuentas bancarias,
+ * Beneficiario, Documentos) queda deliberadamente FUERA de este commit —
+ * requiere tablas/Storage/permisos que todavía no existen (ver
+ * docs/RRHH_MVP.md §14 y la regla explícita del rediseño de no meter
+ * schema nuevo en el commit visual). Las pestañas quedan preparadas con
+ * EmptyState explicando por qué, no con datos inventados.
  */
 export default async function ExpedienteDetallePage({
   params,
@@ -59,21 +69,17 @@ export default async function ExpedienteDetallePage({
     hasPermission({ supabase, companyId }, "rrhh.expedientes.credenciales.regenerar"),
     // F1.4: rrhh.jornadas usa el mismo permiso que la plantilla de turnos
     // (ver docs/PERMISSIONS.md / migración 20260907162904) -- hoy solo
-    // admin/supervisor_asistencia lo tienen, NO gestor_expedientes. Es un
-    // gap conocido para el flujo "gestor_expedientes completa jornada del
-    // contrato" -- ver nota en el reporte de cierre de F1.4. Mientras no
-    // se apruebe extender el permiso, gestor_expedientes puede seguir
-    // asignando por RPC (tiene contratos.editar) pero no ve el listado
-    // para elegir -- el selector queda vacío para ese rol.
+    // admin/supervisor_asistencia lo tienen, NO gestor_expedientes. Gap
+    // conocido, pendiente de aprobación aparte (ver IMPLEMENTATION_STATUS.md).
     hasPermission({ supabase, companyId }, "rrhh.asistencia.turnos.ver"),
   ]);
 
   if (!canVer) {
     return (
-      <div className="nexo-glass rounded-2xl px-6 py-10 text-center text-sm text-white/60">
-        No tenés el permiso <code className="text-white/80">rrhh.expedientes.empleados.ver</code>{" "}
-        para ver esta sección.
-      </div>
+      <EmptyState
+        title="Sin permiso para ver este expediente"
+        description="No tenés el permiso rrhh.expedientes.empleados.ver para esta empresa."
+      />
     );
   }
 
@@ -128,8 +134,6 @@ export default async function ExpedienteDetallePage({
   }
 
   // F1.3: estado de la credencial del contrato activo, si hay uno.
-  // "ver" es exclusivamente estado — verEstadoCredencial nunca devuelve
-  // el PIN (rrhh.fn_estado_credencial_contrato ni siquiera lo selecciona).
   let credencial: CredencialEstado | null = null;
   if (canVerCredenciales) {
     const activo = contratos.find((c) => c.estado === "activo");
@@ -148,9 +152,6 @@ export default async function ExpedienteDetallePage({
 
   // F1.4: jornadas activas disponibles para asignar + la jornada vigente
   // (fila abierta, vigente_hasta is null) de cada contrato no finalizado.
-  // Sin RPC dedicado de lectura acá -- select directo protegido por RLS
-  // (rrhh.jornadas.ver / rrhh.contrato_jornadas.ver), mismo criterio que
-  // el resto de esta página.
   let jornadasDisponibles: JornadaOption[] = [];
   const jornadaVigentePorContrato: Record<string, JornadaVigente> = {};
   if (canVerTurnos && canVerContratos && contratos.length > 0) {
@@ -185,24 +186,39 @@ export default async function ExpedienteDetallePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
-        <Link href="/expedientes" className="text-sm text-white/50 hover:text-white">
-          ← Expedientes
-        </Link>
-      </div>
+      <PageHeader
+        title={`${empleado.nombre} ${empleado.apellido}`}
+        description={`#${empleado.codigo_empleado} · ${empleado.documento_identidad ?? "sin documento"}`}
+      />
 
-      <div className="nexo-glass rounded-2xl p-6">
-        <h1 className="text-2xl font-semibold text-white">
-          {empleado.nombre} {empleado.apellido}
-        </h1>
-        <p className="mt-1 text-sm text-white/50">
-          #{empleado.codigo_empleado} · {empleado.documento_identidad ?? "sin documento"}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-4 text-sm text-white/60">
-          <span>{empleado.email ?? "sin correo"}</span>
-          <span>{empleado.telefono ?? "sin teléfono"}</span>
-        </div>
-      </div>
+      <FormTabs
+        tabs={[
+          { key: "personales", label: "Datos personales" },
+          { key: "direccion", label: "Dirección", disabled: true },
+          { key: "complementaria", label: "Información complementaria", disabled: true },
+          { key: "bancarias", label: "Cuentas bancarias", disabled: true },
+          { key: "beneficiario", label: "Beneficiario", disabled: true },
+          { key: "documentos", label: "Documentos", disabled: true },
+        ]}
+      >
+        {(active) =>
+          active === "personales" ? (
+            <div className="grid grid-cols-1 gap-4 rounded-xl border border-neutral-200 bg-white p-5 sm:grid-cols-2">
+              <Field label="Nombres" value={empleado.nombre} />
+              <Field label="Apellidos" value={empleado.apellido} />
+              <Field label="Documento de identidad" value={empleado.documento_identidad ?? "—"} />
+              <Field label="Código de empleado" value={`#${empleado.codigo_empleado}`} />
+              <Field label="Correo" value={empleado.email ?? "—"} />
+              <Field label="Teléfono" value={empleado.telefono ?? "—"} />
+            </div>
+          ) : (
+            <EmptyState
+              title="Requiere un modelo de datos nuevo"
+              description="Esta pestaña necesita tablas/catálogos y permisos que todavía no existen (ver docs/RRHH_MVP.md §14) — pendiente de una Paso Cero aparte, no forma parte de este rediseño visual."
+            />
+          )
+        }
+      </FormTabs>
 
       {canVerContratos ? (
         <ContratosPanel
@@ -221,11 +237,20 @@ export default async function ExpedienteDetallePage({
           canRegenerarPin={canRegenerarPin}
         />
       ) : (
-        <div className="nexo-glass rounded-2xl px-6 py-8 text-center text-sm text-white/60">
-          No tenés el permiso <code className="text-white/80">rrhh.expedientes.contratos.ver</code>{" "}
-          para ver el expediente laboral.
-        </div>
+        <EmptyState
+          title="Sin permiso para ver el expediente laboral"
+          description="No tenés el permiso rrhh.expedientes.contratos.ver."
+        />
       )}
+    </div>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-medium uppercase tracking-wide text-neutral-400">{label}</span>
+      <span className="text-sm text-neutral-900">{value}</span>
     </div>
   );
 }

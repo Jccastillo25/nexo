@@ -1,0 +1,11 @@
+-- =============================================================================
+-- Correccion (mismo turno): la migracion anterior
+-- (nexo_enterprise_ui_eliminar_empleado) solo revoco EXECUTE de
+-- public.eliminar_empleado para el rol PUBLIC -- advisors de seguridad
+-- confirmaron que 'anon' seguia pudiendo ejecutarla (proyectos Supabase
+-- nuevos otorgan EXECUTE a anon/authenticated por default privileges al
+-- crear una funcion en el schema public, independiente de PUBLIC). Mismo
+-- patron ya establecido en crear_empleado/crear_contrato/etc.: revocar
+-- PUBLIC y anon explicitamente, dejar solo authenticated.
+-- =============================================================================
+revoke execute on function public.eliminar_empleado(uuid, uuid) from anon;

@@ -1,4 +1,11 @@
 @import "tailwindcss";
+/* Ruta relativa, no el specifier del paquete — mismo criterio que el
+   @source de abajo (ver su comentario). Nexo Enterprise UI (rediseño
+   2026-09-07): NexoShell/NexoSidebar/NexoTopbar usan variables como
+   --nexo-enterprise-sidebar-bg definidas acá — sin este import, esas
+   clases `bg-[var(--nexo-enterprise-*)]` resuelven a nada (sidebar
+   transparente), aunque compile sin errores. */
+@import "../../../../packages/ui/tokens.css";
 
 /* Tailwind v4 solo escanea el arbol de esta app por default — @nexo/ui
    vive en packages/ui, fuera de ese arbol, asi que sin esto cualquier
