@@ -1,53 +1,180 @@
-# Roadmap
+# Roadmap de Nexo
 
-Ver el detalle completo de fases y cronograma en
-[planning/PLAN_UNIFICACION_NEXO.md](planning/PLAN_UNIFICACION_NEXO.md)
-sección 8, y el catálogo progresivo de módulos en
-[planning/PROPUESTA_MARCA_MODULOS.md](planning/PROPUESTA_MARCA_MODULOS.md)
-sección 4.
+> El orden objetivo detallado vive en `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`. Este documento resume el avance macro. No confundir infraestructura desplegada con MVP funcional validado.
 
-Esta tabla separa dos cosas que se venían confundiendo: que la
-**infraestructura** de un módulo esté desplegada (código en producción,
-schema aplicado, permisos y RLS correctos) no significa que su **MVP
-operativo** esté validado (alguien recorrió el flujo completo con datos
-reales y funcionó). RRHH es el caso concreto: infraestructura completa,
-MVP sin recorrer todavía — ver [RRHH_MVP.md](RRHH_MVP.md).
+Actualizado: **2026-09-06**.
 
-## Infraestructura implementada
+---
 
-| Fase | Contenido | Estado |
+# 1. Infraestructura ya implementada
+
+| Área | Estado | Nota |
 |---|---|---|
-| 0 | Confirmar decisiones (nombre de la suite, dominio, naming de módulos) | ✅ Hecho — suite "Nexo", sin subdominios, Multi-Zones |
-| 1 | Crear repo monorepo, Turborepo, packages compartidos | ✅ Hecho (2026-08-29) |
-| 1.5 | Importar el código de los 4 productos existentes a `apps/*` (con historial, vía `git subtree`) | ✅ Hecho (2026-08-29) — ver [MIGRATION_LOG.md](MIGRATION_LOG.md) |
-| 2 | Provisionar `nexo-core`, tabla `core.*`, permisos v3.0 | ✅ Hecho (2026-08-30) — ver [DATABASE.md](DATABASE.md) y [PERMISSIONS.md](PERMISSIONS.md) |
-| 3 | Adaptar `web-corporativo` + `crm` (basePath, Supabase → `nexo-core`) | ✅ Hecho (2026-08-30) — schema `crm` expuesto, RLS real |
-| 4 | Construir el panel `nexo` funcional sobre los módulos ya adaptados | ✅ Hecho y verificado en vivo (2026-08-30) |
-| 6a | Adaptar `rrhh` — schema, permisos (37 códigos), RLS, `GRANT`, proyecto Vercel `nexo-rrhh`, rewrite de Multi-Zones, UI de expedientes y kiosco | ✅ Hecho y desplegado (2026-09-02 a 2026-09-04) — ver [MIGRATION_LOG.md](MIGRATION_LOG.md) y [DATABASE.md](DATABASE.md) |
-| 5 | Adaptar `flotilla` (app + datos → `nexo-core`) | ⏳ Pendiente — código ya está en el repo, falta adaptar |
-| 7 | Apagar proyectos Supabase/repos viejos (pausar, no borrar) | ⏳ Pendiente |
-| 8 | Documentación final + módulos de Fase 2 (Inventario, Compras, Ventas, Contabilidad) | ⏳ Pendiente |
+| Monorepo Turborepo/pnpm | ✅ | Base Nexo creada. |
+| `nexo-core` / `core.*` | ✅ | Supabase común, permisos y catálogo de apps. |
+| Nexo launcher | ✅ | Login, módulos y Multi-Zones operativos. |
+| CRM infraestructura | ✅ | Adaptado a `nexo-core`; MVP actual todavía es principalmente clientes. |
+| RRHH infraestructura | ✅ | Schema, RLS, permisos, expedientes básicos y kiosko desplegados. |
+| Flotilla/Ruta360 en monorepo | ✅ código importado | Falta adaptación a Nexo. |
+| Nexo Mobile | ⏳ | Arquitectura definida; `apps/mobile` todavía no existe. |
 
-## MVP operativo validado
+---
 
-Un módulo pasa a esta lista solo cuando alguien ejecutó su recorrido
-completo (no solo un componente aislado) contra datos reales o de
-prueba realistas, con los tres roles relevantes (admin, operador,
-usuario sin permiso), y quedó documentado. **RRHH no se marca como
-"Hecho" en la sección de arriba en ningún nivel de recorrido completo
-hasta que pase por aquí.**
+# 2. Correcciones de arquitectura aprobadas antes de continuar RRHH
 
-| Módulo | Recorrido probado | Estado |
+El RRHH desplegado contiene decisiones que deben refactorizarse antes de construir horas/planillas encima.
+
+## Expediente
+
+```text
+Expediente General ≠ Expediente Laboral
+```
+
+Puesto, relación laboral, salario, jornada y fechas pertenecen al contrato.
+
+## PIN
+
+```text
+SIN CONTRATO ACTIVO → SIN PIN
+PIN = SOLO ASISTENCIA
+```
+
+El PIN no se usa para login de conductor ni para crear una sesión digital.
+
+## Identidad digital
+
+```text
+usuario + contraseña → Supabase Auth
+```
+
+Una sola identidad digital Nexo por empleado, reutilizada por roles/permisos.
+
+## Conductor
+
+```text
+Empleado + contrato activo
+→ habilitar conductor
+→ crear/reutilizar identidad digital
+→ permisos Transporte
+→ Panel Conductor Web / Nexo Mobile
+```
+
+Fuente: [`DRIVER_ACCESS_AND_KIOSK.md`](DRIVER_ACCESS_AND_KIOSK.md).
+
+---
+
+# 3. Orden de implementación vigente
+
+| Fase | Objetivo | Estado |
 |---|---|---|
-| Nexo (panel) | Login, grilla de módulos por permiso, navegación a CRM y RRHH | ✅ Validado en vivo (2026-08-30, 2026-09-04) |
-| CRM | Alta/edición/baja de cliente con RLS real | ✅ Validado en vivo (2026-08-30) |
-| RRHH | Alta de empleado → marca en kiosco → consolidación de horas → planilla de prueba → reporte por empleado | ❌ **No ejecutado.** Bloqueado por: (1) motor de consolidación de horas y generación de planilla no construido (`/rrhh/planillas` es un placeholder), (2) cero empleados/marcas reales cargados, (3) prueba de acceso con los 3 roles (admin/operador/sin permiso) no ejecutada. Ver [RRHH_MVP.md](RRHH_MVP.md) para el criterio de aceptación exacto y el checklist de pruebas manuales |
-| Flotilla | — | No aplica todavía (módulo sin adaptar) |
+| 1 | **Cerrar RRHH**: expediente general/laboral, contratos, PIN solo asistencia, jornadas, consolidación, incidencias, planillas y E2E | ⏳ Próxima fase activa |
+| 2 | **Kernel compartido + identidad operacional**: `@nexo/auth`, `@nexo/supabase`, relación empleado↔Auth, provisión/restablecimiento de cuentas y APIs reutilizables | ⏳ |
+| 3 | **CRM MVP real**: leads, oportunidades, pipeline, actividades, cotizaciones y pedido | ⏳ |
+| 4 | **Transporte/Flotilla**: adaptar Ruta360, Panel Conductor Web, identidad Nexo y primera vertical Mobile | ⏳ |
+| 5 | **Inventario mínimo**: productos, almacenes, existencias, movimientos y reservas | ⏳ |
+| 6 | **Fabricación**: BOM, órdenes, reserva, producción, merma, calidad y terminado | ⏳ |
+| 7 | **Nexo Mobile Android/iOS**: consolidar shell y verticales operativas para distribución | ⏳ |
+| 8 | **Integración E2E Nexo**: CRM→Inventario→Fabricación→Transporte→Entrega | ⏳ |
 
-## Próximo hito concreto
+---
 
-Completar el motor de consolidación de marcas → horas trabajadas y el
-generador de planilla de prueba (ver "Exclusiones y próximos pasos" en
-[RRHH_MVP.md](RRHH_MVP.md)), cargar datos de prueba, y ejecutar el
-checklist de pruebas manuales de ese mismo documento antes de declarar
-RRHH con MVP validado.
+# 4. Fase 1 — RRHH
+
+Orden inmediato:
+
+```text
+F1.0 Auditoría remota/código
+ ↓
+F1.1 Expediente General / Laboral
+ ↓
+F1.2 Contratos + compensación
+ ↓
+F1.3 PIN solo asistencia
+ ↓
+F1.4 Jornadas
+ ↓
+F1.5 Consolidación
+ ↓
+F1.6 Incidencias
+ ↓
+F1.7 Planillas
+ ↓
+F1.8 Administración kioscos
+ ↓
+F1.9 Seguridad/RBAC/E2E
+ ↓
+F1.10 RRHH MVP validado
+```
+
+F1.0 debe revisar específicamente la infraestructura heredada de:
+
+- `fn_crear_empleado` generando PIN;
+- `nombre_usuario` en empleado;
+- `user_id`;
+- `fn_validar_acceso_operativo()`;
+- PIN de doble propósito;
+- compensación ligada 1:1 al empleado.
+
+No editar migraciones aplicadas; usar migraciones nuevas.
+
+---
+
+# 5. Estado MVP operativo
+
+| Módulo | Estado |
+|---|---|
+| Nexo Launcher | ✅ Validado |
+| CRM cliente CRUD | ✅ Validado como capacidad actual; no equivale al CRM completo objetivo |
+| RRHH | ❌ No validado E2E |
+| Transporte/Flotilla Nexo | ⏳ Sin adaptar |
+| Inventario | ⏳ No existe |
+| Fabricación | ⏳ No existe |
+| Nexo Mobile | ⏳ No existe app integrada |
+
+RRHH no se declara listo hasta completar el recorrido definido en [`RRHH_MVP.md`](RRHH_MVP.md).
+
+---
+
+# 6. Mobile
+
+Nexo Mobile se prepara desde Fase 1 pero se consolida en Fase 7.
+
+Principio:
+
+**No replica toda la Web.**
+
+Primera vertical productiva: **Transporte / conductor**.
+
+La misma identidad digital debe funcionar en:
+
+```text
+Panel Conductor Web
++
+Android
++
+iOS
+```
+
+mientras el PIN contractual continúa siendo exclusivo del kiosko.
+
+---
+
+# 7. Próximo hito concreto
+
+La próxima ejecución no debe empezar por el motor de planillas.
+
+Debe empezar por:
+
+```text
+F1.0 — Auditoría real de RRHH
+```
+
+Luego presentar el diff de permisos/modelo para F1.1–F1.3 y corregir primero la raíz:
+
+```text
+Persona
+├── Contrato → PIN asistencia → Kiosko
+└── Identidad digital → roles/permisos → Web/Mobile
+```
+
+Solo después continuar con jornada, consolidación y planilla.
