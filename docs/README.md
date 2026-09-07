@@ -4,40 +4,49 @@
 
 | Documento | Contenido |
 |---|---|
-| [PLAN_MAESTRO_IMPLEMENTACION_NEXO.md](PLAN_MAESTRO_IMPLEMENTACION_NEXO.md) | **Fuente de verdad del objetivo y orden de implementación.** Incluye Fase 1 RRHH, separación Expediente General/Laboral, PIN exclusivamente contractual, CRM, Transporte, Inventario, Fabricación y estrategia Nexo Mobile Android/iOS. |
-| [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | **Tracker vivo del estado real.** Claude debe comparar este archivo contra `main`, Supabase y Vercel antes y después de cada subfase y actualizarlo con commit/migraciones/pruebas. |
+| [PLAN_MAESTRO_IMPLEMENTACION_NEXO.md](PLAN_MAESTRO_IMPLEMENTACION_NEXO.md) | **Fuente de verdad del objetivo y orden de implementación.** Incluye Fase 1 RRHH, identidad digital, Panel de Conductor Web, Transporte, Inventario, Fabricación y Nexo Mobile Android/iOS. |
+| [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | **Tracker vivo del estado real.** Claude debe compararlo contra `main`, Supabase y Vercel y actualizarlo con commit/migraciones/pruebas. |
+| [DRIVER_ACCESS_AND_KIOSK.md](DRIVER_ACCESS_AND_KIOSK.md) | **Regla específica de acceso operativo.** PIN exclusivamente para asistencia; usuario+contraseña para Web/Mobile; habilitación de conductor, Supabase Auth, finalización de contrato y separación Kiosko/Panel Conductor. |
 
 ## Arquitectura y documentación viva
 
 | Documento | Contenido |
 |---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Stack, monorepo, Multi-Zones, modelo de despliegue, SSO |
-| [DATABASE.md](DATABASE.md) | Proyecto `nexo-core`, schemas por módulo, RLS, convenciones |
-| [MODULES.md](MODULES.md) | Catálogo de módulos, estado (activo/en migración/planeado) |
-| [PERMISSIONS.md](PERMISSIONS.md) | Norma de permisos v3.0, cómo registrar permisos y roles |
-| [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | Shell compartido, tokens de `packages/ui`, navegación y checklist por módulo |
-| [MIGRATION_LOG.md](MIGRATION_LOG.md) | Bitácora fecha a fecha de migraciones, cambios y rollback notes |
-| [ROADMAP.md](ROADMAP.md) | Roadmap histórico/operativo de fases; actualizar cuando cambie el estado global |
-| [RRHH_MVP.md](RRHH_MVP.md) | Documento previo del MVP de RRHH. **Debe leerse junto al Plan Maestro:** el modelo de expediente/contrato/PIN definido el 2026-09-06 en el Plan Maestro prevalece donde exista contradicción y RRHH_MVP debe actualizarse durante F1.0/F1.1. |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Monorepo, Multi-Zones, Supabase, identidad digital, kiosko, Panel Conductor y estrategia Mobile. |
+| [DATABASE.md](DATABASE.md) | Estado real de `nexo-core`, schemas, tablas, RLS y convenciones. No confundir estado actual con el modelo objetivo pendiente. |
+| [MODULES.md](MODULES.md) | Catálogo de módulos y estado funcional. |
+| [PERMISSIONS.md](PERMISSIONS.md) | Norma de permisos y roles. |
+| [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | Shell compartido, tokens y navegación Web. |
+| [MIGRATION_LOG.md](MIGRATION_LOG.md) | Historial de migraciones y verificaciones. |
+| [ROADMAP.md](ROADMAP.md) | Orden macro vigente de implementación. |
+| [RRHH_MVP.md](RRHH_MVP.md) | Definition of Done de RRHH: expediente, contrato, PIN de asistencia, jornada, consolidación, planilla y E2E. |
 
 ## Planeación y decisiones históricas
 
 | Documento | Contenido |
 |---|---|
-| [planning/PLAN_UNIFICACION_NEXO.md](planning/PLAN_UNIFICACION_NEXO.md) | Plan original de unificación: arquitectura, migración de BD, cronograma |
-| [planning/ARQUITECTURA_MVP_ESCALABLE.md](planning/ARQUITECTURA_MVP_ESCALABLE.md) | Particionamiento, pooling/read replicas, RBAC, atomicidad inter-módulo, playbook de app nueva, dark/glass |
-| [planning/PROPUESTA_MARCA_MODULOS.md](planning/PROPUESTA_MARCA_MODULOS.md) | Naming, rutas, íconos y catálogo de módulos investigado en Odoo/SAP/Oracle |
-| [planning/DISENO_UX_UI.md](planning/DISENO_UX_UI.md) | Estudio de SAP Fiori y Odoo detrás del sistema visual |
-| [planning/NORMA_DISENO_UNIVERSAL.md](planning/NORMA_DISENO_UNIVERSAL.md) | Norma de diseño completa: App Shell, launcher, Torre de Control, PWA, kiosko y reglas anti-fragmentación |
+| [planning/PLAN_UNIFICACION_NEXO.md](planning/PLAN_UNIFICACION_NEXO.md) | Plan original de unificación. |
+| [planning/ARQUITECTURA_MVP_ESCALABLE.md](planning/ARQUITECTURA_MVP_ESCALABLE.md) | Particionamiento, RBAC, atomicidad inter-módulo y playbook. |
+| [planning/PROPUESTA_MARCA_MODULOS.md](planning/PROPUESTA_MARCA_MODULOS.md) | Naming y catálogo original de módulos. |
+| [planning/DISENO_UX_UI.md](planning/DISENO_UX_UI.md) | Investigación UX/UI histórica. |
+| [planning/NORMA_DISENO_UNIVERSAL.md](planning/NORMA_DISENO_UNIVERSAL.md) | Norma de diseño y reglas anti-fragmentación. |
 
 ## Regla de lectura para implementación
 
-Antes de programar una subfase, Claude debe leer en este orden:
+Antes de programar una subfase, Claude debe leer:
 
 1. `CLAUDE.md`;
 2. `docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`;
 3. `docs/IMPLEMENTATION_STATUS.md`;
-4. documentación específica del módulo;
-5. estado remoto real cuando la tarea dependa de Supabase/Vercel.
+4. `docs/README.md`;
+5. documentación específica del módulo;
+6. `docs/DRIVER_ACCESS_AND_KIOSK.md` obligatoriamente cuando la tarea toque RRHH, kiosko, autenticación operativa, conductor, Transporte o Mobile;
+7. estado remoto real cuando dependa de Supabase/Vercel.
 
-La documentación de `planning/` conserva decisiones y propuestas históricas. Las fuentes vivas y el estado remoto prevalecen sobre una descripción histórica desactualizada.
+## Jerarquía
+
+Las decisiones funcionales vigentes y el Plan Maestro prevalecen sobre documentos históricos.
+
+`DATABASE.md` describe lo que existe; no debe modificarse para fingir que una migración objetivo ya fue aplicada.
+
+La documentación de `planning/` conserva contexto histórico, pero no prevalece sobre una decisión aprobada posterior.
