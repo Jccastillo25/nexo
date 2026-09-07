@@ -273,25 +273,35 @@ Integración contable queda fuera mientras no exista Contabilidad.
 
 # 9. Permisos
 
-Paso Cero obligatorio antes de las nuevas tablas/UI.
-
-Evaluar/agregar permisos de:
+**Paso Cero cumplido (2026-09-07)**, antes de crear ninguna tabla/UI de F1.1–F1.3 — ver `IMPLEMENTATION_STATUS.md` sección 0.10 y `docs/MIGRATION_LOG.md`. Migración `20260907151643_rrhh_contratos_permission_matrix`, 7 códigos nuevos ya en `core.permissions_catalog` (dominio `expedientes` reutilizado, no uno nuevo):
 
 ```text
-rrhh.expedientes.contratos.*
-rrhh.expedientes.credenciales.*
+rrhh.expedientes.contratos.ver
+rrhh.expedientes.contratos.crear
+rrhh.expedientes.contratos.editar
+rrhh.expedientes.contratos.activar
+rrhh.expedientes.contratos.finalizar
+rrhh.expedientes.credenciales.ver
+rrhh.expedientes.credenciales.regenerar
 ```
+
+Asignación ya aplicada en `core.app_role_permissions`:
+
+| Permiso | admin | gestor_expedientes | supervisor_asistencia | especialista_planillas | consulta |
+|---|---:|---:|---:|---:|---:|
+| contratos.ver | ✅ | ✅ | — | — | — |
+| contratos.crear | ✅ | ✅ | — | — | — |
+| contratos.editar | ✅ | ✅ | — | — | — |
+| contratos.activar | ✅ | — | — | — | — |
+| contratos.finalizar | ✅ | — | — | — | — |
+| credenciales.ver | ✅ | ✅ | ✅ | — | — |
+| credenciales.regenerar | ✅ | — | — | — | — |
+
+`credenciales.ver` es exclusivamente estado de la credencial (activa/bloqueada) — nunca el PIN en texto plano; el PIN se muestra una única vez, en `contratos.activar` o `credenciales.regenerar`.
 
 Los permisos actuales de compensación pueden conservar nomenclatura si se documenta su semántica contractual.
 
-Roles a validar:
-
-- admin;
-- gestor_expedientes;
-- supervisor_asistencia;
-- especialista_planillas;
-- consulta;
-- usuario sin RRHH.
+Identidad digital (`core.identidad.cuenta.*`) y habilitación de conductor (`flotilla.conductores.*`) quedan como diseño objetivo documentado, sin implementar — no forman parte del Paso Cero de RRHH ni del cierre de F1.1–F1.3. Ver `IMPLEMENTATION_STATUS.md` sección 0.10.
 
 ---
 

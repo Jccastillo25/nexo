@@ -2,7 +2,7 @@
 
 Orden de bitácora: más reciente arriba.
 
-## 2026-09-07 — F1.0 (auditoría real) + F1.0.1 (cierre D-06, PIN heredado expuesto)
+## 2026-09-07 — F1.0 + F1.0.1 (cierre D-06) + Paso Cero (matriz de contratos/credenciales)
 
 Contexto completo en [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)
 sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
@@ -37,6 +37,27 @@ sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
     `version` que Supabase asignó (`20260907151106`) — evita a propósito
     la divergencia de historial que ocurrió el 2026-09-05 (ver entrada de
     abajo), sin necesitar ninguna reparación posterior.
+- **1 migración más, Paso Cero de permisos, aplicada y verificada**
+  (`20260907151643_rrhh_contratos_permission_matrix`, rama
+  `docs/paso-cero-matriz-contratos` → `main`), aprobada explícitamente
+  por el usuario antes de cualquier tabla/UI de F1.1–F1.3:
+  - Inserta 7 códigos nuevos en `core.permissions_catalog`, reutilizando
+    el dominio `expedientes` ya existente:
+    `rrhh.expedientes.contratos.{ver,crear,editar,activar,finalizar}`,
+    `rrhh.expedientes.credenciales.{ver,regenerar}`.
+  - Asigna en `core.app_role_permissions`: `admin` los 7;
+    `gestor_expedientes` ver/crear/editar de contratos + ver de
+    credenciales; `supervisor_asistencia` solo ver de credenciales;
+    `especialista_planillas`/`consulta` ninguno de los 7.
+  - No inserta `core.identidad.cuenta.*` (capacidad transversal de Core,
+    diseño objetivo sin implementar) ni `flotilla.conductores.acceso.*`
+    (eliminado de la propuesta — la provisión/bloqueo de identidad es
+    exclusiva de `core.identidad`) — decisión explícita del usuario.
+  - Verificado post-aplicación con una consulta directa a
+    `core.app_role_permissions` filtrada por los 7 códigos: coincide
+    exactamente con la tabla de asignación aprobada.
+  - Mismo patrón de versión que la migración anterior: aplicada primero,
+    archivo de Git escrito después con el `version` real (`20260907151643`).
 
 ## 2026-09-05 — Auditoría de seguridad de RRHH cerrada en producción + fix de ruteo del kiosco
 

@@ -88,6 +88,38 @@ Aprobado por el usuario como hotfix inmediato, sin esperar a F1.3. Migración nu
 
 D-06 queda **parcialmente cerrado**: el componente de seguridad inmediato (exposición a `anon`/`authenticated`) está resuelto; el refactor arquitectónico completo (eliminar el concepto de PIN-de-doble-propósito y construir identidad digital real) sigue pendiente de F1.3/Fase 2.
 
+## 0.10 Paso Cero — matriz de permisos de contratos/credenciales, APLICADA (2026-09-07)
+
+Aprobada explícitamente por el usuario con nomenclatura y asignación exactas. Migración `20260907151643_rrhh_contratos_permission_matrix`, reutiliza el dominio `expedientes` ya existente (no crea un dominio `contratos` nuevo):
+
+```text
+rrhh.expedientes.contratos.ver
+rrhh.expedientes.contratos.crear
+rrhh.expedientes.contratos.editar
+rrhh.expedientes.contratos.activar
+rrhh.expedientes.contratos.finalizar
+rrhh.expedientes.credenciales.ver
+rrhh.expedientes.credenciales.regenerar
+```
+
+Asignación aplicada y verificada en remoto (`core.app_role_permissions`):
+
+| Permiso | admin | gestor_expedientes | supervisor_asistencia | especialista_planillas | consulta |
+|---|---:|---:|---:|---:|---:|
+| contratos.ver | ✅ | ✅ | — | — | — |
+| contratos.crear | ✅ | ✅ | — | — | — |
+| contratos.editar | ✅ | ✅ | — | — | — |
+| contratos.activar | ✅ | — | — | — | — |
+| contratos.finalizar | ✅ | — | — | — | — |
+| credenciales.ver | ✅ | ✅ | ✅ | — | — |
+| credenciales.regenerar | ✅ | — | — | — | — |
+
+`credenciales.ver` es exclusivamente estado de la credencial (activa/bloqueada) — nunca el PIN en texto plano. El PIN solo se muestra una vez, en `contratos.activar` o `credenciales.regenerar`.
+
+**Explícitamente NO incluido** (decisión del usuario, diseño objetivo documentado pero sin implementar): `core.identidad.cuenta.ver/provisionar/bloquear/restablecer` — capacidad transversal de Nexo (Core), no de RRHH; no se asigna a `rrhh.admin`. `flotilla.conductores.acceso.*` — eliminado de la propuesta, la provisión/bloqueo de identidad es exclusiva de `core.identidad`, nunca duplicada por módulo. `flotilla.conductores.perfil.*`/`viajes.*` quedan previstos para el Paso Cero de Fase 4, sin insertar todavía.
+
+Con esto, el Paso Cero de permisos para F1.1–F1.3 queda cerrado. Próximo paso: F1.1.
+
 ## 0.8 Deuda general no bloqueante para RRHH (detectada de paso)
 
 `get_advisors(performance)` reporta deuda pre-existente fuera del alcance de F1.0: `auth_rls_initplan` sin optimizar todavía en 3 policies de `core.company_memberships`, `core.user_app_roles` y `crm.clientes` (no en `rrhh` — las 25 policies de RRHH ya usan el patrón `(select auth.uid())` desde el 2026-09-05), más FKs sin índice de cobertura e índices sin uso (esperable con 0 filas). No se toca en esta sesión — es candidato a una migración de rendimiento aparte, sin relación con el refactor de contratos/PIN.
@@ -390,13 +422,11 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 # 7. Próxima acción obligatoria
 
 ```text
-F1.0 — Auditoría de realidad RRHH  ✅ completada 2026-09-07 (sección 0)
+F1.0   — Auditoría de realidad RRHH        ✅ completada 2026-09-07 (sección 0)
+F1.0.1 — Cierre PIN heredado (D-06)        ✅ completada 2026-09-07 (sección 0.9)
+Paso Cero — Matriz contratos/credenciales  ✅ aplicada 2026-09-07 (sección 0.10)
  ↓
-Paso Cero — Permission & Role Matrix Diff para contratos, credenciales
-PIN, identidad digital y habilitación de conductor — presentado en
-Markdown + SQL de referencia, PENDIENTE DE APROBACIÓN explícita del
-usuario. NO aplicar el diff ni las migraciones de F1.1–F1.3 hasta esa
-aprobación.
+F1.1 — Separar Expediente General/Laboral  ⏳ próximo trabajo
 ```
 
 La comparación explícita de F1.0 ya se ejecutó y quedó registrada en la sección 0:

@@ -1,10 +1,11 @@
 # Base de datos de Nexo
 
-Estado (verificado contra el proyecto remoto, 2026-09-05): schema `core`
+Estado (verificado contra el proyecto remoto, 2026-09-07): schema `core`
 aplicado (2026-08-30), schema `crm` aplicado y en producción (2026-08-30),
 **schema `rrhh` aplicado y en producción (2026-09-02 a 2026-09-04),
-auditoría de seguridad cerrada y verificada (2026-09-05)**. `flotilla`
-todavía no existe.
+auditoría de seguridad cerrada y verificada (2026-09-05), F1.0 (auditoría
+real) + F1.0.1 (cierre de PIN heredado) + Paso Cero de contratos/credenciales
+completados (2026-09-07)**. `flotilla` todavía no existe.
 
 ## Proyecto
 
@@ -13,7 +14,7 @@ todavía no existe.
 - Organización: `Grupo CT` (`uahxpcssvfzlfxcvtvhu`)
 - Región: `us-east-1`
 - Plan: gratuito ($0/mes)
-- 29 migraciones aplicadas al remoto (`list_migrations`, 2026-09-05): las
+- 32 migraciones aplicadas al remoto (`list_migrations`, 2026-09-07): las
   24 previas + las 5 de la auditoría de seguridad de RRHH
   (`20260905000001` a `20260905000005`), aplicadas con `apply_migration`
   del MCP de Supabase. El historial remoto (`supabase_migrations.schema_migrations`)
@@ -21,9 +22,13 @@ todavía no existe.
   timestamp de cada archivo — corregido el mismo día con una reparación
   transaccional (`UPDATE` de la columna `version`, con verificación y
   `ROLLBACK` automático ante discrepancia; no tocó ninguna otra columna
-  ni el esquema). Confirmado: las 29 versiones en el remoto coinciden
-  1:1 con los archivos de [`supabase/migrations/`](../supabase/migrations/)
-  — sin drift a esta fecha.
+  ni el esquema). Confirmado en F1.0 (2026-09-07): las 30 versiones de
+  entonces coincidían 1:1 con `main` — sin drift. Las 2 migraciones más
+  recientes (`20260907151106` cierre de D-06, `20260907151643` Paso Cero
+  de contratos/credenciales) se aplicaron primero con `apply_migration`
+  y el archivo de Git se escribió después usando el mismo `version` que
+  Supabase asignó — evita a propósito la divergencia de historial del
+  2026-09-05, sin necesitar ninguna reparación.
 
 ## Schemas
 
@@ -56,13 +61,22 @@ evita exponer tablas sensibles como `user_permissions` directo a la API.
   `rrhh` habilitados (`enabled = true`, verificado 2026-09-04); `flotilla`
   no tiene fila todavía
 - `core.permissions_catalog` — catálogo único de códigos de permiso
-  `[app].[modulo].[recurso].[accion]`. 37 códigos bajo `rrhh.*` (dominios
+  `[app].[modulo].[recurso].[accion]`. 45 códigos bajo `rrhh.*` (dominios
   `expedientes`, `asistencia`, `planillas`, más `rrhh.ver_modulo`) además
-  de los de `crm.*` y los 4 de visibilidad de módulo
+  de los de `crm.*` y los 4 de visibilidad de módulo. **Actualizado
+  2026-09-07 (Paso Cero F1.0.1)**: +7 códigos nuevos bajo
+  `rrhh.expedientes.contratos.*` (`ver`/`crear`/`editar`/`activar`/`finalizar`)
+  y `rrhh.expedientes.credenciales.*` (`ver`/`regenerar`), preparando F1.1–F1.3
+  — el dominio `expedientes` se reutiliza, no se crea uno nuevo
+  (`20260907151643_rrhh_contratos_permission_matrix.sql`)
 - `core.app_roles` / `core.app_role_permissions` — roles con alcance por
-  app (`app_scoped_roles`, 2026-09-02): para `rrhh`, los roles
+  app (`app_scoped_roles`, 2026-09-02): para `rrhh`, 5 roles —
   `admin`, `supervisor_asistencia`, `gestor_expedientes`,
-  `especialista_planillas` (ver [PERMISSIONS.md](PERMISSIONS.md))
+  `especialista_planillas` y `consulta` (ver [PERMISSIONS.md](PERMISSIONS.md)).
+  Asignación de los 7 permisos de contratos/credenciales (2026-09-07):
+  `admin` los 7; `gestor_expedientes` ver/crear/editar de contratos +
+  ver de credenciales; `supervisor_asistencia` solo ver de credenciales;
+  `especialista_planillas`/`consulta` ninguno
 - `core.user_permissions`, `core.audit_log` (particionada mensualmente
   desde 2026-09-02), `core.migration_map`
 - `core.tablas_particionadas` — registro genérico de qué tablas
@@ -105,6 +119,8 @@ completo de cada una:
 20260905000003_rrhh_rls_wrap_auth_uid_initplan
 20260905000004_revoke_rrhh_internal_public_execute
 20260905000005_rrhh_public_auth_hardening
+20260907151106_revoke_validar_acceso_operativo_public_execute
+20260907151643_rrhh_contratos_permission_matrix
 ```
 
 Las últimas 5 (auditoría de seguridad de RRHH, 2026-09-05) se aplicaron
