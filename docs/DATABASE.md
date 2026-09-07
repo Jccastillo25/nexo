@@ -160,7 +160,7 @@ Todas `SECURITY DEFINER`, con `search_path` fijado explícitamente
 | Función (`public.*`, wrapper) | Función real (`rrhh.*`) | Rol que la ejecuta | Qué hace |
 |---|---|---|---|
 | `registrar_marca_kiosko(pin, kiosko_id)` | `fn_registrar_marca_kiosko` | `anon`, `authenticated` **a propósito** (el kiosko no tiene sesión) — función interna sin `EXECUTE` para nadie más que su dueño desde `20260905000005` | Valida formato de PIN y bcrypt contra empleados activos de la empresa del kiosko (nunca recibe `company_id` del cliente, siempre lo deriva del `kiosko_id`), aplica el rate-limit persistente de `rrhh.kiosko_rate_limits` (8 fallos/1min → bloqueo 5min, el bloqueo siempre prevalece sobre el reinicio de ventana), alterna entrada/salida, inserta en `asistencia_marcas`. Rechaza con `RETURN` (nunca `RAISE EXCEPTION`, para no revertir el contador de intentos). No devuelve datos personales del empleado |
-| `validar_acceso_operativo(nombre_usuario, pin)` | `fn_validar_acceso_operativo` | `anon`, `authenticated` **a propósito** (login inicial del módulo móvil) — función interna sin `EXECUTE` para nadie más que su dueño desde `20260905000005` | Valida credencial, bloquea a 3 fallos consecutivos, registra fallidos en `seguridad_accesos`, devuelve `auth.users.id` si es válido. Rechaza con `RETURN NULL` (corrige un bug real: antes usaba `RAISE EXCEPTION` después de escribir el intento fallido, lo que revertía esa escritura y el bloqueo a 3 fallos nunca persistía) |
+| `validar_acceso_operativo(nombre_usuario, pin)` | `fn_validar_acceso_operativo` | **Ninguno** — `EXECUTE` revocado de `anon`/`authenticated` desde `20260907151106` (F1.0.1, D-06). Ambas funciones quedan `comment on function`-marcadas como **DEPRECADAS**: el diseño de "PIN de doble propósito" (login operativo con el mismo PIN del kiosko) fue rechazado como arquitectura final por `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`/`DRIVER_ACCESS_AND_KIOSK.md` §10. Sin consumidores reales en el código (verificado F1.0). No eliminadas todavía — pendiente de una migración de limpieza aparte, junto con `rrhh.seguridad_accesos` y las columnas `nombre_usuario`/`user_id`/`pin_bloqueado`/`intentos_fallidos` de `rrhh.empleados` | Valida credencial, bloquea a 3 fallos consecutivos, registra fallidos en `seguridad_accesos`, devuelve `auth.users.id` si es válido. Rechaza con `RETURN NULL` (corrige un bug real: antes usaba `RAISE EXCEPTION` después de escribir el intento fallido, lo que revertía esa escritura y el bloqueo a 3 fallos nunca persistía). **Deprecada desde 2026-09-07** — no usar como base de ningún código nuevo |
 | `crear_empleado(...)` | `fn_crear_empleado` | Solo `authenticated` (revocado de `anon` y `PUBLIC` explícitamente, en la función interna y en el wrapper, desde `20260905000001`/`004`) | Alta de empleado, autogenera `nombre_usuario`/PIN si no se proveen, exige `rrhh.expedientes.empleados.crear` y, si fija salario/modalidad, además `rrhh.expedientes.compensacion.editar` |
 | `set_pin_empleado(...)` | `fn_set_pin_empleado` | Solo `authenticated` (revocado de `anon` y `PUBLIC` explícitamente, en la función interna y en el wrapper, desde `20260905000001`/`004`) | Único camino para asignar/cambiar un PIN — hashea con bcrypt, exige `rrhh.expedientes.empleados.editar` |
 
@@ -171,6 +171,15 @@ internas del schema `rrhh` (`fn_crear_empleado`, `fn_set_pin_empleado`,
 camino de entrada para cada una es su wrapper en `public`, que sigue
 funcionando porque un wrapper `SECURITY DEFINER` invoca la función
 interna con los privilegios de su dueño (`postgres`), no del caller.
+
+**Actualizado 2026-09-07 (F1.0.1)**: el wrapper público
+`public.validar_acceso_operativo` sí seguía con `EXECUTE` para `anon` y
+`authenticated` (a diferencia de los otros tres wrappers, que nunca lo
+tuvieron para `anon` salvo `registrar_marca_kiosko` por diseño) —
+confirmado con `has_function_privilege` y con `get_advisors(security)`
+antes de corregirlo. Revocado en `20260907151106`; verificado de nuevo
+después: `false` para ambos roles, sin el WARN de "Public Can Execute
+SECURITY DEFINER Function" para esta función.
 
 `rrhh.fn_asegurar_particion_asistencia_marcas` /
 `rrhh.fn_asegurar_particion_seguridad_accesos` — no son RPC de la app,

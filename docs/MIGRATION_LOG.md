@@ -2,6 +2,42 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-09-07 — F1.0 (auditoría real) + F1.0.1 (cierre D-06, PIN heredado expuesto)
+
+Contexto completo en [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)
+sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
+
+- **F1.0 no generó migraciones** — fue una auditoría de solo lectura contra
+  `main`, `nexo-core` remoto y Vercel. El único hallazgo con acción
+  inmediata fue de seguridad (D-06, ver abajo).
+- **1 migración nueva, aplicada a `nexo-core` y verificada**
+  (`20260907151106_revoke_validar_acceso_operativo_public_execute`, rama
+  `docs/f1-0-auditoria-rrhh` → `main`):
+  - Revoca `EXECUTE` de `anon` y `authenticated` sobre
+    `public.validar_acceso_operativo(p_nombre_usuario text, p_pin text)` —
+    el wrapper público del diseño de "PIN de doble propósito" (login
+    operativo con el mismo PIN del kiosko), rechazado como arquitectura
+    final por `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`/`DRIVER_ACCESS_AND_KIOSK.md`.
+    Confirmado por búsqueda estática en todo el monorepo que no tiene
+    ningún consumidor real en el código.
+  - No reescribe la migración histórica `20260902000008` que la creó.
+  - No elimina `rrhh.fn_validar_acceso_operativo` ni el wrapper público:
+    ambas quedan marcadas explícitamente como deprecadas vía
+    `comment on function`, pendientes de una migración de limpieza
+    posterior y separada (junto con `rrhh.seguridad_accesos` y las
+    columnas `nombre_usuario`/`user_id`/`pin_bloqueado`/`intentos_fallidos`
+    de `rrhh.empleados`, que F1.1–F1.3 van a reemplazar).
+  - Verificado post-aplicación con `has_function_privilege`: `anon` y
+    `authenticated` → `false`; `service_role`/`postgres` → `true` (sin
+    cambio, esperado). El advisor de seguridad
+    "Public Can Execute SECURITY DEFINER Function" para esta función ya
+    no aparece en `get_advisors(security)`.
+  - Migración aplicada primero vía `apply_migration` (MCP de Supabase) y
+    el archivo en `supabase/migrations/` escrito después usando el mismo
+    `version` que Supabase asignó (`20260907151106`) — evita a propósito
+    la divergencia de historial que ocurrió el 2026-09-05 (ver entrada de
+    abajo), sin necesitar ninguna reparación posterior.
+
 ## 2026-09-05 — Auditoría de seguridad de RRHH cerrada en producción + fix de ruteo del kiosco
 
 Continuación directa de la fase anterior: cierre de los riesgos de

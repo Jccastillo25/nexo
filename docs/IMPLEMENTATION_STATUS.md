@@ -61,13 +61,13 @@ Sin divergencia de código detectada: `apps/rrhh` en `main` es exactamente el c�
 
 `core.app_roles` filtrado por `module_slug='rrhh'` en remoto: `admin` (36 permisos), `supervisor_asistencia` (16), `especialista_planillas` (12), `gestor_expedientes` (9) y **`consulta`** (7) — un quinto rol de solo-lectura que no aparecía mencionado en el resumen de sesiones anteriores. Cualquier matriz nueva de permisos (contratos, credenciales) debe decidir explícitamente el alcance de `consulta`, no solo de los otros cuatro.
 
-## 0.6 Hallazgo de seguridad vivo — `public.validar_acceso_operativo` sigue expuesto a `anon` en producción
+## 0.6 Hallazgo de seguridad — `public.validar_acceso_operativo` expuesto a `anon` en producción (CERRADO en F1.0.1)
 
-`get_advisors(security)` sobre `nexo-core` (2026-09-07) reporta, sin cambios desde la auditoría del 2026-09-05, que `public.validar_acceso_operativo(p_nombre_usuario, p_pin)` es `SECURITY DEFINER` y tiene `EXECUTE` concedido a `anon` **y** `authenticated` (confirmado también con `has_function_privilege` directo). Es la función que implementa el "PIN de doble propósito" que `DRIVER_ACCESS_AND_KIOSK.md` rechaza como arquitectura final (sección 10 de ese documento).
+`get_advisors(security)` sobre `nexo-core` (2026-09-07, durante F1.0) reportó, sin cambios desde la auditoría del 2026-09-05, que `public.validar_acceso_operativo(p_nombre_usuario, p_pin)` es `SECURITY DEFINER` y tenía `EXECUTE` concedido a `anon` **y** `authenticated` (confirmado también con `has_function_privilege` directo). Es la función que implementa el "PIN de doble propósito" que `DRIVER_ACCESS_AND_KIOSK.md` rechaza como arquitectura final (sección 10 de ese documento).
 
-Verificado además: **ningún archivo de `apps/`/`packages/` llama a este RPC** — ni desde `apps/rrhh` ni desde `apps/flotilla` ni desde ningún otro módulo. Es infraestructura muerta a nivel de frontend, pero **no muerta a nivel de superficie de ataque**: cualquiera puede llamar hoy `POST /rest/v1/rpc/validar_acceso_operativo` sin sesión y sin pasar por ningún rate-limit por IP (el único freno es el bloqueo a 3 fallos consecutivos *dentro* de la función, por `nombre_usuario` — no hay equivalente al `rrhh.kiosko_rate_limits` persistente que sí protege al kiosko desde el 2026-09-05).
+Verificado además: **ningún archivo de `apps/`/`packages/` llama a este RPC** — ni desde `apps/rrhh` ni desde `apps/flotilla` ni desde ningún otro módulo. Era infraestructura muerta a nivel de frontend, pero no a nivel de superficie de ataque: cualquiera podía llamar `POST /rest/v1/rpc/validar_acceso_operativo` sin sesión y sin ningún rate-limit por IP (el único freno era el bloqueo a 3 fallos consecutivos *dentro* de la función).
 
-Esto es más barato de corregir que el resto de F1.0–F1.3 y no depende de decidir el modelo de contratos: es candidato a una migración aislada de una sola línea (`revoke execute on function public.validar_acceso_operativo(text, text) from anon, authenticated;`) en cuanto se apruebe el Paso Cero de F1.3, o antes si el usuario prefiere cerrarlo ya como fix de seguridad independiente. **No aplicada en esta sesión** — F1.0 es solo auditoría, sin migraciones, según instrucción explícita.
+**Cerrado el mismo día en F1.0.1** (sección 0.9, aprobado explícitamente por el usuario como hotfix inmediato, sin esperar a F1.3): `EXECUTE` revocado de `anon`/`authenticated` vía `20260907151106`. Ver sección 0.9 para el detalle y la verificación post-aplicación.
 
 ## 0.7 Vercel — `nexo-rrhh`
 
@@ -76,6 +76,17 @@ Esto es más barato de corregir que el resto de F1.0–F1.3 y no depende de deci
 - `get_runtime_errors` (ventana de 7 días, hasta 2026-09-07): sin errores nuevos. Los únicos 2 grupos de error registrados son del 2026-09-04 (`Falta NEXO_COMPANY_ID`, `No se pudo cargar el dashboard`), anteriores a los fixes de `a3bcc5d`/`ac9a487`/`4ec848e` ya documentados — no hay señal de regresión desde entonces.
 - `/rrhh` y `/rrhh/kiosco` operativos según esta misma evidencia (sin errores runtime recientes en `/dashboard` ni otras rutas).
 - No existe proyecto Vercel para `apps/flotilla` en este equipo — confirma que Transporte sigue sin desplegarse bajo Nexo.
+
+## 0.9 F1.0.1 — Cierre de acceso operativo PIN heredado (ejecutado 2026-09-07)
+
+Aprobado por el usuario como hotfix inmediato, sin esperar a F1.3. Migración nueva `20260907151106_revoke_validar_acceso_operativo_public_execute` (aplicada primero vía `apply_migration`, archivo de Git escrito después con el mismo `version` que Supabase asignó — evita a propósito la divergencia de historial del 2026-09-05):
+
+- `revoke execute on function public.validar_acceso_operativo(p_nombre_usuario text, p_pin text) from anon, authenticated;` — no toca `20260902000008` (migración histórica, sin editar).
+- `rrhh.fn_validar_acceso_operativo` y su wrapper `public.validar_acceso_operativo` quedan explícitamente marcadas como **DEPRECADAS** vía `comment on function` — no se eliminaron, pendiente de una migración de limpieza aparte que también decida `rrhh.seguridad_accesos` y `rrhh.empleados.nombre_usuario`/`user_id`/`pin_bloqueado`/`intentos_fallidos`.
+- Verificado post-aplicación con `has_function_privilege`: `anon`→`false`, `authenticated`→`false`, `service_role`→`true`, `postgres`→`true` (sin cambio, esperado).
+- `get_advisors(security)` re-ejecutado: el WARN "Public Can Execute SECURITY DEFINER Function" para esta función ya no aparece.
+
+D-06 queda **parcialmente cerrado**: el componente de seguridad inmediato (exposición a `anon`/`authenticated`) está resuelto; el refactor arquitectónico completo (eliminar el concepto de PIN-de-doble-propósito y construir identidad digital real) sigue pendiente de F1.3/Fase 2.
 
 ## 0.8 Deuda general no bloqueante para RRHH (detectada de paso)
 
@@ -177,20 +188,20 @@ Las tablas base (`rrhh.planillas`, `rrhh.planilla_detalles`) existen y están va
 
 Estado: ⏳ confirmado.
 
-## D-06 — PIN usado como login operativo, y expuesto a `anon` HOY
+## D-06 — PIN usado como login operativo (exposición a `anon` CERRADA en F1.0.1; refactor arquitectónico sigue pendiente)
 
-Existe la migración `20260902000008_rrhh_nicaragua_and_contracts.sql`, aplicada en remoto, que define `nombre_usuario + PIN` y `rrhh.fn_validar_acceso_operativo()`/`public.validar_acceso_operativo()` como mecanismo de acceso operativo (comparando contra el mismo `pin_hash` del kiosko). **Confirmado en remoto (2026-09-07) que el wrapper público sigue con `EXECUTE` concedido a `anon` y `authenticated`** — ver hallazgo 0.6. Sin consumidor en ningún frontend del monorepo (verificado por búsqueda estática en `apps/`/`packages/`), pero sí es una superficie de ataque real en producción hoy mismo (sin rate-limit persistente, solo bloqueo a 3 fallos dentro de la función).
+Existe la migración `20260902000008_rrhh_nicaragua_and_contracts.sql`, aplicada en remoto, que define `nombre_usuario + PIN` y `rrhh.fn_validar_acceso_operativo()`/`public.validar_acceso_operativo()` como mecanismo de acceso operativo (comparando contra el mismo `pin_hash` del kiosko). Sin consumidor en ningún frontend del monorepo (verificado por búsqueda estática en `apps/`/`packages/`).
 
-Nueva decisión:
+**Componente de seguridad inmediato — CERRADO 2026-09-07 (F1.0.1, sección 0.9)**: el wrapper público tenía `EXECUTE` concedido a `anon` y `authenticated`; revocado vía `20260907151106`, verificado post-aplicación. Ambas funciones quedan marcadas `DEPRECADAS` vía `comment on function`, sin eliminarse todavía.
+
+Nueva decisión (pendiente de implementar como refactor completo):
 
 ```text
 PIN = solo asistencia en kiosko
 usuario + contraseña = identidad digital Web/Mobile
 ```
 
-El diseño de PIN de doble propósito queda como deuda/refactor, con un componente de seguridad inmediato (revocar el `EXECUTE` de `anon`/`authenticated`) independiente del refactor completo de F1.3.
-
-Estado: ⚠️ confirmado, prioridad arquitectónica **y** de seguridad inmediata.
+Estado: ⚠️ refactor arquitectónico completo pendiente de F1.3/Fase 2 (eliminar el concepto, construir identidad digital real). El riesgo de seguridad inmediato ya no existe.
 
 ## D-07 — identidad de conductor no debe ser independiente
 
@@ -222,7 +233,8 @@ Estado: ℹ️ hallazgo nuevo de F1.0, sin urgencia — no contradice el modelo 
 
 | ID | Entregable | Estado | Evidencia / nota |
 |---|---|---|---|
-| F1.0 | Auditoría real `main` + Supabase + Vercel + permisos + datos | ✅ | Ejecutada 2026-09-07 (sección 0). Sin código/DB pendiente de revisión — el bloqueo real detectado fue de proceso (`main` local desactualizado, sección 0.1), ya resuelto. `fn_validar_acceso_operativo`, `nombre_usuario`, `user_id` y PIN de doble propósito confirmados como D-06; hallazgo de seguridad vivo en 0.6. |
+| F1.0 | Auditoría real `main` + Supabase + Vercel + permisos + datos | ✅ | Ejecutada 2026-09-07 (sección 0). Sin código/DB pendiente de revisión — el bloqueo real detectado fue de proceso (`main` local desactualizado, sección 0.1), ya resuelto. `fn_validar_acceso_operativo`, `nombre_usuario`, `user_id` y PIN de doble propósito confirmados como D-06. |
+| F1.0.1 | Cierre de acceso operativo PIN heredado (D-06) | ✅ | Ejecutada 2026-09-07 (sección 0.9). Migración `20260907151106`, `EXECUTE` revocado de `anon`/`authenticated`, funciones marcadas deprecadas, verificado post-aplicación. |
 | F1.1 | Separar Expediente General / Expediente Laboral | ⏳ | No tocar migraciones aplicadas. |
 | F1.2 | `rrhh.contratos` + compensación contractual | ⏳ | Paso Cero de permisos antes de tablas/UI. |
 | F1.3 | PIN generado solo al activar contrato | ⏳ | PIN exclusivo de asistencia; revocar al finalizar; regenerar solo por contrato activo. |
