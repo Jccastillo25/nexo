@@ -43,17 +43,20 @@ Crear empleado no significa contratarlo.
 
 ## 2.2 PIN
 
+**✅ F1.3 cumplida (2026-09-07)** — verificado end-to-end real, ver `IMPLEMENTATION_STATUS.md` sección 0.13.
+
 ```text
 SIN CONTRATO ACTIVO → SIN PIN
 ```
 
 El PIN:
 
-- se genera automáticamente al activar contrato;
+- se genera automáticamente al activar contrato (`rrhh.fn_activar_contrato`);
 - se muestra una sola vez;
-- se guarda solo como hash;
-- se usa exclusivamente para asistencia en kiosko;
-- se revoca al finalizar contrato;
+- se guarda solo como hash (`rrhh.contrato_credenciales`, sin `GRANT` de `SELECT` a nadie);
+- se usa exclusivamente para asistencia en kiosko (`rrhh.fn_registrar_marca_kiosko`, reescrita para validar contra la credencial contractual);
+- se revoca al finalizar contrato (`rrhh.fn_finalizar_contrato`);
+- se regenera solo sobre un contrato activo (`rrhh.fn_regenerar_pin_contrato`);
 - no es contraseña Web/Mobile;
 - no crea sesión Supabase Auth.
 
@@ -313,12 +316,13 @@ Identidad digital (`core.identidad.cuenta.*`) y habilitación de conductor (`flo
 
 # 10. Deuda heredada que debe migrarse
 
-Actualizado 2026-09-07 tras F1.0.1/F1.1 — ver `IMPLEMENTATION_STATUS.md` secciones 0.9/0.11:
+Actualizado 2026-09-07 tras F1.0.1-F1.3 — ver `IMPLEMENTATION_STATUS.md` secciones 0.9/0.11/0.12/0.13:
 
 - ✅ `fn_crear_empleado` ya NO genera PIN ni acepta puesto/departamento/modalidad/salario (F1.1) — columnas correspondientes en `rrhh.empleados` quedan nullable y `DEPRECADAS` vía `comment on column`, sin eliminarse todavía.
 - ✅ `public.validar_acceso_operativo` ya NO es ejecutable por `anon`/`authenticated` (F1.0.1) — `rrhh.fn_validar_acceso_operativo()` y su wrapper quedan `DEPRECADAS`, sin eliminarse todavía.
 - ✅ `rrhh.empleado_compensacion` 1:1 con empleado — reemplazada por `rrhh.contrato_compensacion` 1:1 con el contrato (F1.2). La tabla vieja sigue existiendo sin datos, pendiente de limpieza posterior.
-- ⏳ `nombre_usuario`/`user_id`/`pin_hash`/`pin_bloqueado`/`intentos_fallidos` siguen como columnas físicas de `rrhh.empleados` (nullable desde F1.1) — su eliminación real queda para una migración de limpieza posterior a F1.2/F1.3, junto con `rrhh.seguridad_accesos`.
+- ✅ **`rrhh.fn_registrar_marca_kiosko` (el kiosko real) ya NO lee `rrhh.empleados.pin_hash/estado/pin_bloqueado`** (F1.3) — valida contra `rrhh.contrato_credenciales`. Esas columnas de `rrhh.empleados` quedan sin ningún consumidor real, en cualquier función, por primera vez.
+- ⏳ `nombre_usuario`/`user_id`/`pin_hash`/`pin_bloqueado`/`intentos_fallidos` de `rrhh.empleados`, y `rrhh.empleado_compensacion`/`rrhh.fn_validar_acceso_operativo`/`rrhh.fn_set_pin_empleado` siguen existiendo físicamente, ya sin ningún consumidor — su eliminación real queda para una migración de limpieza posterior (no crítica, no bloquea F1.4).
 
 Ninguna migración aplicada fue editada — todos los cambios de arriba se hicieron con migraciones nuevas.
 
@@ -353,28 +357,30 @@ No debe crearse un segundo usuario si ya existe identidad digital Nexo.
 
 # 12. Checklist E2E RRHH
 
-1. Crear expediente general sin PIN.
-2. Crear contrato borrador sin PIN.
-3. Intentar marcar antes de activar: debe fallar.
-4. Completar jornada/compensación.
-5. Activar contrato y recibir PIN una sola vez.
-6. PIN inválido: error genérico.
-7. PIN válido: entrada.
-8. Segundo PIN válido: salida.
-9. Verificar marcas con contrato correcto.
-10. Consolidar horas y comprobar manualmente.
-11. Probar una incidencia.
-12. Generar planilla de prueba.
-13. Verificar total manualmente.
-14. Finalizar contrato.
-15. Intentar usar PIN anterior: debe fallar.
-16. Verificar historial intacto.
-17. Probar admin.
-18. Probar supervisor asistencia.
-19. Probar especialista planillas.
-20. Probar usuario sin permiso.
-21. Probar llamada RPC directa intentando evadir UI.
-22. Ejecutar security advisors.
+Pasos 1-3 y 5-9 **✅ verificados end-to-end real el 2026-09-07** (F1.1-F1.3, ver `IMPLEMENTATION_STATUS.md` sección 0.13 para el detalle exacto — incluye el paso adicional de regenerar PIN, no listado originalmente aquí). Pasos 4, 10-13 (jornada/consolidación/incidencias/planilla) son de F1.4 en adelante, todavía no construidos — fuera del alcance F1.1-F1.3. Pasos 17-21 verificados solo parcialmente (ver nota abajo).
+
+1. Crear expediente general sin PIN. ✅
+2. Crear contrato borrador sin PIN. ✅
+3. Intentar marcar antes de activar: debe fallar. ✅ (sin credencial, `fn_registrar_marca_kiosko` no encuentra match)
+4. Completar jornada/compensación. ⏳ compensación sí (F1.2); jornada es F1.4
+5. Activar contrato y recibir PIN una sola vez. ✅
+6. PIN inválido: error genérico. ✅ (mensaje anti-enumeración sin cambios desde 2026-09-05)
+7. PIN válido: entrada. ✅
+8. Segundo PIN válido: salida. ✅
+9. Verificar marcas con contrato correcto. ✅ (marcas quedan bajo el `empleado_id` correcto; `contrato_id` en `asistencia_marcas` sigue pendiente de F1.4/F1.5, ver D-04)
+10. Consolidar horas y comprobar manualmente. ⏳ F1.5
+11. Probar una incidencia. ⏳ F1.6
+12. Generar planilla de prueba. ⏳ F1.7
+13. Verificar total manualmente. ⏳ F1.7
+14. Finalizar contrato. ✅
+15. Intentar usar PIN anterior: debe fallar. ✅
+16. Verificar historial intacto. ✅ (contrato queda `finalizado`, nunca se borra; marcas conservadas)
+17. Probar admin. ✅ (vía `owner`, bypass equivalente)
+18. Probar supervisor asistencia. ⚠️ no probado con una sesión real de ese rol específico — ver nota de `IMPLEMENTATION_STATUS.md` sección 0.13
+19. Probar especialista planillas. ⚠️ mismo alcance que 18
+20. Probar usuario sin permiso. ✅ (usuario sin ninguna fila de permiso, rechazado)
+21. Probar llamada RPC directa intentando evadir UI. ✅ (todas las pruebas de F1.3 SON llamadas RPC directas, sin pasar por ninguna UI)
+22. Ejecutar security advisors. ✅ sin exposición nueva a `anon`
 
 ---
 

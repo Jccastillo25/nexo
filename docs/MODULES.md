@@ -8,8 +8,8 @@ Actualizado: **2026-09-07** (F1.0-F1.2 de RRHH, ver `IMPLEMENTATION_STATUS.md`).
 |---|---|---|---|
 | Panel Nexo | `/` | ✅ Operativo | Login, launcher y módulos por permiso. |
 | CRM | `/crm` | 🟡 Base operativa | Cliente CRUD + dashboard. Falta CRM completo: leads, oportunidades, actividades, cotizaciones y pedido. |
-| RRHH | `/rrhh` | 🟡 En validación | Expediente General/Laboral separados y contratos ya construidos (F1.1/F1.2, 2026-09-07). Falta PIN solo asistencia (F1.3), jornadas, consolidación y planillas. |
-| Kiosko RRHH | `/rrhh/kiosco` | 🟡 Base funcional | Dispositivo + PIN. Debe migrar a PIN contractual exclusivo de asistencia. |
+| RRHH | `/rrhh` | 🟡 En validación | Expediente General/Laboral, contratos y PIN contractual completos (F1.1-F1.3, 2026-09-07). Falta jornadas, consolidación y planillas (F1.4+). |
+| Kiosko RRHH | `/rrhh/kiosco` | ✅ Migrado a PIN contractual | Dispositivo + PIN, validado contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. |
 | Flotilla / Transporte admin | `/flotilla` | ⏳ Código importado | Ruta360 está en el monorepo pero sin adaptar a `nexo-core`, Multi-Zones ni permisos Nexo. |
 | Panel de Conductor Web | ruta final por definir dentro de `/flotilla` | ⏳ Pendiente de adaptación | Superficie operacional distinta del panel administrativo. Login con usuario+contraseña; misma identidad que Mobile. |
 | Nexo Mobile | Android/iOS (`apps/mobile` futuro) | ⏳ Planeado | App operacional por rol; no replica toda la Web. Primera vertical: conductor/Transporte. |

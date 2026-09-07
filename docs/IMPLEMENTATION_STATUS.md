@@ -164,6 +164,38 @@ Frontend nuevo: `/rrhh/expedientes/[id]` (ficha del empleado — Expediente Gene
 
 **No verificado en el navegador** — el entorno de esta sesión sigue con el `EPERM` en `node_modules/.pnpm/.../next`/`typescript` ya documentado (2026-09-05), reconfirmado hoy con `next dev` y `tsc --noEmit`: mismo error, mismo entorno, no relacionado con este cambio. Sustituido por revisión estática cuidadosa del código + verificación exhaustiva de esquema/RPC/RLS contra el remoto real.
 
+## 0.13 F1.3 — PIN exclusivamente contractual (ejecutado 2026-09-07)
+
+Regla objetivo cumplida: **SIN CONTRATO ACTIVO → SIN PIN**. Migración `20260907154715_f1_3_pin_exclusivamente_contractual` + 2 correcciones (`20260907154858`, `20260907154942`, ver abajo):
+
+- **`rrhh.contrato_credenciales`** (nueva, 1:1 con el contrato): `pin_hash`, `activo`, `pin_bloqueado`, `intentos_fallidos`, `rotacion_numero`, `creado_at/by`, `revocado_at/by`. RLS habilitado **sin ninguna policy** (deny-by-default total, mismo criterio que `rrhh.seguridad_accesos`/`kiosko_rate_limits`) y **sin `GRANT` de `SELECT` a nadie** — ni siquiera `authenticated`. `pin_hash` nunca se expone vía select directo, solo vía RPC que ni siquiera lo leen en su respuesta.
+- **`rrhh.fn_activar_contrato`** (reemplazada, cambio de tipo de retorno): ahora genera el PIN al activar y lo devuelve en texto plano **una sola vez**.
+- **`rrhh.fn_finalizar_contrato`**: ahora revoca la credencial (`activo = false`) al finalizar.
+- **`rrhh.fn_regenerar_pin_contrato`** (nueva): único camino para regenerar — exige contrato `activo`, gateada por `rrhh.expedientes.credenciales.regenerar`.
+- **`rrhh.fn_estado_credencial_contrato`** (nueva): único camino de lectura — devuelve `activo`/`pin_bloqueado`/`rotacion_numero`, **nunca** el PIN ni el hash. Gateada por `rrhh.expedientes.credenciales.ver`.
+- **`rrhh.fn_registrar_marca_kiosko`** (kiosko en producción, reescrita): valida contra `rrhh.contrato_credenciales` + `rrhh.contratos.estado='activo'` en vez de `rrhh.empleados.pin_hash/estado/pin_bloqueado` (deprecados desde F1.1). **Misma firma, mismo rate-limit persistente, misma lógica anti-enumeración (`RETURN`, nunca `RAISE EXCEPTION`), misma inferencia de entrada/salida** — único cambio es de dónde sale la credencial válida.
+
+### Verificación end-to-end real (no solo esquema)
+
+A diferencia de F1.1/F1.2 (verificadas por esquema/constraints), F1.3 se verificó **invocando las funciones de verdad**, simulando `auth.uid()` vía `request.jwt.claims` contra un usuario real (`owner`) y datos de prueba (empleado + contrato + kiosko dedicados, todos borrados al final — 0 filas antes y después en todas las tablas de RRHH):
+
+1. Crear empleado → 2. crear contrato con salario → 3. activar (PIN devuelto una vez) → 4. marcar entrada en kiosko de prueba → 5. marcar salida → 6. ver estado de credencial (activa, rotación 1, sin PIN expuesto) → 7. regenerar PIN → 8. **PIN anterior rechazado** → 9. **PIN nuevo acepta marca** → 10. finalizar contrato → 11. **PIN rechazado después de finalizar**.
+
+Negativos: usuario sin permiso → `Permiso denegado` (no crashea, no filtra datos); `company_id` cruzado (empresa donde el usuario no tiene membresía) → rechazado — confirma aislamiento entre empresas.
+
+### 2 bugs reales encontrados y corregidos en el momento (no detectables por revisión de esquema)
+
+Esta prueba end-to-end encontró que **ni `rrhh.fn_crear_empleado` (F1.1) ni `rrhh.fn_crear_contrato` (F1.2) podían ejecutarse nunca** — ambas fallaban con `column reference ... is ambiguous`. Causa: `RETURNS TABLE(...)` declara variables `OUT` implícitas con el mismo nombre que las columnas reales, y la cláusula `RETURNING id, codigo_empleado`/`RETURNING id, numero_contrato` sin alias de tabla queda ambigua entre ambas. Ninguna de las pruebas de esquema de F1.1/F1.2 (que hacían `INSERT` crudo, no llamaban a la función) lo detectó.
+
+- `20260907154858_fix_crear_empleado_returning_ambiguous`: agrega alias de tabla (`insert into rrhh.empleados as e ... returning e.id, e.codigo_empleado`). Sin cambio de firma ni comportamiento.
+- `20260907154942_fix_crear_contrato_returning_ambiguous`: mismo fix para `rrhh.fn_crear_contrato`.
+
+**Lección para el resto de F1.4 en adelante**: verificar cada RPC nuevo con una llamada real (simulando `auth.uid()`), no solo con `INSERT`/`UPDATE` crudo contra las tablas — el esquema puede ser correcto y la función que lo envuelve seguir rota.
+
+D-02 y D-06 quedan **completamente cerrados** (no solo el componente de seguridad inmediato): el PIN nace únicamente al activar un contrato, se revoca al finalizar, y el kiosko ya no depende en absoluto de `rrhh.empleados.pin_hash`.
+
+**No verificado en navegador/UI** — mismo `EPERM` de entorno. Frontend nuevo: reveal-once de PIN en "Activar"/"Regenerar PIN", badge de estado de credencial, en `contratos-panel.tsx`.
+
 ## 0.8 Deuda general no bloqueante para RRHH (detectada de paso)
 
 `get_advisors(performance)` reporta deuda pre-existente fuera del alcance de F1.0: `auth_rls_initplan` sin optimizar todavía en 3 policies de `core.company_memberships`, `core.user_app_roles` y `crm.clientes` (no en `rrhh` — las 25 policies de RRHH ya usan el patrón `(select auth.uid())` desde el 2026-09-05), más FKs sin índice de cobertura e índices sin uso (esperable con 0 filas). No se toca en esta sesión — es candidato a una migración de rendimiento aparte, sin relación con el refactor de contratos/PIN.
@@ -178,12 +210,12 @@ Frontend nuevo: `/rrhh/expedientes/[id]` (ficha del empleado — Expediente Gene
 | RRHH infraestructura | ✅ Desplegada | Schema, permisos, RLS, expedientes básicos y kiosko existen. |
 | RRHH modelo Expediente General/Laboral | ✅ F1.1 completada | `rrhh.empleados` ya no acepta datos laborales/credenciales en el alta (2026-09-07, sección 0.11). Columnas viejas deprecadas, no eliminadas — limpieza final pendiente de F1.2. |
 | RRHH contratos | ✅ F1.2 completada | `rrhh.contratos`/`rrhh.contrato_compensacion` existen, con RLS, trigger de estado y RPC (2026-09-07, sección 0.12). Falta F1.3 (PIN al activar) para el flujo completo. |
-| RRHH PIN contractual | ⏳ Pendiente (F1.3) | `fn_crear_empleado` ya NO genera PIN (F1.1). Falta construir la generación exclusiva al activar contrato. |
+| RRHH PIN contractual | ✅ F1.3 completada | El PIN nace solo al activar contrato, se revoca al finalizar, kiosko validado end-to-end contra la nueva credencial (2026-09-07, sección 0.13). |
 | RRHH jornadas | ⏳ Pendiente funcional | Permisos de turnos existen, pero falta modelo/UI necesario para cálculo real. |
 | RRHH consolidación de asistencia | ⏳ Pendiente | No existe marcas → horas consolidadas. |
 | RRHH planillas | ⏳ Pendiente | Ruta actual es placeholder; falta motor/reporte. |
-| Kiosko RRHH | 🟡 Base funcional | NumPad/ruteo/rate-limit existen. Debe migrarse a PIN contractual exclusivamente de asistencia. |
-| Identidad digital de empleados | ⚠️ Refactor obligatorio | Existe diseño de `nombre_usuario + PIN` para acceso operativo. Nueva regla: usuario+contraseña vía Supabase Auth; PIN no crea sesión. |
+| Kiosko RRHH | ✅ Migrado a PIN contractual | `rrhh.fn_registrar_marca_kiosko` valida contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. Misma UI/rate-limit de antes. |
+| Identidad digital de empleados | ⚠️ Refactor de PIN cerrado, identidad digital sigue pendiente | `nombre_usuario + PIN` para acceso operativo ya no existe como diseño vigente (D-06 cerrado F1.3). Falta construir usuario+contraseña vía Supabase Auth (Fase 2, `core.identidad`) — diseño objetivo documentado, sin implementar. |
 | Panel de Conductor Web | 🟡 Código legacy aprovechable | Ruta360 tiene flujo de conductor, pero falta adaptación a identidad Nexo, contrato RRHH y permisos unificados. |
 | CRM | 🟡 MVP muy básico | Cliente CRUD y dashboard; faltan leads, oportunidades, actividades, cotizaciones/pedido. |
 | Transporte / Flotilla | 🟡 Código aprovechable, sin adaptar | Ruta360 importado; falta migración al modelo Nexo y eliminar identidad duplicada de conductores. |
@@ -242,7 +274,7 @@ activar contrato
 → generar PIN automáticamente
 ```
 
-**Estado: ✅ resuelto en F1.1 (2026-09-07)** — `rrhh.fn_crear_empleado` ya no acepta puesto/departamento/modalidad/salario/PIN/nombre_usuario ni los genera. Queda pendiente F1.2 (contratos) y F1.3 (PIN al activar contrato) para que el flujo completo sea utilizable de punta a punta.
+**Estado: ✅ completamente resuelto (F1.1 2026-09-07 + F1.3 2026-09-07)** — `rrhh.fn_crear_empleado` ya no acepta ni genera nada de eso; `rrhh.fn_activar_contrato` genera el PIN automáticamente al activar. Flujo completo verificado end-to-end (sección 0.13).
 
 ## D-03 — compensación ligada al empleado
 
@@ -270,14 +302,14 @@ Existe la migración `20260902000008_rrhh_nicaragua_and_contracts.sql`, aplicada
 
 **Componente de seguridad inmediato — CERRADO 2026-09-07 (F1.0.1, sección 0.9)**: el wrapper público tenía `EXECUTE` concedido a `anon` y `authenticated`; revocado vía `20260907151106`, verificado post-aplicación. Ambas funciones quedan marcadas `DEPRECADAS` vía `comment on function`, sin eliminarse todavía.
 
-Nueva decisión (pendiente de implementar como refactor completo):
+Decisión aplicada:
 
 ```text
-PIN = solo asistencia en kiosko
-usuario + contraseña = identidad digital Web/Mobile
+PIN = solo asistencia en kiosko  ✅ (rrhh.contrato_credenciales, F1.3)
+usuario + contraseña = identidad digital Web/Mobile  ⏳ (Fase 2, core.identidad — diseño objetivo, sin implementar)
 ```
 
-Estado: ⚠️ refactor arquitectónico completo pendiente de F1.3/Fase 2 (eliminar el concepto, construir identidad digital real). El riesgo de seguridad inmediato ya no existe.
+**Estado: ✅ refactor de PIN completamente cerrado (F1.3, 2026-09-07, sección 0.13)** — `rrhh.fn_registrar_marca_kiosko` ya no depende en absoluto de `rrhh.empleados.pin_hash`; el PIN vive exclusivamente en `rrhh.contrato_credenciales`, ligado al ciclo de vida del contrato. Pendiente solo la mitad de identidad digital (usuario+contraseña), que es Fase 2 y no bloquea RRHH.
 
 ## D-07 — identidad de conductor no debe ser independiente
 
@@ -313,7 +345,7 @@ Estado: ℹ️ hallazgo nuevo de F1.0, sin urgencia — no contradice el modelo 
 | F1.0.1 | Cierre de acceso operativo PIN heredado (D-06) | ✅ | Ejecutada 2026-09-07 (sección 0.9). Migración `20260907151106`, `EXECUTE` revocado de `anon`/`authenticated`, funciones marcadas deprecadas, verificado post-aplicación. |
 | F1.1 | Separar Expediente General / Expediente Laboral | ✅ | Ejecutada 2026-09-07 (sección 0.11). 2 migraciones, frontend y tipos actualizados. Kiosko verificado intacto. |
 | F1.2 | `rrhh.contratos` + compensación contractual | ✅ | Ejecutada 2026-09-07 (sección 0.12). Tabla + RLS + trigger de estado + RPC + UI mínima (`/rrhh/expedientes/[id]`). |
-| F1.3 | PIN generado solo al activar contrato | ⏳ | PIN exclusivo de asistencia; revocar al finalizar; regenerar solo por contrato activo. |
+| F1.3 | PIN generado solo al activar contrato | ✅ | Ejecutada 2026-09-07 (sección 0.13). Verificado end-to-end real (no solo esquema): activar/marcar/regenerar/finalizar, incl. 2 bugs reales encontrados y corregidos. |
 | F1.4 | Jornadas/turnos/feriados mínimos | ⏳ | Requisito del motor de asistencia. |
 | F1.5 | Consolidación diaria de asistencia | ⏳ | Marcas → horas/incidencias. |
 | F1.6 | Incidencias/justificaciones | ⏳ | Validación previa a planilla. |
@@ -471,9 +503,33 @@ F1.0.1 — Cierre PIN heredado (D-06)        ✅ completada 2026-09-07 (sección
 Paso Cero — Matriz contratos/credenciales  ✅ aplicada 2026-09-07 (sección 0.10)
 F1.1   — Separar Expediente General/Laboral ✅ completada 2026-09-07 (sección 0.11)
 F1.2   — rrhh.contratos + compensación      ✅ completada 2026-09-07 (sección 0.12)
+F1.3   — PIN exclusivamente contractual     ✅ completada 2026-09-07 (sección 0.13)
  ↓
-F1.3 — PIN exclusivamente al activar contrato  ⏳ próximo trabajo
+F1.4 — Jornadas mínimas  ⏳ próximo trabajo (fuera del alcance aprobado en esta sesión —
+                              "No avances todavía a planillas" / "Primero deja F1.1-F1.3
+                              completos y verificables" — pendiente de instrucción explícita)
 ```
+
+### Definition of Done de F1.3 — recorrido de 23 pasos, verificado
+
+El recorrido exacto pedido para declarar F1.3 terminada (sección 0.13 tiene el detalle técnico completo). Verificado con datos de prueba reales vía simulación de `auth.uid()` — no solo revisión de esquema:
+
+| # | Paso | Resultado |
+|---|---|---|
+| 1-2 | Crear expediente general / confirmar sin PIN | ✅ |
+| 3-4 | Crear contrato borrador / confirmar sin PIN | ✅ |
+| 5 | Editar contrato borrador | ✅ (verificado en F1.2, sin cambios en F1.3) |
+| 6-9 | Activar como admin / generar PIN / mostrarlo una vez / guardar solo hash | ✅ |
+| 10 | Ver estado de credencial sin revelar PIN | ✅ |
+| 11 | Marcar en kiosko usando PIN | ✅ |
+| 12-14 | Regenerar PIN como admin / PIN anterior deja de funcionar / PIN nuevo funciona | ✅ |
+| 15-18 | Finalizar contrato / PIN revocado / no nuevas marcas / historial intacto | ✅ |
+| 19-20 | Probar `gestor_expedientes`/`supervisor_asistencia` y sus denegaciones | ⚠️ **no verificado con esos roles específicos** — verificado sí con `owner` (bypass) y con un usuario sin ningún permiso (rechazado). Los 4 roles no-admin heredan sus permisos exactos de la matriz aplicada en el Paso Cero (sección 0.10), pero no se probó cada uno por separado con una sesión real. |
+| 21 | Probar `consulta` y usuario sin permisos | ⚠️ mismo alcance que 19-20 — probado genéricamente "sin permiso", no con el rol `consulta` específico |
+| 22 | Llamada RPC directa y RLS | ✅ (las funciones probadas SON la llamada RPC directa; RLS de `rrhh.contratos`/`contrato_compensacion` confirmado con `pg_policies`, sin policy de `SELECT`/`INSERT`/`UPDATE`/`DELETE` que permita saltarse el modelo) |
+| 23 | Ejecutar security advisors | ✅ `get_advisors(security)` corrido después de cada migración de F1.3 — sin exposición nueva a `anon`, solo los WARN esperados de `authenticated` (mismo patrón ya aceptado) |
+
+**Pendiente real, no crítico**: pasos 19-21 probados con `owner` (bypass total) y con un `user_id` sin ninguna fila de permiso, pero no con sesiones reales de `gestor_expedientes`/`supervisor_asistencia`/`especialista_planillas`/`consulta` — no hay usuarios de prueba con esos roles asignados en el proyecto remoto todavía. La lógica de autorización es idéntica para todos los roles (una sola llamada a `core.has_permission`), pero una prueba con usuarios reales por rol queda como verificación adicional recomendada antes de dar por "validado" (no solo "implementado") el checklist de seguridad completo — ver la distinción que exige `CLAUDE.md`.
 
 La comparación explícita de F1.0 ya se ejecutó y quedó registrada en la sección 0:
 

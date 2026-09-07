@@ -6,6 +6,7 @@ import {
   editarContrato,
   activarContrato,
   finalizarContrato,
+  regenerarPin,
   type ContratoInput,
 } from "./actions";
 
@@ -22,15 +23,26 @@ export interface ContratoRow {
   salario_base: number | null;
 }
 
+export interface CredencialEstado {
+  tieneCredencial: boolean;
+  activo: boolean;
+  pinBloqueado: boolean;
+  rotacionNumero: number;
+}
+
 export interface ContratosPanelProps {
   empleadoId: string;
   contratos: ContratoRow[];
+  /** Estado de credencial del contrato ACTIVO, si hay uno y si canVerCredenciales. */
+  credencial: CredencialEstado | null;
   canCrear: boolean;
   canEditar: boolean;
   canActivar: boolean;
   canFinalizar: boolean;
   canVerSalario: boolean;
   canEditarSalario: boolean;
+  canVerCredenciales: boolean;
+  canRegenerarPin: boolean;
 }
 
 const EMPTY_FORM: ContratoInput = {
@@ -43,25 +55,31 @@ const EMPTY_FORM: ContratoInput = {
 };
 
 /**
- * F1.2 (2026-09-07): panel del Expediente Laboral de un empleado —
- * historial de contratos + el flujo borrador -> activo -> finalizado.
- * "Activar" todavía NO genera PIN (eso es F1.3, que reemplaza
- * rrhh.fn_activar_contrato sin tocar este componente).
+ * F1.2/F1.3 (2026-09-07): panel del Expediente Laboral de un empleado —
+ * historial de contratos, el flujo borrador -> activo -> finalizado, y
+ * la credencial de asistencia (PIN) del contrato activo. "Activar"
+ * genera el PIN automáticamente (F1.3) y lo muestra UNA sola vez, igual
+ * que "Regenerar PIN". "Ver estado" nunca revela el PIN — solo si está
+ * activo/bloqueado y cuántas veces se regeneró.
  */
 export default function ContratosPanel({
   empleadoId,
   contratos,
+  credencial,
   canCrear,
   canEditar,
   canActivar,
   canFinalizar,
   canVerSalario,
   canEditarSalario,
+  canVerCredenciales,
+  canRegenerarPin,
 }: ContratosPanelProps) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<ContratoInput>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pinRevelado, setPinRevelado] = useState<{ contratoId: string; pin: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const tieneActivo = contratos.some((c) => c.estado === "activo");
@@ -111,7 +129,11 @@ export default function ContratosPanel({
     setError(null);
     startTransition(async () => {
       const res = await activarContrato(empleadoId, id);
-      if (!res.ok) setError(res.message ?? "No se pudo activar el contrato.");
+      if (!res.ok) {
+        setError(res.message ?? "No se pudo activar el contrato.");
+        return;
+      }
+      if (res.pin) setPinRevelado({ contratoId: id, pin: res.pin });
     });
   }
 
@@ -120,6 +142,18 @@ export default function ContratosPanel({
     startTransition(async () => {
       const res = await finalizarContrato(empleadoId, id);
       if (!res.ok) setError(res.message ?? "No se pudo finalizar el contrato.");
+    });
+  }
+
+  function regenerar(id: string) {
+    setError(null);
+    startTransition(async () => {
+      const res = await regenerarPin(empleadoId, id);
+      if (!res.ok) {
+        setError(res.message ?? "No se pudo regenerar el PIN.");
+        return;
+      }
+      if (res.pin) setPinRevelado({ contratoId: id, pin: res.pin });
     });
   }
 
@@ -146,6 +180,27 @@ export default function ContratosPanel({
 
       {error && (
         <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>
+      )}
+
+      {pinRevelado && (
+        <div className="flex flex-col items-center gap-1 rounded-xl border border-dashed border-[var(--nexo-accent)]/50 bg-black/20 px-6 py-4">
+          <p className="text-xs uppercase tracking-wide text-white/40">
+            PIN de kiosko — se muestra una sola vez
+          </p>
+          <p className="text-4xl font-bold tabular-nums tracking-[0.3em] text-white">
+            {pinRevelado.pin}
+          </p>
+          <p className="mt-1 text-xs text-white/40">
+            Anotalo o entregáselo ahora al empleado — no se puede volver a ver, solo regenerar.
+          </p>
+          <button
+            type="button"
+            onClick={() => setPinRevelado(null)}
+            className="mt-2 text-xs text-white/50 hover:text-white"
+          >
+            Ocultar
+          </button>
+        </div>
       )}
 
       {showForm && (
@@ -250,6 +305,24 @@ export default function ContratosPanel({
                 <span>{c.salario_base != null ? `C$ ${c.salario_base}` : "—"}</span>
               )}
             </div>
+
+            {c.estado === "activo" && canVerCredenciales && credencial && (
+              <div className="flex items-center gap-2 text-xs text-white/50">
+                <span>Credencial de asistencia:</span>
+                {!credencial.tieneCredencial ? (
+                  <span className="text-amber-300">sin generar</span>
+                ) : credencial.pinBloqueado ? (
+                  <span className="text-red-300">bloqueada</span>
+                ) : credencial.activo ? (
+                  <span className="text-emerald-300">
+                    activa (rotación #{credencial.rotacionNumero})
+                  </span>
+                ) : (
+                  <span className="text-white/40">revocada</span>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center gap-3">
               {c.estado === "borrador" && canEditar && (
                 <button
@@ -268,6 +341,16 @@ export default function ContratosPanel({
                   className="rounded-lg bg-emerald-500/20 px-3 py-1.5 text-sm font-medium text-emerald-300 transition-colors hover:bg-emerald-500/30 disabled:opacity-50"
                 >
                   Activar
+                </button>
+              )}
+              {c.estado === "activo" && canRegenerarPin && (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => regenerar(c.id)}
+                  className="text-sm text-white/50 hover:text-white disabled:opacity-50"
+                >
+                  Regenerar PIN
                 </button>
               )}
               {c.estado === "activo" && canFinalizar && (

@@ -85,11 +85,24 @@ export type Database = {
         Args: { p_nombre_usuario: string; p_pin: string };
         Returns: string;
       };
-      // F1.2 (2026-09-07): ciclo de vida del contrato — ver
-      // supabase/migrations/20260907153604_f1_2_rrhh_contratos.sql.
+      // F1.3 (2026-09-07): ciclo de vida de la credencial — ver
+      // supabase/migrations/20260907154715_f1_3_pin_exclusivamente_contractual.sql.
       activar_contrato: {
         Args: { p_company_id: string; p_contrato_id: string };
-        Returns: undefined;
+        Returns: { pin_kiosko: string }[];
+      };
+      regenerar_pin_contrato: {
+        Args: { p_company_id: string; p_contrato_id: string };
+        Returns: { pin_kiosko: string }[];
+      };
+      estado_credencial_contrato: {
+        Args: { p_company_id: string; p_contrato_id: string };
+        Returns: {
+          tiene_credencial: boolean;
+          activo: boolean;
+          pin_bloqueado: boolean;
+          rotacion_numero: number;
+        }[];
       };
       crear_contrato: {
         Args: {
@@ -493,6 +506,27 @@ export type Database = {
           fecha_inicio?: string | null;
           fecha_fin_prevista?: string | null;
         };
+        Relationships: [];
+      };
+      // Credencial de asistencia del contrato (F1.3, 2026-09-07). Sin
+      // GRANT de SELECT a nadie -- RLS habilitado sin policies.
+      contrato_credenciales: {
+        Row: {
+          id: string;
+          company_id: string;
+          contrato_id: string;
+          pin_hash: string;
+          activo: boolean;
+          pin_bloqueado: boolean;
+          intentos_fallidos: number;
+          rotacion_numero: number;
+          creado_at: string;
+          creado_by: string | null;
+          revocado_at: string | null;
+          revocado_by: string | null;
+        };
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
       // 1:1 con el contrato, no con el empleado (D-03). Sin

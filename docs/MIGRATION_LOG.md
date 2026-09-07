@@ -2,7 +2,7 @@
 
 Orden de bitácora: más reciente arriba.
 
-## 2026-09-07 — F1.0 + F1.0.1 + Paso Cero + F1.1 + F1.2 (rrhh.contratos)
+## 2026-09-07 — F1.0 a F1.3 completas (auditoría, cierre D-06, Paso Cero, contratos, PIN contractual)
 
 Contexto completo en [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)
 sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
@@ -111,6 +111,41 @@ sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
     activo real. **No verificado en navegador** — mismo `EPERM` de
     entorno ya documentado (2026-09-05), reconfirmado con `next dev` y
     `tsc --noEmit` hoy; sustituido por revisión estática cuidadosa.
+- **3 migraciones más, F1.3 (PIN exclusivamente contractual) + 2
+  correcciones, aplicadas y verificadas END-TO-END** (no solo esquema —
+  ver abajo), rama `docs/f1-3-pin-contractual` → `main`:
+  1. `20260907154715_f1_3_pin_exclusivamente_contractual`: tabla nueva
+     `rrhh.contrato_credenciales` (1:1 con el contrato, RLS sin
+     policies, sin GRANT de SELECT a nadie); `rrhh.fn_activar_contrato`
+     reemplazada (cambia el tipo de retorno — requirió DROP) para
+     generar el PIN; `rrhh.fn_finalizar_contrato` extendida para
+     revocarlo; `rrhh.fn_regenerar_pin_contrato` y
+     `rrhh.fn_estado_credencial_contrato` nuevas; `rrhh.fn_registrar_marca_kiosko`
+     (kiosko en producción) reescrita para validar contra la nueva
+     credencial en vez de `rrhh.empleados.pin_hash/estado/pin_bloqueado`
+     — misma firma, mismo rate-limit, misma lógica anti-enumeración.
+  2. `20260907154858_fix_crear_empleado_returning_ambiguous` y
+     `20260907154942_fix_crear_contrato_returning_ambiguous`: **2 bugs
+     reales encontrados durante la verificación end-to-end** — ni
+     `fn_crear_empleado` (F1.1) ni `fn_crear_contrato` (F1.2) pudieron
+     ejecutarse NUNCA desde que se crearon (`RETURNING` sin alias de
+     tabla, ambiguo contra las variables `OUT` de `RETURNS TABLE`). Las
+     pruebas de esquema de F1.1/F1.2 no lo detectaron porque hacían
+     `INSERT` crudo, sin pasar por la función real.
+  - **Verificación end-to-end real** (simulando `auth.uid()` vía
+    `request.jwt.claims` contra un usuario `owner` real y datos de
+    prueba borrados al final, 0 filas antes/después): crear empleado →
+    crear contrato con salario → activar (PIN devuelto una vez) →
+    marcar entrada → marcar salida → ver estado de credencial (sin
+    PIN) → regenerar PIN → PIN anterior rechazado → PIN nuevo acepta
+    marca → finalizar contrato → PIN rechazado después de finalizar.
+    Negativos: usuario sin permiso rechazado; empresa cruzada rechazada.
+  - `get_advisors(security)` sin exposición nueva a `anon` (solo los WARN
+    esperados de `authenticated`, mismo patrón ya aceptado).
+  - Frontend: reveal-once de PIN en "Activar"/"Regenerar PIN", badge de
+    estado de credencial, en `contratos-panel.tsx` + `actions.ts`.
+  - D-02 y D-06 quedan completamente cerrados (no solo el componente de
+    seguridad inmediato de F1.0.1).
 
 ## 2026-09-05 — Auditoría de seguridad de RRHH cerrada en producción + fix de ruteo del kiosco
 

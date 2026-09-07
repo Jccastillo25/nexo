@@ -4,19 +4,21 @@ import { notFound } from "next/navigation";
 import { hasPermission } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
-import ContratosPanel, { type ContratoRow } from "./contratos-panel";
+import ContratosPanel, { type ContratoRow, type CredencialEstado } from "./contratos-panel";
+import { verEstadoCredencial } from "./actions";
 
 export const metadata: Metadata = {
   title: "Expediente · RRHH",
 };
 
 /**
- * F1.2 (2026-09-07, docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md): ficha de
- * un empleado — Expediente General (F1.1, arriba) + Expediente Laboral
- * (contratos, F1.2, abajo). Todos los guards de recurso son UX (norma
- * v3.0 paso 4) — la proteccion real vive en RLS y en los RPC
- * rrhh.fn_crear_contrato/fn_editar_contrato/fn_activar_contrato/
- * fn_finalizar_contrato.
+ * F1.2/F1.3 (2026-09-07, docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md): ficha
+ * de un empleado — Expediente General (F1.1, arriba) + Expediente
+ * Laboral (contratos + credencial de asistencia, F1.2/F1.3, abajo).
+ * Todos los guards de recurso son UX (norma v3.0 paso 4) — la proteccion
+ * real vive en RLS y en los RPC rrhh.fn_crear_contrato/fn_editar_contrato/
+ * fn_activar_contrato/fn_finalizar_contrato/fn_regenerar_pin_contrato/
+ * fn_estado_credencial_contrato.
  */
 export default async function ExpedienteDetallePage({
   params,
@@ -27,17 +29,29 @@ export default async function ExpedienteDetallePage({
   const supabase = await createClient();
   const companyId = getCompanyId();
 
-  const [canVer, canVerContratos, canCrear, canEditar, canActivar, canFinalizar, canVerSalario, canEditarSalario] =
-    await Promise.all([
-      hasPermission({ supabase, companyId }, "rrhh.expedientes.empleados.ver"),
-      hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.ver"),
-      hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.crear"),
-      hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar"),
-      hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.activar"),
-      hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.finalizar"),
-      hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.ver"),
-      hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.editar"),
-    ]);
+  const [
+    canVer,
+    canVerContratos,
+    canCrear,
+    canEditar,
+    canActivar,
+    canFinalizar,
+    canVerSalario,
+    canEditarSalario,
+    canVerCredenciales,
+    canRegenerarPin,
+  ] = await Promise.all([
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.empleados.ver"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.ver"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.crear"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.activar"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.finalizar"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.ver"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.editar"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.credenciales.ver"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.credenciales.regenerar"),
+  ]);
 
   if (!canVer) {
     return (
@@ -98,6 +112,25 @@ export default async function ExpedienteDetallePage({
     }));
   }
 
+  // F1.3: estado de la credencial del contrato activo, si hay uno.
+  // "ver" es exclusivamente estado — verEstadoCredencial nunca devuelve
+  // el PIN (rrhh.fn_estado_credencial_contrato ni siquiera lo selecciona).
+  let credencial: CredencialEstado | null = null;
+  if (canVerCredenciales) {
+    const activo = contratos.find((c) => c.estado === "activo");
+    if (activo) {
+      const res = await verEstadoCredencial(activo.id);
+      if (res.ok) {
+        credencial = {
+          tieneCredencial: res.tieneCredencial ?? false,
+          activo: res.activo ?? false,
+          pinBloqueado: res.pinBloqueado ?? false,
+          rotacionNumero: res.rotacionNumero ?? 0,
+        };
+      }
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
@@ -123,12 +156,15 @@ export default async function ExpedienteDetallePage({
         <ContratosPanel
           empleadoId={id}
           contratos={contratos}
+          credencial={credencial}
           canCrear={canCrear}
           canEditar={canEditar}
           canActivar={canActivar}
           canFinalizar={canFinalizar}
           canVerSalario={canVerSalario}
           canEditarSalario={canEditarSalario}
+          canVerCredenciales={canVerCredenciales}
+          canRegenerarPin={canRegenerarPin}
         />
       ) : (
         <div className="nexo-glass rounded-2xl px-6 py-8 text-center text-sm text-white/60">

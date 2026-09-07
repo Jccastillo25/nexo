@@ -19,6 +19,22 @@ export interface ActionResult {
   message?: string;
 }
 
+export interface PinResult {
+  ok: boolean;
+  message?: string;
+  /** Texto plano, se muestra UNA sola vez — nunca se puede recuperar después. */
+  pin?: string;
+}
+
+export interface EstadoCredencialResult {
+  ok: boolean;
+  message?: string;
+  tieneCredencial?: boolean;
+  activo?: boolean;
+  pinBloqueado?: boolean;
+  rotacionNumero?: number;
+}
+
 /**
  * F1.2 (2026-09-07, docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md): acciones
  * del ciclo de vida del contrato (Expediente Laboral), separado del
@@ -94,10 +110,16 @@ export async function editarContrato(
   return { ok: true };
 }
 
+/**
+ * F1.3 (2026-09-07): activar ahora genera el PIN de asistencia
+ * automáticamente (rrhh.fn_activar_contrato) — se devuelve en texto
+ * plano UNA sola vez, igual que en el alta de empleado de F1.0-era. No
+ * se puede recuperar después, solo regenerar (ver `regenerarPin`).
+ */
 export async function activarContrato(
   empleadoId: string,
   contratoId: string
-): Promise<ActionResult> {
+): Promise<PinResult> {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
@@ -108,7 +130,7 @@ export async function activarContrato(
     throw err;
   }
 
-  const { error } = await supabase.rpc("activar_contrato", {
+  const { data, error } = await supabase.rpc("activar_contrato", {
     p_contrato_id: contratoId,
     p_company_id: companyId,
   });
@@ -116,7 +138,72 @@ export async function activarContrato(
   if (error) return { ok: false, message: error.message };
 
   revalidatePath(`/expedientes/${empleadoId}`);
-  return { ok: true };
+  return { ok: true, pin: data?.[0]?.pin_kiosko };
+}
+
+/**
+ * F1.3: único camino para regenerar el PIN — exige contrato activo
+ * (rrhh.fn_regenerar_pin_contrato). El PIN anterior deja de funcionar de
+ * inmediato.
+ */
+export async function regenerarPin(
+  empleadoId: string,
+  contratoId: string
+): Promise<PinResult> {
+  const supabase = await createClient();
+  const companyId = getCompanyId();
+
+  try {
+    await requirePermission({ supabase, companyId }, "rrhh.expedientes.credenciales.regenerar");
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    throw err;
+  }
+
+  const { data, error } = await supabase.rpc("regenerar_pin_contrato", {
+    p_contrato_id: contratoId,
+    p_company_id: companyId,
+  });
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath(`/expedientes/${empleadoId}`);
+  return { ok: true, pin: data?.[0]?.pin_kiosko };
+}
+
+/**
+ * F1.3: "ver" es exclusivamente estado (activa/bloqueada/rotación) —
+ * rrhh.fn_estado_credencial_contrato ni siquiera selecciona el
+ * pin_hash, así que no hay forma de que este RPC devuelva el PIN.
+ */
+export async function verEstadoCredencial(
+  contratoId: string
+): Promise<EstadoCredencialResult> {
+  const supabase = await createClient();
+  const companyId = getCompanyId();
+
+  try {
+    await requirePermission({ supabase, companyId }, "rrhh.expedientes.credenciales.ver");
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    throw err;
+  }
+
+  const { data, error } = await supabase.rpc("estado_credencial_contrato", {
+    p_contrato_id: contratoId,
+    p_company_id: companyId,
+  });
+
+  if (error) return { ok: false, message: error.message };
+
+  const row = data?.[0];
+  return {
+    ok: true,
+    tieneCredencial: row?.tiene_credencial,
+    activo: row?.activo,
+    pinBloqueado: row?.pin_bloqueado,
+    rotacionNumero: row?.rotacion_numero,
+  };
 }
 
 export async function finalizarContrato(
