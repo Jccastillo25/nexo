@@ -4,7 +4,12 @@ import { notFound } from "next/navigation";
 import { hasPermission } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
-import ContratosPanel, { type ContratoRow, type CredencialEstado } from "./contratos-panel";
+import ContratosPanel, {
+  type ContratoRow,
+  type CredencialEstado,
+  type JornadaOption,
+  type JornadaVigente,
+} from "./contratos-panel";
 import { verEstadoCredencial } from "./actions";
 
 export const metadata: Metadata = {
@@ -40,6 +45,7 @@ export default async function ExpedienteDetallePage({
     canEditarSalario,
     canVerCredenciales,
     canRegenerarPin,
+    canVerTurnos,
   ] = await Promise.all([
     hasPermission({ supabase, companyId }, "rrhh.expedientes.empleados.ver"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.ver"),
@@ -51,6 +57,15 @@ export default async function ExpedienteDetallePage({
     hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.editar"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.credenciales.ver"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.credenciales.regenerar"),
+    // F1.4: rrhh.jornadas usa el mismo permiso que la plantilla de turnos
+    // (ver docs/PERMISSIONS.md / migración 20260907162904) -- hoy solo
+    // admin/supervisor_asistencia lo tienen, NO gestor_expedientes. Es un
+    // gap conocido para el flujo "gestor_expedientes completa jornada del
+    // contrato" -- ver nota en el reporte de cierre de F1.4. Mientras no
+    // se apruebe extender el permiso, gestor_expedientes puede seguir
+    // asignando por RPC (tiene contratos.editar) pero no ve el listado
+    // para elegir -- el selector queda vacío para ese rol.
+    hasPermission({ supabase, companyId }, "rrhh.asistencia.turnos.ver"),
   ]);
 
   if (!canVer) {
@@ -131,6 +146,43 @@ export default async function ExpedienteDetallePage({
     }
   }
 
+  // F1.4: jornadas activas disponibles para asignar + la jornada vigente
+  // (fila abierta, vigente_hasta is null) de cada contrato no finalizado.
+  // Sin RPC dedicado de lectura acá -- select directo protegido por RLS
+  // (rrhh.jornadas.ver / rrhh.contrato_jornadas.ver), mismo criterio que
+  // el resto de esta página.
+  let jornadasDisponibles: JornadaOption[] = [];
+  const jornadaVigentePorContrato: Record<string, JornadaVigente> = {};
+  if (canVerTurnos && canVerContratos && contratos.length > 0) {
+    const { data: jornadasData } = await supabase
+      .schema("rrhh")
+      .from("jornadas")
+      .select("id, nombre")
+      .eq("company_id", companyId)
+      .eq("activo", true)
+      .order("nombre");
+    jornadasDisponibles = jornadasData ?? [];
+
+    const contratosNoFinalizados = contratos.filter((c) => c.estado !== "finalizado").map((c) => c.id);
+    if (contratosNoFinalizados.length > 0) {
+      const { data: vigentesData } = await supabase
+        .schema("rrhh")
+        .from("contrato_jornadas")
+        .select("contrato_id, jornada_id, vigente_desde, jornadas(nombre)")
+        .in("contrato_id", contratosNoFinalizados)
+        .is("vigente_hasta", null);
+
+      for (const v of vigentesData ?? []) {
+        const jornadaNombre = (v as unknown as { jornadas: { nombre: string } | null }).jornadas?.nombre;
+        jornadaVigentePorContrato[v.contrato_id] = {
+          jornadaId: v.jornada_id,
+          jornadaNombre: jornadaNombre ?? "(jornada eliminada)",
+          vigenteDesde: v.vigente_desde,
+        };
+      }
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
@@ -157,6 +209,8 @@ export default async function ExpedienteDetallePage({
           empleadoId={id}
           contratos={contratos}
           credencial={credencial}
+          jornadasDisponibles={jornadasDisponibles}
+          jornadaVigentePorContrato={jornadaVigentePorContrato}
           canCrear={canCrear}
           canEditar={canEditar}
           canActivar={canActivar}

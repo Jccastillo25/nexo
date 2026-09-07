@@ -2,7 +2,7 @@
 
 > Tracker operativo. Debe actualizarse en cada sesión que cambie código, base de datos, permisos, despliegue o estado funcional. La fuente del objetivo es `docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`; este archivo registra la realidad verificada.
 
-Última actualización documental: **2026-09-07** (F1.0 — Auditoría real ejecutada y verificada contra `main`, Supabase `nexo-core` remoto y Vercel; ver sección 0).
+Última actualización documental: **2026-09-07** (F1.4 — Jornadas mínimas, modelo de 4 tablas + RPC de asignación con histórico, ejecutada y verificada end-to-end; ver sección 0.14).
 
 ## Estados
 
@@ -196,6 +196,100 @@ D-02 y D-06 quedan **completamente cerrados** (no solo el componente de segurida
 
 **No verificado en navegador/UI** — mismo `EPERM` de entorno. Frontend nuevo: reveal-once de PIN en "Activar"/"Regenerar PIN", badge de estado de credencial, en `contratos-panel.tsx`.
 
+## 0.14 F1.4 — Jornadas mínimas (ejecutado 2026-09-07)
+
+Modelo objetivo cumplido: `Empleado → Contrato → Asignación de jornada
+(histórico por vigencia) → Jornada (plantilla) → Días/horarios`. Revisión
+previa obligatoria del stash `feat/rrhh-jornadas-y-horas` (ver
+[`MIGRATION_LOG.md`](MIGRATION_LOG.md) para el detalle completo de la
+clasificación) — contenía solo documentación, sin migraciones ni código;
+incompatible/descartable para reutilizar literalmente (FK a `empleado_id`,
+alcance mayor a F1.4). Stash intacto, sin `pop`.
+
+Migraciones (aplicadas y verificadas):
+
+- `20260907162904_f1_4_jornadas_permission_matrix` +
+  `20260907162929_fix_f1_4_feriados_admin_role_missing` (Paso Cero,
+  aprobado explícitamente por el usuario): único código nuevo,
+  `rrhh.asistencia.feriados.{ver,crear,editar,eliminar}`. Reutiliza sin
+  cambios `rrhh.asistencia.turnos.*` (jornadas) y
+  `rrhh.expedientes.contratos.editar` (asignación a contrato) — sin
+  duplicar ningún código existente.
+- `20260907163244_f1_4_rrhh_jornadas_minimas`: `rrhh.jornadas` +
+  `rrhh.jornada_dias` (plantilla + reglas por día, un único bloque
+  entrada/salida, escritura directa vía RLS); `rrhh.contrato_jornadas`
+  (histórico de asignación por vigencia, `EXCLUDE USING gist` contra
+  solapamientos, escritura solo vía `rrhh.fn_asignar_jornada_contrato`);
+  `rrhh.feriados` (catálogo simple, sin tipo/pago). RPC nuevas:
+  `fn_asignar_jornada_contrato`, `fn_jornada_vigente_contrato` (interfaz
+  de solo lectura para F1.5). `rrhh.fn_activar_contrato` (`create or
+  replace`) ahora exige jornada asignada — **decisión explícita del
+  usuario: jornada obligatoria para activar un contrato**.
+
+Estrategia de versionado (definida, no solo implementada): sin tabla
+`jornada_versiones` adicional — mantiene el modelo mínimo de 4 tablas
+pedido. `jornada_dias` queda editable en vivo; la garantía de "no alterar
+retroactivamente un período cerrado" la da `contrato_jornadas` (qué
+jornada aplicaba a qué contrato en qué fecha) combinada con que **F1.5
+deberá snapshotear** las reglas del día dentro de
+`asistencia_resumen_diario` en el momento del cálculo — mismo criterio ya
+documentado para `planilla_detalles` (F1.7). Sin motor de consolidación
+construido todavía (fuera de alcance de F1.4).
+
+### Verificación end-to-end real (RPC, no solo esquema)
+
+Simulando `auth.uid()` vía `request.jwt.claims` (empleado + 2 jornadas +
+contrato de prueba, 0 filas antes y después en todas las tablas
+afectadas):
+
+1. Crear jornada con días completos (7/7) → 2. asignar a contrato borrador
+→ 3. **activar sin jornada rechazado explícitamente antes de crear la
+jornada** → 4. jornada vigente por fecha resuelta correctamente (día de
+semana correcto) → 5. reasignar con vigencia histórica: cierra la fila
+abierta anterior (`vigente_hasta` = día antes de la nueva vigencia), abre
+una nueva, sin sobreescribir → 6. solapamiento inválido (`vigente_desde`
+no posterior a la asignación actual) rechazado → 7. cross-company
+(`company_id` ajena) rechazado → 8. activar CON jornada asignada: aceptado
+(PIN generado) → 9. finalizar contrato: histórico de `contrato_jornadas`
+permanece intacto (2 filas), credencial revocada → 10. feriados: crear +
+duplicado en misma fecha/empresa rechazado.
+
+Negativos adicionales: usuario sin permiso rechazado tanto en
+`asignar_jornada_contrato` como en `jornada_vigente_contrato` (llamada RPC
+directa); RLS directa confirmada dos veces — lectura (`SELECT` devuelve 0
+filas sin permiso) e inserción directa (`INSERT` rechazado con "row-level
+security policy", nunca llega a escribir); jornada con histórico real
+protegida contra `DELETE` físico por la FK (`on delete restrict`, sin
+trigger aparte). `get_advisors(security)`: sin exposición nueva a `anon`;
+`get_advisors(performance)`: solo INFO pre-existente (FK sin índice de
+cobertura en `created_by`/`jornada_id`, índices nuevos sin uso —
+esperable con 0 filas reales, mismo patrón que el resto del schema).
+
+**Pendiente real, señalado — no una decisión tomada por Claude**: el
+selector de jornada en la UI de `/rrhh/expedientes/[id]` requiere
+`rrhh.asistencia.turnos.ver` para listar las jornadas disponibles.
+`gestor_expedientes` (quien completa el contrato, incluida la jornada, en
+el flujo aprobado) tiene `contratos.editar` pero NO `turnos.ver` — puede
+asignar por RPC pero no ve el listado en el selector. Es una extensión de
+rol sobre un permiso YA existente, no un código nuevo, pero cambia quién
+puede hacer qué — no estaba en el diff de Paso Cero aprobado, así que no
+se aplicó unilateralmente. Queda para aprobación aparte antes de F1.5.
+
+**No verificado en navegador/UI** — mismo `EPERM` de entorno (2026-09-05).
+Frontend nuevo: `/rrhh/jornadas` (`page.tsx` + `jornadas-panel.tsx` +
+`feriados-panel.tsx` + `actions.ts`) y sección "Jornada" agregada a
+`contratos-panel.tsx`/`actions.ts` en `/rrhh/expedientes/[id]`. Tipos
+(`database.types.ts` de `apps/rrhh` y su espejo en `apps/crm`)
+actualizados a mano, verificados contra `generate_typescript_types` (los
+`Args`/`Returns` de las 2 RPC nuevas coinciden exactamente).
+
+**Pruebas por rol real (19-21 del recorrido de F1.3) — misma limitación
+que F1.3, no cerrada aquí tampoco**: sin usuarios de prueba con
+`gestor_expedientes`/`supervisor_asistencia`/`especialista_planillas`/
+`consulta` asignados en el proyecto remoto. Verificado con `owner`
+(bypass total) y con un `user_id` sin ninguna fila de permiso (rechazado).
+Queda para F1.9, igual que en F1.3.
+
 ## 0.8 Deuda general no bloqueante para RRHH (detectada de paso)
 
 `get_advisors(performance)` reporta deuda pre-existente fuera del alcance de F1.0: `auth_rls_initplan` sin optimizar todavía en 3 policies de `core.company_memberships`, `core.user_app_roles` y `crm.clientes` (no en `rrhh` — las 25 policies de RRHH ya usan el patrón `(select auth.uid())` desde el 2026-09-05), más FKs sin índice de cobertura e índices sin uso (esperable con 0 filas). No se toca en esta sesión — es candidato a una migración de rendimiento aparte, sin relación con el refactor de contratos/PIN.
@@ -211,7 +305,7 @@ D-02 y D-06 quedan **completamente cerrados** (no solo el componente de segurida
 | RRHH modelo Expediente General/Laboral | ✅ F1.1 completada | `rrhh.empleados` ya no acepta datos laborales/credenciales en el alta (2026-09-07, sección 0.11). Columnas viejas deprecadas, no eliminadas — limpieza final pendiente de F1.2. |
 | RRHH contratos | ✅ F1.2 completada | `rrhh.contratos`/`rrhh.contrato_compensacion` existen, con RLS, trigger de estado y RPC (2026-09-07, sección 0.12). Falta F1.3 (PIN al activar) para el flujo completo. |
 | RRHH PIN contractual | ✅ F1.3 completada | El PIN nace solo al activar contrato, se revoca al finalizar, kiosko validado end-to-end contra la nueva credencial (2026-09-07, sección 0.13). |
-| RRHH jornadas | ⏳ Pendiente funcional | Permisos de turnos existen, pero falta modelo/UI necesario para cálculo real. |
+| RRHH jornadas | ✅ F1.4 completada (modelo mínimo) | `rrhh.jornadas`/`jornada_dias`/`contrato_jornadas`/`feriados` existen, con RLS, RPC de asignación e interfaz de lectura para F1.5 (2026-09-07, sección 0.14). Jornada obligatoria para activar contrato. Falta el motor de consolidación (F1.5) y las decisiones de negocio (hora extra, feriado pagado, etc.), explícitamente no implementadas. |
 | RRHH consolidación de asistencia | ⏳ Pendiente | No existe marcas → horas consolidadas. |
 | RRHH planillas | ⏳ Pendiente | Ruta actual es placeholder; falta motor/reporte. |
 | Kiosko RRHH | ✅ Migrado a PIN contractual | `rrhh.fn_registrar_marca_kiosko` valida contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. Misma UI/rate-limit de antes. |
@@ -288,7 +382,7 @@ Objetivo: compensación ligada al contrato para conservar historial de recontrat
 
 Objetivo: cada marca válida debe quedar contextualizada con el contrato laboral vigente.
 
-**Estado: ⏳ sigue pendiente, ahora desbloqueado** — `rrhh.contratos` ya existe (F1.2), pero `rrhh.asistencia_marcas.contrato_id` todavía no se agregó. Corresponde a F1.4/F1.5 (jornadas/consolidación de asistencia), fuera del alcance de F1.1-F1.3.
+**Estado: ⏳ sigue pendiente, ahora desbloqueado** — `rrhh.contratos` (F1.2) y `rrhh.contrato_jornadas`/`rrhh.fn_jornada_vigente_contrato` (F1.4, sección 0.14) ya existen, pero `rrhh.asistencia_marcas.contrato_id` todavía no se agregó. Corresponde a F1.5 (consolidación de asistencia), fuera del alcance de F1.1-F1.4.
 
 ## D-05 — planilla sin motor
 
@@ -346,7 +440,7 @@ Estado: ℹ️ hallazgo nuevo de F1.0, sin urgencia — no contradice el modelo 
 | F1.1 | Separar Expediente General / Expediente Laboral | ✅ | Ejecutada 2026-09-07 (sección 0.11). 2 migraciones, frontend y tipos actualizados. Kiosko verificado intacto. |
 | F1.2 | `rrhh.contratos` + compensación contractual | ✅ | Ejecutada 2026-09-07 (sección 0.12). Tabla + RLS + trigger de estado + RPC + UI mínima (`/rrhh/expedientes/[id]`). |
 | F1.3 | PIN generado solo al activar contrato | ✅ | Ejecutada 2026-09-07 (sección 0.13). Verificado end-to-end real (no solo esquema): activar/marcar/regenerar/finalizar, incl. 2 bugs reales encontrados y corregidos. |
-| F1.4 | Jornadas/turnos/feriados mínimos | ⏳ | Requisito del motor de asistencia. |
+| F1.4 | Jornadas/turnos/feriados mínimos | ✅ | Ejecutada 2026-09-07 (sección 0.14). Modelo mínimo de 4 tablas, RPC de asignación con histórico, jornada obligatoria para activar contrato (decisión del usuario). Gap de rol señalado (`gestor_expedientes` sin `turnos.ver`), pendiente de aprobación aparte. |
 | F1.5 | Consolidación diaria de asistencia | ⏳ | Marcas → horas/incidencias. |
 | F1.6 | Incidencias/justificaciones | ⏳ | Validación previa a planilla. |
 | F1.7 | Motor de planillas + snapshots | ⏳ | No integración contable todavía. |
@@ -504,10 +598,12 @@ Paso Cero — Matriz contratos/credenciales  ✅ aplicada 2026-09-07 (sección 0
 F1.1   — Separar Expediente General/Laboral ✅ completada 2026-09-07 (sección 0.11)
 F1.2   — rrhh.contratos + compensación      ✅ completada 2026-09-07 (sección 0.12)
 F1.3   — PIN exclusivamente contractual     ✅ completada 2026-09-07 (sección 0.13)
+F1.4   — Jornadas mínimas                   ✅ completada 2026-09-07 (sección 0.14)
  ↓
-F1.4 — Jornadas mínimas  ⏳ próximo trabajo (fuera del alcance aprobado en esta sesión —
-                              "No avances todavía a planillas" / "Primero deja F1.1-F1.3
-                              completos y verificables" — pendiente de instrucción explícita)
+F1.5 — Consolidación de asistencia  ⏳ próximo trabajo (fuera del alcance aprobado en esta
+                                          sesión — "Detente al terminar F1.4. No avances
+                                          automáticamente a consolidación de asistencia ni
+                                          planillas" — pendiente de instrucción explícita)
 ```
 
 ### Definition of Done de F1.3 — recorrido de 23 pasos, verificado

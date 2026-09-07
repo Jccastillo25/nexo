@@ -35,6 +35,12 @@ export interface EstadoCredencialResult {
   rotacionNumero?: number;
 }
 
+export interface AsignarJornadaResult {
+  ok: boolean;
+  message?: string;
+  vigenteDesde?: string;
+}
+
 /**
  * F1.2 (2026-09-07, docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md): acciones
  * del ciclo de vida del contrato (Expediente Laboral), separado del
@@ -204,6 +210,41 @@ export async function verEstadoCredencial(
     pinBloqueado: row?.pin_bloqueado,
     rotacionNumero: row?.rotacion_numero,
   };
+}
+
+/**
+ * F1.4 (2026-09-07): asigna/reasigna la jornada de un contrato (rrhh.
+ * fn_asignar_jornada_contrato) -- cierra la vigencia abierta anterior y
+ * abre una nueva, nunca sobreescribe el historico. Requisito para poder
+ * activar el contrato (rrhh.fn_activar_contrato ahora lo exige).
+ */
+export async function asignarJornada(
+  empleadoId: string,
+  contratoId: string,
+  jornadaId: string,
+  vigenteDesde?: string
+): Promise<AsignarJornadaResult> {
+  const supabase = await createClient();
+  const companyId = getCompanyId();
+
+  try {
+    await requirePermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar");
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    throw err;
+  }
+
+  const { data, error } = await supabase.rpc("asignar_jornada_contrato", {
+    p_contrato_id: contratoId,
+    p_company_id: companyId,
+    p_jornada_id: jornadaId,
+    p_vigente_desde: vigenteDesde || undefined,
+  });
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath(`/expedientes/${empleadoId}`);
+  return { ok: true, vigenteDesde: data?.[0]?.vigente_desde };
 }
 
 export async function finalizarContrato(

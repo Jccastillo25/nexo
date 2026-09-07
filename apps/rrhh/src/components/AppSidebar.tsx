@@ -11,6 +11,7 @@ import { Sidebar, type SidebarItem } from "@nexo/ui";
 const BASE_ITEMS: Omit<SidebarItem, "active">[] = [
   { label: "Dashboard", href: "/dashboard", icon: "grid" },
   { label: "Expedientes", href: "/expedientes", icon: "folder" },
+  { label: "Jornadas", href: "/jornadas", icon: "calendar" },
   { label: "Kiosco", href: "/kiosco", icon: "clock" },
   { label: "Planillas", href: "/planillas", icon: "cash" },
 ];

@@ -69,6 +69,13 @@ const ICONS = {
       <path d="M5.5 8v0M14.5 13v0" strokeLinecap="round" />
     </>
   ),
+  // F1.4 (RRHH — Jornadas/Feriados): mismo criterio aditivo de arriba.
+  calendar: (
+    <>
+      <rect x="3" y="4.5" width="14" height="12" rx="1.5" />
+      <path d="M3 8h14M6.5 2.8v3M13.5 2.8v3" strokeLinecap="round" />
+    </>
+  ),
 } as const;
 
 export type SidebarIconName = keyof typeof ICONS;

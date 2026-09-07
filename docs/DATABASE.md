@@ -3,9 +3,9 @@
 Estado (verificado contra el proyecto remoto, 2026-09-07): schema `core`
 aplicado (2026-08-30), schema `crm` aplicado y en producción (2026-08-30),
 **schema `rrhh` aplicado y en producción (2026-09-02 a 2026-09-04),
-auditoría de seguridad cerrada y verificada (2026-09-05), F1.0 (auditoría
-real) + F1.0.1 (cierre de PIN heredado) + Paso Cero de contratos/credenciales
-completados (2026-09-07)**. `flotilla` todavía no existe.
+auditoría de seguridad cerrada y verificada (2026-09-05), F1.0-F1.4
+(auditoría real, cierre de PIN heredado, contratos, PIN contractual,
+jornadas mínimas) completados (2026-09-07)**. `flotilla` todavía no existe.
 
 ## Proyecto
 
@@ -36,7 +36,7 @@ completados (2026-09-07)**. `flotilla` todavía no existe.
 |---|---|---|---|
 | `core` | Compañías, membresías/roles, catálogo de apps, catálogo de permisos, roles por app, auditoría, mapa de migración | Nuevo | ✅ Aplicado (2026-08-30), extendido 2026-09-02 (`app_scoped_roles`) |
 | `crm` | `clientes` | Migrado de materiales-jcastillo | ✅ Completo (2026-08-30), en producción |
-| `rrhh` | Empleados, compensación, kioscos, asistencia, seguridad de accesos, parámetros de ley, planillas, rate-limit de kiosko — 9 tablas base (15 con particiones) | Diseño nuevo para Nexo (no migración 1:1 de Gestor360) | ✅ Aplicado (2026-09-02 a 2026-09-04); auditoría de seguridad cerrada y verificada en producción (2026-09-05). **MVP operativo sin validar** (motor de horas/planillas no construido) — ver [RRHH_MVP.md](RRHH_MVP.md) |
+| `rrhh` | Empleados, contratos, compensación, credenciales, jornadas/feriados (F1.4), kioscos, asistencia, seguridad de accesos, parámetros de ley, planillas, rate-limit de kiosko — 16 tablas base (22 con particiones) | Diseño nuevo para Nexo (no migración 1:1 de Gestor360) | ✅ Aplicado (2026-09-02 a 2026-09-04); auditoría de seguridad cerrada y verificada en producción (2026-09-05); F1.1-F1.4 (contratos/PIN contractual/jornadas) aplicados 2026-09-07. **MVP operativo sin validar** (motor de consolidación/planillas no construido) — ver [RRHH_MVP.md](RRHH_MVP.md) |
 | `flotilla` | Flota, viajes, conductores, evidencias | Migrado de Ruta360 | ⏳ Pendiente |
 
 ## Exponer schemas en la API (paso manual)
@@ -61,14 +61,20 @@ evita exponer tablas sensibles como `user_permissions` directo a la API.
   `rrhh` habilitados (`enabled = true`, verificado 2026-09-04); `flotilla`
   no tiene fila todavía
 - `core.permissions_catalog` — catálogo único de códigos de permiso
-  `[app].[modulo].[recurso].[accion]`. 45 códigos bajo `rrhh.*` (dominios
+  `[app].[modulo].[recurso].[accion]`. 49 códigos bajo `rrhh.*` (dominios
   `expedientes`, `asistencia`, `planillas`, más `rrhh.ver_modulo`) además
   de los de `crm.*` y los 4 de visibilidad de módulo. **Actualizado
-  2026-09-07 (Paso Cero F1.0.1)**: +7 códigos nuevos bajo
+  2026-09-07 (Paso Cero F1.0.1)**: +7 códigos bajo
   `rrhh.expedientes.contratos.*` (`ver`/`crear`/`editar`/`activar`/`finalizar`)
   y `rrhh.expedientes.credenciales.*` (`ver`/`regenerar`), preparando F1.1–F1.3
   — el dominio `expedientes` se reutiliza, no se crea uno nuevo
-  (`20260907151643_rrhh_contratos_permission_matrix.sql`)
+  (`20260907151643_rrhh_contratos_permission_matrix.sql`). **Actualizado
+  2026-09-07 (Paso Cero F1.4)**: +4 códigos bajo
+  `rrhh.asistencia.feriados.*` (`ver`/`crear`/`editar`/`eliminar`) —
+  único código nuevo de F1.4; jornadas reutiliza `rrhh.asistencia.turnos.*`
+  (existente) y la asignación a contrato reutiliza
+  `rrhh.expedientes.contratos.editar` (existente), sin duplicar ninguno
+  (`20260907162904_f1_4_jornadas_permission_matrix.sql`)
 - `core.app_roles` / `core.app_role_permissions` — roles con alcance por
   app (`app_scoped_roles`, 2026-09-02): para `rrhh`, 5 roles —
   `admin`, `supervisor_asistencia`, `gestor_expedientes`,
@@ -76,7 +82,10 @@ evita exponer tablas sensibles como `user_permissions` directo a la API.
   Asignación de los 7 permisos de contratos/credenciales (2026-09-07):
   `admin` los 7; `gestor_expedientes` ver/crear/editar de contratos +
   ver de credenciales; `supervisor_asistencia` solo ver de credenciales;
-  `especialista_planillas`/`consulta` ninguno
+  `especialista_planillas`/`consulta` ninguno. Asignación de los 4
+  permisos de feriados (F1.4, 2026-09-07): `admin`/`supervisor_asistencia`
+  el CRUD completo (mismo patrón que `turnos.*`), `consulta` solo `ver`,
+  `gestor_expedientes`/`especialista_planillas` ninguno
 - `core.user_permissions`, `core.audit_log` (particionada mensualmente
   desde 2026-09-02), `core.migration_map`
 - `core.tablas_particionadas` — registro genérico de qué tablas
@@ -127,6 +136,9 @@ completo de cada una:
 20260907154715_f1_3_pin_exclusivamente_contractual
 20260907154858_fix_crear_empleado_returning_ambiguous
 20260907154942_fix_crear_contrato_returning_ambiguous
+20260907162904_f1_4_jornadas_permission_matrix
+20260907162929_fix_f1_4_feriados_admin_role_missing
+20260907163244_f1_4_rrhh_jornadas_minimas
 ```
 
 Las últimas 5 (auditoría de seguridad de RRHH, 2026-09-05) se aplicaron
@@ -168,6 +180,10 @@ hardcodeado en la app (todo pasa por `core.has_permission()`).
 | `rrhh.contratos` | Catálogo (no particionada) | **Expediente Laboral (F1.2, 2026-09-07)**: `estado` `borrador→activo→finalizado` (trigger de transición, sin reabrir), `puesto`/`departamento`/`modalidad_contrato`/fechas congelados fuera de `borrador`. Un solo contrato `activo` por empleado (unique index parcial). Sin `DELETE` — historial nunca se borra |
 | `rrhh.contrato_compensacion` | Catálogo, 1:1 con `contratos` | **F1.2**: salario base y frecuencia de pago del contrato — no del empleado (D-03: una recontratación crea un contrato nuevo, conserva histórico). Reutiliza `rrhh.expedientes.compensacion.ver/editar` (permisos existentes, re-scopeados) |
 | `rrhh.contrato_credenciales` | Catálogo, 1:1 con `contratos` | **F1.3 (2026-09-07)**: `pin_hash`, `activo`, `pin_bloqueado`, `intentos_fallidos`, `rotacion_numero`. Nace al activar el contrato (`fn_activar_contrato`), se revoca al finalizar. RLS habilitado **sin ninguna policy** y **sin `GRANT` de `SELECT` a nadie** — deny-by-default total, toda interacción vía RPC que ni siquiera seleccionan `pin_hash` en su respuesta |
+| `rrhh.jornadas` | Catálogo (no particionada) | **F1.4 (2026-09-07)**: plantilla de jornada reutilizable (ej. "Administrativo 8-17"). No hay una jornada universal única — una empresa puede tener varias. RLS/GRANT directo (sin RPC), gateada por `rrhh.asistencia.turnos.ver/crear/editar/eliminar` (reutilizados, existían sin consumidor desde la matriz original) |
+| `rrhh.jornada_dias` | Catálogo (no particionada) | **F1.4**: reglas por día de semana (1=lunes..7=domingo) de una jornada — un único bloque entrada/salida, sin turnos nocturnos ni cruce de medianoche. Mismas policies que `jornadas` |
+| `rrhh.contrato_jornadas` | Catálogo (no particionada) | **F1.4**: histórico de asignación de jornada a un contrato, por rango de vigencia (`vigente_desde`/`vigente_hasta`). `EXCLUDE USING gist` (requiere `btree_gist`) contra solapamientos por `contrato_id`. Escritura SOLO vía `rrhh.fn_asignar_jornada_contrato` — sin policy de insert/update/delete directo, mismo criterio que `contrato_compensacion` |
+| `rrhh.feriados` | Catálogo (no particionada) | **F1.4**: calendario de feriados por empresa. Sin columna de tipo/alcance ni de pago — decisión de negocio pendiente (ver `RRHH_MVP.md` sección 14). RLS/GRANT directo, gateada por `rrhh.asistencia.feriados.ver/crear/editar/eliminar` (únicos 4 códigos nuevos de F1.4) |
 | `rrhh.kiosko_dispositivos` | Catálogo (no particionada) | Terminales físicas de marcaje. El `id` (UUID aleatorio) actúa como credencial del dispositivo frente al RPC de marcación |
 | `rrhh.asistencia_marcas` | **Hechos, particionada por mes** (`marcado_en`) | Un renglón por marca de entrada/salida, para siempre. Particiones vigentes: `_2026_09`, `_2026_10`, `_2026_11` (mantenidas por `core.fn_asegurar_particiones_futuras`, 2 meses de anticipación) |
 | `rrhh.seguridad_accesos` | **Hechos, particionada por mes** (`intentado_en`) | Solo intentos **fallidos** de acceso operativo (`nombre_usuario` + PIN) — no es un log de éxitos. Señal de fuerza bruta/enumeración |
@@ -190,10 +206,12 @@ Todas `SECURITY DEFINER`, con `search_path` fijado explícitamente
 | `set_pin_empleado(...)` | `fn_set_pin_empleado` | Solo `authenticated` (revocado de `anon` y `PUBLIC` explícitamente) | **Superada por F1.3** — el PIN ya no se asigna al empleado, sino al contrato vía `activar_contrato`/`regenerar_pin_contrato`. Sin consumidores en el código (ya lo estaba desde antes). No eliminada todavía |
 | `crear_contrato(...)` | `fn_crear_contrato` | Solo `authenticated` | **F1.2 (2026-09-07)**: crea un contrato `borrador`. Exige `rrhh.expedientes.contratos.crear`; salario exige además `compensacion.editar`. **Corregida el mismo día** (`fix_crear_contrato_returning_ambiguous`): mismo bug de `RETURNING` ambiguo que `crear_empleado` |
 | `editar_contrato(...)` | `fn_editar_contrato` | Solo `authenticated` | **F1.2**: edita SOLO en estado `borrador` (verificado explícito, además de RLS/trigger). Exige `rrhh.expedientes.contratos.editar` |
-| `activar_contrato(contrato_id, company_id)` | `fn_activar_contrato` | Solo `authenticated` | **F1.3**: activa el contrato Y genera el PIN de asistencia (`rrhh.contrato_credenciales`), devuelto en texto plano una sola vez. Exige `rrhh.expedientes.contratos.activar` |
+| `activar_contrato(contrato_id, company_id)` | `fn_activar_contrato` | Solo `authenticated` | **F1.3, endurecida en F1.4**: activa el contrato Y genera el PIN de asistencia (`rrhh.contrato_credenciales`), devuelto en texto plano una sola vez. **Desde F1.4 (2026-09-07)**, exige además al menos una fila en `rrhh.contrato_jornadas` — jornada obligatoria, decisión explícita del usuario. Exige `rrhh.expedientes.contratos.activar` |
 | `finalizar_contrato(contrato_id, company_id)` | `fn_finalizar_contrato` | Solo `authenticated` | **F1.3**: finaliza el contrato Y revoca la credencial de asistencia. Exige `rrhh.expedientes.contratos.finalizar` |
 | `regenerar_pin_contrato(contrato_id, company_id)` | `fn_regenerar_pin_contrato` | Solo `authenticated` | **F1.3**: único camino para regenerar el PIN — exige contrato `activo`. Devuelto en texto plano una sola vez. Exige `rrhh.expedientes.credenciales.regenerar` |
 | `estado_credencial_contrato(contrato_id, company_id)` | `fn_estado_credencial_contrato` | Solo `authenticated` | **F1.3**: único camino de lectura — `activo`/`pin_bloqueado`/`rotacion_numero`, **nunca** el PIN ni el hash (la función ni siquiera los selecciona). Exige `rrhh.expedientes.credenciales.ver` |
+| `asignar_jornada_contrato(contrato_id, company_id, jornada_id, vigente_desde?)` | `fn_asignar_jornada_contrato` | Solo `authenticated` | **F1.4 (2026-09-07)**: único camino de escritura de `rrhh.contrato_jornadas` — cierra la vigencia abierta anterior (si existe) y abre una nueva, atómicamente. Rechaza contrato finalizado, jornada inactiva/de otra empresa, y una vigencia que no sea estrictamente posterior a la actual. Exige `rrhh.expedientes.contratos.editar` |
+| `jornada_vigente_contrato(contrato_id, company_id, fecha?)` | `fn_jornada_vigente_contrato` | Solo `authenticated` | **F1.4**: interfaz de solo lectura para F1.5 — resuelve contrato+fecha → jornada+regla del día (ISO-8601, `extract(isodow)`). No implementa consolidación/cálculo. Exige `rrhh.expedientes.contratos.ver` |
 
 Verificado en producción (2026-09-05, `has_function_privilege` contra
 `nexo-core`): `anon` y `authenticated` en `false` para las 4 funciones

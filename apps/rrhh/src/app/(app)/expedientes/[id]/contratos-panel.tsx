@@ -7,6 +7,7 @@ import {
   activarContrato,
   finalizarContrato,
   regenerarPin,
+  asignarJornada,
   type ContratoInput,
 } from "./actions";
 
@@ -30,11 +31,26 @@ export interface CredencialEstado {
   rotacionNumero: number;
 }
 
+export interface JornadaOption {
+  id: string;
+  nombre: string;
+}
+
+export interface JornadaVigente {
+  jornadaId: string;
+  jornadaNombre: string;
+  vigenteDesde: string;
+}
+
 export interface ContratosPanelProps {
   empleadoId: string;
   contratos: ContratoRow[];
   /** Estado de credencial del contrato ACTIVO, si hay uno y si canVerCredenciales. */
   credencial: CredencialEstado | null;
+  /** F1.4: jornadas activas disponibles para asignar (catálogo de /jornadas). */
+  jornadasDisponibles: JornadaOption[];
+  /** F1.4: jornada vigente (fila abierta) por contrato_id, si tiene una asignada. */
+  jornadaVigentePorContrato: Record<string, JornadaVigente | undefined>;
   canCrear: boolean;
   canEditar: boolean;
   canActivar: boolean;
@@ -66,6 +82,8 @@ export default function ContratosPanel({
   empleadoId,
   contratos,
   credencial,
+  jornadasDisponibles,
+  jornadaVigentePorContrato,
   canCrear,
   canEditar,
   canActivar,
@@ -80,6 +98,7 @@ export default function ContratosPanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pinRevelado, setPinRevelado] = useState<{ contratoId: string; pin: string } | null>(null);
+  const [jornadaSeleccionada, setJornadaSeleccionada] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
 
   const tieneActivo = contratos.some((c) => c.estado === "activo");
@@ -142,6 +161,26 @@ export default function ContratosPanel({
     startTransition(async () => {
       const res = await finalizarContrato(empleadoId, id);
       if (!res.ok) setError(res.message ?? "No se pudo finalizar el contrato.");
+    });
+  }
+
+  /**
+   * F1.4: asigna/reasigna jornada -- vigente_desde queda a cargo del RPC
+   * (usa fecha_inicio del contrato o hoy si no hay ninguna asignación
+   * previa; si ya hay una vigente, exige una fecha posterior a esa —
+   * error entendible si el usuario intenta una fecha inválida).
+   */
+  function asignar(contratoId: string) {
+    const jornadaId = jornadaSeleccionada[contratoId];
+    if (!jornadaId) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await asignarJornada(empleadoId, contratoId, jornadaId);
+      if (!res.ok) {
+        setError(res.message ?? "No se pudo asignar la jornada.");
+        return;
+      }
+      setJornadaSeleccionada((prev) => ({ ...prev, [contratoId]: "" }));
     });
   }
 
@@ -305,6 +344,53 @@ export default function ContratosPanel({
                 <span>{c.salario_base != null ? `C$ ${c.salario_base}` : "—"}</span>
               )}
             </div>
+
+            {c.estado !== "finalizado" && (
+              <div className="flex flex-wrap items-center gap-2 text-xs text-white/50">
+                <span>Jornada:</span>
+                {jornadaVigentePorContrato[c.id] ? (
+                  <span className="text-white/80">
+                    {jornadaVigentePorContrato[c.id]!.jornadaNombre}
+                    <span className="ml-1 text-white/40">
+                      (vigente desde {jornadaVigentePorContrato[c.id]!.vigenteDesde})
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-amber-300">sin asignar — no se puede activar</span>
+                )}
+                {canEditar && jornadasDisponibles.length > 0 && (
+                  <>
+                    <select
+                      value={jornadaSeleccionada[c.id] ?? ""}
+                      onChange={(e) =>
+                        setJornadaSeleccionada((prev) => ({ ...prev, [c.id]: e.target.value }))
+                      }
+                      className="rounded-lg border border-[var(--nexo-border)] bg-black/20 px-2 py-1 text-xs text-white outline-none focus:border-[var(--nexo-accent)]"
+                    >
+                      <option value="">
+                        {jornadaVigentePorContrato[c.id] ? "Reasignar…" : "Asignar…"}
+                      </option>
+                      {jornadasDisponibles.map((j) => (
+                        <option key={j.id} value={j.id}>
+                          {j.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={isPending || !jornadaSeleccionada[c.id]}
+                      onClick={() => asignar(c.id)}
+                      className="rounded-lg bg-white/10 px-2 py-1 text-xs text-white hover:bg-white/20 disabled:opacity-40"
+                    >
+                      Guardar
+                    </button>
+                  </>
+                )}
+                {canEditar && jornadasDisponibles.length === 0 && (
+                  <span className="text-white/30">Sin jornadas creadas todavía — ver /jornadas.</span>
+                )}
+              </div>
+            )}
 
             {c.estado === "activo" && canVerCredenciales && credencial && (
               <div className="flex items-center gap-2 text-xs text-white/50">

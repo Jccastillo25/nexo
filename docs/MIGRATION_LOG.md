@@ -2,6 +2,94 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-09-07 — F1.4: Jornadas mínimas
+
+Contexto completo en [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)
+sección 0.14. Rama `feat/rrhh-f1-4-jornadas-minimas` → `main`.
+
+Revisión previa obligatoria del stash `feat/rrhh-jornadas-y-horas`
+(trabajo de una sesión anterior a `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`):
+contenía solo 5 archivos de **documentación** (`CLAUDE.md`,
+`docs/PERMISSIONS.md`, `docs/README.md`, `docs/RRHH_IMPLEMENTATION_PLAN.md`,
+`docs/planning/RRHH_JORNADAS_DISENO.md`) — **ninguna migración SQL ni
+código de app**. Clasificado como incompatible/descartable para reutilizar
+literalmente: sus FK cuelgan de `empleado_id` (no `contrato_id`, el modelo
+vigente), y su alcance (evidencia fotográfica en kiosco, redondeo,
+incidencias, consolidación) excede F1.4. El propio documento dice "nada de
+esto se aplicó". Stash intacto, sin `pop` — nada se integró.
+
+**3 migraciones nuevas, aplicadas a `nexo-core` y verificadas** (aplicadas
+primero vía `apply_migration`, archivo de Git escrito después con el mismo
+`version` que Supabase asignó — mismo patrón que las migraciones
+anteriores de esta fecha):
+
+- `20260907162904_f1_4_jornadas_permission_matrix` — Paso Cero. Inserta 4
+  códigos nuevos (`rrhh.asistencia.feriados.{ver,crear,editar,eliminar}`),
+  único permiso nuevo necesario. Reutiliza sin cambios
+  `rrhh.asistencia.turnos.{ver,crear,editar,eliminar}` (existentes desde
+  la matriz original de RRHH, nunca consumidos hasta ahora) para
+  `rrhh.jornadas`/`rrhh.jornada_dias`, y `rrhh.expedientes.contratos.editar`
+  (existente) para asignar jornada a un contrato — sin duplicar ningún
+  código. Aprobado explícitamente por el usuario antes de aplicar.
+- `20260907162929_fix_f1_4_feriados_admin_role_missing` — corrección el
+  mismo día: la migración anterior asumía que el rol `admin` de RRHH
+  recibe automáticamente los permisos nuevos de un dominio existente.
+  Falso — verificado con una consulta real después de aplicar. Sin este
+  fix, `admin` quedaba denegado (fail-closed) para feriados.
+- `20260907163244_f1_4_rrhh_jornadas_minimas` — modelo mínimo de 4 tablas:
+  - `rrhh.jornadas` / `rrhh.jornada_dias`: plantilla reutilizable + reglas
+    por día (1=lunes..7=domingo), un único bloque entrada/salida por día
+    (sin turnos nocturnos ni cruce de medianoche). Escritura directa
+    protegida por RLS (mismo patrón que `rrhh.parametros_ley`).
+  - `rrhh.contrato_jornadas`: histórico de asignación por rango de
+    vigencia (`vigente_desde`/`vigente_hasta`), `EXCLUDE USING gist`
+    (requiere `btree_gist`) contra solapamientos por `contrato_id`.
+    Escritura SOLO vía `rrhh.fn_asignar_jornada_contrato` (cierra la
+    vigencia abierta anterior y abre una nueva, atómicamente).
+  - `rrhh.feriados`: catálogo por empresa, sin tipo/alcance ni pago
+    (decisión de negocio pendiente).
+  - RPC nuevas: `fn_asignar_jornada_contrato`, `fn_jornada_vigente_contrato`
+    (interfaz de solo lectura para F1.5, sin motor de cálculo).
+  - `rrhh.fn_activar_contrato` (`create or replace`, mismo tipo de
+    retorno): ahora exige al menos una fila en `contrato_jornadas` para
+    activar — decisión explícita del usuario (jornada obligatoria).
+  - Estrategia de versionado: `jornada_dias` editable en vivo; la garantía
+    de no alterar retroactivamente un período cerrado la da
+    `contrato_jornadas` + que F1.5 deberá snapshotear las reglas del día
+    en el momento del cálculo (mismo criterio que `planilla_detalles`).
+
+Verificado con llamadas RPC reales (no solo `INSERT` crudo), simulando
+`auth.uid()` vía `request.jwt.claims` (empleado/contrato/jornadas de
+prueba, 0 filas antes y después): crear jornada → definir días → asignar a
+contrato borrador → activar sin jornada rechazado → activar con jornada
+aceptado (PIN generado) → jornada vigente por fecha resuelta correctamente
+→ reasignación con vigencia histórica (cierra la anterior, abre la nueva,
+sin sobreescribir) → solapamiento inválido rechazado (`EXCLUDE`) →
+cross-company rechazado → usuario sin permiso rechazado (RPC y lectura) →
+RLS directa (lectura e insert) rechazada sin permiso → jornada con
+histórico protegida contra `DELETE` por FK → finalizar contrato conserva
+el histórico de jornadas intacto → feriados CRUD + duplicado rechazado.
+`get_advisors(security)`: sin exposición nueva a `anon`, solo los WARN ya
+aceptados de `authenticated` (mismo patrón que el resto de RRHH).
+`get_advisors(performance)`: solo INFO de FK sin índice de cobertura /
+índice sin uso, misma deuda pre-existente ya documentada (sección 0.8 de
+`IMPLEMENTATION_STATUS.md`), nada nuevo que bloquee.
+
+**Gap de permisos detectado durante la UI, no cerrado en esta sesión**:
+`gestor_expedientes` tiene `rrhh.expedientes.contratos.editar` (puede
+asignar jornada vía RPC) pero NO `rrhh.asistencia.turnos.ver` (no puede
+ver el listado de jornadas para elegir una en el selector de la UI) — la
+matriz aprobada reutilizó `turnos.*` tal cual, sin extenderla a este rol.
+Es una decisión de rol nueva, no cubierta por la aprobación de este Paso
+Cero — queda señalada para aprobación aparte, no aplicada.
+
+**No verificado en navegador/UI** — mismo `EPERM` de entorno ya
+documentado (2026-09-05). Frontend nuevo: `/rrhh/jornadas` (catálogo de
+jornadas + días + feriados) y sección "Jornada" en
+`/rrhh/expedientes/[id]` (asignar/reasignar por contrato). Verificado por
+revisión estática cuidadosa del código + la verificación exhaustiva de
+esquema/RPC/RLS de arriba.
+
 ## 2026-09-07 — F1.0 a F1.3 completas (auditoría, cierre D-06, Paso Cero, contratos, PIN contractual)
 
 Contexto completo en [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)

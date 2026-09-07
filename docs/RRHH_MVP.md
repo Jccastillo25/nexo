@@ -1,6 +1,6 @@
 # RRHH — MVP operativo: fuente de verdad
 
-> Actualizado **2026-09-06**. Este documento define qué significa “RRHH MVP listo”. Debe leerse junto a `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`, `IMPLEMENTATION_STATUS.md` y `DRIVER_ACCESS_AND_KIOSK.md`.
+> Actualizado **2026-09-07** (F1.4 — jornadas mínimas). Este documento define qué significa “RRHH MVP listo”. Debe leerse junto a `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`, `IMPLEMENTATION_STATUS.md` y `DRIVER_ACCESS_AND_KIOSK.md`.
 
 RRHH no se considera terminado por cantidad de pantallas ni por infraestructura desplegada. Debe ejecutarse de punta a punta el flujo aprobado.
 
@@ -153,16 +153,27 @@ La compensación pertenece al contrato, no a la identidad general del empleado.
 
 ## 4.4 Jornada
 
-El contrato debe tener jornada/asignación suficiente para calcular:
+**✅ F1.4 cumplida (2026-09-07)**: modelo mínimo de 4 tablas —
+`rrhh.jornadas` (plantilla), `rrhh.jornada_dias` (reglas por día),
+`rrhh.contrato_jornadas` (asignación al contrato, con histórico por
+vigencia) y `rrhh.feriados` (calendario). Un contrato **no puede
+activarse sin una jornada asignada** (decisión explícita del usuario,
+`rrhh.fn_activar_contrato`). Ver `IMPLEMENTATION_STATUS.md` sección 0.14.
 
-- ordinarias;
-- descanso;
-- tolerancias;
-- tardanza;
-- horas extra;
-- feriados/no laborables.
+El contrato tiene jornada/asignación suficiente para **resolver** (no
+todavía calcular — eso es F1.5):
 
-No hardcodear una jornada universal.
+- ordinarias (horario por día, un único bloque entrada/salida);
+- descanso (minutos por día);
+- tolerancias (entrada/salida, en minutos, por día);
+- feriados/no laborables (catálogo `rrhh.feriados`, día no laborable
+  vía `jornada_dias.laborable = false`).
+
+No hardcodeada — `rrhh.jornadas` permite múltiples plantillas por
+empresa. **Explícitamente sin implementar en F1.4** (decisión de negocio
+pendiente, no inventada): tardanza/hora extra (regla de cálculo), pago de
+feriado, nocturnidad, doble turno, jornada especial, redondeos, turnos
+que cruzan medianoche. Ver sección 14 de este documento.
 
 ---
 
@@ -308,6 +319,28 @@ Asignación ya aplicada en `core.app_role_permissions`:
 
 `credenciales.ver` es exclusivamente estado de la credencial (activa/bloqueada) — nunca el PIN en texto plano; el PIN se muestra una única vez, en `contratos.activar` o `credenciales.regenerar`.
 
+**Paso Cero de F1.4 (2026-09-07)**: único código nuevo,
+`rrhh.asistencia.feriados.{ver,crear,editar,eliminar}`. Reutiliza sin
+cambios `rrhh.asistencia.turnos.*` (ya existían desde la matriz original,
+sin consumidor hasta ahora) para `rrhh.jornadas`/`rrhh.jornada_dias`, y
+`rrhh.expedientes.contratos.editar` para asignar jornada a un contrato.
+
+| Permiso | admin | gestor_expedientes | supervisor_asistencia | especialista_planillas | consulta |
+|---|---:|---:|---:|---:|---:|
+| asistencia.turnos.ver (jornadas) | ✅ | ⚠️ ver nota | ✅ | — | ✅ |
+| asistencia.turnos.crear/editar/eliminar | ✅ | — | ✅ | — | — |
+| asistencia.feriados.ver | ✅ | — | ✅ | — | ✅ |
+| asistencia.feriados.crear/editar/eliminar | ✅ | — | ✅ | — | — |
+| expedientes.contratos.editar (asignar jornada al contrato) | ✅ | ✅ | — | — | — |
+
+⚠️ **Gap detectado al construir la UI, señalado, no cerrado en esta
+sesión**: `gestor_expedientes` completa la jornada del contrato (flujo
+aprobado) con `contratos.editar`, pero no tiene `turnos.ver` — no puede
+ver el listado de jornadas disponibles para elegir en el selector.
+Extender `turnos.ver` (solo lectura) a `gestor_expedientes` es candidato
+de fast-follow, pendiente de aprobación aparte (no formaba parte del
+diff de Paso Cero aprobado para F1.4).
+
 Los permisos actuales de compensación pueden conservar nomenclatura si se documenta su semántica contractual.
 
 Identidad digital (`core.identidad.cuenta.*`) y habilitación de conductor (`flotilla.conductores.*`) quedan como diseño objetivo documentado, sin implementar — no forman parte del Paso Cero de RRHH ni del cierre de F1.1–F1.3. Ver `IMPLEMENTATION_STATUS.md` sección 0.10.
@@ -357,17 +390,17 @@ No debe crearse un segundo usuario si ya existe identidad digital Nexo.
 
 # 12. Checklist E2E RRHH
 
-Pasos 1-3 y 5-9 **✅ verificados end-to-end real el 2026-09-07** (F1.1-F1.3, ver `IMPLEMENTATION_STATUS.md` sección 0.13 para el detalle exacto — incluye el paso adicional de regenerar PIN, no listado originalmente aquí). Pasos 4, 10-13 (jornada/consolidación/incidencias/planilla) son de F1.4 en adelante, todavía no construidos — fuera del alcance F1.1-F1.3. Pasos 17-21 verificados solo parcialmente (ver nota abajo).
+Pasos 1-9 **✅ verificados end-to-end real el 2026-09-07** (F1.1-F1.4, ver `IMPLEMENTATION_STATUS.md` secciones 0.13/0.14 para el detalle exacto — incluye el paso adicional de regenerar PIN, no listado originalmente aquí, y la jornada obligatoria de F1.4). Pasos 10-13 (consolidación/incidencias/planilla) son de F1.5 en adelante, todavía no construidos. Pasos 17-21 verificados solo parcialmente (ver nota abajo).
 
 1. Crear expediente general sin PIN. ✅
 2. Crear contrato borrador sin PIN. ✅
 3. Intentar marcar antes de activar: debe fallar. ✅ (sin credencial, `fn_registrar_marca_kiosko` no encuentra match)
-4. Completar jornada/compensación. ⏳ compensación sí (F1.2); jornada es F1.4
+4. Completar jornada/compensación. ✅ compensación (F1.2) y jornada (F1.4) — activar rechaza sin jornada asignada
 5. Activar contrato y recibir PIN una sola vez. ✅
 6. PIN inválido: error genérico. ✅ (mensaje anti-enumeración sin cambios desde 2026-09-05)
 7. PIN válido: entrada. ✅
 8. Segundo PIN válido: salida. ✅
-9. Verificar marcas con contrato correcto. ✅ (marcas quedan bajo el `empleado_id` correcto; `contrato_id` en `asistencia_marcas` sigue pendiente de F1.4/F1.5, ver D-04)
+9. Verificar marcas con contrato correcto. ✅ (marcas quedan bajo el `empleado_id` correcto; `contrato_id` en `asistencia_marcas` sigue pendiente de F1.5, ver D-04 — F1.4 ya deja `rrhh.fn_jornada_vigente_contrato` como interfaz de resolución contrato+fecha→jornada para cuando F1.5 la use)
 10. Consolidar horas y comprobar manualmente. ⏳ F1.5
 11. Probar una incidencia. ⏳ F1.6
 12. Generar planilla de prueba. ⏳ F1.7
@@ -399,5 +432,31 @@ RRHH solo pasa a `✅ MVP listo` cuando:
 - permisos/RLS se validan;
 - contrato finalizado revoca PIN;
 - documentación y remoto coinciden.
+
+---
+
+# 14. Decisiones de negocio pendientes (jornadas, F1.4)
+
+**No inventadas por Claude** — el modelo de F1.4 quedó parametrizable
+precisamente para no asumir ninguna de estas reglas sin que Materiales
+J Castillo las confirme. Bloquean F1.5/F1.6/F1.7, no F1.4:
+
+- cantidad de horas semanales "estándar" (para saber qué es hora extra);
+- tolerancia universal (hoy es por día/jornada, sin un default de empresa);
+- descanso universal (hoy es por día/jornada, sin un mínimo legal fijado);
+- regla de cálculo de hora extra (recargo, tope diario/semanal);
+- si un feriado se paga, y cómo (`rrhh.feriados` no tiene columna de tipo
+  ni de pago a propósito — se agrega cuando se defina la regla);
+- nocturnidad (recargo por horario nocturno);
+- doble turno / jornada especial;
+- redondeos de marca (¿se redondea a favor de quién, en qué intervalo?);
+- turnos que cruzan medianoche (`rrhh.jornada_dias` modela un único
+  bloque por día calendario — no soporta esto todavía);
+- horario partido (2+ bloques por día) — hoy un único bloque
+  entrada/salida por día, ver `rrhh.jornada_dias`.
+
+Cuando se confirme cualquiera de estas reglas, se implementa con una
+migración nueva (nunca editando `rrhh.jornada_dias`/`rrhh.feriados` para
+"forzar" el caso) y se actualiza esta sección.
 
 Hasta entonces permanece **en validación / en progreso**.

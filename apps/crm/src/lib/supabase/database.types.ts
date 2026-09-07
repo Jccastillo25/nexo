@@ -165,6 +165,38 @@ export type Database = {
         };
         Returns: undefined;
       };
+      // F1.4 (2026-09-07) — ver
+      // supabase/migrations/20260907163244_f1_4_rrhh_jornadas_minimas.sql.
+      // Unico camino de escritura de rrhh.contrato_jornadas -- cierra la
+      // vigencia abierta anterior y abre una nueva, atomicamente.
+      asignar_jornada_contrato: {
+        Args: {
+          p_company_id: string;
+          p_contrato_id: string;
+          p_jornada_id: string;
+          p_vigente_desde?: string;
+        };
+        Returns: {
+          contrato_jornada_id: string;
+          vigente_desde: string;
+        }[];
+      };
+      // Interfaz de solo lectura para F1.5 -- resuelve contrato+fecha ->
+      // jornada+regla del dia. No implementa consolidacion/calculo.
+      jornada_vigente_contrato: {
+        Args: { p_company_id: string; p_contrato_id: string; p_fecha?: string };
+        Returns: {
+          jornada_id: string;
+          jornada_nombre: string;
+          dia_semana: number;
+          laborable: boolean;
+          hora_entrada: string | null;
+          hora_salida: string | null;
+          minutos_descanso: number;
+          tolerancia_entrada_min: number;
+          tolerancia_salida_min: number;
+        }[];
+      };
       // Nullable en logo_url/login_background_url (no en HEAD original de
       // esta sesion) — version de origin/main, mas reciente y correcta:
       // ver e19302a "login completamente editable" y 44b6ab6 "fix: subir
@@ -542,6 +574,120 @@ export type Database = {
         };
         Insert: never;
         Update: never;
+        Relationships: [];
+      };
+      // F1.4 (2026-09-07) — plantilla de jornada reutilizable, ver
+      // supabase/migrations/20260907163244_f1_4_rrhh_jornadas_minimas.sql.
+      jornadas: {
+        Row: {
+          id: string;
+          company_id: string;
+          nombre: string;
+          descripcion: string | null;
+          activo: boolean;
+          created_at: string;
+          created_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id?: string;
+          nombre: string;
+          descripcion?: string | null;
+          activo?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          nombre?: string;
+          descripcion?: string | null;
+          activo?: boolean;
+        };
+        Relationships: [];
+      };
+      // Un unico bloque entrada/salida por dia (1=lunes..7=domingo,
+      // ISO-8601) -- sin turnos nocturnos ni cruce de medianoche.
+      jornada_dias: {
+        Row: {
+          id: string;
+          jornada_id: string;
+          company_id: string;
+          dia_semana: number;
+          laborable: boolean;
+          hora_entrada: string | null;
+          hora_salida: string | null;
+          minutos_descanso: number;
+          tolerancia_entrada_min: number;
+          tolerancia_salida_min: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          jornada_id: string;
+          company_id: string;
+          dia_semana: number;
+          laborable?: boolean;
+          hora_entrada?: string | null;
+          hora_salida?: string | null;
+          minutos_descanso?: number;
+          tolerancia_entrada_min?: number;
+          tolerancia_salida_min?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          laborable?: boolean;
+          hora_entrada?: string | null;
+          hora_salida?: string | null;
+          minutos_descanso?: number;
+          tolerancia_entrada_min?: number;
+          tolerancia_salida_min?: number;
+        };
+        Relationships: [];
+      };
+      // Historico de asignacion de jornada a un contrato, por rango de
+      // vigencia -- escritura SOLO via rrhh.fn_asignar_jornada_contrato
+      // (sin policy de insert/update/delete para authenticated).
+      contrato_jornadas: {
+        Row: {
+          id: string;
+          company_id: string;
+          contrato_id: string;
+          jornada_id: string;
+          vigente_desde: string;
+          vigente_hasta: string | null;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: never; // solo via rrhh.fn_asignar_jornada_contrato
+        Update: never;
+        Relationships: [];
+      };
+      // Calendario de feriados por empresa. Sin tipo/alcance ni pago --
+      // sin regla de negocio definida todavia (ver docs/RRHH_MVP.md).
+      feriados: {
+        Row: {
+          id: string;
+          company_id: string;
+          fecha: string;
+          nombre: string;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          company_id?: string;
+          fecha: string;
+          nombre: string;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          fecha?: string;
+          nombre?: string;
+        };
         Relationships: [];
       };
       // Tabla separada de empleados a proposito — compensacion.ver/editar
