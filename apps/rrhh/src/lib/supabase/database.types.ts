@@ -95,6 +95,47 @@ export type Database = {
         Args: { p_nombre_usuario: string; p_pin: string };
         Returns: string;
       };
+      // F1.2 (2026-09-07): ciclo de vida del contrato — ver
+      // supabase/migrations/20260907153604_f1_2_rrhh_contratos.sql.
+      // activar_contrato es SOLO transicion de estado por ahora; F1.3 la
+      // reemplaza (create or replace) para ademas generar el PIN.
+      activar_contrato: {
+        Args: { p_company_id: string; p_contrato_id: string };
+        Returns: undefined;
+      };
+      crear_contrato: {
+        Args: {
+          p_company_id: string;
+          p_departamento?: string;
+          p_empleado_id: string;
+          p_fecha_fin_prevista?: string;
+          p_fecha_inicio?: string;
+          p_modalidad_contrato?: string;
+          p_puesto?: string;
+          p_salario_base?: number;
+        };
+        Returns: {
+          contrato_id: string;
+          numero_contrato: number;
+        }[];
+      };
+      editar_contrato: {
+        Args: {
+          p_company_id: string;
+          p_contrato_id: string;
+          p_departamento?: string;
+          p_fecha_fin_prevista?: string;
+          p_fecha_inicio?: string;
+          p_modalidad_contrato?: string;
+          p_puesto?: string;
+          p_salario_base?: number;
+        };
+        Returns: undefined;
+      };
+      finalizar_contrato: {
+        Args: { p_company_id: string; p_contrato_id: string };
+        Returns: undefined;
+      };
       // F1.1 (2026-09-07): firma reducida a solo Expediente General — ver
       // supabase/migrations/20260907152301_f1_1_separar_expediente_general_laboral.sql.
       // La firma anterior (13 parametros, generaba PIN/nombre_usuario) fue
@@ -228,6 +269,83 @@ export type Database = {
           user_id?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
+      };
+      // Expediente Laboral (F1.2, 2026-09-07) — ver
+      // supabase/migrations/20260907153604_f1_2_rrhh_contratos.sql.
+      // Un solo contrato 'activo' por empleado (unique index parcial);
+      // estado borrador->activo->finalizado sin reabrir (trigger
+      // rrhh.fn_validar_transicion_contrato). Se escribe solo via RPC
+      // (crear_contrato/editar_contrato/activar_contrato/finalizar_contrato).
+      contratos: {
+        Row: {
+          id: string;
+          company_id: string;
+          empleado_id: string;
+          numero_contrato: number;
+          estado: "borrador" | "activo" | "finalizado";
+          puesto: string | null;
+          departamento: string | null;
+          modalidad_contrato: "nomina_estandar" | "comisionista_destajo" | null;
+          fecha_inicio: string | null;
+          fecha_fin_prevista: string | null;
+          fecha_fin_real: string | null;
+          created_at: string;
+          created_by: string | null;
+          activado_at: string | null;
+          activado_by: string | null;
+          finalizado_at: string | null;
+          finalizado_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          empleado_id: string;
+          numero_contrato?: never; // generated always as identity
+          estado?: "borrador" | "activo" | "finalizado";
+          puesto?: string | null;
+          departamento?: string | null;
+          modalidad_contrato?: "nomina_estandar" | "comisionista_destajo" | null;
+          fecha_inicio?: string | null;
+          fecha_fin_prevista?: string | null;
+          fecha_fin_real?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          activado_at?: string | null;
+          activado_by?: string | null;
+          finalizado_at?: string | null;
+          finalizado_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          // Solo estado='borrador' es editable por RLS/UPDATE directo;
+          // activar/finalizar son transiciones exclusivas de sus RPC.
+          puesto?: string | null;
+          departamento?: string | null;
+          modalidad_contrato?: "nomina_estandar" | "comisionista_destajo" | null;
+          fecha_inicio?: string | null;
+          fecha_fin_prevista?: string | null;
+        };
+        Relationships: [];
+      };
+      // 1:1 con el contrato, no con el empleado (D-03) — asi una
+      // recontratacion/cambio de salario crea un contrato nuevo en vez
+      // de sobreescribir el historico. Reutiliza rrhh.expedientes.
+      // compensacion.ver/editar (permisos existentes de F1.0-era,
+      // re-scopeados al contrato). Sin policy de insert/update/delete
+      // directo -- solo vía RPC.
+      contrato_compensacion: {
+        Row: {
+          contrato_id: string;
+          company_id: string;
+          salario_base: number;
+          frecuencia_pago: "mensual" | "quincenal" | "semanal";
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: never; // solo via rrhh.fn_crear_contrato/fn_editar_contrato
+        Update: never;
         Relationships: [];
       };
       empleado_compensacion: {

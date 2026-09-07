@@ -130,17 +130,21 @@ No debe pedir:
 
 ## 4.2 Contratos
 
+**✅ F1.2 cumplida (2026-09-07)**: `rrhh.contratos` con exactamente este ciclo, ver `IMPLEMENTATION_STATUS.md` sección 0.12.
+
 Mínimo:
 
 ```text
 borrador → activo → finalizado
 ```
 
-Un contrato activo simultáneo por empleado/empresa para el MVP.
+Un contrato activo simultáneo por empleado/empresa para el MVP — **enforced por un unique index parcial**, no solo por convención de UI.
 
-Debe conservar historial y no borrarse físicamente luego de activación.
+Debe conservar historial y no borrarse físicamente luego de activación — **sin policy de `DELETE`** en `rrhh.contratos`.
 
 ## 4.3 Compensación contractual
+
+**✅ F1.2 cumplida**: `rrhh.contrato_compensacion`, 1:1 con el contrato.
 
 La compensación pertenece al contrato, no a la identidad general del empleado.
 
@@ -313,7 +317,7 @@ Actualizado 2026-09-07 tras F1.0.1/F1.1 — ver `IMPLEMENTATION_STATUS.md` secci
 
 - ✅ `fn_crear_empleado` ya NO genera PIN ni acepta puesto/departamento/modalidad/salario (F1.1) — columnas correspondientes en `rrhh.empleados` quedan nullable y `DEPRECADAS` vía `comment on column`, sin eliminarse todavía.
 - ✅ `public.validar_acceso_operativo` ya NO es ejecutable por `anon`/`authenticated` (F1.0.1) — `rrhh.fn_validar_acceso_operativo()` y su wrapper quedan `DEPRECADAS`, sin eliminarse todavía.
-- ⏳ `rrhh.empleado_compensacion` 1:1 con empleado — pendiente de migrar a `rrhh.contrato_compensacion` en F1.2.
+- ✅ `rrhh.empleado_compensacion` 1:1 con empleado — reemplazada por `rrhh.contrato_compensacion` 1:1 con el contrato (F1.2). La tabla vieja sigue existiendo sin datos, pendiente de limpieza posterior.
 - ⏳ `nombre_usuario`/`user_id`/`pin_hash`/`pin_bloqueado`/`intentos_fallidos` siguen como columnas físicas de `rrhh.empleados` (nullable desde F1.1) — su eliminación real queda para una migración de limpieza posterior a F1.2/F1.3, junto con `rrhh.seguridad_accesos`.
 
 Ninguna migración aplicada fue editada — todos los cambios de arriba se hicieron con migraciones nuevas.

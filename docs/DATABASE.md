@@ -14,7 +14,7 @@ completados (2026-09-07)**. `flotilla` todavía no existe.
 - Organización: `Grupo CT` (`uahxpcssvfzlfxcvtvhu`)
 - Región: `us-east-1`
 - Plan: gratuito ($0/mes)
-- 34 migraciones aplicadas al remoto (`list_migrations`, 2026-09-07): las
+- 35 migraciones aplicadas al remoto (`list_migrations`, 2026-09-07): las
   24 previas + las 5 de la auditoría de seguridad de RRHH
   (`20260905000001` a `20260905000005`), aplicadas con `apply_migration`
   del MCP de Supabase. El historial remoto (`supabase_migrations.schema_migrations`)
@@ -123,6 +123,7 @@ completo de cada una:
 20260907151643_rrhh_contratos_permission_matrix
 20260907152301_f1_1_separar_expediente_general_laboral
 20260907152500_f1_1_fix_empleados_estado_check
+20260907153604_f1_2_rrhh_contratos
 ```
 
 Las últimas 5 (auditoría de seguridad de RRHH, 2026-09-05) se aplicaron
@@ -160,7 +161,9 @@ hardcodeado en la app (todo pasa por `core.has_permission()`).
 | Tabla | Tipo | Propósito |
 |---|---|---|
 | `rrhh.empleados` | Catálogo (no particionada) | **Expediente General desde F1.1 (2026-09-07)**: nombre, apellido, documento, email, teléfono. `puesto`, `departamento`, `fecha_ingreso`/`fecha_baja`, `estado` (default `sin_contrato`), `pin_hash`, `nombre_usuario`, `pin_bloqueado`, `intentos_fallidos`, `user_id` siguen existiendo como columnas pero quedan **DEPRECADAS** (nullable, `comment on column` explícito) — pertenecen al contrato (F1.2) o a la credencial de asistencia (F1.3), no al Expediente General. `rrhh.fn_registrar_marca_kiosko` sigue leyendo `estado`/`pin_hash` hasta que F1.3 lo reemplace |
-| `rrhh.empleado_compensacion` | Catálogo, 1:1 con `empleados` | Salario base y `modalidad_contrato` (`nomina_estandar` \| `comisionista_destajo`). **Tabla separada a propósito**: así `compensacion.ver/editar` es un permiso realmente distinto de `empleados.ver` a nivel de RLS (RLS filtra filas, no columnas) |
+| `rrhh.empleado_compensacion` | Catálogo, 1:1 con `empleados` | **DEPRECADA desde F1.2 (2026-09-07)** — reemplazada por `rrhh.contrato_compensacion` (1:1 con el contrato, no el empleado). Sigue existiendo sin datos, pendiente de limpieza posterior |
+| `rrhh.contratos` | Catálogo (no particionada) | **Expediente Laboral (F1.2, 2026-09-07)**: `estado` `borrador→activo→finalizado` (trigger de transición, sin reabrir), `puesto`/`departamento`/`modalidad_contrato`/fechas congelados fuera de `borrador`. Un solo contrato `activo` por empleado (unique index parcial). Sin `DELETE` — historial nunca se borra |
+| `rrhh.contrato_compensacion` | Catálogo, 1:1 con `contratos` | **F1.2**: salario base y frecuencia de pago del contrato — no del empleado (D-03: una recontratación crea un contrato nuevo, conserva histórico). Reutiliza `rrhh.expedientes.compensacion.ver/editar` (permisos existentes, re-scopeados) |
 | `rrhh.kiosko_dispositivos` | Catálogo (no particionada) | Terminales físicas de marcaje. El `id` (UUID aleatorio) actúa como credencial del dispositivo frente al RPC de marcación |
 | `rrhh.asistencia_marcas` | **Hechos, particionada por mes** (`marcado_en`) | Un renglón por marca de entrada/salida, para siempre. Particiones vigentes: `_2026_09`, `_2026_10`, `_2026_11` (mantenidas por `core.fn_asegurar_particiones_futuras`, 2 meses de anticipación) |
 | `rrhh.seguridad_accesos` | **Hechos, particionada por mes** (`intentado_en`) | Solo intentos **fallidos** de acceso operativo (`nombre_usuario` + PIN) — no es un log de éxitos. Señal de fuerza bruta/enumeración |

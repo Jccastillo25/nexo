@@ -2,7 +2,7 @@
 
 Orden de bitácora: más reciente arriba.
 
-## 2026-09-07 — F1.0 + F1.0.1 (cierre D-06) + Paso Cero + F1.1 (Expediente General/Laboral)
+## 2026-09-07 — F1.0 + F1.0.1 + Paso Cero + F1.1 + F1.2 (rrhh.contratos)
 
 Contexto completo en [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)
 sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
@@ -85,6 +85,32 @@ sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
     compensación, PIN, usuario), dashboard (`Empleados activos` →
     `Expedientes`). Tipos (`database.types.ts` de `apps/rrhh` y su
     espejo en `apps/crm`) actualizados a mano.
+- **1 migración más, F1.2 (`rrhh.contratos` + compensación contractual),
+  aplicada y verificada** (`20260907153604_f1_2_rrhh_contratos`, rama
+  `docs/f1-2-rrhh-contratos` → `main`):
+  - Tabla `rrhh.contratos` (Expediente Laboral): `borrador → activo →
+    finalizado`, un solo contrato activo por empleado (unique index
+    parcial), trigger `trg_validar_transicion_contrato` (defensa en
+    profundidad: transiciones válidas + inmutabilidad de datos base
+    fuera de `borrador`). RLS `ver`/`crear`/`editar` (editar solo en
+    `borrador`), sin `DELETE`.
+  - Tabla `rrhh.contrato_compensacion` (1:1 con el contrato, no el
+    empleado — D-03), reutiliza `rrhh.expedientes.compensacion.ver/editar`
+    (permisos existentes, sin crear uno nuevo).
+  - RPC `rrhh.fn_crear_contrato`/`fn_editar_contrato`/`fn_activar_contrato`/
+    `fn_finalizar_contrato` + wrappers `public.*` (`authenticated`-only).
+    `fn_activar_contrato`/`fn_finalizar_contrato` son solo transición de
+    estado por ahora — F1.3 las reemplaza para generar/revocar el PIN.
+  - Verificado con inserción/transición/borrado de prueba (0 filas antes
+    y después): transición inválida rechazada, edición fuera de
+    `borrador` rechazada, segundo contrato activo rechazado, reapertura
+    de contrato finalizado rechazada. `pg_policies`/`has_function_privilege`
+    confirmados; `get_advisors(security)` sin exposición nueva a `anon`.
+  - Frontend nuevo: `/rrhh/expedientes/[id]` (ficha del empleado +
+    Expediente Laboral), listado enlaza a cada ficha y muestra contrato
+    activo real. **No verificado en navegador** — mismo `EPERM` de
+    entorno ya documentado (2026-09-05), reconfirmado con `next dev` y
+    `tsc --noEmit` hoy; sustituido por revisión estática cuidadosa.
 
 ## 2026-09-05 — Auditoría de seguridad de RRHH cerrada en producción + fix de ruteo del kiosco
 

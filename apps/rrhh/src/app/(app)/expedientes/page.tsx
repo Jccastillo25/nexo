@@ -17,12 +17,13 @@ export const metadata: Metadata = {
  * para "no tenés el modulo", no para "no tenés este recurso dentro del
  * modulo que si tenés" — el mensaje seria enganoso).
  *
- * F1.1 (2026-09-07, docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md): este
- * listado ya no filtra por `estado = 'activo'` ni muestra
- * puesto/departamento/usuario — esos son datos laborales/contractuales
- * (F1.2/F1.3), no del Expediente General. Muestra TODOS los expedientes
- * de la empresa, con una columna de estado de contrato que por ahora
- * siempre dice "Sin contrato" (F1.2 la completa).
+ * F1.1 (2026-09-07): este listado ya no filtra por `estado = 'activo'`
+ * ni muestra puesto/departamento/usuario — esos son datos
+ * laborales/contractuales. F1.2 (2026-09-07): la columna "Contrato"
+ * ahora refleja si el empleado tiene un contrato activo de verdad
+ * (rrhh.contratos), no la columna deprecada rrhh.empleados.estado. Cada
+ * fila enlaza a /expedientes/[id] (F1.2), donde vive el Expediente
+ * Laboral completo.
  *
  * Requiere "rrhh" expuesto en Data API (ver .env.local.example) para el
  * `.schema("rrhh")` de abajo.
@@ -31,9 +32,10 @@ export default async function ExpedientesPage() {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
-  const [canVer, canCrear] = await Promise.all([
+  const [canVer, canCrear, canVerContratos] = await Promise.all([
     hasPermission({ supabase, companyId }, "rrhh.expedientes.empleados.ver"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.empleados.crear"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.ver"),
   ]);
 
   if (!canVer) {
@@ -48,12 +50,23 @@ export default async function ExpedientesPage() {
   const { data: empleados, error } = await supabase
     .schema("rrhh")
     .from("empleados")
-    .select("id, codigo_empleado, nombre, apellido, documento_identidad, email, telefono, estado")
+    .select("id, codigo_empleado, nombre, apellido, documento_identidad, email, telefono")
     .eq("company_id", companyId)
     .order("nombre", { ascending: true });
 
   if (error) {
     throw new Error(`No se pudo cargar el listado de empleados: ${error.message}`);
+  }
+
+  let empleadosConContratoActivo = new Set<string>();
+  if (canVerContratos && empleados && empleados.length > 0) {
+    const { data: activos } = await supabase
+      .schema("rrhh")
+      .from("contratos")
+      .select("empleado_id")
+      .eq("company_id", companyId)
+      .eq("estado", "activo");
+    empleadosConContratoActivo = new Set((activos ?? []).map((c) => c.empleado_id));
   }
 
   return (
@@ -92,14 +105,19 @@ export default async function ExpedientesPage() {
                     {e.codigo_empleado}
                   </td>
                   <td className="px-4 py-2 font-medium text-white">
-                    {e.nombre} {e.apellido}
+                    <Link href={`/expedientes/${e.id}`} className="hover:underline">
+                      {e.nombre} {e.apellido}
+                    </Link>
                   </td>
                   <td className="px-4 py-2 text-white/70">{e.documento_identidad ?? "—"}</td>
                   <td className="px-4 py-2 text-white/70">
                     {e.email ?? e.telefono ?? "—"}
                   </td>
                   <td className="px-4 py-2">
-                    <EstadoContratoBadge estado={e.estado} />
+                    <EstadoContratoBadge
+                      activo={empleadosConContratoActivo.has(e.id)}
+                      visible={canVerContratos}
+                    />
                   </td>
                 </tr>
               ))}
@@ -117,24 +135,20 @@ export default async function ExpedientesPage() {
   );
 }
 
-/**
- * F1.1: `rrhh.empleados.estado` es una columna deprecada que hoy solo
- * distingue "sin_contrato" del resto (heredado del modelo viejo, ver
- * comment on column en la migracion) — placeholder hasta que F1.2 traiga
- * el estado real del contrato activo. No confundir con un estado
- * confiable de "activo/inactivo" laboral.
- */
-function EstadoContratoBadge({ estado }: { estado: string }) {
-  if (estado === "sin_contrato") {
+function EstadoContratoBadge({ activo, visible }: { activo: boolean; visible: boolean }) {
+  if (!visible) {
+    return <span className="text-white/30">—</span>;
+  }
+  if (activo) {
     return (
-      <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-white/50">
-        Sin contrato
+      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
+        Contrato activo
       </span>
     );
   }
   return (
-    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
-      {estado} (heredado, pendiente F1.2)
+    <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-white/50">
+      Sin contrato activo
     </span>
   );
 }

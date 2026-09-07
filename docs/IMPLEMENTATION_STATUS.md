@@ -140,6 +140,30 @@ Frontend actualizado en el mismo cambio: `apps/rrhh/src/app/(app)/expedientes/nu
 
 **Consecuencia esperada y correcta**: entre F1.1 y F1.3, un empleado recién creado no puede marcar en el kiosko todavía (no tiene `pin_hash`, `estado` queda en `'sin_contrato'`) — el flujo completo (crear → contrato → activar → PIN → marcar) recién queda operable al cerrar F1.3, según el Definition of Done acordado.
 
+## 0.12 F1.2 — `rrhh.contratos` + compensación contractual (ejecutado 2026-09-07)
+
+Migración `20260907153604_f1_2_rrhh_contratos`, aplicada y verificada:
+
+- **`rrhh.contratos`** (Expediente Laboral): `estado` `borrador → activo → finalizado`, sin reabrir; `puesto`/`departamento`/`modalidad_contrato`/`fecha_inicio` congelados fuera de `borrador`. Un solo contrato `activo` por empleado (unique index parcial). RLS: `ver`/`crear`/`editar` (editar solo en `borrador`); **sin policy de `DELETE`** (no se borra físicamente). Activar/finalizar son transiciones exclusivas de sus RPC — no hay policy de UPDATE que permita cambiar `estado` directo.
+- **Trigger `trg_validar_transicion_contrato`** (defensa en profundidad, independiente de RLS): rechaza transiciones inválidas e ediciones de datos base fuera de `borrador`, sin importar qué función `SECURITY DEFINER` intente el `UPDATE`.
+- **`rrhh.contrato_compensacion`** (1:1 con el contrato, no con el empleado — D-03): reutiliza los permisos existentes `rrhh.expedientes.compensacion.ver`/`.editar` (re-scopeados semánticamente, sin crear un permiso nuevo — confirmado en `core.app_role_permissions` que solo `admin` tiene `.editar` antes de escribir la migración). Sin policy de escritura directa, solo vía RPC.
+- **RPC**: `rrhh.fn_crear_contrato`/`fn_editar_contrato`/`fn_activar_contrato`/`fn_finalizar_contrato` (+ wrappers `public.*`, `authenticated`-only, sin `anon`). `fn_activar_contrato`/`fn_finalizar_contrato` son **solo transición de estado por ahora** — F1.3 las reemplaza (`create or replace`) para generar/revocar el PIN.
+
+Verificación ejecutada (inserción/transición/borrado de prueba, 0 filas antes y después):
+
+- Transición inválida `borrador → finalizado` directa: **rechazada** por el trigger.
+- Activación `borrador → activo`: aceptada.
+- Edición de `puesto` estando `activo`: **rechazada** por el trigger.
+- Segundo contrato `activo` para el mismo empleado: **rechazado** por el unique index parcial.
+- Finalización `activo → finalizado`: aceptada; reapertura `finalizado → activo`: **rechazada** por el trigger.
+- `pg_policies`: 3 policies en `contratos` (SELECT/INSERT/UPDATE, sin DELETE), 1 en `contrato_compensacion` (solo SELECT).
+- `has_function_privilege`: `anon` sin acceso a ninguna función nueva; `authenticated` solo en los 4 wrappers públicos; las `rrhh.fn_*` internas solo `postgres`.
+- `get_advisors(security)`: los 4 wrappers nuevos aparecen como "authenticated puede ejecutar SECURITY DEFINER" — **esperado**, mismo patrón ya aceptado para `crear_empleado`/`set_pin_empleado`. Sin exposición nueva a `anon`.
+
+Frontend nuevo: `/rrhh/expedientes/[id]` (ficha del empleado — Expediente General + Expediente Laboral), con `contratos-panel.tsx` (crear/editar borrador, activar, finalizar) y `actions.ts` correspondientes. El listado (`/rrhh/expedientes`) ahora enlaza cada fila a su ficha y muestra si tiene contrato activo real (ya no la columna deprecada `estado`).
+
+**No verificado en el navegador** — el entorno de esta sesión sigue con el `EPERM` en `node_modules/.pnpm/.../next`/`typescript` ya documentado (2026-09-05), reconfirmado hoy con `next dev` y `tsc --noEmit`: mismo error, mismo entorno, no relacionado con este cambio. Sustituido por revisión estática cuidadosa del código + verificación exhaustiva de esquema/RPC/RLS contra el remoto real.
+
 ## 0.8 Deuda general no bloqueante para RRHH (detectada de paso)
 
 `get_advisors(performance)` reporta deuda pre-existente fuera del alcance de F1.0: `auth_rls_initplan` sin optimizar todavía en 3 policies de `core.company_memberships`, `core.user_app_roles` y `crm.clientes` (no en `rrhh` — las 25 policies de RRHH ya usan el patrón `(select auth.uid())` desde el 2026-09-05), más FKs sin índice de cobertura e índices sin uso (esperable con 0 filas). No se toca en esta sesión — es candidato a una migración de rendimiento aparte, sin relación con el refactor de contratos/PIN.
@@ -153,7 +177,7 @@ Frontend actualizado en el mismo cambio: `apps/rrhh/src/app/(app)/expedientes/nu
 | Nexo Core / Launcher | ✅ Validado | Monorepo, SSO, Multi-Zones, permisos y `nexo-core` operativos según última documentación verificada. |
 | RRHH infraestructura | ✅ Desplegada | Schema, permisos, RLS, expedientes básicos y kiosko existen. |
 | RRHH modelo Expediente General/Laboral | ✅ F1.1 completada | `rrhh.empleados` ya no acepta datos laborales/credenciales en el alta (2026-09-07, sección 0.11). Columnas viejas deprecadas, no eliminadas — limpieza final pendiente de F1.2. |
-| RRHH contratos | ⏳ Pendiente (F1.2) | No existe todavía el modelo contractual objetivo del Plan Maestro. Paso Cero de permisos ya aplicado (sección 0.10). |
+| RRHH contratos | ✅ F1.2 completada | `rrhh.contratos`/`rrhh.contrato_compensacion` existen, con RLS, trigger de estado y RPC (2026-09-07, sección 0.12). Falta F1.3 (PIN al activar) para el flujo completo. |
 | RRHH PIN contractual | ⏳ Pendiente (F1.3) | `fn_crear_empleado` ya NO genera PIN (F1.1). Falta construir la generación exclusiva al activar contrato. |
 | RRHH jornadas | ⏳ Pendiente funcional | Permisos de turnos existen, pero falta modelo/UI necesario para cálculo real. |
 | RRHH consolidación de asistencia | ⏳ Pendiente | No existe marcas → horas consolidadas. |
@@ -226,13 +250,13 @@ activar contrato
 
 Objetivo: compensación ligada al contrato para conservar historial de recontrataciones/cambios.
 
-Estado: ⚠️ confirmado. 0 filas — sin dato histórico que migrar.
+**Estado: ✅ resuelto en F1.2 (2026-09-07, sección 0.12)** — `rrhh.contrato_compensacion` ahora es 1:1 con `rrhh.contratos`, no con `rrhh.empleados`. `rrhh.empleado_compensacion` (la vieja) sigue existiendo, sin datos, pendiente de una migración de limpieza posterior.
 
 ## D-04 — marcas no contienen `contrato_id`
 
 Objetivo: cada marca válida debe quedar contextualizada con el contrato laboral vigente.
 
-Estado: ⚠️ confirmado — `rrhh.asistencia_marcas` no tiene columna `contrato_id` porque el concepto de contrato no existe todavía en el schema (no hay tabla `rrhh.contratos`). Depende de F1.2 antes de poder implementarse.
+**Estado: ⏳ sigue pendiente, ahora desbloqueado** — `rrhh.contratos` ya existe (F1.2), pero `rrhh.asistencia_marcas.contrato_id` todavía no se agregó. Corresponde a F1.4/F1.5 (jornadas/consolidación de asistencia), fuera del alcance de F1.1-F1.3.
 
 ## D-05 — planilla sin motor
 
@@ -288,7 +312,7 @@ Estado: ℹ️ hallazgo nuevo de F1.0, sin urgencia — no contradice el modelo 
 | F1.0 | Auditoría real `main` + Supabase + Vercel + permisos + datos | ✅ | Ejecutada 2026-09-07 (sección 0). Sin código/DB pendiente de revisión — el bloqueo real detectado fue de proceso (`main` local desactualizado, sección 0.1), ya resuelto. `fn_validar_acceso_operativo`, `nombre_usuario`, `user_id` y PIN de doble propósito confirmados como D-06. |
 | F1.0.1 | Cierre de acceso operativo PIN heredado (D-06) | ✅ | Ejecutada 2026-09-07 (sección 0.9). Migración `20260907151106`, `EXECUTE` revocado de `anon`/`authenticated`, funciones marcadas deprecadas, verificado post-aplicación. |
 | F1.1 | Separar Expediente General / Expediente Laboral | ✅ | Ejecutada 2026-09-07 (sección 0.11). 2 migraciones, frontend y tipos actualizados. Kiosko verificado intacto. |
-| F1.2 | `rrhh.contratos` + compensación contractual | ⏳ | Paso Cero de permisos antes de tablas/UI. |
+| F1.2 | `rrhh.contratos` + compensación contractual | ✅ | Ejecutada 2026-09-07 (sección 0.12). Tabla + RLS + trigger de estado + RPC + UI mínima (`/rrhh/expedientes/[id]`). |
 | F1.3 | PIN generado solo al activar contrato | ⏳ | PIN exclusivo de asistencia; revocar al finalizar; regenerar solo por contrato activo. |
 | F1.4 | Jornadas/turnos/feriados mínimos | ⏳ | Requisito del motor de asistencia. |
 | F1.5 | Consolidación diaria de asistencia | ⏳ | Marcas → horas/incidencias. |
@@ -446,8 +470,9 @@ F1.0   — Auditoría de realidad RRHH        ✅ completada 2026-09-07 (secció
 F1.0.1 — Cierre PIN heredado (D-06)        ✅ completada 2026-09-07 (sección 0.9)
 Paso Cero — Matriz contratos/credenciales  ✅ aplicada 2026-09-07 (sección 0.10)
 F1.1   — Separar Expediente General/Laboral ✅ completada 2026-09-07 (sección 0.11)
+F1.2   — rrhh.contratos + compensación      ✅ completada 2026-09-07 (sección 0.12)
  ↓
-F1.2 — rrhh.contratos + compensación contractual  ⏳ próximo trabajo
+F1.3 — PIN exclusivamente al activar contrato  ⏳ próximo trabajo
 ```
 
 La comparación explícita de F1.0 ya se ejecutó y quedó registrada en la sección 0:
