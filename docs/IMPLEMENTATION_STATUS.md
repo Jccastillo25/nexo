@@ -454,8 +454,34 @@ contingencia de Vercel: `pnpm install --no-frozen-lockfile
 terminó limpio, `pnpm-lock.yaml` incluye `sonner` en las 4 ubicaciones
 correctas (`apps/rrhh`, `apps/crm` ya lo tenían; `apps/nexo` y
 `packages/ui` se agregaron). `next build`/`tsc` reales: build de Vercel
-post-push (ver reporte final de la sesión) — no ejecutados localmente,
-mismo motivo documentado en F1.3/F1.4.
+post-push — no ejecutados localmente, mismo motivo documentado en
+F1.3/F1.4.
+
+**Addendum post-push (commit `1890a37`)**: los 3 proyectos reconstruyeron
+y quedaron `READY` — `nexocore` (`dpl_5ECpViH6d4XfX8zVUEDzxocaBsPa`),
+`nexo-rrhh` (`dpl_CdKRZc3tVKrwya8yR1ZycAsFNbkA`), `nexo-crm`
+(`dpl_Ffw8DHFXpFdgPFVTcbaospWRjMEE`), los tres con
+`githubCommitSha: 1890a371de3038fe3ef9c9bc4c494906eb048613` exacto.
+`get_runtime_errors` (ventana 1h post-deploy) de los 3: sin errores
+nuevos. Confirma que el fix de `pnpm-lock.yaml` (`--lockfile-only`)
+resolvió el `frozen-lockfile` install de Vercel — si no lo hubiera
+resuelto, los 3 builds habrían fallado con `ERR_PNPM_OUTDATED_LOCKFILE`
+igual que localmente.
+
+**Verificación en navegador real (más allá de compilar/desplegar,
+primera vez que esto se hace en esta serie de sesiones)**: se navegó a
+`https://nexo.materialesjcastillo.com/login` (dominio de producción real,
+no el alias `*.vercel.app` — ese quedó detrás de Vercel Deployment
+Protection y redirige al login de Vercel, no de Nexo) — login renderiza
+correctamente (logo, bullets, formulario), cero errores de consola,
+confirma que `get_platform_settings()` respondió con datos reales. Se
+navegó también a `/rrhh/dashboard` sin sesión — el proxy/middleware de
+RRHH + el rewrite de Multi-Zones redirigieron correctamente al login del
+panel, 28 requests estáticos, todos `200`. **No verificado**: el shell
+autenticado (`NexoShell`/sidebar/topbar) en un navegador real — no hay
+credenciales de prueba disponibles en esta sesión (mismo límite ya
+documentado en F1.3/F1.4, diferido a F1.9); prohibido además intentar
+loguearse con credenciales reales sin que el usuario lo pida.
 
 ## 0.8 Deuda general no bloqueante para RRHH (detectada de paso)
 
