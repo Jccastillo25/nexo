@@ -487,9 +487,31 @@ loguearse con credenciales reales sin que el usuario lo pida.
 Bloque pedido explícitamente por el usuario después de Nexo Enterprise UI
 (sección 0.15), **sin iniciar F1.5**: "P0 bugs → P1 rendimiento → P2
 UX/UI de Expedientes/Contratos/Jornadas". Sin migraciones — solo código de
-`apps/rrhh` y `packages/ui`. Commit `<pendiente de completar tras el
-push — ver el commit real en el historial de git, este archivo se
-actualiza en el mismo commit que el código>`.
+`apps/rrhh` y `packages/ui`. Commit `5c1b0441511ae51125afb0b1bcccf77de59dd141`.
+
+### Addendum — verificación real post-push (2026-09-08)
+
+- `get_advisors(security)` sobre `nexo-core`: sin hallazgos nuevos —
+  exactamente los mismos WARN/INFO ya documentados en sesiones previas
+  (esperado, cero cambios de DB en este bloque).
+- Los 3 proyectos Vercel que reconstruyen por el cambio en `packages/ui`
+  quedaron `READY` con el commit exacto de este bloque
+  (`githubCommitSha: 5c1b0441511ae51125afb0b1bcccf77de59dd141`):
+  `nexo-rrhh` (`dpl_FnyeRcZe5x3WGf1JXk6ef88ka4Vi`), `nexocore`
+  (`dpl_37X86B4BwMsACXk8PEbo9VnVmYdK`), `nexo-crm`
+  (`dpl_DvyyaQAQCpZ7pnzfqKTXf9HDq2d9`).
+- `get_runtime_errors` de `nexo-rrhh` (ventana 15 min post-deploy): sin
+  errores nuevos — en particular, el error de `FormTabs` en
+  `/expedientes/[id].rsc` (P0.1) no volvió a aparecer.
+- Navegador real contra `https://nexo.materialesjcastillo.com/rrhh/expedientes`
+  sin sesión: redirige correctamente al login del panel (Multi-Zones +
+  middleware intactos), cero errores de consola. **No verificado**: el
+  flujo autenticado completo (abrir un expediente real, click en
+  contrato, editor de jornada) — `rrhh.empleados` sigue en 0 filas reales
+  en el proyecto remoto y no hay credenciales de prueba en esta sesión,
+  mismo límite ya documentado en F1.3/F1.4/0.15. La verificación del P0
+  se sostiene en la causa raíz confirmada por logs reales (no una
+  hipótesis) + la desaparición de esos errores en la ventana post-deploy.
 
 ### Lectura y verificación previa (protocolo `CLAUDE.md`/Plan Maestro §21)
 
