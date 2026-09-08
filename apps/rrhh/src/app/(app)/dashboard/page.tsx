@@ -55,7 +55,20 @@ export default async function DashboardPage() {
   const firstError =
     expedientes.error ?? contratosActivos.error ?? marcasHoy.error ?? planillasPendientes.error;
   if (firstError) {
-    throw new Error(`No se pudo cargar el dashboard: ${firstError.message}`);
+    // 2026-09-08: se detectaron 3 ocurrencias reales en produccion (logs de
+    // Vercel) de este error con `.message` VACIO ("No se pudo cargar el
+    // dashboard: ", sin texto despues de los dos puntos) — intermitente (1
+    // usuario, 3 veces en 4 dias, no reproducible a demanda), a diferencia
+    // del bug determinista de FormTabs. No se pudo establecer causa raiz
+    // concreta con la evidencia disponible (el digest de Vercel no expone
+    // mas detalle que el mensaje ya vacio) — se deja documentado como
+    // deuda en docs/IMPLEMENTATION_STATUS.md en vez de adivinar un fix.
+    // Este cambio es solo de observabilidad: si vuelve a pasar, el log va
+    // a mostrar el objeto de error completo en vez de un mensaje vacio.
+    const detalle =
+      firstError.message ||
+      JSON.stringify(firstError, Object.getOwnPropertyNames(firstError));
+    throw new Error(`No se pudo cargar el dashboard: ${detalle}`);
   }
 
   return (

@@ -78,6 +78,7 @@ monorepo, incluida `apps/flotilla`, antes de eliminarlos — nada fuera de
 | `NexoTopbar` | `ShellBar` | Breadcrumb + buscador + notificaciones + avatar |
 | `MetricCard` | `StatCard` | Tile de KPI, tema claro |
 | `Breadcrumb`, `PageHeader`, `DashboardHero`, `ActivityFeed`, `QuickActions`, `DataTable`, `FilterBar`, `StatusBadge`, `FormTabs`, `FormSection`, `EmptyState`, `ConfirmDialog`, `Toast`/`useToast` | — (100% nuevos) | Ver el componente para su rol puntual |
+| `RowActionIcons` | — (nuevo, 2026-09-08) | Columna de acciones VISIBLE de una fila (👁 ✎ 🗑, con tooltip/hover/foco/`aria-label`) — complementa a `RowActionsMenu` ("⋯"), que sigue existiendo para acciones secundarias que sí conviene esconder. Regla obligatoria: las 2-3 acciones principales de una fila (visualizar/editar/eliminar) no van dentro de un menú "⋯". |
 
 `Toast`/`useToast` **no** reimplementan un sistema de notificaciones desde
 cero: envuelven `sonner` (ya era una dependencia real y en uso en
@@ -85,6 +86,26 @@ cero: envuelven `sonner` (ya era una dependencia real y en uso en
 Es el único archivo de la suite que importa `"sonner"` directo
 (`packages/ui/Toast.tsx`); los `<Toaster>` sueltos que vivían en los
 layouts raíz de RRHH/CRM se retiraron a favor del que monta `NexoShell`.
+
+**Fix real de producción (2026-09-08)** — `FormTabs.tsx`: la version
+original recibía `children: (activeKey) => ReactNode` (una función). Como
+`FormTabs` es `"use client"` y se monta desde Server Components, pasar una
+función como prop cruza la frontera Server→Client — React la rechaza en
+runtime ("Functions cannot be passed directly to Client Components..."),
+y eso tumbaba `/rrhh/expedientes/[id]` completo en producción (confirmado
+con `get_runtime_errors` antes de tocar código, no fue una hipótesis). La
+API correcta: cada `FormTab` lleva su `content: ReactNode` ya resuelto
+(JSX, no una función) — `FormTabs` solo decide cuál mostrar. Cualquier uso
+nuevo de `FormTabs` debe pasar `content` por tab, nunca `children` como
+función.
+
+**`NexoTopbar`/`NexoShell` — logo dinámico (2026-09-08)**: prop opcional
+`logoUrl` (`core.platform_settings.logo_url`, editable en Nexo →
+Configuración → Marca) — sin configurar, cae al wordmark "Nexo" por
+defecto, nunca un logo hardcodeado de otro módulo. Cada app que lo quiera
+mostrar lo resuelve con su propio `lib/platform-settings.ts` (mismo patrón
+duplicado a propósito que `getCopyrightText`, ver `apps/crm`) y se lo pasa
+a `NexoShell`. Hoy solo `apps/rrhh` lo hace.
 
 **El tema oscuro + `.nexo-glass` sigue existiendo**, en `tokens.css`, pero
 acotado exclusivamente a `apps/rrhh/src/app/kiosco` (pantalla inmersiva de
@@ -114,7 +135,10 @@ RRHH
 │   ├── Empleados
 │   └── Documentos     (sin href — pendiente de modelo de datos)
 ├── Contratación
-│   ├── Contratos      (listado global de solo lectura)
+│   ├── Contratos      (listado global + ficha por contrato en
+│   │                    /contratacion/contratos/[id], 2026-09-08 — no es
+│   │                    una hoja de navegación propia, se llega desde la
+│   │                    fila del listado)
 │   ├── Jornadas
 │   └── Feriados
 ├── Asistencia

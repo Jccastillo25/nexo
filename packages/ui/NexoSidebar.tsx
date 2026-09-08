@@ -11,7 +11,7 @@
 // Normalmente se usa a traves de NexoShell, que ya arma este componente +
 // NexoTopbar compartiendo el estado de collapse/drawer — se exporta suelto
 // por si una pantalla necesita el sidebar sin el resto del shell.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BackToPanelLink } from "./BackToPanelLink";
 import { NexoIcon } from "./nexo-icons";
@@ -49,6 +49,32 @@ export function NexoSidebar({
     }
     return initial;
   });
+
+  // Fix (2026-09-08, docs/IMPLEMENTATION_STATUS.md): el estado `expanded`
+  // solo se calculaba una vez, al montar. NexoShell (y por lo tanto este
+  // sidebar) NO se remonta entre navegaciones dentro del mismo modulo
+  // (es lo correcto para el rendimiento — evita recrear el shell en cada
+  // click), pero eso significa que llegar a una ruta de un grupo distinto
+  // por un link que no es del sidebar (ej. "Volver" desde una ficha, un
+  // breadcrumb, o Contratos → click en un empleado) dejaba el item activo
+  // resaltado pero el acordeon que lo contiene seguia colapsado — el link
+  // activo quedaba escondido. Sincroniza el grupo activo cada vez que
+  // cambia el pathname, sin tocar los grupos que el usuario ya abrio o
+  // cerro a mano.
+  useEffect(() => {
+    setExpanded((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const item of items) {
+        if (item.children && isNavItemActive(item, pathname) && !next.has(item.label)) {
+          next.add(item.label);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   function toggleGroup(label: string) {
     setExpanded((prev) => {

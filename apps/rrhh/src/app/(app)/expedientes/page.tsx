@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { hasPermission } from "@nexo/permissions";
-import { DataTable, EmptyState, PageHeader, StatusBadge } from "@nexo/ui";
+import { DataTable, EmptyState, PageHeader, StatusBadge, type StatusTone } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { EmpleadoRowMenu } from "./empleado-row-menu";
@@ -69,15 +69,35 @@ export default async function ExpedientesPage() {
 
   const rows: EmpleadoRow[] = empleados ?? [];
 
-  let empleadosConContratoActivo = new Set<string>();
+  const empleadosConContratoActivo = new Set<string>();
+  const empleadosConBorrador = new Set<string>();
+  // Cualquier contrato (borrador/activo/finalizado) — no solo el activo —
+  // es lo que rrhh.fn_eliminar_empleado rechaza (historial contractual).
+  // Se usa para deshabilitar la papelera de forma preventiva en la UI; el
+  // backend sigue siendo quien realmente lo impide (ver empleado-row-menu).
+  const empleadosConAlgunContrato = new Set<string>();
   if (canVerContratos && rows.length > 0) {
-    const { data: activos } = await supabase
+    const { data: contratosDeTodos } = await supabase
       .schema("rrhh")
       .from("contratos")
-      .select("empleado_id")
+      .select("empleado_id, estado")
       .eq("company_id", companyId)
-      .eq("estado", "activo");
-    empleadosConContratoActivo = new Set((activos ?? []).map((c) => c.empleado_id));
+      .in(
+        "empleado_id",
+        rows.map((e) => e.id)
+      );
+    for (const c of contratosDeTodos ?? []) {
+      empleadosConAlgunContrato.add(c.empleado_id);
+      if (c.estado === "activo") empleadosConContratoActivo.add(c.empleado_id);
+      if (c.estado === "borrador") empleadosConBorrador.add(c.empleado_id);
+    }
+  }
+
+  function estadoLaboral(empleadoId: string): { label: string; tone: StatusTone } {
+    if (empleadosConContratoActivo.has(empleadoId)) return { label: "Activo", tone: "positive" };
+    if (empleadosConBorrador.has(empleadoId)) return { label: "Contrato en borrador", tone: "warning" };
+    if (empleadosConAlgunContrato.has(empleadoId)) return { label: "Finalizado", tone: "neutral" };
+    return { label: "Sin contrato", tone: "neutral" };
   }
 
   return (
@@ -123,27 +143,26 @@ export default async function ExpedientesPage() {
           },
           {
             key: "estado",
-            header: "Estado laboral",
+            header: "Estado",
             render: (e) =>
               canVerContratos ? (
-                <StatusBadge
-                  label={empleadosConContratoActivo.has(e.id) ? "Contrato activo" : "Sin contrato activo"}
-                  tone={empleadosConContratoActivo.has(e.id) ? "positive" : "neutral"}
-                />
+                <StatusBadge label={estadoLaboral(e.id).label} tone={estadoLaboral(e.id).tone} />
               ) : (
                 "—"
               ),
           },
           {
             key: "acciones",
-            header: "",
+            header: "Acciones",
             align: "right",
             render: (e) => (
               <EmpleadoRowMenu
                 empleadoId={e.id}
                 nombreCompleto={`${e.nombre} ${e.apellido}`}
+                canVer={canVer}
                 canEditar={canEditar}
                 canEliminar={canEliminar}
+                tieneContrato={canVerContratos ? empleadosConAlgunContrato.has(e.id) : null}
               />
             ),
           },

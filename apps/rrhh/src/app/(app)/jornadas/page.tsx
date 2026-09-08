@@ -11,16 +11,21 @@ export const metadata: Metadata = {
 
 /**
  * F1.4 (2026-09-07, docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md): plantillas
- * de jornada (rrhh.jornadas/rrhh.jornada_dias). La asignacion de una
- * jornada a un contrato especifico vive en el expediente del empleado
- * (/expedientes/[id]), no aca -- esta pagina administra el catalogo
- * reutilizable, no el historico por contrato. Todos los guards de recurso
- * son UX (norma v3.0 paso 4) -- la proteccion real vive en RLS.
+ * de jornada (rrhh.jornadas/rrhh.jornada_dias) — esta pagina administra el
+ * catalogo reutilizable, no el historico por contrato. Todos los guards de
+ * recurso son UX (norma v3.0 paso 4) -- la proteccion real vive en RLS.
  *
  * Nexo Enterprise UI (2026-09-07): el calendario de feriados se separo a
  * su propia ruta (/feriados) para reflejar el arbol de navegacion
  * Contratación → Jornadas / Feriados — mismos datos/RPC de siempre, sin
  * cambios de logica ni de DB.
+ *
+ * Fix de copy (2026-09-08, docs/IMPLEMENTATION_STATUS.md): la descripcion
+ * decia "asignar una jornada a un contrato especifico se hace desde el
+ * expediente del empleado" — ya no es valido, perfil (Expedientes) y
+ * contratacion son procesos separados. La asignacion vive conceptualmente
+ * en Contratación → Contratos → ficha del contrato (edición cuando está en
+ * borrador), ver contratacion/contratos/[id]/contrato-ficha.tsx.
  */
 export default async function JornadasPage() {
   const supabase = await createClient();
@@ -71,7 +76,7 @@ export default async function JornadasPage() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Jornadas"
-        description="Plantillas de horario reutilizables. Asignar una jornada a un contrato específico se hace desde el expediente del empleado."
+        description="Crea y administra las plantillas de horario utilizadas en los contratos."
       />
 
       {canVerTurnos ? (

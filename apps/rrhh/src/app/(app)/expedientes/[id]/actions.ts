@@ -81,6 +81,7 @@ export async function crearContrato(
   if (error) return { ok: false, message: error.message };
 
   revalidatePath(`/expedientes/${empleadoId}`);
+  revalidatePath("/contratacion/contratos");
   return { ok: true };
 }
 
@@ -113,6 +114,8 @@ export async function editarContrato(
   if (error) return { ok: false, message: error.message };
 
   revalidatePath(`/expedientes/${empleadoId}`);
+  revalidatePath(`/contratacion/contratos/${contratoId}`);
+  revalidatePath("/contratacion/contratos");
   return { ok: true };
 }
 
@@ -144,6 +147,8 @@ export async function activarContrato(
   if (error) return { ok: false, message: error.message };
 
   revalidatePath(`/expedientes/${empleadoId}`);
+  revalidatePath(`/contratacion/contratos/${contratoId}`);
+  revalidatePath("/contratacion/contratos");
   return { ok: true, pin: data?.[0]?.pin_kiosko };
 }
 
@@ -174,6 +179,7 @@ export async function regenerarPin(
   if (error) return { ok: false, message: error.message };
 
   revalidatePath(`/expedientes/${empleadoId}`);
+  revalidatePath(`/contratacion/contratos/${contratoId}`);
   return { ok: true, pin: data?.[0]?.pin_kiosko };
 }
 
@@ -244,6 +250,7 @@ export async function asignarJornada(
   if (error) return { ok: false, message: error.message };
 
   revalidatePath(`/expedientes/${empleadoId}`);
+  revalidatePath(`/contratacion/contratos/${contratoId}`);
   return { ok: true, vigenteDesde: data?.[0]?.vigente_desde };
 }
 
@@ -269,5 +276,7 @@ export async function finalizarContrato(
   if (error) return { ok: false, message: error.message };
 
   revalidatePath(`/expedientes/${empleadoId}`);
+  revalidatePath(`/contratacion/contratos/${contratoId}`);
+  revalidatePath("/contratacion/contratos");
   return { ok: true };
 }

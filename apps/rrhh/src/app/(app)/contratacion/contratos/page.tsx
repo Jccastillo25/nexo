@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { hasPermission } from "@nexo/permissions";
-import { DataTable, EmptyState, PageHeader, StatusBadge, type StatusTone } from "@nexo/ui";
+import { DataTable, EmptyState, PageHeader, RowActionIcons, StatusBadge, type StatusTone } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
@@ -21,7 +21,7 @@ interface ContratoListRow {
 }
 
 const ESTADO_TONE: Record<ContratoListRow["estado"], StatusTone> = {
-  borrador: "neutral",
+  borrador: "warning",
   activo: "positive",
   finalizado: "neutral",
 };
@@ -32,15 +32,25 @@ const ESTADO_TONE: Record<ContratoListRow["estado"], StatusTone> = {
  * rrhh.contratos de TODOS los empleados, algo que antes solo existia
  * embebido en cada expediente individual. Sin cambios de logica/DB — usa
  * el mismo permiso rrhh.expedientes.contratos.ver ya existente y una
- * consulta de solo lectura protegida por RLS. La gestion (crear/editar/
- * activar/finalizar) sigue viviendo en el expediente del empleado
- * (/expedientes/[id]) — esta pantalla es de consulta, cada fila enlaza ahí.
+ * consulta de solo lectura protegida por RLS. La gestion del ciclo de vida
+ * completo (crear/activar/finalizar/regenerar PIN/asignar jornada) sigue
+ * viviendo en el expediente del empleado (/expedientes/[id]) — un contrato
+ * nuevo nace ahí, donde se elige a qué empleado corresponde.
+ *
+ * Fix (2026-09-08, docs/IMPLEMENTATION_STATUS.md): columna "Acciones"
+ * visible (👁 Ver contrato / ✎ Editar, solo en borrador) que separa
+ * explícitamente "ver la ficha del contrato" (ojo, siempre) de "ir al
+ * expediente del empleado" (click en el nombre) — antes solo existía este
+ * segundo camino. La ficha vive en /contratacion/contratos/[id].
  */
 export default async function ContratosListPage() {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
-  const canVer = await hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.ver");
+  const [canVer, canEditar] = await Promise.all([
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.ver"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar"),
+  ]);
   if (!canVer) {
     return (
       <EmptyState
@@ -93,6 +103,34 @@ export default async function ContratosListPage() {
             key: "estado",
             header: "Estado",
             render: (c) => <StatusBadge label={c.estado} tone={ESTADO_TONE[c.estado]} />,
+          },
+          {
+            key: "acciones",
+            header: "Acciones",
+            align: "right",
+            render: (c) => (
+              <RowActionIcons
+                actions={[
+                  {
+                    key: "ver",
+                    icon: "eye",
+                    label: "Ver contrato",
+                    href: `/contratacion/contratos/${c.id}`,
+                  },
+                  {
+                    key: "editar",
+                    icon: "pencil",
+                    label: "Editar",
+                    href: `/contratacion/contratos/${c.id}`,
+                    disabled: !canEditar || c.estado !== "borrador",
+                    disabledReason:
+                      c.estado !== "borrador"
+                        ? "Solo se puede editar un contrato en borrador."
+                        : "Editar",
+                  },
+                ]}
+              />
+            ),
           },
         ]}
       />

@@ -8,7 +8,7 @@ import { Breadcrumb, type BreadcrumbItem } from "./Breadcrumb";
 
 export interface PageHeaderProps {
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   breadcrumb?: BreadcrumbItem[];
   actions?: React.ReactNode;
 }

@@ -37,6 +37,8 @@ export { DataTable } from "./DataTable";
 export type { DataTableProps, DataTableColumn } from "./DataTable";
 export { RowActionsMenu } from "./RowActionsMenu";
 export type { RowAction } from "./RowActionsMenu";
+export { RowActionIcons } from "./RowActionIcons";
+export type { RowIconAction, RowIconActionName } from "./RowActionIcons";
 export { FilterBar } from "./FilterBar";
 export type { FilterBarProps } from "./FilterBar";
 export { StatusBadge } from "./StatusBadge";

@@ -4,6 +4,7 @@ import { NexoShell } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { getPanelUrl } from "@/lib/panel";
+import { getLogoUrl } from "@/lib/platform-settings";
 import { RRHH_NAV_ITEMS } from "@/lib/nav";
 import { signOut } from "./actions";
 
@@ -24,17 +25,24 @@ import { signOut } from "./actions";
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
-  const canSeeModule = await hasPermission(
-    { supabase, companyId: getCompanyId() },
-    "rrhh.ver_modulo"
-  );
+  const companyId = getCompanyId();
+
+  // Este layout corre en cada navegacion dentro de RRHH (Server Component
+  // dinamico, sin cache por las cookies de sesion) — las 4 llamadas de
+  // arranque son independientes entre si, asi que van en paralelo en vez
+  // de en cascada (antes: esperar el permiso de modulo antes de siquiera
+  // empezar a pedir el usuario/panelUrl/logo, un round-trip innecesario en
+  // cada click del sidebar).
+  const [canSeeModule, panelUrl, { data: { user } }, logoUrl] = await Promise.all([
+    hasPermission({ supabase, companyId }, "rrhh.ver_modulo"),
+    getPanelUrl(),
+    supabase.auth.getUser(),
+    getLogoUrl(supabase),
+  ]);
+
   if (!canSeeModule) {
     redirect("/sin-acceso");
   }
-
-  const [panelUrl, {
-    data: { user },
-  }] = await Promise.all([getPanelUrl(), supabase.auth.getUser()]);
 
   return (
     <NexoShell
@@ -44,6 +52,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       userEmail={user?.email}
       onSignOut={signOut}
       backHref={panelUrl}
+      logoUrl={logoUrl}
     >
       {children}
     </NexoShell>

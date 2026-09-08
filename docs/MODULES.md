@@ -2,14 +2,14 @@
 
 > Estado funcional de alto nivel. Para objetivo y orden de implementación ver `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`; para realidad detallada ver `IMPLEMENTATION_STATUS.md`.
 
-Actualizado: **2026-09-07** (F1.0-F1.4 de RRHH + rediseño visual "Nexo
-Enterprise UI" transversal, ver `IMPLEMENTATION_STATUS.md`).
+Actualizado: **2026-09-08** (fix de estabilización RRHH — expedientes,
+contratos, jornadas y navegación, ver `IMPLEMENTATION_STATUS.md`).
 
 | Módulo / superficie | Ruta / plataforma | Estado | Nota |
 |---|---|---|---|
 | Panel Nexo | `/` | ✅ Operativo | Login, launcher y módulos por permiso. |
 | CRM | `/crm` | 🟡 Base operativa | Cliente CRUD + dashboard. Falta CRM completo: leads, oportunidades, actividades, cotizaciones y pedido. |
-| RRHH | `/rrhh` | 🟡 En validación | Expediente General/Laboral, contratos, PIN contractual y jornadas mínimas completos (F1.1-F1.4, 2026-09-07). Falta consolidación de asistencia y planillas (F1.5+). |
+| RRHH | `/rrhh` | 🟡 En validación | Expediente General/Laboral, contratos, PIN contractual y jornadas mínimas completos (F1.1-F1.4, 2026-09-07). Bug crítico de `/expedientes/[id]` (500 real en producción, ver sección abajo) corregido 2026-09-08. Falta consolidación de asistencia y planillas (F1.5+). |
 | Kiosko RRHH | `/rrhh/kiosco` | ✅ Migrado a PIN contractual | Dispositivo + PIN, validado contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. |
 | Flotilla / Transporte admin | `/flotilla` | ⏳ Código importado | Ruta360 está en el monorepo pero sin adaptar a `nexo-core`, Multi-Zones ni permisos Nexo. |
 | Panel de Conductor Web | ruta final por definir dentro de `/flotilla` | ⏳ Pendiente de adaptación | Superficie operacional distinta del panel administrativo. Login con usuario+contraseña; misma identidad que Mobile. |

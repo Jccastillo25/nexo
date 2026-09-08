@@ -1,6 +1,6 @@
 # RRHH — MVP operativo: fuente de verdad
 
-> Actualizado **2026-09-07** (F1.4 — jornadas mínimas). Este documento define qué significa “RRHH MVP listo”. Debe leerse junto a `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`, `IMPLEMENTATION_STATUS.md` y `DRIVER_ACCESS_AND_KIOSK.md`.
+> Actualizado **2026-09-08** (fix de estabilización — expedientes, contratos, jornadas y navegación, sección 16; antes F1.4 — jornadas mínimas). Este documento define qué significa “RRHH MVP listo”. Debe leerse junto a `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`, `IMPLEMENTATION_STATUS.md` y `DRIVER_ACCESS_AND_KIOSK.md`.
 
 RRHH no se considera terminado por cantidad de pantallas ni por infraestructura desplegada. Debe ejecutarse de punta a punta el flujo aprobado.
 
@@ -505,3 +505,70 @@ Cuando se apruebe cualquiera de estas decisiones, se documenta la Paso
 Cero correspondiente (matriz de permisos si aplica + modelo de datos)
 antes de escribir la migración — mismo criterio que el resto de este
 documento.
+
+---
+
+# 16. Fix de estabilización — expedientes, contratos, jornadas y navegación (2026-09-08)
+
+Bloque de correcciones pedido explícitamente después de Nexo Enterprise UI
+(2026-09-07), **sin iniciar F1.5**. Sin cambios de modelo de datos ni de
+reglas de dominio — solo navegación, UI y un bug real de producción. Ver
+`docs/IMPLEMENTATION_STATUS.md` para el detalle técnico completo (causa
+raíz, migraciones — ninguna en este bloque — y verificación).
+
+- **Bug P0 real (no hipotético)**: `/rrhh/expedientes/[id]` devolvía 500 en
+  producción para cualquier usuario, siempre — causa raíz: `FormTabs`
+  (`packages/ui`) recibía una función como `children` desde un Server
+  Component, algo que React/Next.js rechaza en runtime al cruzar la
+  frontera Server→Client. Confirmado con `get_runtime_errors` de Vercel
+  antes de tocar código (8 ocurrencias, 2 usuarios, mismo día). El click en
+  un empleado desde Contratación → Contratos compartía la misma causa (solo
+  navegaba a la misma página rota).
+- El Expediente Laboral (contratos/compensación/credencial/jornada) ahora
+  es una sección aislada dentro de `/expedientes/[id]`: si falla, se
+  muestra un error contenido sin tumbar el resto de la ficha (perfil, datos
+  generales).
+- **Nueva ruta mínima `/rrhh/contratacion/contratos/[id]`** (ficha de un
+  contrato): separa "ver/editar un contrato puntual" (👁/✎ desde el listado
+  de Contratos) de "ir al expediente del empleado" (click en el nombre).
+  Permite editar los datos base de un contrato en borrador y asignar su
+  jornada — mismas Server Actions/RPC que ya existían
+  (`editarContrato`/`asignarJornada`), sin lógica de negocio nueva. El
+  ciclo de vida completo (crear/activar/finalizar/regenerar PIN) sigue
+  viviendo únicamente en el expediente del empleado, sin cambios.
+- Texto de `/jornadas` corregido: ya no dice que la asignación de jornada
+  "se hace desde el expediente del empleado" (dejó de ser exacto — perfil y
+  contratación son procesos separados).
+- Acciones visibles (👁 ✎ 🗑, con tooltip/foco/`aria-label`) reemplazan el
+  menú "⋯" en Expedientes y se agregan en Contratos — componente nuevo
+  compartido `packages/ui/RowActionIcons.tsx`.
+- Eliminar empleado: la validación de backend (¿tiene algún contrato,
+  cualquier estado?) ya existía desde el rediseño de Enterprise UI — este
+  bloque agrega la señal preventiva en la UI (papelera deshabilitada +
+  tooltip) para no depender solo del mensaje de error después del click.
+- Rendimiento de navegación: consultas independientes de `/expedientes/[id]`
+  (antes en cascada) ahora van en paralelo; se eliminó un round-trip
+  redundante (la Server Action `verEstadoCredencial` repetía el mismo
+  chequeo de permiso que la página ya había resuelto); `(app)/layout.tsx`
+  ya no espera el permiso de módulo antes de pedir usuario/panel/logo.
+  `loading.tsx` agregado a las rutas más pesadas (Suspense boundary de
+  Next.js — feedback inmediato, no reemplaza la optimización real).
+- Sidebar: el grupo activo ahora se re-sincroniza con la URL en cada
+  navegación (antes solo se calculaba al montar) — un link a una hoja de
+  otro grupo (ej. desde Contratos) ya no deja el acordeón correcto
+  colapsado.
+- Logo dinámico (`core.platform_settings.logo_url`, configurado en Nexo →
+  Configuración → Marca) en el topbar de RRHH, con fallback al wordmark de
+  Nexo si no hay logo configurado.
+
+**Deuda/hallazgo nuevo, documentado, no resuelto en este bloque**: no
+existe ningún formulario/RPC de edición del Expediente General (solo
+alta, F1.1) — el ícono "Editar" de Expedientes navega hoy al mismo
+`/expedientes/[id]` de solo lectura que "Visualizar". Construir edición
+real requiere su propia decisión de campos editables y, si aplica, un RPC
+nuevo — fuera de alcance de este bloque (solo navegación/visualización).
+Además, `/rrhh/dashboard` mostró 3 veces en 4 días un error intermitente
+con mensaje vacío (`get_runtime_errors`, última vez 2026-09-08) — no se
+pudo establecer causa raíz con la evidencia disponible (no reproducible a
+demanda); se mejoró la observabilidad (el error ya no se descarta si viene
+sin `.message`) para diagnosticarlo la próxima vez que ocurra.
