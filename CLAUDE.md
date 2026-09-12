@@ -14,15 +14,32 @@ o alcance del producto.
 
 ### Lectura obligatoria ANTES de programar
 
+**Desde 2026-09-11, `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md` e
+`IMPLEMENTATION_STATUS.md` son índices/dashboards cortos, no monolitos.**
+El contenido temático completo vive en [`docs/plan/`](docs/plan/) (por
+fase/dominio) y [`docs/status-log/`](docs/status-log/) (una entrada por
+subfase ya cerrada) — leer **solo el archivo de cada carpeta que aplica a
+la tarea actual**, guiándose por la tabla de navegación de cada índice, en
+vez de todo el árbol completo. Esto es lo que permite que la regla de
+"lectura obligatoria" de abajo no cueste miles de líneas de contexto en
+cada sesión.
+
 Antes de empezar cualquier implementación, corrección estructural o migración,
 Claude debe leer, en este orden:
 
 1. `CLAUDE.md`.
 2. [`docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`](docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md)
-   — **fuente de verdad del objetivo, reglas de dominio, fases y orden de
+   (índice — objetivo, orden de fases, Definition of Done y protocolo)
+   **+ el/los archivo(s) de `docs/plan/` correspondientes a la fase/módulo
+   de la tarea** (su propia tabla dice cuál). Juntos son la
+   **fuente de verdad del objetivo, reglas de dominio, fases y orden de
    implementación**.
 3. [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md)
-   — **tracker vivo de lo realmente verificado**.
+   (dashboard — estado general, divergencias, tablero de fase, próxima
+   acción) — **tracker vivo de lo realmente verificado**. Abrir además la
+   entrada de `docs/status-log/` correspondiente solo cuando la tarea
+   necesite el detalle completo de verificación de una subfase ya cerrada
+   (por ejemplo, para no repetir un bug ya encontrado y corregido).
 4. [`docs/README.md`](docs/README.md)
    — índice para identificar qué documentos específicos aplican a la tarea.
 5. La documentación específica del módulo o subsistema que se va a tocar
@@ -81,7 +98,16 @@ cambiar.
 
 - [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) cuando
   cambie el avance, validación, bloqueo, deuda técnica o estado real de una
-  subfase/módulo.
+  subfase/módulo. Desde 2026-09-11 esto son **dos pasos, no uno**: (1) crear
+  una entrada nueva en `docs/status-log/YYYY-MM-DD-slug.md` con el detalle
+  completo de esta subfase, y (2) agregar una fila enlazándola en la tabla
+  de la sección 0 de `IMPLEMENTATION_STATUS.md` **y** actualizar sus
+  secciones 1-7 (estado general, divergencias, tablero, próxima acción)
+  para que el dashboard quede correcto sin depender de abrir el log. Nunca
+  volver a pegar el detalle narrativo completo dentro de
+  `IMPLEMENTATION_STATUS.md` — eso es exactamente el monolito que la
+  reestructuración de 2026-09-11 eliminó para que la lectura obligatoria de
+  cada sesión no cueste miles de líneas.
 
 Registrar como mínimo cuando aplique:
 
@@ -116,9 +142,12 @@ Registrar como mínimo cuando aplique:
   estrategia móvil.
 - [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md): cambios en componentes,
   tokens o normas visuales universales.
-- [`docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`](docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md):
-  **solo** cuando una decisión aprobada por el usuario cambie el alcance,
-  regla de dominio, orden de fases o arquitectura objetivo.
+- [`docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`](docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md)
+  y el archivo específico de [`docs/plan/`](docs/plan/) que contiene la
+  regla afectada: **solo** cuando una decisión aprobada por el usuario
+  cambie el alcance, regla de dominio, orden de fases o arquitectura
+  objetivo. El índice (`PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`) casi nunca
+  cambia por sí solo — el contenido vive en `docs/plan/`.
 - [`docs/README.md`](docs/README.md): cuando se agregue, renombre, reemplace o
   retire un documento que deba formar parte de la navegación documental.
 
