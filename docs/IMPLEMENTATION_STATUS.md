@@ -4,11 +4,14 @@
 >
 > **Este archivo es un dashboard corto, no el historial completo.** Desde 2026-09-11 el detalle narrativo de cada subfase (qué se auditó, qué migraciones se aplicaron, qué se verificó paso a paso) vive en archivos individuales bajo [`docs/status-log/`](status-log/), enlazados desde la tabla de la sección 0 de abajo. Las secciones 1-7 de este archivo son el estado consolidado vigente — se leen siempre; el log detallado se lee solo si hace falta el detalle de verificación de una subfase puntual.
 
-Última actualización documental: **2026-09-08** (fix de estabilización
-RRHH — expedientes, contratos, jornadas y navegación; ver
-[`status-log/2026-09-08-fix-estabilizacion-rrhh.md`](status-log/2026-09-08-fix-estabilizacion-rrhh.md).
-Antes de eso, Nexo Enterprise UI — rediseño visual transversal, ver
-[`status-log/2026-09-07-nexo-enterprise-ui.md`](status-log/2026-09-07-nexo-enterprise-ui.md)).
+Última actualización documental: **2026-09-11** (limpieza de datos de
+prueba residuales en `nexo-core` + corrección de una imprecisión de
+conteo de migraciones, detectadas por una verificación remota de rutina;
+ver
+[`status-log/2026-09-11-limpieza-datos-prueba-residuales.md`](status-log/2026-09-11-limpieza-datos-prueba-residuales.md).
+Antes de eso, fix de estabilización RRHH — expedientes, contratos,
+jornadas y navegación; ver
+[`status-log/2026-09-08-fix-estabilizacion-rrhh.md`](status-log/2026-09-08-fix-estabilizacion-rrhh.md)).
 
 ## Estados
 
@@ -35,6 +38,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 | 2026-09-07 | [F1.4 — Jornadas mínimas](status-log/2026-09-07-f1-4-jornadas-minimas.md) | `jornadas`/`jornada_dias`/`contrato_jornadas`/`feriados`; jornada obligatoria para activar contrato; gap de rol señalado (`gestor_expedientes` sin `turnos.ver`). |
 | 2026-09-07 | [Nexo Enterprise UI — rediseño visual transversal](status-log/2026-09-07-nexo-enterprise-ui.md) | Sidebar azul + topbar con breadcrumb (`NexoShell`) en `apps/nexo`/`rrhh`/`crm`, tema claro por defecto, kit compartido nuevo en `packages/ui`. |
 | 2026-09-08 | [Fix de estabilización RRHH](status-log/2026-09-08-fix-estabilizacion-rrhh.md) | P0: bug real que tumbaba `/expedientes/[id]` (función pasada a Client Component). P1: paralelización de round-trips. P2: UX de Expedientes/Contratos/Jornadas + fix de acordeón del sidebar. |
+| 2026-09-11 | [Limpieza de datos de prueba residuales](status-log/2026-09-11-limpieza-datos-prueba-residuales.md) | Verificación remota de rutina encontró 1 empleado/contrato/PIN de prueba sin limpiar en `nexo-core` (contradecía "0 filas" documentado) — borrado con aprobación explícita del usuario; también corrige una imprecisión de conteo de migraciones de F1.0 (duplicados inertes del bootstrap, sin impacto). |
 
 Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera de RRHH): ver el cierre de la entrada de F1.0 de arriba.
 
