@@ -4,9 +4,16 @@
 
 | Documento | Contenido |
 |---|---|
-| [PLAN_MAESTRO_IMPLEMENTACION_NEXO.md](PLAN_MAESTRO_IMPLEMENTACION_NEXO.md) | **Fuente de verdad del objetivo y orden de implementación.** Incluye Fase 1 RRHH, identidad digital, Panel de Conductor Web, Transporte, Inventario, Fabricación y Nexo Mobile Android/iOS. |
-| [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | **Tracker vivo del estado real.** Claude debe compararlo contra `main`, Supabase y Vercel y actualizarlo con commit/migraciones/pruebas. |
+| [PLAN_MAESTRO_IMPLEMENTACION_NEXO.md](PLAN_MAESTRO_IMPLEMENTACION_NEXO.md) | **Índice de la fuente de verdad del objetivo y orden de implementación.** Decisiones vigentes, orden definitivo, Definition of Done universal y protocolo — el contenido temático completo (objetivo, arquitectura, reglas de dominio, cada fase) vive en [`plan/`](plan/), leer solo el archivo que aplica a la tarea. |
+| [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | **Dashboard corto del estado real.** Claude debe compararlo contra `main`, Supabase y Vercel y actualizarlo con commit/migraciones/pruebas. El detalle narrativo de cada subfase vive en [`status-log/`](status-log/), enlazado desde la tabla de la sección 0. |
 | [DRIVER_ACCESS_AND_KIOSK.md](DRIVER_ACCESS_AND_KIOSK.md) | **Regla específica de acceso operativo.** PIN exclusivamente para asistencia; usuario+contraseña para Web/Mobile; habilitación de conductor, Supabase Auth, finalización de contrato y separación Kiosko/Panel Conductor. |
+
+## Contenido temático y log detallado (leer solo lo que aplica a la tarea)
+
+| Carpeta | Contenido |
+|---|---|
+| [plan/](plan/) | 11 archivos que desagregan `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md` por objetivo/arquitectura, estrategia móvil, dominio RRHH y cada fase (1 a 8). Ver la tabla del índice para saber cuál leer. |
+| [status-log/](status-log/) | Una entrada por subfase/bloque ya cerrado, con el detalle completo de auditoría, migraciones y verificación. Ver la tabla de la sección 0 de `IMPLEMENTATION_STATUS.md` para saber cuál leer. |
 
 ## Arquitectura y documentación viva
 
@@ -36,8 +43,8 @@
 Antes de programar una subfase, Claude debe leer:
 
 1. `CLAUDE.md`;
-2. `docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`;
-3. `docs/IMPLEMENTATION_STATUS.md`;
+2. `docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md` (índice) + el/los archivo(s) de `docs/plan/` que aplican a la tarea (ver tabla del índice);
+3. `docs/IMPLEMENTATION_STATUS.md` (dashboard) + la entrada de `docs/status-log/` correspondiente si se necesita el detalle de verificación de una subfase ya cerrada;
 4. `docs/README.md`;
 5. documentación específica del módulo;
 6. `docs/DRIVER_ACCESS_AND_KIOSK.md` obligatoriamente cuando la tarea toque RRHH, kiosko, autenticación operativa, conductor, Transporte o Mobile;
