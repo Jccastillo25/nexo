@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { BulletIcon, BULLET_ICON_NAMES, FormSection, useToast } from "@nexo/ui";
 import { updateSettings, type SettingsFormState } from "./actions";
 import type { PlatformBullet, PlatformSettings } from "@/lib/platform-settings";
@@ -10,6 +10,21 @@ const initialState: SettingsFormState = { error: null, success: false };
 const inputClass =
   "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
 const labelClass = "text-xs font-medium uppercase tracking-wide text-neutral-500";
+
+// Debe coincidir con el limite del Server Action (actions.ts,
+// MAX_IMAGE_BYTES) — esta validacion en el cliente es solo UX (evita el
+// viaje al servidor y muestra el error sin mover la pantalla); la que de
+// verdad protege es la del Server Action.
+const MAX_IMAGE_BYTES = 1.25 * 1024 * 1024; // 1.25 MB
+const MAX_IMAGE_MB_LABEL = "1.25 MB";
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
+]);
 
 function ImageField({
   name,
@@ -26,11 +41,15 @@ function ImageField({
 }) {
   const [preview, setPreview] = useState<string | null>(null);
   const [remove, setRemove] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex flex-col gap-2">
       <span className={labelClass}>{label}</span>
-      {hint && <p className="text-xs text-neutral-400">{hint}</p>}
+      <p className="text-xs text-neutral-400">
+        {hint ? `${hint} ` : ""}PNG, JPG, WEBP, GIF o ICO — máx. {MAX_IMAGE_MB_LABEL}.
+      </p>
       <div className="flex items-center gap-4">
         <div className="flex h-16 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed border-neutral-300 bg-neutral-50">
           {preview ? (
@@ -45,18 +64,36 @@ function ImageField({
         </div>
         <div className="flex flex-col gap-1.5">
           <input
+            ref={inputRef}
             type="file"
             name={name}
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/x-icon,.ico"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) {
-                setRemove(false);
-                setPreview(URL.createObjectURL(file));
+              if (!file) return;
+
+              if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+                setFieldError(`Formato no permitido (${file.type || "desconocido"}). Usá PNG, JPG, WEBP, GIF o ICO.`);
+                if (inputRef.current) inputRef.current.value = "";
+                return;
               }
+              if (file.size > MAX_IMAGE_BYTES) {
+                setFieldError(`La imagen pesa ${(file.size / (1024 * 1024)).toFixed(1)} MB, el máximo permitido es ${MAX_IMAGE_MB_LABEL}.`);
+                if (inputRef.current) inputRef.current.value = "";
+                return;
+              }
+
+              setFieldError(null);
+              setRemove(false);
+              setPreview(URL.createObjectURL(file));
             }}
             className="text-sm text-neutral-600 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-neutral-700 hover:file:bg-neutral-200"
           />
+          {fieldError && (
+            <p role="alert" className="text-xs text-red-600">
+              {fieldError}
+            </p>
+          )}
           {currentUrl && (
             <label className="flex items-center gap-1.5 text-xs text-neutral-500">
               <input
@@ -65,7 +102,11 @@ function ImageField({
                 checked={remove}
                 onChange={(e) => {
                   setRemove(e.target.checked);
-                  if (e.target.checked) setPreview(null);
+                  if (e.target.checked) {
+                    setPreview(null);
+                    setFieldError(null);
+                    if (inputRef.current) inputRef.current.value = "";
+                  }
                 }}
               />
               Quitar imagen actual
@@ -88,12 +129,33 @@ function ImageField({
 export default function MarcaForm({ initial }: { initial: PlatformSettings }) {
   const { show } = useToast();
   const [state, formAction, isPending] = useActionState(async (prev: SettingsFormState, fd: FormData) => {
-    const res = await updateSettings(prev, fd);
-    if (res.error) show(res.error, "error");
-    else if (res.success) show("Cambios guardados correctamente.", "success");
-    return res;
+    // P0 (2026-09-14): el Server Action puede rechazarse a nivel de
+    // transporte (ej. límite de tamaño de body) antes de que updateSettings
+    // llegue a ejecutarse — eso llega acá como una promesa rechazada, no
+    // como un SettingsFormState. Sin este try/catch, ese rechazo tumbaba la
+    // pantalla completa contra el error boundary global en vez de quedar
+    // contenido en el formulario.
+    try {
+      const res = await updateSettings(prev, fd);
+      if (res.error) show(res.error, "error");
+      else if (res.success) show("Configuración de marca guardada correctamente.", "success");
+      return res;
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "No se pudo guardar la configuración. Intentá de nuevo.";
+      show(message, "error");
+      return { error: message, success: false };
+    }
   }, initialState);
   const [bullets, setBullets] = useState<PlatformBullet[]>(initial.bullets);
+  // Se incrementa en "Cancelar" para remontar los campos no controlados
+  // (inputs de archivo/preview de ImageField, defaultValue de los inputs de
+  // texto) y que vuelvan exactamente al valor persistido — sin esto, un
+  // <input type="file"> no se puede limpiar por programación salvo
+  // remontándolo.
+  const [formKey, setFormKey] = useState(0);
 
   function updateBullet(index: number, patch: Partial<PlatformBullet>) {
     setBullets((prev) => prev.map((b, i) => (i === index ? { ...b, ...patch } : b)));
@@ -107,9 +169,15 @@ export default function MarcaForm({ initial }: { initial: PlatformSettings }) {
     setBullets((prev) => [...prev, { icon: "shield", title: "", description: "" }]);
   }
 
+  function handleCancel() {
+    setBullets(initial.bullets);
+    setFormKey((k) => k + 1);
+  }
+
   return (
     <form action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="bullets_json" value={JSON.stringify(bullets)} />
+      <div key={formKey} className="flex flex-col gap-6">
 
       <FormSection title="Imágenes">
         <ImageField name="logo" removeName="logo_remove" label="Logo" currentUrl={initial.logoUrl} />
@@ -218,6 +286,7 @@ export default function MarcaForm({ initial }: { initial: PlatformSettings }) {
           </p>
         </div>
       </FormSection>
+      </div>
 
       {state.error && (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -225,16 +294,28 @@ export default function MarcaForm({ initial }: { initial: PlatformSettings }) {
         </p>
       )}
       {state.success && (
-        <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">Guardado.</p>
+        <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+          Configuración de marca guardada correctamente.
+        </p>
       )}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="self-start rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isPending ? "Guardando…" : "Guardar cambios"}
-      </button>
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={handleCancel}
+          disabled={isPending}
+          className="rounded-md border border-neutral-300 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={isPending}
+          className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isPending ? "Guardando…" : "Guardar cambios"}
+        </button>
+      </div>
     </form>
   );
 }
