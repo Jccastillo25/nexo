@@ -320,15 +320,33 @@ login vive solo en `apps/nexo` (el panel). Al crear o adaptar un módulo:
    Supabase son del dominio público compartido, no de cada deploy — un
    solo login vale para toda la suite.
 
-## Regla obligatoria: `ShellBar` es la barra superior, ningún módulo la reemplaza
+## Regla obligatoria: `NexoShell` es el shell de la suite, ningún módulo lo reemplaza
 
-**Ningún `apps/<módulo>` construye su propio header de navegación.**
-`ShellBar` de `@nexo/ui` es la barra superior persistente de toda la
-suite — se usa tal cual, con `backHref` resuelto por un helper
-`getPanelUrl()` propio del módulo (mismo patrón que la regla de SSO de
-arriba). La identidad visual del módulo va en el contenido, debajo de la
-barra, nunca reemplazándola. Guía completa, ejemplo del bug real que esto
-corrigió, y checklist: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
+**Ningún `apps/<módulo>` construye su propio header/sidebar de
+navegación.** `NexoShell` de `@nexo/ui` (arma `NexoSidebar` + `NexoTopbar`
+por dentro) es el shell persistente de toda la suite — se usa tal cual,
+con `backHref` resuelto por un helper `getPanelUrl()` propio del módulo
+(mismo patrón que la regla de SSO de arriba). Reemplaza al `AppShell`/
+`ShellBar`/`Sidebar` retirados en 2026-09-07 — no son la arquitectura
+vigente, no se referencian en código nuevo.
+
+**Nexo App Launcher = selector de aplicaciones, no dashboard.** Decisión
+vigente (2026-09-14): `apps/nexo` en `/` responde exclusivamente "¿a qué
+aplicación quiero entrar?" — sin KPIs, actividad ni "pendientes"
+cruzados entre módulos (eso reemplazó al dashboard "Torre de Control"
+de 2026-09-07, que quedó retirado). El sidebar de cada app —incluido
+Nexo mismo— navega únicamente DENTRO de esa app; saltar a otra app es
+la grilla del Launcher, no un link persistente de sidebar.
+
+**El logo de Marca vive en la cabecera del sidebar, no en el topbar.**
+Click en el logo → vuelve al App Launcher (`aria-label="Volver al inicio
+de Nexo"`). El patrón de texto "← Volver a Nexo" queda eliminado en toda
+la suite — el logo cumple esa función, incluso en pantallas fuera del
+layout autenticado normal (`sin-acceso`, vía `BackToPanelLink`).
+
+La identidad visual del módulo va en el contenido, debajo de la barra,
+nunca reemplazándola. Guía completa, árbol de navegación de referencia y
+checklist: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
 ## Regla obligatoria: navegación interna con `next/link`, nunca `<a>` plano
 

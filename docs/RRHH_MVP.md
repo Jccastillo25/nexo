@@ -1,6 +1,6 @@
 # RRHH — MVP operativo: fuente de verdad
 
-> Actualizado **2026-09-08** (fix de estabilización — expedientes, contratos, jornadas y navegación, sección 16; antes F1.4 — jornadas mínimas). Este documento define qué significa “RRHH MVP listo”. Debe leerse junto a `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`, `IMPLEMENTATION_STATUS.md` y `DRIVER_ACCESS_AND_KIOSK.md`.
+> Actualizado **2026-09-14** (reconciliación de navegación — separación real de Expediente/Contratación §4.1/§4.2 y edición real del Expediente General; antes 2026-09-08, fix de estabilización — expedientes, contratos, jornadas y navegación, sección 16). Este documento define qué significa “RRHH MVP listo”. Debe leerse junto a `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`, `IMPLEMENTATION_STATUS.md` y `DRIVER_ACCESS_AND_KIOSK.md`.
 
 RRHH no se considera terminado por cantidad de pantallas ni por infraestructura desplegada. Debe ejecutarse de punta a punta el flujo aprobado.
 
@@ -106,34 +106,45 @@ Nada sustituye este E2E.
 
 ## 4.1 Expediente General
 
-**✅ F1.1 cumplida (2026-09-07)**: `/rrhh/expedientes/nuevo` ya solo pide nombre, apellido, documento, correo y teléfono — sin salario, modalidad, fecha de ingreso, PIN ni credencial. Ver `IMPLEMENTATION_STATUS.md` sección 0.11. La UI de expediente individual con pestañas (Datos generales / Expediente laboral / Historial) de abajo sigue pendiente — hoy solo existe el listado y el alta.
+**✅ F1.1 cumplida (2026-09-07)**: `/rrhh/expedientes/nuevo` ya solo pide nombre, apellido, documento, correo y teléfono — sin salario, modalidad, fecha de ingreso, PIN ni credencial. Ver `IMPLEMENTATION_STATUS.md` sección 0.11.
 
-UI objetivo:
+**✅ Reconciliación de navegación (2026-09-14, ver `docs/status-log/`)**:
+la UI objetivo cambió de diseño respecto a la versión anterior de esta
+sección — decisión vigente del usuario: "Expediente = información de la
+persona" / "Contratación = relación laboral completa" como dominios
+**separados**, no un tab dentro del otro. El "Expediente laboral" como
+pestaña anidada dentro de `/expedientes/[id]` (Contratos/Compensación/
+Jornada/Documentos laborales) queda descartado como diseño — ese ciclo
+completo vive en `/contratacion/contratos` (dominio propio, ver §4.2).
+
+UI real (2026-09-14):
 
 ```text
-/rrhh/expedientes/[empleado]
-├── Datos generales
-├── Expediente laboral
-│   ├── Contratos
-│   ├── Compensación
-│   ├── Jornada
-│   └── Documentos laborales
-└── Historial
+/rrhh/expedientes/[id]              — SOLO persona, de solo lectura
+├── Datos personales                — real
+├── Dirección                       — EmptyState, sin modelo de datos
+├── Información complementaria      — EmptyState, sin modelo de datos
+├── Cuentas bancarias                — EmptyState, sin modelo de datos
+├── Beneficiario                    — EmptyState, sin modelo de datos
+└── Documentos                      — EmptyState, sin modelo de datos
+
+/rrhh/expedientes/[id]/editar       — edición real (nombre/apellido/
+                                       documento/email/teléfono), botón
+                                       "Editar" en la ficha de arriba
 ```
 
-`/rrhh/expedientes/nuevo` crea solo datos generales.
-
-No debe pedir:
+`/rrhh/expedientes/nuevo` crea solo datos generales; `/editar` los edita.
+Ninguna de las dos rutas pide ni muestra:
 
 - salario;
 - modalidad contractual;
-- fecha de ingreso laboral;
+- contratos, jornada o su estado;
 - PIN;
 - credencial operacional.
 
 ## 4.2 Contratos
 
-**✅ F1.2 cumplida (2026-09-07)**: `rrhh.contratos` con exactamente este ciclo, ver `IMPLEMENTATION_STATUS.md` sección 0.12.
+**✅ F1.2 cumplida (2026-09-07)**: `rrhh.contratos` con exactamente este ciclo, ver `IMPLEMENTATION_STATUS.md` sección 0.12. UI del ciclo completo (crear/editar/jornada/activar/PIN/finalizar): `/rrhh/contratacion/contratos` (listado + "+ Nuevo contrato") y `/rrhh/contratacion/contratos/[id]` (ficha) — dominio Contratación, separado del Expediente General (§4.1). Reubicado ahí el 2026-09-14 (antes vivía embebido en `/expedientes/[id]`).
 
 Mínimo:
 
@@ -567,6 +578,13 @@ alta, F1.1) — el ícono "Editar" de Expedientes navega hoy al mismo
 `/expedientes/[id]` de solo lectura que "Visualizar". Construir edición
 real requiere su propia decisión de campos editables y, si aplica, un RPC
 nuevo — fuera de alcance de este bloque (solo navegación/visualización).
+
+> **✅ Resuelto 2026-09-14** (reconciliación de navegación, ver
+> `docs/status-log/`): `rrhh.fn_editar_empleado`/`public.editar_empleado`
+> nuevos (mismo permiso ya existente `rrhh.expedientes.empleados.editar`,
+> sin Paso Cero nuevo) + `/rrhh/expedientes/[id]/editar` real. El ícono
+> "Editar" ya no navega a la ficha de solo lectura.
+
 Además, `/rrhh/dashboard` mostró 3 veces en 4 días un error intermitente
 con mensaje vacío (`get_runtime_errors`, última vez 2026-09-08) — no se
 pudo establecer causa raíz con la evidencia disponible (no reproducible a

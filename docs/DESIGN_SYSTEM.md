@@ -99,13 +99,28 @@ API correcta: cada `FormTab` lleva su `content: ReactNode` ya resuelto
 nuevo de `FormTabs` debe pasar `content` por tab, nunca `children` como
 función.
 
-**`NexoTopbar`/`NexoShell` — logo dinámico (2026-09-08)**: prop opcional
-`logoUrl` (`core.platform_settings.logo_url`, editable en Nexo →
-Configuración → Marca) — sin configurar, cae al wordmark "Nexo" por
-defecto, nunca un logo hardcodeado de otro módulo. Cada app que lo quiera
-mostrar lo resuelve con su propio `lib/platform-settings.ts` (mismo patrón
-duplicado a propósito que `getCopyrightText`, ver `apps/crm`) y se lo pasa
-a `NexoShell`. Hoy solo `apps/rrhh` lo hace.
+**`NexoShell` — logo dinámico, en la cabecera del sidebar (movido
+2026-09-14, antes vivía en `NexoTopbar`)**: prop `logoUrl`
+(`core.platform_settings.logo_url`, editable en Nexo → Configuración →
+Marca) — `NexoShell` se lo pasa a `NexoSidebar`, que lo muestra arriba de
+todo, clickeable, con `aria-label="Volver al inicio de Nexo"`. Click en
+el logo → vuelve al App Launcher (`backHref` en un módulo, navegación
+real de Multi-Zones; `"/"` en el propio panel). Sin logo configurado,
+cae al wordmark "N" por defecto, nunca un logo hardcodeado de otro
+módulo. `NexoTopbar` ya NO muestra logo — quedaría duplicado. Cada app
+que quiera mostrar el logo lo resuelve con su propio
+`lib/platform-settings.ts` (mismo patrón duplicado a propósito que
+`getCopyrightText`) y se lo pasa a `NexoShell`. Las tres apps (`nexo`,
+`rrhh`, `crm`) lo hacen desde 2026-09-14 — antes solo `apps/rrhh` lo
+hacía.
+
+**Ya no existe el patrón de texto "← Volver a Nexo"** (retirado
+2026-09-14, decisión vigente del usuario) — el logo de la cabecera del
+sidebar cumple esa función. `BackToPanelLink`
+([`packages/ui/BackToPanelLink.tsx`](../packages/ui/BackToPanelLink.tsx))
+ya no acepta un `label` de texto: es exclusivamente un link con el
+logo/wordmark, mismo patrón visual que la cabecera del sidebar, usado en
+pantallas fuera del layout autenticado normal (ej. `sin-acceso`).
 
 **El tema oscuro + `.nexo-glass` sigue existiendo**, en `tokens.css`, pero
 acotado exclusivamente a `apps/rrhh/src/app/kiosco` (pantalla inmersiva de
@@ -118,27 +133,39 @@ un sistema completo de temas si no existe.
 deshabilitado/"Próximamente" en `NexoSidebar` — no se crea una página
 placeholder por cada funcionalidad futura; excepción: un placeholder
 histórico ya existente, como `apps/rrhh/.../planillas/page.tsx`, se
-conserva tal cual):
+conserva tal cual).
+
+**Reconciliación de navegación (2026-09-14)**: el sidebar de `apps/nexo`
+ya NO lista RRHH/CRM/Transporte/Fabricación — saltar a otra app es una
+acción del Launcher (la grilla de `/`), no navegación persistente de
+sidebar (decisión vigente: "el sidebar de cada app navega únicamente
+dentro de esa app", y eso incluye a Nexo mismo). El árbol de abajo
+refleja el estado actual, no el de 2026-09-07:
 
 ```text
-Nexo
-├── Dashboard
+Nexo (sidebar de apps/nexo — solo páginas propias de Nexo)
+├── Dashboard          (el App Launcher mismo, "/")
+└── Configuración → Marca
+
+Launcher (contenido de "/", NO es sidebar — grilla de módulos habilitados)
 ├── RRHH
 ├── CRM
-├── Transporte        (sin href — Flotilla no está en Multi-Zones todavía)
-├── Fabricación        (sin href — no existe todavía)
-└── Configuración → Marca
+├── Transporte          (sin href — Flotilla no está en Multi-Zones todavía)
+└── Fabricación         (sin href — no existe todavía)
 
 RRHH
 ├── Dashboard
 ├── Expedientes
-│   ├── Empleados
-│   └── Documentos     (sin href — pendiente de modelo de datos)
+│   ├── Empleados        (ficha = SOLO Expediente General — persona;
+│   │                      /expedientes/[id]/editar para editar, 2026-09-14)
+│   └── Documentos       (sin href — pendiente de modelo de datos)
 ├── Contratación
-│   ├── Contratos      (listado global + ficha por contrato en
-│   │                    /contratacion/contratos/[id], 2026-09-08 — no es
-│   │                    una hoja de navegación propia, se llega desde la
-│   │                    fila del listado)
+│   ├── Contratos        (listado global + "+ Nuevo contrato"
+│   │                      /contratacion/contratos/nuevo + ficha por
+│   │                      contrato en /contratacion/contratos/[id] con el
+│   │                      ciclo COMPLETO — crear/editar/jornada/activar/
+│   │                      PIN/finalizar, 2026-09-14. No son hojas de
+│   │                      navegación propias, se llega desde el listado)
 │   ├── Jornadas
 │   └── Feriados
 ├── Asistencia
@@ -159,19 +186,32 @@ CRM
 
 ## Regla obligatoria: todo módulo aterriza en su Dashboard de KPIs
 
-**La ruta raíz de cada módulo (`/`, bajo su propio `basePath`) redirige
-siempre a un `/dashboard` propio del módulo, con los KPIs principales de
-esa área — nunca a una lista vacía ni a una página en blanco esperando que
-el usuario haga clic en el sidebar.** No alcanza con redirigir a la
-primera sección de contenido (ej. una tabla): tiene que ser una vista de
-métricas, con al menos 2-3 tarjetas de KPI reales del módulo (`MetricCard`).
+**La ruta raíz de cada MÓDULO (`/`, bajo su propio `basePath`: `/rrhh`,
+`/crm`, etc.) redirige siempre a un `/dashboard` propio del módulo, con
+los KPIs principales de esa área — nunca a una lista vacía ni a una
+página en blanco esperando que el usuario haga clic en el sidebar.** No
+alcanza con redirigir a la primera sección de contenido (ej. una tabla):
+tiene que ser una vista de métricas, con al menos 2-3 tarjetas de KPI
+reales del módulo (`MetricCard`).
 
-Referencia: [`apps/crm/src/app/(app)/dashboard/page.tsx`](../apps/crm/src/app/(app)/dashboard/page.tsx)
-(total de clientes, nuevos este mes, distribución por tipo),
-[`apps/rrhh/src/app/(app)/dashboard/page.tsx`](../apps/rrhh/src/app/(app)/dashboard/page.tsx)
-(expedientes, contratos activos, marcas del día, planillas pendientes) y
+**Excepción explícita: `apps/nexo` en `/` (el App Launcher) NO es un
+módulo y no sigue esta regla.** Reconciliación de navegación 2026-09-14
+(decisión vigente del usuario): el Launcher es exclusivamente un selector
+de aplicaciones — responde "¿a qué aplicación quiero entrar?", nunca un
+dashboard con KPIs/actividad/pendientes cruzados entre módulos. La
+versión anterior de esta página ("Torre de Control": saludo + KPIs +
+grid de módulos, 2026-09-07) quedó retirada — ver
 [`apps/nexo/src/app/(app)/page.tsx`](../apps/nexo/src/app/(app)/page.tsx)
-(Torre de Control: bienvenida + módulos habilitados + grid de módulos).
+(hoy: header "Aplicaciones" + grilla de módulos habilitados por
+categoría, sin KPIs). El árbol de navegación de referencia más abajo
+también cambió: el sidebar de `apps/nexo` ya no lista RRHH/CRM/
+Transporte/Fabricación (eso es contenido del Launcher, no navegación
+interna de "la app Nexo") — ver la sección siguiente.
+
+Referencia (módulos reales): [`apps/crm/src/app/(app)/dashboard/page.tsx`](../apps/crm/src/app/(app)/dashboard/page.tsx)
+(total de clientes, nuevos este mes, distribución por tipo) y
+[`apps/rrhh/src/app/(app)/dashboard/page.tsx`](../apps/rrhh/src/app/(app)/dashboard/page.tsx)
+(expedientes, contratos activos, marcas del día, planillas pendientes).
 
 Al crear o adaptar un módulo nuevo:
 
@@ -199,11 +239,15 @@ renderizaba sus ítems con `<a href={item.href}>` — compilaba sin error,
 funcionaba en local por coincidencia y rompía en producción real.
 `NexoSidebar` usa `next/link` en cada ítem.
 
-**La única excepción, a propósito, es `BackToPanelLink`** (ver
-[`packages/ui/BackToPanelLink.tsx`](../packages/ui/BackToPanelLink.tsx),
-usado dentro de `NexoSidebar` cuando se le pasa `backHref`): ese sí es un
-`<a>` plano, porque cruza de módulo — cruza de *zona* en Multi-Zones, así
-que necesita una navegación real del navegador, nunca client-side routing.
+**Las únicas excepciones, a propósito, son los links que vuelven al App
+Launcher** — cruzan de módulo (de *zona* en Multi-Zones), así que
+necesitan una navegación real del navegador, nunca client-side routing:
+el logo de la cabecera de `NexoSidebar` (inline en
+[`packages/ui/NexoSidebar.tsx`](../packages/ui/NexoSidebar.tsx), apunta a
+`backHref`/`"/"`) y
+[`packages/ui/BackToPanelLink.tsx`](../packages/ui/BackToPanelLink.tsx)
+(mismo patrón visual, usado en pantallas fuera del layout autenticado
+normal — ej. `sin-acceso`).
 
 ## Regla obligatoria: `NexoShell`/`NexoTopbar` son LA barra superior, no una opción
 
