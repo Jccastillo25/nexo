@@ -1,20 +1,26 @@
 "use client";
 
-// Ficha de UN contrato (Contratación → Contratos → 👁/✎) — complementa,
-// no reemplaza, al panel de ciclo de vida completo del Expediente Laboral
-// (activar/finalizar/regenerar PIN siguen viviendo únicamente en
-// /expedientes/[id]/contratos-panel.tsx, sin cambios). Acá solo viven las
-// dos cosas que el rediseño de navegación pidió sacar de Expedientes:
-// editar los datos base de un contrato en borrador, y asignar su jornada
-// — mismas Server Actions (editarContrato/asignarJornada), mismos RPC,
-// cero lógica de negocio nueva.
+// Ficha de UN contrato (Contratación → Contratos → 👁/✎) — dueña única del
+// ciclo de vida completo del contrato (P2/P3, reconciliación de
+// navegación 2026-09-14): editar datos base, asignar jornada, activar
+// (genera PIN), regenerar PIN, finalizar. Antes ese ciclo estaba repartido
+// entre /expedientes/[id]/contratos-panel.tsx (activar/finalizar/PIN) y
+// esta página (solo editar/jornada) — se unificó acá, reutilizando
+// exactamente las mismas Server Actions/RPC (contratacion/contratos/
+// actions.ts, movidas desde expedientes/[id]/actions.ts, no duplicadas).
 import { useState, useTransition } from "react";
 import { StatusBadge, useToast, type StatusTone } from "@nexo/ui";
-import { editarContrato, asignarJornada, type ContratoInput } from "../../../expedientes/[id]/actions";
+import {
+  editarContrato,
+  activarContrato,
+  finalizarContrato,
+  regenerarPin,
+  asignarJornada,
+  type ContratoInput,
+} from "../actions";
 
 export interface ContratoFichaData {
   id: string;
-  empleadoId: string;
   numeroContrato: number;
   estado: "borrador" | "activo" | "finalizado";
   puesto: string | null;
@@ -24,6 +30,13 @@ export interface ContratoFichaData {
   fechaFinPrevista: string | null;
   fechaFinReal: string | null;
   salarioBase: number | null;
+}
+
+export interface CredencialEstado {
+  tieneCredencial: boolean;
+  activo: boolean;
+  pinBloqueado: boolean;
+  rotacionNumero: number;
 }
 
 export interface JornadaOption {
@@ -48,17 +61,27 @@ const inputClass =
 export default function ContratoFicha({
   contrato,
   canEditar,
+  canActivar,
+  canFinalizar,
   canVerSalario,
   canEditarSalario,
+  canVerCredenciales,
+  canRegenerarPin,
   canVerTurnos,
+  credencial,
   jornadasDisponibles,
   jornadaVigente,
 }: {
   contrato: ContratoFichaData;
   canEditar: boolean;
+  canActivar: boolean;
+  canFinalizar: boolean;
   canVerSalario: boolean;
   canEditarSalario: boolean;
+  canVerCredenciales: boolean;
+  canRegenerarPin: boolean;
   canVerTurnos: boolean;
+  credencial: CredencialEstado | null;
   jornadasDisponibles: JornadaOption[];
   jornadaVigente: JornadaVigente | null;
 }) {
@@ -74,6 +97,7 @@ export default function ContratoFicha({
   });
   const [jornadaSeleccionada, setJornadaSeleccionada] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [pinRevelado, setPinRevelado] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const puedeEditar = canEditar && contrato.estado === "borrador";
@@ -87,7 +111,7 @@ export default function ContratoFicha({
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const res = await editarContrato(contrato.empleadoId, contrato.id, form);
+      const res = await editarContrato(contrato.id, form);
       if (!res.ok) {
         setError(res.message ?? "No se pudo guardar el contrato.");
         show(res.message ?? "No se pudo guardar el contrato.", "error");
@@ -102,7 +126,7 @@ export default function ContratoFicha({
     if (!jornadaSeleccionada) return;
     setError(null);
     startTransition(async () => {
-      const res = await asignarJornada(contrato.empleadoId, contrato.id, jornadaSeleccionada);
+      const res = await asignarJornada(contrato.id, jornadaSeleccionada);
       if (!res.ok) {
         setError(res.message ?? "No se pudo asignar la jornada.");
         show(res.message ?? "No se pudo asignar la jornada.", "error");
@@ -110,6 +134,47 @@ export default function ContratoFicha({
       }
       show("Jornada asignada.", "success");
       setJornadaSeleccionada("");
+    });
+  }
+
+  function activar() {
+    setError(null);
+    startTransition(async () => {
+      const res = await activarContrato(contrato.id);
+      if (!res.ok) {
+        setError(res.message ?? "No se pudo activar el contrato.");
+        show(res.message ?? "No se pudo activar el contrato.", "error");
+        return;
+      }
+      show("Contrato activado.", "success");
+      if (res.pin) setPinRevelado(res.pin);
+    });
+  }
+
+  function regenerar() {
+    setError(null);
+    startTransition(async () => {
+      const res = await regenerarPin(contrato.id);
+      if (!res.ok) {
+        setError(res.message ?? "No se pudo regenerar el PIN.");
+        show(res.message ?? "No se pudo regenerar el PIN.", "error");
+        return;
+      }
+      show("PIN regenerado.", "success");
+      if (res.pin) setPinRevelado(res.pin);
+    });
+  }
+
+  function finalizar() {
+    setError(null);
+    startTransition(async () => {
+      const res = await finalizarContrato(contrato.id);
+      if (!res.ok) {
+        setError(res.message ?? "No se pudo finalizar el contrato.");
+        show(res.message ?? "No se pudo finalizar el contrato.", "error");
+        return;
+      }
+      show("Contrato finalizado — credencial revocada.", "success");
     });
   }
 
@@ -122,6 +187,25 @@ export default function ContratoFicha({
         </div>
 
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+
+        {pinRevelado && (
+          <div className="flex flex-col items-center gap-1 rounded-xl border border-dashed border-blue-300 bg-blue-50 px-6 py-4">
+            <p className="text-xs uppercase tracking-wide text-neutral-500">
+              PIN de kiosko — se muestra una sola vez
+            </p>
+            <p className="text-4xl font-bold tabular-nums tracking-[0.3em] text-neutral-900">{pinRevelado}</p>
+            <p className="mt-1 text-xs text-neutral-500">
+              Anotalo o entregáselo ahora al empleado — no se puede volver a ver, solo regenerar.
+            </p>
+            <button
+              type="button"
+              onClick={() => setPinRevelado(null)}
+              className="mt-2 text-xs text-neutral-500 hover:text-neutral-900"
+            >
+              Ocultar
+            </button>
+          </div>
+        )}
 
         {editando ? (
           <form onSubmit={guardar} className="flex flex-col gap-4">
@@ -213,8 +297,24 @@ export default function ContratoFicha({
                 />
               )}
             </div>
-            {puedeEditar && (
-              <div>
+
+            {contrato.estado === "activo" && canVerCredenciales && credencial && (
+              <div className="flex items-center gap-2 text-xs text-neutral-500">
+                <span>Credencial de asistencia:</span>
+                {!credencial.tieneCredencial ? (
+                  <span className="text-amber-600">sin generar</span>
+                ) : credencial.pinBloqueado ? (
+                  <span className="text-red-600">bloqueada</span>
+                ) : credencial.activo ? (
+                  <span className="text-emerald-600">activa (rotación #{credencial.rotacionNumero})</span>
+                ) : (
+                  <span className="text-neutral-400">revocada</span>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3">
+              {puedeEditar && (
                 <button
                   type="button"
                   onClick={() => setEditando(true)}
@@ -222,15 +322,49 @@ export default function ContratoFicha({
                 >
                   Editar contrato
                 </button>
-              </div>
+              )}
+              {contrato.estado === "borrador" && canActivar && (
+                <button
+                  type="button"
+                  disabled={isPending || !jornadaVigente}
+                  title={!jornadaVigente ? "Asigná una jornada antes de activar" : undefined}
+                  onClick={activar}
+                  className="rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50"
+                >
+                  Activar
+                </button>
+              )}
+              {contrato.estado === "activo" && canRegenerarPin && (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={regenerar}
+                  className="text-sm text-neutral-500 hover:text-neutral-900 disabled:opacity-50"
+                >
+                  Regenerar PIN
+                </button>
+              )}
+              {contrato.estado === "activo" && canFinalizar && (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={finalizar}
+                  className="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+                >
+                  Finalizar
+                </button>
+              )}
+            </div>
+
+            {!puedeEditar && contrato.estado === "borrador" && (
+              <p className="text-xs text-neutral-400">No tenés permiso para editar este contrato.</p>
             )}
-            {!canEditar || contrato.estado !== "borrador" ? (
+            {contrato.estado !== "borrador" && (
               <p className="text-xs text-neutral-400">
-                {contrato.estado === "borrador"
-                  ? "No tenés permiso para editar este contrato."
-                  : "Solo se puede editar un contrato en borrador — el ciclo de vida (activar/finalizar/regenerar PIN) se administra desde el expediente del empleado."}
+                Solo se puede editar un contrato en borrador — la información base queda congelada al
+                activarlo.
               </p>
-            ) : null}
+            )}
           </>
         )}
       </div>

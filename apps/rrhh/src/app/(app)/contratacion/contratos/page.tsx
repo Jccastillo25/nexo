@@ -27,29 +27,27 @@ const ESTADO_TONE: Record<ContratoListRow["estado"], StatusTone> = {
 };
 
 /**
- * Nexo Enterprise UI (2026-09-07) — nueva vista de solo lectura pedida por
- * el arbol de navegacion (Contratación → Contratos): listado de
- * rrhh.contratos de TODOS los empleados, algo que antes solo existia
- * embebido en cada expediente individual. Sin cambios de logica/DB — usa
- * el mismo permiso rrhh.expedientes.contratos.ver ya existente y una
- * consulta de solo lectura protegida por RLS. La gestion del ciclo de vida
- * completo (crear/activar/finalizar/regenerar PIN/asignar jornada) sigue
- * viviendo en el expediente del empleado (/expedientes/[id]) — un contrato
- * nuevo nace ahí, donde se elige a qué empleado corresponde.
+ * Listado de rrhh.contratos de TODOS los empleados (Contratación →
+ * Contratos). Columna "Acciones" (👁 Ver contrato / ✎ Editar, solo en
+ * borrador) separa explícitamente "ver la ficha del contrato" (ojo,
+ * siempre) de "ir al expediente del empleado" (click en el nombre).
  *
- * Fix (2026-09-08, docs/IMPLEMENTATION_STATUS.md): columna "Acciones"
- * visible (👁 Ver contrato / ✎ Editar, solo en borrador) que separa
- * explícitamente "ver la ficha del contrato" (ojo, siempre) de "ir al
- * expediente del empleado" (click en el nombre) — antes solo existía este
- * segundo camino. La ficha vive en /contratacion/contratos/[id].
+ * P2 (reconciliación de navegación 2026-09-14, ver docs/status-log/):
+ * Contratación absorbe TODO el ciclo contractual — "+ Nuevo contrato"
+ * (/contratacion/contratos/nuevo, selecciona un empleado existente) y la
+ * ficha de cada contrato (/contratacion/contratos/[id], ciclo completo
+ * crear→editar→jornada→activar→PIN→finalizar) — el expediente del
+ * empleado (/expedientes/[id]) ya no tiene ningún dato ni acción
+ * contractual.
  */
 export default async function ContratosListPage() {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
-  const [canVer, canEditar] = await Promise.all([
+  const [canVer, canEditar, canCrear] = await Promise.all([
     hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.ver"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.crear"),
   ]);
   if (!canVer) {
     return (
@@ -75,7 +73,20 @@ export default async function ContratosListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Contratos" description="Todos los contratos registrados, de todos los empleados." />
+      <PageHeader
+        title="Contratos"
+        description="Todos los contratos registrados, de todos los empleados."
+        actions={
+          canCrear && (
+            <Link
+              href="/contratacion/contratos/nuevo"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            >
+              + Nuevo contrato
+            </Link>
+          )
+        }
+      />
 
       <DataTable
         rows={rows}

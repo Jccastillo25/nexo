@@ -19,6 +19,11 @@ export interface ActionResult {
   message?: string;
 }
 
+export interface CrearContratoResult extends ActionResult {
+  /** Id del contrato recien creado — se usa para redirigir a su ficha. */
+  contratoId?: string;
+}
+
 export interface PinResult {
   ok: boolean;
   message?: string;
@@ -42,21 +47,31 @@ export interface AsignarJornadaResult {
 }
 
 /**
- * F1.2 (2026-09-07, docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md): acciones
- * del ciclo de vida del contrato (Expediente Laboral), separado del
- * Expediente General (F1.1, ver expedientes/nuevo/actions.ts). Cada
- * accion llama al RPC correspondiente (rrhh.fn_crear_contrato/
- * fn_editar_contrato/fn_activar_contrato/fn_finalizar_contrato via sus
- * wrappers public.*, authenticated-only — ver
- * supabase/migrations/20260907153604_f1_2_rrhh_contratos.sql). El
+ * Ciclo de vida completo del contrato (dominio Contratación) —
+ * reubicado desde expedientes/[id]/actions.ts en la reconciliación de
+ * 2026-09-14 (P2/P3, ver docs/status-log/): el Expediente General
+ * (persona) y la relación laboral (Contratación) son dos dominios
+ * separados, y esta era la única implementación real de cada acción — se
+ * MUEVE, no se duplica (`crearContrato`/`editarContrato`/etc. siguen
+ * siendo la única función para cada operación, ahora vive donde
+ * corresponde). Cada acción llama al RPC correspondiente
+ * (rrhh.fn_crear_contrato/fn_editar_contrato/fn_activar_contrato/
+ * fn_finalizar_contrato via sus wrappers public.*, authenticated-only —
+ * ver supabase/migrations/20260907153604_f1_2_rrhh_contratos.sql). El
  * requirePermission de cada funcion es la capa de UX (norma v3.0); la
  * proteccion real esta dentro del RPC (permiso + estado del contrato) y
  * en RLS/el trigger de transicion de estado.
+ *
+ * `empleadoId` ya no es parámetro de las acciones que solo lo usaban para
+ * revalidar `/expedientes/[id]` (esa página ya no muestra nada derivado
+ * del contrato, P2) — sigue siendo obligatorio únicamente en
+ * `crearContrato`, donde es el dato de negocio real (a qué empleado
+ * pertenece el contrato nuevo).
  */
 export async function crearContrato(
   empleadoId: string,
   input: ContratoInput
-): Promise<ActionResult> {
+): Promise<CrearContratoResult> {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
@@ -67,7 +82,7 @@ export async function crearContrato(
     throw err;
   }
 
-  const { error } = await supabase.rpc("crear_contrato", {
+  const { data, error } = await supabase.rpc("crear_contrato", {
     p_company_id: companyId,
     p_empleado_id: empleadoId,
     p_puesto: input.puesto?.trim() || undefined,
@@ -80,13 +95,11 @@ export async function crearContrato(
 
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath(`/expedientes/${empleadoId}`);
   revalidatePath("/contratacion/contratos");
-  return { ok: true };
+  return { ok: true, contratoId: data?.[0]?.contrato_id };
 }
 
 export async function editarContrato(
-  empleadoId: string,
   contratoId: string,
   input: ContratoInput
 ): Promise<ActionResult> {
@@ -113,22 +126,17 @@ export async function editarContrato(
 
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath(`/expedientes/${empleadoId}`);
   revalidatePath(`/contratacion/contratos/${contratoId}`);
   revalidatePath("/contratacion/contratos");
   return { ok: true };
 }
 
 /**
- * F1.3 (2026-09-07): activar ahora genera el PIN de asistencia
- * automáticamente (rrhh.fn_activar_contrato) — se devuelve en texto
- * plano UNA sola vez, igual que en el alta de empleado de F1.0-era. No
- * se puede recuperar después, solo regenerar (ver `regenerarPin`).
+ * F1.3: activar genera el PIN de asistencia automáticamente
+ * (rrhh.fn_activar_contrato) — se devuelve en texto plano UNA sola vez.
+ * No se puede recuperar después, solo regenerar (ver `regenerarPin`).
  */
-export async function activarContrato(
-  empleadoId: string,
-  contratoId: string
-): Promise<PinResult> {
+export async function activarContrato(contratoId: string): Promise<PinResult> {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
@@ -146,7 +154,6 @@ export async function activarContrato(
 
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath(`/expedientes/${empleadoId}`);
   revalidatePath(`/contratacion/contratos/${contratoId}`);
   revalidatePath("/contratacion/contratos");
   return { ok: true, pin: data?.[0]?.pin_kiosko };
@@ -157,10 +164,7 @@ export async function activarContrato(
  * (rrhh.fn_regenerar_pin_contrato). El PIN anterior deja de funcionar de
  * inmediato.
  */
-export async function regenerarPin(
-  empleadoId: string,
-  contratoId: string
-): Promise<PinResult> {
+export async function regenerarPin(contratoId: string): Promise<PinResult> {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
@@ -178,7 +182,6 @@ export async function regenerarPin(
 
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath(`/expedientes/${empleadoId}`);
   revalidatePath(`/contratacion/contratos/${contratoId}`);
   return { ok: true, pin: data?.[0]?.pin_kiosko };
 }
@@ -188,9 +191,7 @@ export async function regenerarPin(
  * rrhh.fn_estado_credencial_contrato ni siquiera selecciona el
  * pin_hash, así que no hay forma de que este RPC devuelva el PIN.
  */
-export async function verEstadoCredencial(
-  contratoId: string
-): Promise<EstadoCredencialResult> {
+export async function verEstadoCredencial(contratoId: string): Promise<EstadoCredencialResult> {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
@@ -225,7 +226,6 @@ export async function verEstadoCredencial(
  * activar el contrato (rrhh.fn_activar_contrato ahora lo exige).
  */
 export async function asignarJornada(
-  empleadoId: string,
   contratoId: string,
   jornadaId: string,
   vigenteDesde?: string
@@ -249,15 +249,11 @@ export async function asignarJornada(
 
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath(`/expedientes/${empleadoId}`);
   revalidatePath(`/contratacion/contratos/${contratoId}`);
   return { ok: true, vigenteDesde: data?.[0]?.vigente_desde };
 }
 
-export async function finalizarContrato(
-  empleadoId: string,
-  contratoId: string
-): Promise<ActionResult> {
+export async function finalizarContrato(contratoId: string): Promise<ActionResult> {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
@@ -275,7 +271,6 @@ export async function finalizarContrato(
 
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath(`/expedientes/${empleadoId}`);
   revalidatePath(`/contratacion/contratos/${contratoId}`);
   revalidatePath("/contratacion/contratos");
   return { ok: true };

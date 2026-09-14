@@ -5,31 +5,52 @@ import { hasPermission } from "@nexo/permissions";
 import { EmptyState, PageHeader } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
-import ContratoFicha, { type JornadaOption, type JornadaVigente } from "./contrato-ficha";
+import ContratoFicha, {
+  type CredencialEstado,
+  type JornadaOption,
+  type JornadaVigente,
+} from "./contrato-ficha";
 
 export const metadata: Metadata = {
   title: "Contrato · RRHH",
 };
 
 /**
- * Ficha de UN contrato (Contratación → Contratos → 👁/✎) — nueva ruta
- * mínima (2026-09-08, ver docs/IMPLEMENTATION_STATUS.md) para separar
- * "ver/editar un contrato puntual" de "ir al expediente del empleado".
- * Reutiliza exactamente las mismas queries/RPC/permisos que ya existían en
- * /expedientes/[id] para esta sección — sin lógica de negocio nueva. El
- * ciclo de vida completo (crear/activar/finalizar/regenerar PIN) sigue
- * viviendo únicamente en el expediente del empleado, sin cambios.
+ * Ficha de UN contrato (Contratación → Contratos → 👁/✎) — dueña del
+ * ciclo de vida COMPLETO del contrato (P2/P3, reconciliación de
+ * navegación 2026-09-14, ver docs/status-log/): crear (ver
+ * contratacion/contratos/nuevo), editar datos base, asignar jornada,
+ * activar (genera PIN), regenerar PIN, finalizar. Antes este ciclo vivía
+ * repartido entre /expedientes/[id] (activar/finalizar/PIN) y esta
+ * página (solo editar/jornada) — ya no: una sola implementación
+ * (contratacion/contratos/actions.ts), un solo lugar de gestión. El
+ * expediente del empleado (/expedientes/[id]) ya no tiene ninguna
+ * acción ni dato contractual.
  */
 export default async function ContratoFichaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
   const companyId = getCompanyId();
 
-  const [canVer, canEditar, canVerSalario, canEditarSalario, canVerTurnos] = await Promise.all([
+  const [
+    canVer,
+    canEditar,
+    canActivar,
+    canFinalizar,
+    canVerSalario,
+    canEditarSalario,
+    canVerCredenciales,
+    canRegenerarPin,
+    canVerTurnos,
+  ] = await Promise.all([
     hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.ver"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.activar"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.finalizar"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.ver"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.editar"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.credenciales.ver"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.credenciales.regenerar"),
     hasPermission({ supabase, companyId }, "rrhh.asistencia.turnos.ver"),
   ]);
 
@@ -61,7 +82,7 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
 
   const empleado = contrato.empleados as unknown as { nombre: string; apellido: string } | null;
 
-  const [compensacionRes, jornadasCatalogoRes, vigenteRes] = await Promise.all([
+  const [compensacionRes, jornadasCatalogoRes, vigenteRes, credencialRes] = await Promise.all([
     canVerSalario
       ? supabase
           .schema("rrhh")
@@ -88,6 +109,11 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
           .is("vigente_hasta", null)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    // F1.3: estado de la credencial, solo tiene sentido para un contrato
+    // activo (los demas nunca tuvieron/ya perdieron su PIN).
+    canVerCredenciales && contrato.estado === "activo"
+      ? supabase.rpc("estado_credencial_contrato", { p_contrato_id: id, p_company_id: companyId })
+      : Promise.resolve({ data: null }),
   ]);
 
   const salarioBase =
@@ -100,6 +126,18 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
     ? {
         jornadaNombre: vigenteRow.jornadas?.nombre ?? "(jornada eliminada)",
         vigenteDesde: vigenteRow.vigente_desde,
+      }
+    : null;
+
+  const credencialRow = (credencialRes.data as
+    | { tiene_credencial: boolean; activo: boolean; pin_bloqueado: boolean; rotacion_numero: number }[]
+    | null)?.[0];
+  const credencial: CredencialEstado | null = credencialRow
+    ? {
+        tieneCredencial: credencialRow.tiene_credencial,
+        activo: credencialRow.activo,
+        pinBloqueado: credencialRow.pin_bloqueado,
+        rotacionNumero: credencialRow.rotacion_numero,
       }
     : null;
 
@@ -122,7 +160,6 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
       <ContratoFicha
         contrato={{
           id: contrato.id,
-          empleadoId: contrato.empleado_id,
           numeroContrato: contrato.numero_contrato,
           estado: contrato.estado,
           puesto: contrato.puesto,
@@ -134,9 +171,14 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
           salarioBase,
         }}
         canEditar={canEditar}
+        canActivar={canActivar}
+        canFinalizar={canFinalizar}
         canVerSalario={canVerSalario}
         canEditarSalario={canEditarSalario}
+        canVerCredenciales={canVerCredenciales}
+        canRegenerarPin={canRegenerarPin}
         canVerTurnos={canVerTurnos}
+        credencial={credencial}
         jornadasDisponibles={jornadasDisponibles}
         jornadaVigente={jornadaVigente}
       />

@@ -1,6 +1,6 @@
-// Skeleton de /expedientes/[id] — la ficha con mas round-trips de la app
-// (permisos + empleado + contratos + compensacion + credencial + jornada,
-// ver page.tsx), la que mas se beneficia de feedback inmediato al navegar.
+// Skeleton de /expedientes/[id] — ficha del Expediente General (solo
+// persona, P2 2026-09-14: ya no incluye contratos/compensacion/jornada,
+// ver page.tsx y contratacion/contratos/[id] para el ciclo contractual).
 export default function ExpedienteDetalleLoading() {
   return (
     <div className="flex flex-col gap-6">
