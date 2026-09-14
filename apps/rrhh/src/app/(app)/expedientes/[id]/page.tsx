@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { hasPermission } from "@nexo/permissions";
 import { EmptyState, FormTabs, PageHeader } from "@nexo/ui";
@@ -35,8 +36,9 @@ export default async function ExpedienteDetallePage({
   const supabase = await createClient();
   const companyId = getCompanyId();
 
-  const [canVer, empleadoResult] = await Promise.all([
+  const [canVer, canEditar, empleadoResult] = await Promise.all([
     hasPermission({ supabase, companyId }, "rrhh.expedientes.empleados.ver"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.empleados.editar"),
     supabase
       .schema("rrhh")
       .from("empleados")
@@ -68,6 +70,16 @@ export default async function ExpedienteDetallePage({
       <PageHeader
         title={`${empleado.nombre} ${empleado.apellido}`}
         description={`#${empleado.codigo_empleado} · ${empleado.documento_identidad ?? "sin documento"}`}
+        actions={
+          canEditar && (
+            <Link
+              href={`/expedientes/${id}/editar`}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            >
+              Editar
+            </Link>
+          )
+        }
       />
 
       <FormTabs

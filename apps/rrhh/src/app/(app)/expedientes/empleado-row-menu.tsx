@@ -77,7 +77,7 @@ export function EmpleadoRowMenu({
                   key: "editar",
                   icon: "pencil" as const,
                   label: "Editar",
-                  href: `/expedientes/${empleadoId}`,
+                  href: `/expedientes/${empleadoId}/editar`,
                 },
               ]
             : []),
