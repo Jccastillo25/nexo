@@ -191,6 +191,22 @@ export type Database = {
         Args: { p_company_id: string; p_empleado_id: string };
         Returns: undefined;
       };
+      // P3, reconciliación de navegación (2026-09-14) — ver
+      // supabase/migrations/20260914090000_rrhh_editar_empleado.sql. Edita
+      // el Expediente General (nombre/apellido/documento/email/telefono),
+      // nunca datos contractuales.
+      editar_empleado: {
+        Args: {
+          p_empleado_id: string;
+          p_company_id: string;
+          p_nombre: string;
+          p_apellido: string;
+          p_documento_identidad?: string;
+          p_email?: string;
+          p_telefono?: string;
+        };
+        Returns: undefined;
+      };
       // F1.4 (2026-09-07) — ver
       // supabase/migrations/20260907163244_f1_4_rrhh_jornadas_minimas.sql.
       // Unico camino de escritura de rrhh.contrato_jornadas -- cierra la
