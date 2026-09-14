@@ -38,7 +38,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 | 2026-09-07 | [Nexo Enterprise UI — rediseño visual transversal](status-log/2026-09-07-nexo-enterprise-ui.md) | Sidebar azul + topbar con breadcrumb (`NexoShell`) en `apps/nexo`/`rrhh`/`crm`, tema claro por defecto, kit compartido nuevo en `packages/ui`. |
 | 2026-09-08 | [Fix de estabilización RRHH](status-log/2026-09-08-fix-estabilizacion-rrhh.md) | P0: bug real que tumbaba `/expedientes/[id]` (función pasada a Client Component). P1: paralelización de round-trips. P2: UX de Expedientes/Contratos/Jornadas + fix de acordeón del sidebar. |
 | 2026-09-11 | [Limpieza de datos de prueba residuales](status-log/2026-09-11-limpieza-datos-prueba-residuales.md) | Verificación remota de rutina encontró 1 empleado/contrato/PIN de prueba sin limpiar en `nexo-core` (contradecía "0 filas" documentado) — borrado con aprobación explícita del usuario; también corrige una imprecisión de conteo de migraciones de F1.0 (duplicados inertes del bootstrap, sin impacto). |
-| 2026-09-14 | [Reconciliación de navegación — Marca, Launcher, Expediente/Contratación](status-log/2026-09-14-reconciliacion-navegacion-rrhh.md) | Bloque pedido explícitamente (P0-P4, sin iniciar F1.5): fix P0 real de `/configuracion/marca` (límite de body + error boundary global), App Launcher puro sin KPIs con logo en la cabecera del sidebar, Expediente General separado de Contratación (ciclo contractual completo movido a `/contratacion/contratos`), edición real del Expediente General (`rrhh.fn_editar_empleado` nuevo). Rama `fix/reconciliacion-rrhh-nav-marca` pusheada, pendiente de mergear a `main`. |
+| 2026-09-14 | [Reconciliación de navegación — Marca, Launcher, Expediente/Contratación](status-log/2026-09-14-reconciliacion-navegacion-rrhh.md) | Bloque pedido explícitamente (P0-P4, sin iniciar F1.5): fix P0 real de `/configuracion/marca` (límite de body + error boundary global), App Launcher puro sin KPIs con logo en la cabecera del sidebar, Expediente General separado de Contratación (ciclo contractual completo movido a `/contratacion/contratos`), edición real del Expediente General (`rrhh.fn_editar_empleado` nuevo). Mergeado a `main` (`4cc8a6a`, fast-forward) y verificado `READY` en Vercel producción el mismo día — smoke test autenticado NO ejecutado (sin credenciales; el usuario eligió cerrar documentando la limitación). |
 
 Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera de RRHH): ver el cierre de la entrada de F1.0 de arriba.
 
@@ -49,7 +49,7 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 | Área | Estado | Realidad conocida / siguiente paso |
 |---|---|---|
 | Nexo Core / Launcher | ✅ Validado | Monorepo, SSO, Multi-Zones, permisos y `nexo-core` operativos según última documentación verificada. Desde 2026-09-14, `/` es un App Launcher puro (selector de aplicaciones, sin KPIs) — ver fila siguiente. |
-| Nexo Enterprise UI (shell/navegación) | ✅ Implementado, reconciliado 2026-09-14 | Sidebar azul persistente + topbar con breadcrumb en Nexo/RRHH/CRM (`NexoShell`). Desde 2026-09-14: logo en la cabecera del sidebar (antes en el topbar), click en el logo vuelve al Launcher, patrón de texto "Volver a Nexo" eliminado, sidebar de `apps/nexo` ya no lista otras apps. Build de Vercel verificado (preview, rama `fix/reconciliacion-rrhh-nav-marca`) — no verificado visualmente en navegador con sesión real. |
+| Nexo Enterprise UI (shell/navegación) | ✅ Implementado, reconciliado 2026-09-14 | Sidebar azul persistente + topbar con breadcrumb en Nexo/RRHH/CRM (`NexoShell`). Desde 2026-09-14: logo en la cabecera del sidebar (antes en el topbar), click en el logo vuelve al Launcher, patrón de texto "Volver a Nexo" eliminado, sidebar de `apps/nexo` ya no lista otras apps. En producción desde 2026-09-14 (`main` `4cc8a6a`, Vercel `READY`) — verificado sin sesión (login público carga sin errores); no verificado visualmente con sesión autenticada real (sin credenciales de prueba disponibles). |
 | RRHH infraestructura | ✅ Desplegada | Schema, permisos, RLS, expedientes básicos y kiosko existen. |
 | RRHH modelo Expediente General/Laboral | ✅ F1.1 (datos) + reconciliación de UI 2026-09-14 | `rrhh.empleados` ya no acepta datos laborales/credenciales en el alta (2026-09-07). Columnas viejas deprecadas, no eliminadas — limpieza final pendiente. Desde 2026-09-14 la separación también es real en la UI: `/expedientes/[id]` es exclusivamente persona (+ `/editar` real), el ciclo contractual completo vive en `/contratacion/contratos`. |
 | RRHH contratos | ✅ F1.2 completada | `rrhh.contratos`/`rrhh.contrato_compensacion` existen, con RLS, trigger de estado y RPC (2026-09-07). Falta F1.3 (PIN al activar) para el flujo completo. |
@@ -298,9 +298,8 @@ F1.4   — Jornadas mínimas                   ✅ completada 2026-09-07
 Nexo Enterprise UI — rediseño visual        ✅ completada 2026-09-07
 Fix estabilización RRHH — nav/UX/bug P0     ✅ completado 2026-09-08
 Reconciliación func./visual — Marca/Launcher/
-  Expediente-Contratación/edición real       ✅ completado 2026-09-14 (rama
-                                              fix/reconciliacion-rrhh-nav-marca,
-                                              pendiente de mergear a main)
+  Expediente-Contratación/edición real       ✅ completado y en producción 2026-09-14
+                                              (main 4cc8a6a, Vercel READY)
  ↓
 F1.5 — Consolidación de asistencia  ⏳ próximo trabajo (explícitamente NO iniciado en el bloque
                                           de 2026-09-14 — "No avances a F1.5" — pendiente de

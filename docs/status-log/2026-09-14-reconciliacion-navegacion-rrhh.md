@@ -183,9 +183,10 @@ renombró ni retiró ningún documento.
 Los 3 proyectos (`nexocore`, `nexo-rrhh`, `nexo-crm`) construyeron y
 quedaron `READY` sobre la rama `fix/reconciliacion-rrhh-nav-marca` para
 cada commit — con la única excepción documentada arriba (P3 falló una
-vez, corregido y re-verificado). Deployments de preview, no de
-producción — esta rama todavía no está mergeada a `main` (ver
-"Pendiente" abajo).
+vez, corregido y re-verificado). Esto fue verificación de **preview**,
+no de producción — el cierre real en producción (merge a `main` +
+deployments `target: production` `READY`) se documenta en "Cierre en
+producción" más abajo.
 
 ## Verificación funcional — límite real de este bloque
 
@@ -215,20 +216,55 @@ autorizado explícitamente para este bloque. Lo que sí se verificó:
 
 ## Deuda / pendiente
 
-- **Recorrido autenticado real en navegador** de todo lo de arriba
-  (Marca, Launcher, Expedientes→Editar, Contratación→Nuevo contrato→
-  ciclo completo) — pendiente de credenciales de prueba o de que el
-  usuario lo confirme manualmente.
-- La rama `fix/reconciliacion-rrhh-nav-marca` está pusheada pero **no
-  mergeada a `main`** — mientras no se mergee, ninguno de estos cambios
-  llega a producción (`nexo.materialesjcastillo.com`). Pendiente de
-  confirmación del usuario para mergear/abrir PR.
+- **Recorrido autenticado real en navegador** de Marca/Launcher/
+  Expedientes→Editar/Contratación→Nuevo contrato→ciclo completo —
+  **sigue sin ejecutarse**. Al cerrar este bloque en producción
+  (2026-09-14, ver sección siguiente) se le ofreció explícitamente al
+  usuario dar credenciales de prueba, hacerlo él mismo con una checklist,
+  o cerrar el bloque documentando la limitación — eligió la tercera
+  opción. No se simuló ningún resultado de estos pasos.
 - El límite duro de 4.5 MB de Vercel Functions para `/configuracion/
   marca` sigue siendo una limitación real (no un bug) — una imagen de
   fondo de alta resolución sin comprimir puede seguir superando 1.25 MB;
   la solución definitiva (subida directa del navegador a Supabase
   Storage con signed URL, documentada como próximo paso en el comentario
   de `next.config.ts`) queda fuera de alcance de este bloque.
+
+## Cierre en producción (2026-09-14, mismo día)
+
+Pedido explícito del usuario: "Quiero cerrar y llevar a producción el
+bloque ya revisado". Verificación previa al merge: `fix/reconciliacion-
+rrhh-nav-marca` terminaba en `4cc8a6a` (igual en local y `origin`),
+`main` estaba al día con `origin/main` (`29950fd`, sin commits nuevos
+desde la creación de la rama), working tree limpio. `git diff --stat
+main...fix/reconciliacion-rrhh-nav-marca` confirmado como exactamente
+los 35 archivos de P0-P4 (una sola migración,
+`20260914090000_rrhh_editar_empleado.sql`; sin tocar `apps/flotilla` ni
+ningún archivo de asistencia/planillas/identidad digital/Mobile) — sin
+divergencias inesperadas.
+
+- **Merge**: `git merge --ff-only` — `main` avanzó de `29950fd` a
+  `4cc8a6a` por fast-forward puro (no hubo commits nuevos en `main` que
+  divergieran), conservando los 6 commits de P0-P4 + el fix de build
+  intactos, sin squash. Push a `origin/main` confirmado.
+- **Vercel producción**: los 3 proyectos confirmados `target: production`,
+  `readyState: READY`, `githubCommitSha: 4cc8a6a...` — `nexocore` (sirve
+  `nexo.materialesjcastillo.com`, confirmado en su lista de `alias`),
+  `nexo-rrhh`, `nexo-crm`.
+- **Smoke test**: sin credenciales de producción disponibles en este
+  entorno — el usuario, consultado explícitamente, eligió cerrar el
+  bloque documentando la limitación en vez de dar credenciales o
+  hacerlo él mismo. Lo único verificado en producción real fue la parte
+  no autenticada: `https://nexo.materialesjcastillo.com` redirige a
+  `/login`, la página carga (`"Ingresar · Nexo"`, textos de Marca reales
+  — `© Grupo CT 2026`, confirma que `get_platform_settings` responde en
+  producción), sin errores de consola. Los pasos A-F completos (Launcher
+  autenticado, sidebar/logo de RRHH, Marca guardar/cancelar, Expedientes
+  ver/editar, Contratación ciclo completo) **no se ejecutaron** — no se
+  simuló ningún resultado.
+- **Runtime errors post-deploy** (`get_runtime_errors`, ventana 1h): 0 en
+  los 3 proyectos.
+- **Datos de prueba**: no se creó ninguno (no autorizado en este cierre).
 
 ## Confirmación explícita
 
