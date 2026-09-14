@@ -1,7 +1,14 @@
 // Parte de la regla de diseno obligatoria de la suite — ver
-// docs/DESIGN_SYSTEM.md. Todo modulo autenticado tiene que ofrecer una
-// forma persistente de volver a la grilla de modulos de Nexo; este es el
-// componente compartido para no reinventarlo en cada modulo.
+// docs/DESIGN_SYSTEM.md. Usado en pantallas fuera del layout autenticado
+// normal (ej. sin-acceso) que igual necesitan una forma de volver al App
+// Launcher de Nexo — mismo componente compartido para no reinventarlo en
+// cada modulo.
+//
+// Reconciliacion de navegacion 2026-09-14: la decision vigente elimino el
+// patron de texto "Volver a Nexo" en toda la suite — el logo configurado
+// en Marca (o el wordmark "N" por defecto) es ahora el propio link, igual
+// que en la cabecera de NexoSidebar (ver NexoSidebar.tsx). Este componente
+// ya no acepta un `label` de texto.
 //
 // Es un <a> plano a proposito (no next/link): cruzar de un modulo al
 // panel es cruzar de zona en Next.js Multi-Zones, siempre implica una
@@ -10,27 +17,28 @@
 export interface BackToPanelLinkProps {
   /** URL absoluta del panel (apps/nexo) — ver getPanelUrl() en cada app. */
   href: string;
-  /** Texto del link. Por defecto "Nexo" (el usuario ya esta "dentro" del
-   * modulo, no hace falta repetir "volver a"). */
-  label?: string;
-  /** Override de estilo para pantallas fuera de ShellBar (ver
-   * sin-acceso/page.tsx). Sin esto, un estilo neutro pensado para el
-   * fondo claro de ShellBar (el negro quedó reservado para el login). */
+  /** core.platform_settings.logo_url — sin configurar, cae al wordmark
+   * "N" por defecto (mismo patron que NexoSidebar). */
+  logoUrl?: string | null;
+  /** Override de estilo para pantallas fuera de NexoShell (ver
+   * sin-acceso/page.tsx). */
   className?: string;
 }
 
-const DEFAULT_CLASS =
-  "inline-flex items-center gap-1.5 text-sm text-neutral-500 transition-colors hover:text-neutral-900";
+const DEFAULT_CLASS = "inline-flex items-center transition-opacity hover:opacity-80";
+const ARIA_LABEL = "Volver al inicio de Nexo";
 
-export function BackToPanelLink({
-  href,
-  label = "Nexo",
-  className,
-}: BackToPanelLinkProps) {
+export function BackToPanelLink({ href, logoUrl, className }: BackToPanelLinkProps) {
   return (
-    <a href={href} className={className ?? DEFAULT_CLASS}>
-      <span aria-hidden="true">←</span>
-      {label}
+    <a href={href} aria-label={ARIA_LABEL} className={className ?? DEFAULT_CLASS}>
+      {logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logoUrl} alt="" className="h-9 w-9 rounded-md object-contain" />
+      ) : (
+        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
+          N
+        </span>
+      )}
     </a>
   );
 }

@@ -19,18 +19,6 @@ export interface NexoTopbarProps {
   showSearch?: boolean;
   settingsHref?: string;
   onMenuClick: () => void;
-  /** core.platform_settings.logo_url (Nexo → Configuración → Marca). Sin
-   * configurar, se muestra el wordmark "Nexo" por defecto — nunca un logo
-   * hardcodeado de otro módulo. */
-  logoUrl?: string | null;
-}
-
-function NexoWordmark() {
-  return (
-    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
-      N
-    </span>
-  );
 }
 
 function MenuIcon() {
@@ -161,7 +149,6 @@ export function NexoTopbar({
   showSearch = true,
   settingsHref,
   onMenuClick,
-  logoUrl,
 }: NexoTopbarProps) {
   return (
     <div
@@ -176,13 +163,9 @@ export function NexoTopbar({
         <MenuIcon />
       </button>
 
-      {logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl} alt="Nexo" className="h-7 w-7 flex-shrink-0 rounded-md object-contain" />
-      ) : (
-        <NexoWordmark />
-      )}
-
+      {/* El logo vive en la cabecera del sidebar (reconciliacion de
+          navegacion 2026-09-14) — no se repite acá, regla obligatoria del
+          bloque P1. */}
       <div className="min-w-0 flex-shrink">
         <Breadcrumb items={breadcrumb} />
       </div>

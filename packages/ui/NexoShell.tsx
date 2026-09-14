@@ -39,8 +39,9 @@ export interface NexoShellProps {
   /** Texto de copyright (core.platform_settings.copyright_text) — omitir
    * para no mostrar footer. */
   footerText?: string;
-  /** core.platform_settings.logo_url — se muestra en el topbar; sin
-   * configurar, NexoTopbar cae al wordmark "Nexo" por defecto. */
+  /** core.platform_settings.logo_url — se muestra en la cabecera del
+   * sidebar (reconciliacion de navegacion 2026-09-14); sin configurar,
+   * NexoSidebar cae al wordmark "N" por defecto. */
   logoUrl?: string | null;
   children: React.ReactNode;
 }
@@ -82,6 +83,7 @@ export function NexoShell({
           mobileOpen={mobileOpen}
           onCloseMobile={() => setMobileOpen(false)}
           backHref={backHref}
+          logoUrl={logoUrl}
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <NexoTopbar
@@ -92,7 +94,6 @@ export function NexoShell({
             onSearch={onSearch}
             searchPlaceholder={searchPlaceholder}
             onMenuClick={() => setMobileOpen(true)}
-            logoUrl={logoUrl}
           />
           <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
             {children}

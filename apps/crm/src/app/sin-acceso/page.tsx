@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { BackToPanelLink } from "@nexo/ui";
+import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/login/actions";
 import { getPanelUrl } from "@/lib/panel";
+import { getLogoUrl } from "@/lib/platform-settings";
 
 export const metadata: Metadata = {
   title: "Sin acceso · Panel de clientes",
@@ -12,9 +14,13 @@ export const metadata: Metadata = {
  * para la empresa actual (ver el guard en app/(app)/layout.tsx). Vive fuera
  * del route group (app) a proposito: si estuviera adentro, el mismo guard
  * que redirige para aca volveria a redirigir, en loop infinito.
+ * Reconciliacion de navegacion (2026-09-14): "Volver a Nexo" (texto) se
+ * reemplaza por el logo, mismo patron que la cabecera de NexoSidebar —
+ * decision vigente, "Volver a Nexo" queda eliminado en toda la suite.
  */
 export default async function SinAccesoPage() {
-  const panelUrl = await getPanelUrl();
+  const supabase = await createClient();
+  const [panelUrl, logoUrl] = await Promise.all([getPanelUrl(), getLogoUrl(supabase)]);
 
   return (
     <div className="flex min-h-full flex-1 items-center justify-center bg-neutral-100 px-4 py-16">
@@ -32,11 +38,7 @@ export default async function SinAccesoPage() {
         </p>
 
         <div className="mt-6 flex items-center justify-center gap-4">
-          <BackToPanelLink
-            href={panelUrl}
-            label="Volver a Nexo"
-            className="text-xs uppercase tracking-wide text-neutral-500 transition-colors hover:text-blue-600"
-          />
+          <BackToPanelLink href={panelUrl} logoUrl={logoUrl} />
           <form action={signOut}>
             <button
               type="submit"

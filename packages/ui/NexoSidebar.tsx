@@ -13,7 +13,6 @@
 // por si una pantalla necesita el sidebar sin el resto del shell.
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BackToPanelLink } from "./BackToPanelLink";
 import { NexoIcon } from "./nexo-icons";
 import { isNavItemActive, type NexoNavItem } from "./nexo-nav";
 
@@ -27,8 +26,12 @@ export interface NexoSidebarProps {
   mobileOpen: boolean;
   onCloseMobile: () => void;
   /** URL absoluta del panel (apps/nexo) — omitir en el propio panel, donde
-   * no hay a donde volver (mismo criterio que ShellBar.backHref). */
+   * el logo ya apunta a "/" (mismo criterio que ShellBar.backHref). */
   backHref?: string;
+  /** core.platform_settings.logo_url — vive en la cabecera del sidebar
+   * (reconciliacion de navegacion 2026-09-14: antes vivia en el topbar).
+   * Sin configurar, cae al wordmark "N" por defecto. */
+  logoUrl?: string | null;
 }
 
 export function NexoSidebar({
@@ -41,7 +44,13 @@ export function NexoSidebar({
   mobileOpen,
   onCloseMobile,
   backHref,
+  logoUrl,
 }: NexoSidebarProps) {
+  // Click en el logo → vuelve al App Launcher de Nexo (decision vigente).
+  // En un modulo (RRHH/CRM) eso es una navegacion real de Multi-Zones
+  // (backHref, cross-zone); en el propio panel (apps/nexo, sin backHref)
+  // "/" ya es el mismo launcher.
+  const logoHref = backHref ?? "/";
   const [expanded, setExpanded] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     for (const item of items) {
@@ -104,18 +113,29 @@ export function NexoSidebar({
             collapsed ? "md:justify-center md:px-0" : "justify-between"
           }`}
         >
-          {moduleHref ? (
-            <Link
-              href={moduleHref}
-              className={`truncate text-sm font-semibold tracking-tight ${collapsed ? "md:hidden" : ""}`}
+          <div className={`flex min-w-0 items-center gap-2 ${collapsed ? "md:hidden" : ""}`}>
+            <a
+              href={logoHref}
+              aria-label="Volver al inicio de Nexo"
+              className="flex flex-shrink-0 items-center justify-center rounded-md transition-opacity hover:opacity-80"
             >
-              {moduleLabel}
-            </Link>
-          ) : (
-            <span className={`truncate text-sm font-semibold tracking-tight ${collapsed ? "md:hidden" : ""}`}>
-              {moduleLabel}
-            </span>
-          )}
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="" className="h-8 w-8 rounded-md object-contain" />
+              ) : (
+                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
+                  N
+                </span>
+              )}
+            </a>
+            {moduleHref ? (
+              <Link href={moduleHref} className="truncate text-sm font-semibold tracking-tight">
+                {moduleLabel}
+              </Link>
+            ) : (
+              <span className="truncate text-sm font-semibold tracking-tight">{moduleLabel}</span>
+            )}
+          </div>
           <button
             type="button"
             onClick={onToggleCollapsed}
@@ -138,27 +158,6 @@ export function NexoSidebar({
             />
           ))}
         </nav>
-
-        {backHref && (
-          <div className={`border-t border-white/10 p-3 ${collapsed ? "md:flex md:justify-center" : ""}`}>
-            {collapsed ? (
-              <a
-                href={backHref}
-                title="Volver a Nexo"
-                className="hidden text-sm text-white/50 transition-colors hover:text-white md:inline-block"
-              >
-                ←
-              </a>
-            ) : null}
-            <BackToPanelLink
-              href={backHref}
-              label="Volver a Nexo"
-              className={`inline-flex items-center gap-1.5 text-sm text-white/50 transition-colors hover:text-white ${
-                collapsed ? "md:hidden" : ""
-              }`}
-            />
-          </div>
-        )}
       </aside>
     </>
   );
