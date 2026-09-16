@@ -4,13 +4,16 @@
 >
 > **Este archivo es un dashboard corto, no el historial completo.** Desde 2026-09-11 el detalle narrativo de cada subfase (qué se auditó, qué migraciones se aplicaron, qué se verificó paso a paso) vive en archivos individuales bajo [`docs/status-log/`](status-log/), enlazados desde la tabla de la sección 0 de abajo. Las secciones 1-7 de este archivo son el estado consolidado vigente — se leen siempre; el log detallado se lee solo si hace falta el detalle de verificación de una subfase puntual.
 
-Última actualización documental: **2026-09-14** (reconciliación
-funcional y visual — bug P0 de Marca, App Launcher puro + logo en el
-sidebar, Expediente separado de Contratación, edición real del
-Expediente General; ver
-[`status-log/2026-09-14-reconciliacion-navegacion-rrhh.md`](status-log/2026-09-14-reconciliacion-navegacion-rrhh.md).
-Antes de eso, limpieza de datos de prueba residuales en `nexo-core`; ver
-[`status-log/2026-09-11-limpieza-datos-prueba-residuales.md`](status-log/2026-09-11-limpieza-datos-prueba-residuales.md)).
+Última actualización documental: **2026-09-16** (bloque "pre-F1.5":
+cédula obligatoria, favicon en RRHH/CRM, catálogos de Contratación
+(puestos/departamentos/plantillas), Storage privado de documentos y
+expediente ampliado (Dirección/Información complementaria/Cuentas
+bancarias/Beneficiario); ver
+[`status-log/2026-09-16-rrhh-pre-f1-5.md`](status-log/2026-09-16-rrhh-pre-f1-5.md).
+Antes de eso, reconciliación funcional y visual del 2026-09-14 — bug P0 de
+Marca, App Launcher puro + logo en el sidebar, Expediente separado de
+Contratación, edición real del Expediente General; ver
+[`status-log/2026-09-14-reconciliacion-navegacion-rrhh.md`](status-log/2026-09-14-reconciliacion-navegacion-rrhh.md)).
 
 ## Estados
 
@@ -39,6 +42,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 | 2026-09-08 | [Fix de estabilización RRHH](status-log/2026-09-08-fix-estabilizacion-rrhh.md) | P0: bug real que tumbaba `/expedientes/[id]` (función pasada a Client Component). P1: paralelización de round-trips. P2: UX de Expedientes/Contratos/Jornadas + fix de acordeón del sidebar. |
 | 2026-09-11 | [Limpieza de datos de prueba residuales](status-log/2026-09-11-limpieza-datos-prueba-residuales.md) | Verificación remota de rutina encontró 1 empleado/contrato/PIN de prueba sin limpiar en `nexo-core` (contradecía "0 filas" documentado) — borrado con aprobación explícita del usuario; también corrige una imprecisión de conteo de migraciones de F1.0 (duplicados inertes del bootstrap, sin impacto). |
 | 2026-09-14 | [Reconciliación de navegación — Marca, Launcher, Expediente/Contratación](status-log/2026-09-14-reconciliacion-navegacion-rrhh.md) | Bloque pedido explícitamente (P0-P4, sin iniciar F1.5): fix P0 real de `/configuracion/marca` (límite de body + error boundary global), App Launcher puro sin KPIs con logo en la cabecera del sidebar, Expediente General separado de Contratación (ciclo contractual completo movido a `/contratacion/contratos`), edición real del Expediente General (`rrhh.fn_editar_empleado` nuevo). Mergeado a `main` (`4cc8a6a`, fast-forward) y verificado `READY` en Vercel producción el mismo día — smoke test autenticado NO ejecutado (sin credenciales; el usuario eligió cerrar documentando la limitación). |
+| 2026-09-16 | [Bloque "pre-F1.5" — cédula, favicon, catálogos, Storage privado, expediente ampliado](status-log/2026-09-16-rrhh-pre-f1-5.md) | Bloque pedido explícitamente antes de F1.5: cédula obligatoria (DB+RPC+UI), favicon dinámico en RRHH/CRM, catálogos de Contratación (`rrhh.puestos`/`rrhh.departamentos`/`rrhh.plantillas_contrato`/`rrhh.puesto_plantillas`, `rrhh.contratos.puesto_id`/`departamento_id`), Storage privado (`rrhh-documentos-privados`, subida por URL firmada directa — evita el techo de 4.5MB de Vercel), expediente ampliado (Dirección con geografía de Nicaragua en `core.geografia_ni_*`, Información complementaria, Cuentas bancarias, Beneficiario). `next build`+`eslint` limpios en `apps/rrhh`/`apps/crm`, sin smoke test autenticado (sin credenciales). Deuda explícita: `core.geografia_ni_municipios` queda vacía (fuente web no confiable, ver detalle), falta `SUPABASE_SERVICE_ROLE_KEY` en el proyecto Vercel de RRHH. |
 
 Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera de RRHH): ver el cierre de la entrada de F1.0 de arriba.
 
@@ -51,8 +55,11 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 | Nexo Core / Launcher | ✅ Validado | Monorepo, SSO, Multi-Zones, permisos y `nexo-core` operativos según última documentación verificada. Desde 2026-09-14, `/` es un App Launcher puro (selector de aplicaciones, sin KPIs) — ver fila siguiente. |
 | Nexo Enterprise UI (shell/navegación) | ✅ Implementado, reconciliado 2026-09-14 | Sidebar azul persistente + topbar con breadcrumb en Nexo/RRHH/CRM (`NexoShell`). Desde 2026-09-14: logo en la cabecera del sidebar (antes en el topbar), click en el logo vuelve al Launcher, patrón de texto "Volver a Nexo" eliminado, sidebar de `apps/nexo` ya no lista otras apps. En producción desde 2026-09-14 (`main` `4cc8a6a`, Vercel `READY`) — verificado sin sesión (login público carga sin errores); no verificado visualmente con sesión autenticada real (sin credenciales de prueba disponibles). |
 | RRHH infraestructura | ✅ Desplegada | Schema, permisos, RLS, expedientes básicos y kiosko existen. |
-| RRHH modelo Expediente General/Laboral | ✅ F1.1 (datos) + reconciliación de UI 2026-09-14 | `rrhh.empleados` ya no acepta datos laborales/credenciales en el alta (2026-09-07). Columnas viejas deprecadas, no eliminadas — limpieza final pendiente. Desde 2026-09-14 la separación también es real en la UI: `/expedientes/[id]` es exclusivamente persona (+ `/editar` real), el ciclo contractual completo vive en `/contratacion/contratos`. |
-| RRHH contratos | ✅ F1.2 completada | `rrhh.contratos`/`rrhh.contrato_compensacion` existen, con RLS, trigger de estado y RPC (2026-09-07). Falta F1.3 (PIN al activar) para el flujo completo. |
+| RRHH modelo Expediente General/Laboral | ✅ F1.1 (datos) + reconciliación de UI 2026-09-14 + expediente ampliado 2026-09-16 | `rrhh.empleados` ya no acepta datos laborales/credenciales en el alta (2026-09-07); `documento_identidad` obligatorio desde 2026-09-16. Columnas viejas deprecadas, no eliminadas — limpieza final pendiente. `/expedientes/[id]` (persona) tiene sus 6 pestañas con modelo real desde 2026-09-16 (Datos personales, Dirección, Información complementaria, Cuentas bancarias, Beneficiario, Documentos) — ver fila "RRHH expediente ampliado" abajo. El ciclo contractual completo sigue en `/contratacion/contratos`. |
+| RRHH contratos | ✅ F1.2 completada + puesto/departamento como catálogo 2026-09-16 | `rrhh.contratos`/`rrhh.contrato_compensacion` existen, con RLS, trigger de estado y RPC (2026-09-07). Desde 2026-09-16, `puesto_id`/`departamento_id` (FK a `rrhh.puestos`/`rrhh.departamentos`) reemplazan el texto libre anterior en el formulario — columnas de texto viejas deprecadas, no eliminadas. |
+| RRHH catálogos de Contratación | ✅ Implementado 2026-09-16 | `rrhh.puestos`/`rrhh.departamentos`/`rrhh.plantillas_contrato`/`rrhh.puesto_plantillas` — CRUD real en Contratación → Catálogos. Plantillas sin archivo adjunto todavía (catálogo de nombre solamente; el archivo real usa el Storage de la fila siguiente pero la UI de "subir archivo a una plantilla" no se construyó en este bloque, solo el catálogo). |
+| RRHH Storage privado (documentos) | ✅ Implementado 2026-09-16, sin validar con credenciales reales | Bucket `rrhh-documentos-privados` + `rrhh.empleado_documentos`, subida por URL firmada directa (evita el techo de 4.5MB de Vercel). Pendiente: `SUPABASE_SERVICE_ROLE_KEY` en el proyecto Vercel de RRHH (sin esto, falla en producción con un error explícito) y un recorrido autenticado real de subir/descargar. |
+| RRHH expediente ampliado (Dirección/Info. complementaria/Cuentas/Beneficiario) | ✅ Implementado 2026-09-16, geografía de municipios pendiente | Modelo + UI real para las 4 pestañas + Documentos (fila de arriba). `core.geografia_ni_departamentos` sembrada (17 filas); `core.geografia_ni_municipios` **vacía a propósito** — dos intentos de poblarla desde una fuente web dieron listas incompletas/inconsistentes, no se fabricó el dato. El selector de municipio queda deshabilitado hasta que se cargue con una fuente oficial verificada. |
 | RRHH PIN contractual | ✅ F1.3 completada | El PIN nace solo al activar contrato, se revoca al finalizar, kiosko validado end-to-end contra la nueva credencial (2026-09-07). |
 | RRHH jornadas | ✅ F1.4 completada (modelo mínimo) | `rrhh.jornadas`/`jornada_dias`/`contrato_jornadas`/`feriados` existen, con RLS, RPC de asignación e interfaz de lectura para F1.5 (2026-09-07). Jornada obligatoria para activar contrato. Falta el motor de consolidación (F1.5) y las decisiones de negocio (hora extra, feriado pagado, etc.), explícitamente no implementadas. |
 | RRHH consolidación de asistencia | ⏳ Pendiente | No existe marcas → horas consolidadas. |
@@ -300,11 +307,24 @@ Fix estabilización RRHH — nav/UX/bug P0     ✅ completado 2026-09-08
 Reconciliación func./visual — Marca/Launcher/
   Expediente-Contratación/edición real       ✅ completado y en producción 2026-09-14
                                               (main 4cc8a6a, Vercel READY)
+Bloque "pre-F1.5" — cédula/favicon/catálogos/
+  Storage privado/expediente ampliado         ✅ implementado y compilado 2026-09-16
+                                              (build+lint limpios, sin merge a main todavía —
+                                               ver docs/status-log/2026-09-16-rrhh-pre-f1-5.md)
  ↓
-F1.5 — Consolidación de asistencia  ⏳ próximo trabajo (explícitamente NO iniciado en el bloque
-                                          de 2026-09-14 — "No avances a F1.5" — pendiente de
-                                          instrucción explícita del usuario)
+F1.5 — Consolidación de asistencia  ⏳ próximo trabajo (sigue explícitamente NO iniciado —
+                                          "no iniciar F1.5" fue parte del alcance del bloque
+                                          de 2026-09-16 — pendiente de instrucción explícita
+                                          del usuario)
 ```
+
+Antes de dar el bloque "pre-F1.5" por completamente cerrado (no solo
+implementado): completar `core.geografia_ni_municipios` con una fuente
+oficial verificada, agregar `SUPABASE_SERVICE_ROLE_KEY` al proyecto
+Vercel de RRHH, y ejecutar un recorrido autenticado real (subir/descargar
+un documento, CRUD de cada catálogo, alta con cédula duplicada) — ver
+deuda completa en
+[`status-log/2026-09-16-rrhh-pre-f1-5.md`](status-log/2026-09-16-rrhh-pre-f1-5.md).
 
 Detalle completo del recorrido de verificación de F1.3 (23 pasos) y de la comparación explícita `Plan vs main vs migraciones vs remoto vs Vercel vs permisos vs datos` de F1.0: ver [`status-log/2026-09-07-f1-3-pin-contractual.md`](status-log/2026-09-07-f1-3-pin-contractual.md) y [`status-log/2026-09-07-f1-0-auditoria-real.md`](status-log/2026-09-07-f1-0-auditoria-real.md) respectivamente.
 

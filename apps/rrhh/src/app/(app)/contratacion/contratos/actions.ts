@@ -6,8 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
 export interface ContratoInput {
-  puesto?: string;
-  departamento?: string;
+  puestoId?: string;
+  departamentoId?: string;
   modalidadContrato?: "nomina_estandar" | "comisionista_destajo";
   fechaInicio?: string;
   fechaFinPrevista?: string;
@@ -22,6 +22,8 @@ export interface ActionResult {
 export interface CrearContratoResult extends ActionResult {
   /** Id del contrato recien creado — se usa para redirigir a su ficha. */
   contratoId?: string;
+  /** Plantilla predeterminada activa del puesto elegido, si existe (Fase 3) — sugerencia, no se asigna sola. */
+  plantillaSugeridaId?: string | null;
 }
 
 export interface PinResult {
@@ -85,8 +87,8 @@ export async function crearContrato(
   const { data, error } = await supabase.rpc("crear_contrato", {
     p_company_id: companyId,
     p_empleado_id: empleadoId,
-    p_puesto: input.puesto?.trim() || undefined,
-    p_departamento: input.departamento?.trim() || undefined,
+    p_puesto_id: input.puestoId || undefined,
+    p_departamento_id: input.departamentoId || undefined,
     p_modalidad_contrato: input.modalidadContrato,
     p_fecha_inicio: input.fechaInicio || undefined,
     p_fecha_fin_prevista: input.fechaFinPrevista || undefined,
@@ -96,7 +98,11 @@ export async function crearContrato(
   if (error) return { ok: false, message: error.message };
 
   revalidatePath("/contratacion/contratos");
-  return { ok: true, contratoId: data?.[0]?.contrato_id };
+  return {
+    ok: true,
+    contratoId: data?.[0]?.contrato_id,
+    plantillaSugeridaId: data?.[0]?.plantilla_sugerida_id,
+  };
 }
 
 export async function editarContrato(
@@ -116,8 +122,8 @@ export async function editarContrato(
   const { error } = await supabase.rpc("editar_contrato", {
     p_contrato_id: contratoId,
     p_company_id: companyId,
-    p_puesto: input.puesto?.trim() || undefined,
-    p_departamento: input.departamento?.trim() || undefined,
+    p_puesto_id: input.puestoId || undefined,
+    p_departamento_id: input.departamentoId || undefined,
     p_modalidad_contrato: input.modalidadContrato,
     p_fecha_inicio: input.fechaInicio || undefined,
     p_fecha_fin_prevista: input.fechaFinPrevista || undefined,

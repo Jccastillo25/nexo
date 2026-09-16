@@ -8,7 +8,7 @@ import { getCompanyId } from "@/lib/company";
 export interface EmpleadoInput {
   nombre: string;
   apellido: string;
-  documentoIdentidad?: string;
+  documentoIdentidad: string;
   email?: string;
   telefono?: string;
 }
@@ -43,12 +43,17 @@ export async function editarEmpleado(
     throw err;
   }
 
+  const documentoIdentidad = input.documentoIdentidad.trim();
+  if (!documentoIdentidad) {
+    return { ok: false, message: "El documento de identidad (cédula) es obligatorio." };
+  }
+
   const { error } = await supabase.rpc("editar_empleado", {
     p_empleado_id: empleadoId,
     p_company_id: companyId,
     p_nombre: input.nombre.trim(),
     p_apellido: input.apellido.trim(),
-    p_documento_identidad: input.documentoIdentidad?.trim() || undefined,
+    p_documento_identidad: documentoIdentidad,
     p_email: input.email?.trim() || undefined,
     p_telefono: input.telefono?.trim() || undefined,
   });

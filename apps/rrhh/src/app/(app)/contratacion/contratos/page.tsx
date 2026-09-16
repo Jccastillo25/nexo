@@ -13,11 +13,11 @@ interface ContratoListRow {
   id: string;
   numero_contrato: number;
   estado: "borrador" | "activo" | "finalizado";
-  puesto: string | null;
-  departamento: string | null;
   fecha_inicio: string | null;
   empleado_id: string;
   empleados: { nombre: string; apellido: string } | null;
+  puestos: { nombre: string } | null;
+  departamentos: { nombre: string } | null;
 }
 
 const ESTADO_TONE: Record<ContratoListRow["estado"], StatusTone> = {
@@ -61,7 +61,9 @@ export default async function ContratosListPage() {
   const { data, error } = await supabase
     .schema("rrhh")
     .from("contratos")
-    .select("id, numero_contrato, estado, puesto, departamento, fecha_inicio, empleado_id, empleados(nombre, apellido)")
+    .select(
+      "id, numero_contrato, estado, fecha_inicio, empleado_id, empleados(nombre, apellido), puestos(nombre), departamentos(nombre)"
+    )
     .eq("company_id", companyId)
     .order("numero_contrato", { ascending: false });
 
@@ -107,8 +109,8 @@ export default async function ContratosListPage() {
               </Link>
             ),
           },
-          { key: "puesto", header: "Puesto", render: (c) => c.puesto ?? "—" },
-          { key: "departamento", header: "Departamento", render: (c) => c.departamento ?? "—" },
+          { key: "puesto", header: "Puesto", render: (c) => c.puestos?.nombre ?? "—" },
+          { key: "departamento", header: "Departamento", render: (c) => c.departamentos?.nombre ?? "—" },
           { key: "inicio", header: "Inicio", render: (c) => c.fecha_inicio ?? "—" },
           {
             key: "estado",

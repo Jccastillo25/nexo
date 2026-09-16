@@ -27,8 +27,10 @@
 // kiosko, Planillas) mas lo agregado por
 // 20260902000008_rrhh_nicaragua_and_contracts.sql: columnas nuevas en
 // `empleados`/`empleado_compensacion` y las tablas `parametros_ley` y
-// `seguridad_accesos`. Ver docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §2
-// y §3.
+// `seguridad_accesos`; F1.2-F1.4 (contratos, jornadas, feriados) y Fase 3
+// del bloque pre-F1.5 (2026-09-16: departamentos, puestos,
+// plantillas_contrato, puesto_plantillas). Ver
+// docs/planning/ARQUITECTURA_MVP_ESCALABLE.md §2 y §3.
 
 export type Json =
   | string
@@ -118,31 +120,38 @@ export type Database = {
           rotacion_numero: number;
         }[];
       };
+      // Fase 3 (2026-09-16, bloque pre-F1.5): p_puesto/p_departamento
+      // (texto libre) reemplazados por p_puesto_id/p_departamento_id —
+      // ver supabase/migrations/20260916150000_rrhh_catalogos_contratacion_tablas.sql.
+      // Cambio de tipo de parametro -- requirio DROP + CREATE, no
+      // CREATE OR REPLACE (Postgres distingue funciones por firma).
       crear_contrato: {
         Args: {
           p_company_id: string;
-          p_departamento?: string;
+          p_departamento_id?: string;
           p_empleado_id: string;
           p_fecha_fin_prevista?: string;
           p_fecha_inicio?: string;
           p_modalidad_contrato?: string;
-          p_puesto?: string;
+          p_puesto_id?: string;
           p_salario_base?: number;
         };
         Returns: {
           contrato_id: string;
           numero_contrato: number;
+          /** La plantilla predeterminada activa del puesto elegido, si existe -- sugerencia, no asignacion. */
+          plantilla_sugerida_id: string | null;
         }[];
       };
       editar_contrato: {
         Args: {
           p_company_id: string;
           p_contrato_id: string;
-          p_departamento?: string;
+          p_departamento_id?: string;
           p_fecha_fin_prevista?: string;
           p_fecha_inicio?: string;
           p_modalidad_contrato?: string;
-          p_puesto?: string;
+          p_puesto_id?: string;
           p_salario_base?: number;
         };
         Returns: undefined;
@@ -266,7 +275,8 @@ export type Database = {
           codigo_empleado: number;
           nombre: string;
           apellido: string;
-          documento_identidad: string | null;
+          /** Obligatorio desde 2026-09-16 (Fase 1 pre-F1.5). */
+          documento_identidad: string;
           email: string | null;
           telefono: string | null;
           /** @deprecated F1.1 — pertenece a rrhh.contratos (F1.2). */
@@ -298,7 +308,7 @@ export type Database = {
           codigo_empleado?: never; // generated always as identity
           nombre: string;
           apellido: string;
-          documento_identidad?: string | null;
+          documento_identidad: string;
           email?: string | null;
           telefono?: string | null;
           /** @deprecated F1.1 */
@@ -326,7 +336,7 @@ export type Database = {
           codigo_empleado?: never;
           nombre?: string;
           apellido?: string;
-          documento_identidad?: string | null;
+          documento_identidad?: string;
           email?: string | null;
           telefono?: string | null;
           puesto?: string | null;
@@ -356,8 +366,12 @@ export type Database = {
           empleado_id: string;
           numero_contrato: number;
           estado: "borrador" | "activo" | "finalizado";
+          /** @deprecated Fase 3 (2026-09-16) — usar puesto_id (rrhh.puestos). */
           puesto: string | null;
+          /** @deprecated Fase 3 (2026-09-16) — usar departamento_id (rrhh.departamentos, organizacional). */
           departamento: string | null;
+          puesto_id: string | null;
+          departamento_id: string | null;
           modalidad_contrato: "nomina_estandar" | "comisionista_destajo" | null;
           fecha_inicio: string | null;
           fecha_fin_prevista: string | null;
@@ -378,6 +392,8 @@ export type Database = {
           estado?: "borrador" | "activo" | "finalizado";
           puesto?: string | null;
           departamento?: string | null;
+          puesto_id?: string | null;
+          departamento_id?: string | null;
           modalidad_contrato?: "nomina_estandar" | "comisionista_destajo" | null;
           fecha_inicio?: string | null;
           fecha_fin_prevista?: string | null;
@@ -393,11 +409,147 @@ export type Database = {
         Update: {
           // Solo estado='borrador' es editable por RLS/UPDATE directo;
           // activar/finalizar son transiciones exclusivas de sus RPC.
-          puesto?: string | null;
-          departamento?: string | null;
+          puesto_id?: string | null;
+          departamento_id?: string | null;
           modalidad_contrato?: "nomina_estandar" | "comisionista_destajo" | null;
           fecha_inicio?: string | null;
           fecha_fin_prevista?: string | null;
+        };
+        Relationships: [];
+      };
+      // Fase 3 (2026-09-16, bloque pre-F1.5) — catalogos de Contratacion.
+      // Ver supabase/migrations/20260916150000_rrhh_catalogos_contratacion_tablas.sql.
+      // Sin DELETE expuesto -- se activa/desactiva, mismo criterio que
+      // empleados/contratos.
+      departamentos: {
+        Row: {
+          id: string;
+          company_id: string;
+          nombre: string;
+          descripcion: string | null;
+          activo: boolean;
+          created_at: string;
+          created_by: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          company_id?: string; // tiene DEFAULT rrhh.default_company_id()
+          nombre: string;
+          descripcion?: string | null;
+          activo?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          nombre?: string;
+          descripcion?: string | null;
+          activo?: boolean;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      // departamento_id es el departamento ORGANIZACIONAL (rrhh.departamentos),
+      // no confundir con geografia de Nicaragua (Fase 5, core.geografia_ni_*).
+      puestos: {
+        Row: {
+          id: string;
+          company_id: string;
+          departamento_id: string | null;
+          nombre: string;
+          descripcion: string | null;
+          activo: boolean;
+          created_at: string;
+          created_by: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          company_id?: string;
+          departamento_id?: string | null;
+          nombre: string;
+          descripcion?: string | null;
+          activo?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          departamento_id?: string | null;
+          nombre?: string;
+          descripcion?: string | null;
+          activo?: boolean;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      // storage_path se completa en Fase 4 (bucket privado
+      // rrhh-documentos-privados) -- nullable hasta entonces.
+      plantillas_contrato: {
+        Row: {
+          id: string;
+          company_id: string;
+          nombre: string;
+          descripcion: string | null;
+          storage_path: string | null;
+          activo: boolean;
+          created_at: string;
+          created_by: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          company_id?: string;
+          nombre: string;
+          descripcion?: string | null;
+          storage_path?: string | null;
+          activo?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          nombre?: string;
+          descripcion?: string | null;
+          storage_path?: string | null;
+          activo?: boolean;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      // Relacion puesto<->plantilla -- a lo sumo una predeterminada activa
+      // por puesto (puesto_plantillas_predeterminada_unq).
+      puesto_plantillas: {
+        Row: {
+          id: string;
+          company_id: string;
+          puesto_id: string;
+          plantilla_id: string;
+          predeterminada: boolean;
+          activo: boolean;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          company_id?: string;
+          puesto_id: string;
+          plantilla_id: string;
+          predeterminada?: boolean;
+          activo?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          predeterminada?: boolean;
+          activo?: boolean;
         };
         Relationships: [];
       };
@@ -821,6 +973,222 @@ export type Database = {
           ip_origen?: string | null;
           intentado_en?: string;
         };
+        Relationships: [];
+      };
+      // Fase 5 (2026-09-16, bloque pre-F1.5) -- expediente ampliado. Ver
+      // supabase/migrations/20260916170000_geografia_ni_y_expediente_ampliado.sql.
+      empleado_direccion: {
+        Row: {
+          empleado_id: string;
+          company_id: string;
+          departamento_geo_id: string | null;
+          municipio_geo_id: string | null;
+          direccion_detalle: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          empleado_id: string;
+          company_id?: string;
+          departamento_geo_id?: string | null;
+          municipio_geo_id?: string | null;
+          direccion_detalle?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          departamento_geo_id?: string | null;
+          municipio_geo_id?: string | null;
+          direccion_detalle?: string | null;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      empleado_info_complementaria: {
+        Row: {
+          empleado_id: string;
+          company_id: string;
+          estado_civil: "soltero_a" | "casado_a" | "union_de_hecho" | "divorciado_a" | "viudo_a" | null;
+          contacto_emergencia_nombre: string | null;
+          contacto_emergencia_telefono: string | null;
+          contacto_emergencia_parentesco: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          empleado_id: string;
+          company_id?: string;
+          estado_civil?: "soltero_a" | "casado_a" | "union_de_hecho" | "divorciado_a" | "viudo_a" | null;
+          contacto_emergencia_nombre?: string | null;
+          contacto_emergencia_telefono?: string | null;
+          contacto_emergencia_parentesco?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          estado_civil?: "soltero_a" | "casado_a" | "union_de_hecho" | "divorciado_a" | "viudo_a" | null;
+          contacto_emergencia_nombre?: string | null;
+          contacto_emergencia_telefono?: string | null;
+          contacto_emergencia_parentesco?: string | null;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      // Dato sensible -- gateado por rrhh.expedientes.cuentas_bancarias.*.
+      empleado_cuentas_bancarias: {
+        Row: {
+          id: string;
+          empleado_id: string;
+          company_id: string;
+          banco: string;
+          tipo_cuenta: "ahorro" | "corriente";
+          moneda: "NIO" | "USD";
+          numero_cuenta: string;
+          principal: boolean;
+          activo: boolean;
+          created_at: string;
+          created_by: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          empleado_id: string;
+          company_id?: string;
+          banco: string;
+          tipo_cuenta: "ahorro" | "corriente";
+          moneda?: "NIO" | "USD";
+          numero_cuenta: string;
+          principal?: boolean;
+          activo?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          banco?: string;
+          tipo_cuenta?: "ahorro" | "corriente";
+          moneda?: "NIO" | "USD";
+          numero_cuenta?: string;
+          principal?: boolean;
+          activo?: boolean;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      // Dato sensible -- gateado por rrhh.expedientes.beneficiarios.*. La
+      // suma de porcentaje activo por empleado <= 100 la exige un trigger
+      // (rrhh.fn_validar_porcentaje_beneficiarios), no expresable aca.
+      empleado_beneficiarios: {
+        Row: {
+          id: string;
+          empleado_id: string;
+          company_id: string;
+          nombre_completo: string;
+          parentesco: string;
+          porcentaje: number;
+          documento_identidad: string | null;
+          telefono: string | null;
+          activo: boolean;
+          created_at: string;
+          created_by: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          empleado_id: string;
+          company_id?: string;
+          nombre_completo: string;
+          parentesco: string;
+          porcentaje: number;
+          documento_identidad?: string | null;
+          telefono?: string | null;
+          activo?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          nombre_completo?: string;
+          parentesco?: string;
+          porcentaje?: number;
+          documento_identidad?: string | null;
+          telefono?: string | null;
+          activo?: boolean;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      // Fase 4 (2026-09-16, bloque pre-F1.5) -- Storage privado. Ver
+      // supabase/migrations/20260916180000_rrhh_storage_privado_documentos.sql.
+      // Soft delete (eliminado_at) -- sin DELETE fisico expuesto.
+      empleado_documentos: {
+        Row: {
+          id: string;
+          company_id: string;
+          empleado_id: string;
+          tipo_documento: "cedula" | "curriculum" | "titulo" | "contrato_firmado" | "otro";
+          storage_path: string;
+          nombre_original: string;
+          mime_type: string;
+          tamano_bytes: number;
+          subido_por: string | null;
+          subido_at: string;
+          eliminado_at: string | null;
+          eliminado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          company_id?: string;
+          empleado_id: string;
+          tipo_documento: "cedula" | "curriculum" | "titulo" | "contrato_firmado" | "otro";
+          storage_path: string;
+          nombre_original: string;
+          mime_type: string;
+          tamano_bytes: number;
+          subido_por?: string | null;
+          subido_at?: string;
+          eliminado_at?: string | null;
+          eliminado_por?: string | null;
+        };
+        Update: {
+          eliminado_at?: string | null;
+          eliminado_por?: string | null;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
+  // Fase 5 (2026-09-16, bloque pre-F1.5): geografia nacional de Nicaragua
+  // -- catalogo publico de referencia, sin company_id. Escrito a mano
+  // (mismo motivo que `rrhh`: schema no expuesto en Data API todavia).
+  core: {
+    Tables: {
+      geografia_ni_departamentos: {
+        Row: { id: string; codigo: string; nombre: string };
+        Insert: { id?: string; codigo: string; nombre: string };
+        Update: { codigo?: string; nombre?: string };
+        Relationships: [];
+      };
+      geografia_ni_municipios: {
+        Row: { id: string; departamento_id: string; codigo: string; nombre: string };
+        Insert: { id?: string; departamento_id: string; codigo: string; nombre: string };
+        Update: { departamento_id?: string; codigo?: string; nombre?: string };
         Relationships: [];
       };
     };

@@ -8,7 +8,7 @@ import { getCompanyId } from "@/lib/company";
 export interface NuevoEmpleadoInput {
   nombre: string;
   apellido: string;
-  documentoIdentidad?: string;
+  documentoIdentidad: string;
   email?: string;
   telefono?: string;
 }
@@ -56,15 +56,19 @@ export async function crearEmpleado(
 
   const nombre = input.nombre.trim();
   const apellido = input.apellido.trim();
+  const documentoIdentidad = input.documentoIdentidad.trim();
   if (!nombre || !apellido) {
     return { ok: false, message: "Nombres y apellidos son obligatorios." };
+  }
+  if (!documentoIdentidad) {
+    return { ok: false, message: "El documento de identidad (cédula) es obligatorio." };
   }
 
   const { data, error } = await supabase.rpc("crear_empleado", {
     p_company_id: companyId,
     p_nombre: nombre,
     p_apellido: apellido,
-    p_documento_identidad: input.documentoIdentidad?.trim() || undefined,
+    p_documento_identidad: documentoIdentidad,
     p_email: input.email?.trim() || undefined,
     p_telefono: input.telefono?.trim() || undefined,
   });

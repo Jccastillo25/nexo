@@ -1,6 +1,6 @@
 # RRHH — MVP operativo: fuente de verdad
 
-> Actualizado **2026-09-14** (reconciliación de navegación — separación real de Expediente/Contratación §4.1/§4.2 y edición real del Expediente General; antes 2026-09-08, fix de estabilización — expedientes, contratos, jornadas y navegación, sección 16). Este documento define qué significa “RRHH MVP listo”. Debe leerse junto a `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`, `IMPLEMENTATION_STATUS.md` y `DRIVER_ACCESS_AND_KIOSK.md`.
+> Actualizado **2026-09-16** (bloque "pre-F1.5" — cédula obligatoria, favicon en RRHH/CRM, catálogos de Contratación, Storage privado y expediente ampliado, resolviendo las tres decisiones pendientes de §15; ver sección 17. Antes 2026-09-14, reconciliación de navegación — separación real de Expediente/Contratación §4.1/§4.2 y edición real del Expediente General; antes 2026-09-08, fix de estabilización — expedientes, contratos, jornadas y navegación, sección 16). Este documento define qué significa “RRHH MVP listo”. Debe leerse junto a `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`, `IMPLEMENTATION_STATUS.md` y `DRIVER_ACCESS_AND_KIOSK.md`.
 
 RRHH no se considera terminado por cantidad de pantallas ni por infraestructura desplegada. Debe ejecutarse de punta a punta el flujo aprobado.
 
@@ -363,6 +363,29 @@ Los permisos actuales de compensación pueden conservar nomenclatura si se docum
 
 Identidad digital (`core.identidad.cuenta.*`) y habilitación de conductor (`flotilla.conductores.*`) quedan como diseño objetivo documentado, sin implementar — no forman parte del Paso Cero de RRHH ni del cierre de F1.1–F1.3. Ver `IMPLEMENTATION_STATUS.md` sección 0.10.
 
+**Paso Cero del bloque "pre-F1.5" (2026-09-16)** — dos matrices nuevas,
+ver detalle en la sección 17 y en el status-log del mismo día.
+
+Catálogos de Contratación (`20260916140000_rrhh_catalogos_contratacion_permisos.sql`):
+
+| Permiso | admin | gestor_expedientes | supervisor_asistencia | especialista_planillas | consulta |
+|---|---:|---:|---:|---:|---:|
+| puestos.ver / departamentos.ver / plantillas.ver | ✅ | ✅ | ✅ | ✅ | ✅ |
+| puestos.crear/editar / departamentos.crear/editar / plantillas.crear/editar | ✅ | ✅ | — | — | — |
+
+Expediente ampliado (`20260916160000_rrhh_expediente_ampliado_permisos.sql`):
+
+| Permiso | admin | gestor_expedientes | supervisor_asistencia | especialista_planillas | consulta |
+|---|---:|---:|---:|---:|---:|
+| direccion.ver / info_complementaria.ver | ✅ | ✅ | ✅ | ✅ | ✅ |
+| direccion.editar / info_complementaria.editar | ✅ | ✅ | — | — | — |
+| cuentas_bancarias.ver/editar / beneficiarios.ver/editar | ✅ | — | — | — | — |
+| documentos.descargar | ✅ | ✅ | — | — | ✅ |
+
+`cuentas_bancarias.*`/`beneficiarios.*` solo `admin` — mismo criterio que
+`compensacion.*` (dato sensible). `documentos.descargar` sigue exactamente
+la misma asignación que `documentos.ver` (2026-09-02).
+
 ---
 
 # 10. Deuda heredada que debe migrarse
@@ -517,6 +540,17 @@ Cero correspondiente (matriz de permisos si aplica + modelo de datos)
 antes de escribir la migración — mismo criterio que el resto de este
 documento.
 
+> **✅ Resuelto 2026-09-16** (bloque "pre-F1.5", ver sección 17 y
+> `docs/status-log/2026-09-16-rrhh-pre-f1-5.md`): catálogo Nicaragua
+> (`core.geografia_ni_departamentos` sembrado, `core.geografia_ni_municipios`
+> con esquema listo pero **vacío** — fuente web no confiable, ver detalle),
+> perfil de empleado ampliado (Dirección/Información complementaria/
+> Cuentas bancarias/Beneficiario, con Paso Cero de permisos propio) y
+> Documentos/Storage (bucket privado `rrhh-documentos-privados`, subida
+> por URL firmada) ya implementados. KPIs cruzados del dashboard de Nexo
+> siguen sin resolver (fuera de alcance de este bloque, es un tema de
+> `apps/nexo`, no de RRHH).
+
 ---
 
 # 16. Fix de estabilización — expedientes, contratos, jornadas y navegación (2026-09-08)
@@ -590,3 +624,54 @@ con mensaje vacío (`get_runtime_errors`, última vez 2026-09-08) — no se
 pudo establecer causa raíz con la evidencia disponible (no reproducible a
 demanda); se mejoró la observabilidad (el error ya no se descarta si viene
 sin `.message`) para diagnosticarlo la próxima vez que ocurra.
+
+---
+
+# 17. Bloque "pre-F1.5" — cédula, favicon, catálogos, Storage privado, expediente ampliado (2026-09-16)
+
+Bloque pedido explícitamente por el usuario, **sin iniciar F1.5**
+(asistencia consolidada), incidencias, planillas, identidad digital,
+Mobile, Transporte ni Flotilla. Detalle completo, migraciones, pruebas y
+deuda: [`docs/status-log/2026-09-16-rrhh-pre-f1-5.md`](status-log/2026-09-16-rrhh-pre-f1-5.md).
+Resumen funcional:
+
+- **Cédula obligatoria** (§4.1): `rrhh.empleados.documento_identidad` es
+  `NOT NULL` desde esta fecha; alta/edición del Expediente General la
+  exigen. Duplicados por empresa siguen bloqueados por el `UNIQUE` ya
+  existente, con mensaje entendible.
+- **Favicon dinámico** en `apps/rrhh`/`apps/crm` (antes solo
+  `apps/nexo`), mismo `core.platform_settings.favicon_url` de siempre —
+  sin cambio de base de datos.
+- **Contratación → Catálogos** (nuevo, dentro de §4.2): Puestos,
+  Departamentos (organizacionales — no confundir con geografía de
+  Nicaragua) y Plantillas de contrato. El formulario de contrato usa
+  selects reales contra estos catálogos; al elegir un puesto se sugiere
+  (nunca se fuerza) su plantilla predeterminada, si tiene una asignada.
+- **Documentos/Storage** (resolviendo la decisión pendiente de §15):
+  bucket privado `rrhh-documentos-privados`, subida por URL firmada
+  directa navegador→Storage (evita el techo de 4.5MB de Vercel Functions
+  que ya causó el bug P0 del 2026-09-14). Pestaña "Documentos" del
+  expediente real: subir, descargar (URL firmada de 60s), eliminar (soft
+  delete).
+- **Expediente ampliado** (resolviendo la decisión pendiente de §15):
+  pestañas Dirección, Información complementaria, Cuentas bancarias y
+  Beneficiario con modelo de datos y UI real — dejan de ser
+  `PestanaPendiente`. Cuentas bancarias/Beneficiario son datos sensibles,
+  visibles/editables solo por `admin` (mismo criterio que compensación).
+  Beneficiario valida que la suma de porcentajes activos no supere 100%.
+- **Geografía de Nicaragua**: `core.geografia_ni_departamentos` (17
+  filas: 15 departamentos + 2 regiones autónomas) sembrada y estable.
+  `core.geografia_ni_municipios` queda **intencionalmente vacía** — dos
+  intentos de poblarla desde una fuente web dieron listas incompletas e
+  inconsistentes entre sí (ver detalle en el status-log); el selector de
+  municipio en Dirección queda deshabilitado hasta cargarla con una
+  fuente oficial verificada. No bloquea guardar solo el departamento.
+
+**Deuda que sigue abierta** (no bloquea el uso normal de lo demás):
+`core.geografia_ni_municipios` vacía; falta `SUPABASE_SERVICE_ROLE_KEY`
+en el proyecto Vercel de `nexo-rrhh` para que Storage funcione en
+producción; sin recorrido autenticado real en navegador (sin credenciales
+de prueba, misma limitación que el cierre del 2026-09-14); columnas de
+texto libre deprecadas (`rrhh.contratos.puesto`/`.departamento`, columnas
+laborales viejas de `rrhh.empleados`) siguen sin una migración de
+limpieza física.

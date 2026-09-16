@@ -2,6 +2,55 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-09-16 — Bloque "pre-F1.5": cédula, catálogos, Storage privado, expediente ampliado
+
+Contexto completo, pruebas y deuda en
+[`status-log/2026-09-16-rrhh-pre-f1-5.md`](status-log/2026-09-16-rrhh-pre-f1-5.md).
+**6 migraciones nuevas, todas aplicadas a `nexo-core` con
+`apply_migration` y verificadas** (`get_advisors(security)` sin
+hallazgos nuevos después de cada tanda):
+
+- `20260916100000_rrhh_cedula_obligatoria` — `rrhh.empleados.documento_identidad`
+  a `NOT NULL` (guarda explícita que aborta si aparece una fila nula en
+  vez de asumir 0 filas; verificado 0 antes de aplicar).
+  `rrhh.fn_crear_empleado`/`fn_editar_empleado` reescritas para exigir
+  documento no vacío y traducir `unique_violation` a mensaje entendible.
+- `20260916140000_rrhh_catalogos_contratacion_permisos` — Paso Cero: 9
+  códigos nuevos `rrhh.expedientes.{puestos,departamentos,plantillas}.{ver,crear,editar}`.
+- `20260916150000_rrhh_catalogos_contratacion_tablas` —
+  `rrhh.departamentos`/`rrhh.puestos`/`rrhh.plantillas_contrato`/
+  `rrhh.puesto_plantillas` nuevas; `rrhh.contratos` gana `puesto_id`/
+  `departamento_id` con backfill genérico desde el texto libre (no-op:
+  0 contratos en producción); `rrhh.fn_crear_contrato`/`fn_editar_contrato`
+  (y sus wrappers `public.*`) recreadas con `DROP` explícito primero
+  (cambia el tipo de dos parámetros `text`→`uuid`, `CREATE OR REPLACE`
+  no alcanza) preservando la lógica original (validación de empleado,
+  permiso `compensacion.editar`, `coalesce` en edición parcial). Primer
+  intento de esta migración falló (`unique (company_id, lower(nombre))`
+  no es sintaxis válida como table constraint — una expresión solo puede
+  ir en un índice, no en un `UNIQUE` de tabla); corregido a
+  `CREATE UNIQUE INDEX ... (company_id, lower(nombre))` antes de
+  reaplicar, sin dejar nada a medias (falla transaccional, verificado con
+  `information_schema.tables` antes de reintentar).
+- `20260916160000_rrhh_expediente_ampliado_permisos` — Paso Cero: 9
+  códigos nuevos (`direccion.*`, `info_complementaria.*` — visibles
+  también para `consulta`; `cuentas_bancarias.*`/`beneficiarios.*` — solo
+  `admin`; `documentos.descargar`).
+- `20260916170000_geografia_ni_y_expediente_ampliado` —
+  `core.geografia_ni_departamentos` (sembrada, 17 filas) y
+  `core.geografia_ni_municipios` (esquema listo, **vacía a propósito** —
+  ver deuda en el status-log); `rrhh.empleado_direccion`/
+  `empleado_info_complementaria`/`empleado_cuentas_bancarias`/
+  `empleado_beneficiarios` nuevas, con trigger
+  `rrhh.fn_validar_porcentaje_beneficiarios` (suma de porcentaje activo
+  por empleado ≤ 100, regla entre filas).
+- `20260916180000_rrhh_storage_privado_documentos` — bucket
+  `rrhh-documentos-privados` (`public=false`, cero políticas de
+  `storage.objects`) + `rrhh.empleado_documentos` (soft delete). Subida
+  por `createSignedUploadUrl` (URL firmada de subida directa
+  navegador→Storage) — evita a propósito el techo de 4.5MB de Vercel
+  Functions que causó el bug P0 del 2026-09-14 con imágenes de marca.
+
 ## 2026-09-07 — Nexo Enterprise UI: rediseño visual transversal
 
 Contexto completo en [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)

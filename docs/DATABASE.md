@@ -94,6 +94,17 @@ evita exponer tablas sensibles como `user_permissions` directo a la API.
 - `core.has_permission()` / `public.has_permission()` — función única de
   la norma v3.0, RLS y apps la llaman por igual (ver PERMISSIONS.md)
 - `core.platform_settings` — singleton de marca de la plataforma
+- `core.geografia_ni_departamentos` / `core.geografia_ni_municipios` —
+  **bloque pre-F1.5 (2026-09-16)**: geografía nacional de Nicaragua, sin
+  `company_id` (catálogo público, reutilizable por cualquier módulo
+  futuro). `departamentos` sembrada (17 filas: 15 departamentos + 2
+  regiones autónomas). `municipios` **intencionalmente vacía** — dos
+  intentos de poblarla desde `es.wikipedia.org` dieron listas incompletas
+  e inconsistentes entre sí (detalle en
+  [`status-log/2026-09-16-rrhh-pre-f1-5.md`](status-log/2026-09-16-rrhh-pre-f1-5.md));
+  esquema y FK listos para un seed posterior con fuente oficial verificada
+  (INIDE/INIFOM). Lectura abierta a `authenticated`, mismo patrón que
+  `core.apps`
 
 Migraciones aplicadas, en orden — ver el archivo correspondiente en
 [`supabase/migrations/`](../supabase/migrations/) para el detalle
@@ -139,7 +150,18 @@ completo de cada una:
 20260907162904_f1_4_jornadas_permission_matrix
 20260907162929_fix_f1_4_feriados_admin_role_missing
 20260907163244_f1_4_rrhh_jornadas_minimas
+20260914090000_rrhh_editar_empleado
+20260916100000_rrhh_cedula_obligatoria
+20260916140000_rrhh_catalogos_contratacion_permisos
+20260916150000_rrhh_catalogos_contratacion_tablas
+20260916160000_rrhh_expediente_ampliado_permisos
+20260916170000_geografia_ni_y_expediente_ampliado
+20260916180000_rrhh_storage_privado_documentos
 ```
+
+Nota: esta lista no reflejaba `20260914090000` hasta esta actualización
+(2026-09-16) — quedó afuera cuando se aplicó, divergencia detectada y
+corregida de paso (ver también [MIGRATION_LOG.md](MIGRATION_LOG.md)).
 
 Las últimas 5 (auditoría de seguridad de RRHH, 2026-09-05) se aplicaron
 directamente a `nexo-core` con `apply_migration` — no hubo validación
@@ -177,7 +199,16 @@ hardcodeado en la app (todo pasa por `core.has_permission()`).
 |---|---|---|
 | `rrhh.empleados` | Catálogo (no particionada) | **Expediente General desde F1.1 (2026-09-07)**: nombre, apellido, documento, email, teléfono. `puesto`, `departamento`, `fecha_ingreso`/`fecha_baja`, `estado` (default `sin_contrato`), `pin_hash`, `nombre_usuario`, `pin_bloqueado`, `intentos_fallidos`, `user_id` siguen existiendo como columnas pero quedan **DEPRECADAS** (nullable, `comment on column` explícito) — pertenecen al contrato (F1.2) o a la credencial de asistencia (F1.3), no al Expediente General. **Desde F1.3, `rrhh.fn_registrar_marca_kiosko` ya NO lee `estado`/`pin_hash` de esta tabla** — quedan huérfanas, sin ningún consumidor real, pendientes de limpieza |
 | `rrhh.empleado_compensacion` | Catálogo, 1:1 con `empleados` | **DEPRECADA desde F1.2 (2026-09-07)** — reemplazada por `rrhh.contrato_compensacion` (1:1 con el contrato, no el empleado). Sigue existiendo sin datos, pendiente de limpieza posterior |
-| `rrhh.contratos` | Catálogo (no particionada) | **Expediente Laboral (F1.2, 2026-09-07)**: `estado` `borrador→activo→finalizado` (trigger de transición, sin reabrir), `puesto`/`departamento`/`modalidad_contrato`/fechas congelados fuera de `borrador`. Un solo contrato `activo` por empleado (unique index parcial). Sin `DELETE` — historial nunca se borra |
+| `rrhh.contratos` | Catálogo (no particionada) | **Expediente Laboral (F1.2, 2026-09-07)**: `estado` `borrador→activo→finalizado` (trigger de transición, sin reabrir), `puesto_id`/`departamento_id`/`modalidad_contrato`/fechas congelados fuera de `borrador`. Un solo contrato `activo` por empleado (unique index parcial). Sin `DELETE` — historial nunca se borra. **Desde el bloque pre-F1.5 (2026-09-16)**: `puesto_id`/`departamento_id` (FK a `rrhh.puestos`/`rrhh.departamentos`) reemplazan las columnas de texto libre `puesto`/`departamento`, que quedan **DEPRECADAS** (nullable, `comment on column`, sin eliminar) |
+| `rrhh.puestos` | Catálogo (no particionada) | **Bloque pre-F1.5 (2026-09-16)**: catálogo de puestos de trabajo. `departamento_id` nullable, FK a `rrhh.departamentos` (organizacional, no geográfico). Sin `DELETE` — se activa/desactiva |
+| `rrhh.departamentos` | Catálogo (no particionada) | **Bloque pre-F1.5**: departamento ORGANIZACIONAL de la empresa (ej. Ventas) — no confundir con `core.geografia_ni_departamentos` (geografía de Nicaragua). Sin `DELETE` |
+| `rrhh.plantillas_contrato` | Catálogo (no particionada) | **Bloque pre-F1.5**: catálogo de plantillas de contrato. `storage_path` nullable — el archivo real (bucket `rrhh-documentos-privados`) no se construyó en este bloque, solo el catálogo de nombres |
+| `rrhh.puesto_plantillas` | Catálogo (no particionada) | **Bloque pre-F1.5**: relación puesto↔plantilla. A lo sumo una `predeterminada=true` activa por puesto (índice único parcial) — se sugiere, nunca se fuerza, al crear un contrato para ese puesto |
+| `rrhh.empleado_direccion` | Catálogo, 1:1 con `empleados` | **Bloque pre-F1.5**: `departamento_geo_id`/`municipio_geo_id` (FK a `core.geografia_ni_*`, ambos nullable) + `direccion_detalle` libre. Gateada por `rrhh.expedientes.direccion.ver/editar` |
+| `rrhh.empleado_info_complementaria` | Catálogo, 1:1 con `empleados` | **Bloque pre-F1.5**: estado civil + contacto de emergencia — set deliberadamente mínimo. Gateada por `rrhh.expedientes.info_complementaria.ver/editar` |
+| `rrhh.empleado_cuentas_bancarias` | Catálogo (no particionada) | **Bloque pre-F1.5**, dato sensible: cuentas bancarias del empleado, a lo sumo una `principal=true` activa (índice único parcial). Gateada por `rrhh.expedientes.cuentas_bancarias.*` (solo `admin`). Sin `DELETE` |
+| `rrhh.empleado_beneficiarios` | Catálogo (no particionada) | **Bloque pre-F1.5**, dato sensible: beneficiarios del empleado. Trigger `trg_validar_porcentaje_beneficiarios` — suma de `porcentaje` de filas activas por empleado ≤ 100 (regla entre filas, no expresable como `CHECK`). Gateada por `rrhh.expedientes.beneficiarios.*` (solo `admin`). Sin `DELETE` |
+| `rrhh.empleado_documentos` | Catálogo (no particionada) | **Bloque pre-F1.5**: metadata de documentos del legajo — el archivo real vive en el bucket privado `rrhh-documentos-privados` (`storage_path`). Soft delete (`eliminado_at`), nunca `DELETE` físico. Gateada por `rrhh.expedientes.documentos.{ver,subir,eliminar}` (existentes desde 2026-09-02, huérfanas hasta este bloque) |
 | `rrhh.contrato_compensacion` | Catálogo, 1:1 con `contratos` | **F1.2**: salario base y frecuencia de pago del contrato — no del empleado (D-03: una recontratación crea un contrato nuevo, conserva histórico). Reutiliza `rrhh.expedientes.compensacion.ver/editar` (permisos existentes, re-scopeados) |
 | `rrhh.contrato_credenciales` | Catálogo, 1:1 con `contratos` | **F1.3 (2026-09-07)**: `pin_hash`, `activo`, `pin_bloqueado`, `intentos_fallidos`, `rotacion_numero`. Nace al activar el contrato (`fn_activar_contrato`), se revoca al finalizar. RLS habilitado **sin ninguna policy** y **sin `GRANT` de `SELECT` a nadie** — deny-by-default total, toda interacción vía RPC que ni siquiera seleccionan `pin_hash` en su respuesta |
 | `rrhh.jornadas` | Catálogo (no particionada) | **F1.4 (2026-09-07)**: plantilla de jornada reutilizable (ej. "Administrativo 8-17"). No hay una jornada universal única — una empresa puede tener varias. RLS/GRANT directo (sin RPC), gateada por `rrhh.asistencia.turnos.ver/crear/editar/eliminar` (reutilizados, existían sin consumidor desde la matriz original) |
@@ -204,8 +235,8 @@ Todas `SECURITY DEFINER`, con `search_path` fijado explícitamente
 | `validar_acceso_operativo(nombre_usuario, pin)` | `fn_validar_acceso_operativo` | **Ninguno** — `EXECUTE` revocado de `anon`/`authenticated` desde `20260907151106` (F1.0.1, D-06). Ambas funciones quedan `comment on function`-marcadas como **DEPRECADAS**: el diseño de "PIN de doble propósito" (login operativo con el mismo PIN del kiosko) fue rechazado como arquitectura final por `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`/`DRIVER_ACCESS_AND_KIOSK.md` §10. Sin consumidores reales en el código (verificado F1.0). No eliminadas todavía — pendiente de una migración de limpieza aparte, junto con `rrhh.seguridad_accesos` y las columnas `nombre_usuario`/`user_id`/`pin_bloqueado`/`intentos_fallidos` de `rrhh.empleados` (ahora **sin ningún consumidor real**, ni siquiera el kiosko desde F1.3) | Valida credencial, bloquea a 3 fallos consecutivos, registra fallidos en `seguridad_accesos`, devuelve `auth.users.id` si es válido. Rechaza con `RETURN NULL` (corrige un bug real: antes usaba `RAISE EXCEPTION` después de escribir el intento fallido, lo que revertía esa escritura y el bloqueo a 3 fallos nunca persistía). **Deprecada desde 2026-09-07** — no usar como base de ningún código nuevo |
 | `crear_empleado(...)` | `fn_crear_empleado` | Solo `authenticated` (revocado de `anon` y `PUBLIC` explícitamente) | **F1.1 (2026-09-07)**: alta de Expediente General exclusivamente (nombre/apellido/documento/email/teléfono) — sin PIN/laboral. Exige `rrhh.expedientes.empleados.crear`. **Corregida el mismo día** (`fix_crear_empleado_returning_ambiguous`): la firma original de F1.1 nunca pudo ejecutarse (`RETURNING` ambiguo contra las variables `OUT` de `RETURNS TABLE`) |
 | `set_pin_empleado(...)` | `fn_set_pin_empleado` | Solo `authenticated` (revocado de `anon` y `PUBLIC` explícitamente) | **Superada por F1.3** — el PIN ya no se asigna al empleado, sino al contrato vía `activar_contrato`/`regenerar_pin_contrato`. Sin consumidores en el código (ya lo estaba desde antes). No eliminada todavía |
-| `crear_contrato(...)` | `fn_crear_contrato` | Solo `authenticated` | **F1.2 (2026-09-07)**: crea un contrato `borrador`. Exige `rrhh.expedientes.contratos.crear`; salario exige además `compensacion.editar`. **Corregida el mismo día** (`fix_crear_contrato_returning_ambiguous`): mismo bug de `RETURNING` ambiguo que `crear_empleado` |
-| `editar_contrato(...)` | `fn_editar_contrato` | Solo `authenticated` | **F1.2**: edita SOLO en estado `borrador` (verificado explícito, además de RLS/trigger). Exige `rrhh.expedientes.contratos.editar` |
+| `crear_contrato(...)` | `fn_crear_contrato` | Solo `authenticated` | **F1.2 (2026-09-07)**: crea un contrato `borrador`. Exige `rrhh.expedientes.contratos.crear`; salario exige además `compensacion.editar`. **Corregida el mismo día** (`fix_crear_contrato_returning_ambiguous`): mismo bug de `RETURNING` ambiguo que `crear_empleado`. **Firma cambiada en el bloque pre-F1.5 (2026-09-16)**: `p_puesto`/`p_departamento` (`text`) → `p_puesto_id`/`p_departamento_id` (`uuid`) — requirió `DROP` explícito + `CREATE` (Postgres distingue por firma, `CREATE OR REPLACE` no alcanza con un cambio de tipo). Devuelve además `plantilla_sugerida_id` (informativo) |
+| `editar_contrato(...)` | `fn_editar_contrato` | Solo `authenticated` | **F1.2**: edita SOLO en estado `borrador` (verificado explícito, además de RLS/trigger). Exige `rrhh.expedientes.contratos.editar`. Mismo cambio de firma `puesto_id`/`departamento_id` del bloque pre-F1.5 (2026-09-16) |
 | `activar_contrato(contrato_id, company_id)` | `fn_activar_contrato` | Solo `authenticated` | **F1.3, endurecida en F1.4**: activa el contrato Y genera el PIN de asistencia (`rrhh.contrato_credenciales`), devuelto en texto plano una sola vez. **Desde F1.4 (2026-09-07)**, exige además al menos una fila en `rrhh.contrato_jornadas` — jornada obligatoria, decisión explícita del usuario. Exige `rrhh.expedientes.contratos.activar` |
 | `finalizar_contrato(contrato_id, company_id)` | `fn_finalizar_contrato` | Solo `authenticated` | **F1.3**: finaliza el contrato Y revoca la credencial de asistencia. Exige `rrhh.expedientes.contratos.finalizar` |
 | `regenerar_pin_contrato(contrato_id, company_id)` | `fn_regenerar_pin_contrato` | Solo `authenticated` | **F1.3**: único camino para regenerar el PIN — exige contrato `activo`. Devuelto en texto plano una sola vez. Exige `rrhh.expedientes.credenciales.regenerar` |

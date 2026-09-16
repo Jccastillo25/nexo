@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+import { createClient } from "@/lib/supabase/server";
+import { getFaviconUrl } from "@/lib/platform-settings";
 import "./globals.css";
 
 // Tipografia unica de toda la suite (ver docs/planning/NORMA_DISENO_UNIVERSAL.md
@@ -10,11 +12,24 @@ import "./globals.css";
 // CONTENIDO de los modulos, no solo la barra superior.
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
-export const metadata: Metadata = {
-  title: "Panel de clientes · Materiales J Castillo",
-  description: "CRM interno de Materiales J Castillo — acceso restringido.",
-  robots: { index: false, follow: false },
-};
+/**
+ * Favicon dinamico (Fase 1 del bloque pre-F1.5, ver
+ * docs/status-log/2026-09-16-rrhh-pre-f1-5.md): mismo patron que
+ * apps/nexo/src/app/layout.tsx. Si no hay favicon configurado en
+ * Configuración > Marca, `icons` queda undefined y Next cae al
+ * favicon.ico estatico que ya vive en apps/crm/src/app.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const supabase = await createClient();
+  const faviconUrl = await getFaviconUrl(supabase);
+
+  return {
+    title: "Panel de clientes · Materiales J Castillo",
+    description: "CRM interno de Materiales J Castillo — acceso restringido.",
+    robots: { index: false, follow: false },
+    icons: faviconUrl ? { icon: faviconUrl } : undefined,
+  };
+}
 
 // Nexo Enterprise UI (2026-09-07): el <Toaster> de sonner que vivía acá se
 // retiró — ahora lo monta NexoShell (ver packages/ui/Toast.tsx) una sola

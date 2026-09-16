@@ -156,9 +156,15 @@ Launcher (contenido de "/", NO es sidebar — grilla de módulos habilitados)
 RRHH
 ├── Dashboard
 ├── Expedientes
-│   ├── Empleados        (ficha = SOLO Expediente General — persona;
-│   │                      /expedientes/[id]/editar para editar, 2026-09-14)
-│   └── Documentos       (sin href — pendiente de modelo de datos)
+│   ├── Empleados        (ficha = Expediente General — persona, 6
+│   │                      pestañas con modelo real desde 2026-09-16:
+│   │                      Datos personales, Dirección, Información
+│   │                      complementaria, Cuentas bancarias,
+│   │                      Beneficiario, Documentos; /expedientes/[id]/editar
+│   │                      para editar Datos personales, 2026-09-14)
+│   └── Documentos       (sin href a nivel de sidebar — la pestaña
+│                          "Documentos" vive dentro de la ficha de cada
+│                          empleado, no como listado propio, 2026-09-16)
 ├── Contratación
 │   ├── Contratos        (listado global + "+ Nuevo contrato"
 │   │                      /contratacion/contratos/nuevo + ficha por
@@ -167,17 +173,17 @@ RRHH
 │   │                      PIN/finalizar, 2026-09-14. No son hojas de
 │   │                      navegación propias, se llega desde el listado)
 │   ├── Jornadas
-│   └── Feriados
+│   ├── Feriados
+│   └── Catálogos        (2026-09-16 — antes vivían sueltos y sin href
+│       ├── Puestos         bajo "Configuración"; ahora con pantalla real)
+│       ├── Departamentos
+│       └── Plantillas de contrato
 ├── Asistencia
 │   ├── Marcas          (sin href — F1.5)
 │   ├── Incidencias     (sin href — F1.6)
 │   ├── Justificaciones (sin href — F1.6)
 │   └── Kioskos
-├── Planillas          (placeholder histórico conservado)
-└── Configuración
-    ├── Puestos         (sin href)
-    ├── Departamentos   (sin href)
-    └── Catálogos       (sin href)
+└── Planillas          (placeholder histórico conservado)
 
 CRM
 ├── Dashboard

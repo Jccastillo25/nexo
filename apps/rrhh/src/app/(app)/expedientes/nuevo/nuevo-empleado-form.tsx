@@ -42,7 +42,7 @@ export default function NuevoEmpleadoForm() {
       const res = await crearEmpleado({
         nombre: form.nombre,
         apellido: form.apellido,
-        documentoIdentidad: form.documentoIdentidad || undefined,
+        documentoIdentidad: form.documentoIdentidad,
         email: form.email || undefined,
         telefono: form.telefono || undefined,
       });
@@ -82,12 +82,13 @@ export default function NuevoEmpleadoForm() {
             placeholder="Castillo Canales"
           />
         </Field>
-        <Field label="Documento de identidad">
+        <Field label="Documento de identidad (cédula)" required>
           <input
+            required
             value={form.documentoIdentidad}
             onChange={(e) => update("documentoIdentidad", e.target.value)}
             className={inputClass}
-            placeholder="opcional"
+            placeholder="001-010190-0001A"
           />
         </Field>
         <Field label="Correo">

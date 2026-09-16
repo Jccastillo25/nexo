@@ -3,7 +3,11 @@ import { hasPermission } from "@nexo/permissions";
 import { EmptyState, PageHeader } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
-import NuevoContratoForm, { type EmpleadoOption } from "./nuevo-contrato-form";
+import NuevoContratoForm, {
+  type EmpleadoOption,
+  type PuestoOption,
+  type DepartamentoOption,
+} from "./nuevo-contrato-form";
 
 export const metadata: Metadata = {
   title: "Nuevo contrato · RRHH",
@@ -22,9 +26,11 @@ export default async function NuevoContratoPage() {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
-  const [canCrear, canEditarSalario] = await Promise.all([
+  const [canCrear, canEditarSalario, canVerPuestos, canVerDepartamentos] = await Promise.all([
     hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.crear"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.editar"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.puestos.ver"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.departamentos.ver"),
   ]);
 
   if (!canCrear) {
@@ -35,6 +41,29 @@ export default async function NuevoContratoPage() {
       />
     );
   }
+
+  const [puestosRes, departamentosRes] = await Promise.all([
+    canVerPuestos
+      ? supabase
+          .schema("rrhh")
+          .from("puestos")
+          .select("id, nombre")
+          .eq("company_id", companyId)
+          .eq("activo", true)
+          .order("nombre")
+      : Promise.resolve({ data: null }),
+    canVerDepartamentos
+      ? supabase
+          .schema("rrhh")
+          .from("departamentos")
+          .select("id, nombre")
+          .eq("company_id", companyId)
+          .eq("activo", true)
+          .order("nombre")
+      : Promise.resolve({ data: null }),
+  ]);
+  const puestos: PuestoOption[] = puestosRes.data ?? [];
+  const departamentos: DepartamentoOption[] = departamentosRes.data ?? [];
 
   const { data: empleados, error } = await supabase
     .schema("rrhh")
@@ -85,7 +114,12 @@ export default async function NuevoContratoPage() {
           description="Creá primero el Expediente General del empleado en Expedientes → Nuevo empleado."
         />
       ) : (
-        <NuevoContratoForm empleados={opciones} canEditarSalario={canEditarSalario} />
+        <NuevoContratoForm
+          empleados={opciones}
+          puestos={puestos}
+          departamentos={departamentos}
+          canEditarSalario={canEditarSalario}
+        />
       )}
     </div>
   );

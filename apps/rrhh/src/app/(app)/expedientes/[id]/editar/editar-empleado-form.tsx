@@ -47,6 +47,10 @@ export default function EditarEmpleadoForm({ empleado }: { empleado: EmpleadoEdi
       setError("Nombre y apellido son obligatorios.");
       return;
     }
+    if (!form.documentoIdentidad.trim()) {
+      setError("El documento de identidad (cédula) es obligatorio.");
+      return;
+    }
     setError(null);
     startTransition(async () => {
       const res = await editarEmpleado(empleado.id, form);
@@ -89,8 +93,9 @@ export default function EditarEmpleadoForm({ empleado }: { empleado: EmpleadoEdi
             className={inputClass}
           />
         </Field>
-        <Field label="Documento de identidad">
+        <Field label="Documento de identidad (cédula)">
           <input
+            required
             value={form.documentoIdentidad}
             onChange={(e) => update("documentoIdentidad", e.target.value)}
             className={inputClass}

@@ -9,6 +9,8 @@ import ContratoFicha, {
   type CredencialEstado,
   type JornadaOption,
   type JornadaVigente,
+  type PuestoOption,
+  type DepartamentoOption,
 } from "./contrato-ficha";
 
 export const metadata: Metadata = {
@@ -42,6 +44,8 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
     canVerCredenciales,
     canRegenerarPin,
     canVerTurnos,
+    canVerPuestos,
+    canVerDepartamentos,
   ] = await Promise.all([
     hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.ver"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar"),
@@ -52,6 +56,8 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
     hasPermission({ supabase, companyId }, "rrhh.expedientes.credenciales.ver"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.credenciales.regenerar"),
     hasPermission({ supabase, companyId }, "rrhh.asistencia.turnos.ver"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.puestos.ver"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.departamentos.ver"),
   ]);
 
   if (!canVer) {
@@ -67,7 +73,7 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
     .schema("rrhh")
     .from("contratos")
     .select(
-      "id, empleado_id, numero_contrato, estado, puesto, departamento, modalidad_contrato, fecha_inicio, fecha_fin_prevista, fecha_fin_real, empleados(nombre, apellido)"
+      "id, empleado_id, numero_contrato, estado, puesto_id, departamento_id, modalidad_contrato, fecha_inicio, fecha_fin_prevista, fecha_fin_real, empleados(nombre, apellido), puestos(nombre), departamentos(nombre)"
     )
     .eq("id", id)
     .eq("company_id", companyId)
@@ -81,40 +87,63 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
   }
 
   const empleado = contrato.empleados as unknown as { nombre: string; apellido: string } | null;
+  const puestoActual = contrato.puestos as unknown as { nombre: string } | null;
+  const departamentoActual = contrato.departamentos as unknown as { nombre: string } | null;
 
-  const [compensacionRes, jornadasCatalogoRes, vigenteRes, credencialRes] = await Promise.all([
-    canVerSalario
-      ? supabase
-          .schema("rrhh")
-          .from("contrato_compensacion")
-          .select("salario_base")
-          .eq("contrato_id", id)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-    canVerTurnos
-      ? supabase
-          .schema("rrhh")
-          .from("jornadas")
-          .select("id, nombre")
-          .eq("company_id", companyId)
-          .eq("activo", true)
-          .order("nombre")
-      : Promise.resolve({ data: null }),
-    canVerTurnos
-      ? supabase
-          .schema("rrhh")
-          .from("contrato_jornadas")
-          .select("jornada_id, vigente_desde, jornadas(nombre)")
-          .eq("contrato_id", id)
-          .is("vigente_hasta", null)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-    // F1.3: estado de la credencial, solo tiene sentido para un contrato
-    // activo (los demas nunca tuvieron/ya perdieron su PIN).
-    canVerCredenciales && contrato.estado === "activo"
-      ? supabase.rpc("estado_credencial_contrato", { p_contrato_id: id, p_company_id: companyId })
-      : Promise.resolve({ data: null }),
-  ]);
+  const [compensacionRes, jornadasCatalogoRes, vigenteRes, credencialRes, puestosRes, departamentosRes] =
+    await Promise.all([
+      canVerSalario
+        ? supabase
+            .schema("rrhh")
+            .from("contrato_compensacion")
+            .select("salario_base")
+            .eq("contrato_id", id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      canVerTurnos
+        ? supabase
+            .schema("rrhh")
+            .from("jornadas")
+            .select("id, nombre")
+            .eq("company_id", companyId)
+            .eq("activo", true)
+            .order("nombre")
+        : Promise.resolve({ data: null }),
+      canVerTurnos
+        ? supabase
+            .schema("rrhh")
+            .from("contrato_jornadas")
+            .select("jornada_id, vigente_desde, jornadas(nombre)")
+            .eq("contrato_id", id)
+            .is("vigente_hasta", null)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      // F1.3: estado de la credencial, solo tiene sentido para un contrato
+      // activo (los demas nunca tuvieron/ya perdieron su PIN).
+      canVerCredenciales && contrato.estado === "activo"
+        ? supabase.rpc("estado_credencial_contrato", { p_contrato_id: id, p_company_id: companyId })
+        : Promise.resolve({ data: null }),
+      canVerPuestos
+        ? supabase
+            .schema("rrhh")
+            .from("puestos")
+            .select("id, nombre")
+            .eq("company_id", companyId)
+            .eq("activo", true)
+            .order("nombre")
+        : Promise.resolve({ data: null }),
+      canVerDepartamentos
+        ? supabase
+            .schema("rrhh")
+            .from("departamentos")
+            .select("id, nombre")
+            .eq("company_id", companyId)
+            .eq("activo", true)
+            .order("nombre")
+        : Promise.resolve({ data: null }),
+    ]);
+  const puestos: PuestoOption[] = puestosRes.data ?? [];
+  const departamentos: DepartamentoOption[] = departamentosRes.data ?? [];
 
   const salarioBase =
     (compensacionRes.data as { salario_base: number } | null)?.salario_base ?? null;
@@ -162,8 +191,10 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
           id: contrato.id,
           numeroContrato: contrato.numero_contrato,
           estado: contrato.estado,
-          puesto: contrato.puesto,
-          departamento: contrato.departamento,
+          puestoId: contrato.puesto_id,
+          puestoNombre: puestoActual?.nombre ?? null,
+          departamentoId: contrato.departamento_id,
+          departamentoNombre: departamentoActual?.nombre ?? null,
           modalidadContrato: contrato.modalidad_contrato,
           fechaInicio: contrato.fecha_inicio,
           fechaFinPrevista: contrato.fecha_fin_prevista,
@@ -181,6 +212,8 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
         credencial={credencial}
         jornadasDisponibles={jornadasDisponibles}
         jornadaVigente={jornadaVigente}
+        puestos={puestos}
+        departamentos={departamentos}
       />
     </div>
   );

@@ -11,7 +11,11 @@ const DEFAULT_COPYRIGHT = "© Grupo CT";
 type MinimalSupabaseClient = {
   rpc(fn: "get_platform_settings", args?: object): {
     maybeSingle: () => PromiseLike<{
-      data: { copyright_text: string | null; logo_url: string | null } | null;
+      data: {
+        copyright_text: string | null;
+        logo_url: string | null;
+        favicon_url: string | null;
+      } | null;
       error: unknown;
     }>;
   };
@@ -40,4 +44,18 @@ export async function getLogoUrl(
 
   if (error || !data) return null;
   return data.logo_url ?? null;
+}
+
+// Favicon dinamico (Fase 1 del bloque pre-F1.5): mismo RPC/columna que ya
+// usa apps/nexo desde 2026-09-07 — CRM nunca lo habia consumido (solo tenia
+// el favicon.ico estatico de Next).
+export async function getFaviconUrl(
+  supabase: MinimalSupabaseClient
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .rpc("get_platform_settings")
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data.favicon_url ?? null;
 }

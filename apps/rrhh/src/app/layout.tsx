@@ -2,17 +2,33 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+import { createClient } from "@/lib/supabase/server";
+import { getFaviconUrl } from "@/lib/platform-settings";
 import "./globals.css";
 
 // Tipografia unica de toda la suite (ver docs/planning/NORMA_DISENO_UNIVERSAL.md
 // §1.3) — mismo criterio que apps/crm.
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
-export const metadata: Metadata = {
-  title: "RRHH · Materiales J Castillo",
-  description: "Recursos Humanos de Materiales J Castillo — acceso restringido.",
-  robots: { index: false, follow: false },
-};
+/**
+ * Favicon dinamico (Fase 1 del bloque pre-F1.5, ver
+ * docs/status-log/2026-09-16-rrhh-pre-f1-5.md): mismo patron que
+ * apps/nexo/src/app/layout.tsx — `generateMetadata` en vez de `metadata`
+ * estatico porque el favicon viene de core.platform_settings, no de un
+ * archivo fijo. Sin favicon configurado, cae al favicon.ico por defecto de
+ * Next (icons: undefined).
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const supabase = await createClient();
+  const faviconUrl = await getFaviconUrl(supabase);
+
+  return {
+    title: "RRHH · Materiales J Castillo",
+    description: "Recursos Humanos de Materiales J Castillo — acceso restringido.",
+    robots: { index: false, follow: false },
+    icons: faviconUrl ? { icon: faviconUrl } : undefined,
+  };
+}
 
 /**
  * Nexo Enterprise UI (2026-09-07): reversion del `dark` forzado en <html>

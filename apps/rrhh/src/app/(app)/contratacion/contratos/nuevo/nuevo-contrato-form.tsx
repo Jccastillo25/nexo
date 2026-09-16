@@ -14,13 +14,23 @@ export interface EmpleadoOption {
   tieneContratoAbierto: boolean;
 }
 
+export interface PuestoOption {
+  id: string;
+  nombre: string;
+}
+
+export interface DepartamentoOption {
+  id: string;
+  nombre: string;
+}
+
 const inputClass =
   "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
 const labelClass = "text-sm text-neutral-500";
 
 const EMPTY_FORM: ContratoInput = {
-  puesto: "",
-  departamento: "",
+  puestoId: "",
+  departamentoId: "",
   modalidadContrato: "nomina_estandar",
   fechaInicio: "",
   fechaFinPrevista: "",
@@ -32,12 +42,20 @@ const EMPTY_FORM: ContratoInput = {
  * falta una nueva RPC de búsqueda para el tamaño real de plantilla de la
  * empresa) + selección de empleado, seguida del mismo formulario de datos
  * base de contrato que antes vivía en el expediente (ContratosPanel).
+ *
+ * Fase 3 (2026-09-16, bloque pre-F1.5): puesto/departamento pasan de texto
+ * libre a selects contra los catálogos de Contratación → Catálogos — ver
+ * supabase/migrations/20260916150000_rrhh_catalogos_contratacion_tablas.sql.
  */
 export default function NuevoContratoForm({
   empleados,
+  puestos,
+  departamentos,
   canEditarSalario,
 }: {
   empleados: EmpleadoOption[];
+  puestos: PuestoOption[];
+  departamentos: DepartamentoOption[];
   canEditarSalario: boolean;
 }) {
   const router = useRouter();
@@ -79,7 +97,12 @@ export default function NuevoContratoForm({
         show(res.message ?? "No se pudo crear el contrato.", "error");
         return;
       }
-      show("Contrato creado en borrador.", "success");
+      if (res.plantillaSugeridaId) {
+        const nombre = puestos.find((p) => p.id === form.puestoId)?.nombre ?? "este puesto";
+        show(`Contrato creado en borrador. Hay una plantilla de contrato predeterminada para ${nombre}.`, "success");
+      } else {
+        show("Contrato creado en borrador.", "success");
+      }
       router.push(`/contratacion/contratos/${res.contratoId}`);
     });
   }
@@ -122,14 +145,42 @@ export default function NuevoContratoForm({
         <h2 className="text-sm font-semibold text-neutral-900">Datos del contrato</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Puesto">
-            <input value={form.puesto} onChange={(e) => update("puesto", e.target.value)} className={inputClass} />
+            <select
+              value={form.puestoId}
+              onChange={(e) => update("puestoId", e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Sin asignar</option>
+              {puestos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+            {puestos.length === 0 && (
+              <p className="text-xs text-neutral-400">
+                Sin puestos creados todavía — ver Contratación → Catálogos → Puestos.
+              </p>
+            )}
           </Field>
           <Field label="Departamento">
-            <input
-              value={form.departamento}
-              onChange={(e) => update("departamento", e.target.value)}
+            <select
+              value={form.departamentoId}
+              onChange={(e) => update("departamentoId", e.target.value)}
               className={inputClass}
-            />
+            >
+              <option value="">Sin asignar</option>
+              {departamentos.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.nombre}
+                </option>
+              ))}
+            </select>
+            {departamentos.length === 0 && (
+              <p className="text-xs text-neutral-400">
+                Sin departamentos creados todavía — ver Contratación → Catálogos → Departamentos.
+              </p>
+            )}
           </Field>
           <Field label="Modalidad">
             <select

@@ -23,13 +23,25 @@ export interface ContratoFichaData {
   id: string;
   numeroContrato: number;
   estado: "borrador" | "activo" | "finalizado";
-  puesto: string | null;
-  departamento: string | null;
+  puestoId: string | null;
+  puestoNombre: string | null;
+  departamentoId: string | null;
+  departamentoNombre: string | null;
   modalidadContrato: "nomina_estandar" | "comisionista_destajo" | null;
   fechaInicio: string | null;
   fechaFinPrevista: string | null;
   fechaFinReal: string | null;
   salarioBase: number | null;
+}
+
+export interface PuestoOption {
+  id: string;
+  nombre: string;
+}
+
+export interface DepartamentoOption {
+  id: string;
+  nombre: string;
 }
 
 export interface CredencialEstado {
@@ -71,6 +83,8 @@ export default function ContratoFicha({
   credencial,
   jornadasDisponibles,
   jornadaVigente,
+  puestos,
+  departamentos,
 }: {
   contrato: ContratoFichaData;
   canEditar: boolean;
@@ -84,12 +98,14 @@ export default function ContratoFicha({
   credencial: CredencialEstado | null;
   jornadasDisponibles: JornadaOption[];
   jornadaVigente: JornadaVigente | null;
+  puestos: PuestoOption[];
+  departamentos: DepartamentoOption[];
 }) {
   const { show } = useToast();
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState<ContratoInput>({
-    puesto: contrato.puesto ?? "",
-    departamento: contrato.departamento ?? "",
+    puestoId: contrato.puestoId ?? "",
+    departamentoId: contrato.departamentoId ?? "",
     modalidadContrato: contrato.modalidadContrato ?? "nomina_estandar",
     fechaInicio: contrato.fechaInicio ?? "",
     fechaFinPrevista: contrato.fechaFinPrevista ?? "",
@@ -211,18 +227,32 @@ export default function ContratoFicha({
           <form onSubmit={guardar} className="flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Puesto">
-                <input
-                  value={form.puesto}
-                  onChange={(e) => update("puesto", e.target.value)}
+                <select
+                  value={form.puestoId}
+                  onChange={(e) => update("puestoId", e.target.value)}
                   className={inputClass}
-                />
+                >
+                  <option value="">Sin asignar</option>
+                  {puestos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field label="Departamento">
-                <input
-                  value={form.departamento}
-                  onChange={(e) => update("departamento", e.target.value)}
+                <select
+                  value={form.departamentoId}
+                  onChange={(e) => update("departamentoId", e.target.value)}
                   className={inputClass}
-                />
+                >
+                  <option value="">Sin asignar</option>
+                  {departamentos.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.nombre}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field label="Modalidad">
                 <select
@@ -287,8 +317,8 @@ export default function ContratoFicha({
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3 text-sm text-neutral-700 sm:grid-cols-4">
-              <Field label="Puesto" value={contrato.puesto ?? "—"} />
-              <Field label="Departamento" value={contrato.departamento ?? "—"} />
+              <Field label="Puesto" value={contrato.puestoNombre ?? "—"} />
+              <Field label="Departamento" value={contrato.departamentoNombre ?? "—"} />
               <Field label="Inicio" value={contrato.fechaInicio ?? "—"} />
               {canVerSalario && (
                 <Field
