@@ -1,10 +1,12 @@
 # RRHH — MVP operativo: fuente de verdad
 
-> Actualizado **2026-09-17** (auditoría del botón "Crear borrador" +
+> Actualizado **2026-09-18** (auditoría del botón "Crear borrador" +
 > reglas de negocio de creación de contratos (departamento→puesto→plantilla
 > obligatorios en cascada, plantilla persistida, sin fecha fin al crear) +
-> endurecimiento de seguridad/integridad; ver sección 18 — **cambios
-> locales, migración sin aplicar, sin push/deploy**. Antes 2026-09-16,
+> endurecimiento de seguridad/integridad; ver sección 18 — código
+> commiteado y pusheado a `main` (`392f676`), **migración
+> `20260918043955_rrhh_contratos_reglas_y_endurecimiento` aplicada a
+> `nexo-core`**. Antes 2026-09-16,
 > bloque "pre-F1.5" — cédula obligatoria, favicon en RRHH/CRM, catálogos
 > de Contratación, Storage privado y expediente ampliado, resolviendo las
 > tres decisiones pendientes de §15; ver sección 17. Antes 2026-09-14,
@@ -746,8 +748,16 @@ Resumen funcional:
   el breadcrumb y el contenido. `/configuracion/marca`, favicon y login
   no se tocaron.
 
-**Todo lo de este bloque es código/migración local** — verificado con
-`tsc`/`next build`/`eslint` en `apps/rrhh`, `apps/nexo` y `apps/crm`, pero
-**sin migración aplicada** (ni remota ni local — no hay Supabase
-CLI/stack local en este entorno) **y sin commit/push/deploy**, por
-instrucción explícita del usuario para esta sesión.
+**Estado de cierre**: verificado con `tsc`/`next build`/`eslint` en
+`apps/rrhh`, `apps/nexo` y `apps/crm`; código commiteado y pusheado a
+`main` (`392f676`, 2026-09-17); migración
+`20260918043955_rrhh_contratos_reglas_y_endurecimiento` **aplicada a
+`nexo-core`** el 2026-09-18, con prechecks de solo lectura antes de
+aplicar y postchecks después (firma de RPC, `NOT NULL`, FKs compuestas,
+permisos `authenticated`/`anon`, límites del bucket) — sin hallazgos
+nuevos en `get_advisors(security)`. El archivo de migración se creó
+localmente con el prefijo `20260917100000` (fecha de escritura) y se
+renombró a `20260918043955` (versión remota real que quedó registrada al
+aplicarlo) sin tocar su contenido SQL. Sigue pendiente, sin relación con
+la migración: un recorrido autenticado real en navegador (sin
+credenciales de prueba en este entorno).

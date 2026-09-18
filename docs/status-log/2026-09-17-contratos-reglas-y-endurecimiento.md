@@ -2,12 +2,27 @@
 
 > Continuación del bloque "pre-F1.5" (ver
 > [`2026-09-16-rrhh-pre-f1-5.md`](2026-09-16-rrhh-pre-f1-5.md)), sin
-> iniciar F1.5. Todos los cambios de este bloque son **locales**: código y
-> migraciones quedaron escritos y verificados con `next build`/`tsc`/
-> `eslint`, pero **ninguna migración se aplicó al proyecto remoto
-> `nexo-core`** ni se hizo push/deploy — instrucción explícita del usuario
-> para esta sesión. Aplicar la migración y subir el código requiere
-> autorización aparte.
+> iniciar F1.5. Todos los cambios de este bloque se dejaron inicialmente
+> **locales**: código y migraciones quedaron escritos y verificados con
+> `next build`/`tsc`/`eslint`, pero **ninguna migración se aplicó al
+> proyecto remoto `nexo-core`** ni se hizo push/deploy — instrucción
+> explícita del usuario para esa sesión. Aplicar la migración y subir el
+> código requería autorización aparte.
+>
+> **✅ Resuelto 2026-09-17/18**: el usuario autorizó ambos pasos por
+> separado. Código commiteado y pusheado a `main` (`392f676`, 2026-09-17).
+> Migración aplicada a `nexo-core` el 2026-09-18 con `apply_migration`,
+> previo un precheck de solo lectura (migración no registrada, 0
+> contratos, 0 puestos sin departamento, 0 puestos activos sin plantilla
+> activa, firmas remotas de los 4 RPC todavía con la firma antigua) y un
+> postcheck posterior (migración registrada con versión remota
+> `20260918043955`, columnas `NOT NULL` confirmadas, firmas nuevas de los
+> 4 RPC confirmadas, `anon`/`PUBLIC` sin `EXECUTE`, límites del bucket
+> confirmados, `get_advisors(security)` sin hallazgos nuevos). El archivo
+> local, escrito el 17/09 con el prefijo `20260917100000`, se renombró
+> después a `20260918043955_rrhh_contratos_reglas_y_endurecimiento.sql`
+> (con `git mv`, sin tocar su SQL) para que el nombre coincida con la
+> versión remota real que quedó registrada — ver sección 8.
 
 ## 1. Causa real del botón "Crear borrador" deshabilitado
 
@@ -98,8 +113,8 @@ de contratos:
    (`raise exception`) que aborta la migración si esa condición dejó de
    ser cierta para cuando se aplique.
 
-Migración:
-[`20260917100000_rrhh_contratos_reglas_y_endurecimiento.sql`](../../supabase/migrations/20260917100000_rrhh_contratos_reglas_y_endurecimiento.sql)
+Migración (aplicada a `nexo-core` el 2026-09-18, ver sección 8):
+[`20260918043955_rrhh_contratos_reglas_y_endurecimiento.sql`](../../supabase/migrations/20260918043955_rrhh_contratos_reglas_y_endurecimiento.sql)
 (secciones 1, 5, 6 y 7 de esa migración — ver también la sección 3 de este
 documento para el resto).
 
@@ -193,7 +208,7 @@ Decisión vigente del usuario (2026-09-17):
 
 ## 5. Archivos modificados
 
-**Migraciones**: `supabase/migrations/20260917100000_rrhh_contratos_reglas_y_endurecimiento.sql` (nueva).
+**Migraciones**: `supabase/migrations/20260918043955_rrhh_contratos_reglas_y_endurecimiento.sql` (nueva; escrita el 17/09 con el prefijo `20260917100000`, renombrada el 18/09 tras aplicarla — ver sección 8).
 
 **RRHH**:
 - `contratacion/contratos/actions.ts` (nuevo tipo `CrearContratoInput`, `ContratoInput` gana `plantillaContratoId`, llamadas RPC actualizadas).
@@ -216,17 +231,20 @@ Decisión vigente del usuario (2026-09-17):
 - `next build` (Turbopack) en `apps/rrhh`, `apps/nexo` (`nexo-panel`) y `apps/crm`: los tres compilan y generan todas las rutas sin error.
 - `eslint` en `apps/rrhh`: limpio.
 - `eslint` en `apps/nexo`/`apps/crm`: cada uno tiene errores/warnings **preexistentes, en archivos no tocados en esta sesión** (`marca-form.tsx` — comillas sin escapar; `DeleteClienteButton.tsx` — `setState` síncrono en efecto; `SearchBox.tsx`/`clientes/actions.ts` — warnings de variables/eslint-disable sin uso). No se corrigieron por estar fuera del alcance de esta tarea — quedan como deuda preexistente, no introducida aquí.
-- **No se ejecutó** ninguna migración contra `nexo-core` (remoto) ni local (sin Supabase CLI/stack local disponible en este entorno) — la migración fue revisada manualmente línea por línea (firmas `DROP`/`CREATE` verificadas contra las firmas reales de `20260916150000`, nombres de constraint verificados <63 caracteres y sin colisión, guardas `raise exception` antes de cada `NOT NULL`/FK nuevo) pero **no probada por ejecución**.
-- **No se ejecutó** ningún recorrido autenticado en navegador (mismo motivo que las sesiones anteriores: sin credenciales de prueba en este entorno). No se declara "validado" el flujo — solo "implementado y compilado".
-- **No se hizo** `git push` ni deploy — instrucción explícita del usuario para esta sesión.
+- **No se ejecutó** ninguna migración contra `nexo-core` (remoto) ni local (sin Supabase CLI/stack local disponible en este entorno) en esta sesión inicial — la migración fue revisada manualmente línea por línea (firmas `DROP`/`CREATE` verificadas contra las firmas reales de `20260916150000`, nombres de constraint verificados <63 caracteres y sin colisión, guardas `raise exception` antes de cada `NOT NULL`/FK nuevo) pero **no probada por ejecución** en ese momento. **✅ Aplicada el 2026-09-18** con `apply_migration` tras un precheck/postcheck de solo lectura — ver sección 8.
+- **No se ejecutó** ningún recorrido autenticado en navegador (mismo motivo que las sesiones anteriores: sin credenciales de prueba en este entorno). Sigue sin ejecutarse — no se declara "validado" el flujo end-to-end, solo "implementado, compilado y con la migración aplicada".
+- **No se hizo** `git push` ni deploy en esta sesión inicial — instrucción explícita del usuario. **✅ Resuelto**: commit `392f676` pusheado a `main` el 2026-09-17 (turno posterior, autorizado explícitamente por el usuario).
 
 ## 7. Riesgos y deuda pendiente
 
-1. La migración `20260917100000_...` no fue aplicada ni probada por
-   ejecución (ni local ni remota) — antes de aplicarla a `nexo-core` se
-   recomienda una corrida en un branch de Supabase o un stack local, aun
-   cuando la verificación de datos (0 filas en todas las tablas afectadas)
-   hace muy improbable que las guardas `raise exception` se disparen.
+1. ~~La migración `20260917100000_...` no fue aplicada ni probada por
+   ejecución (ni local ni remota)~~ — **✅ resuelto 2026-09-18**: aplicada
+   a `nexo-core` con `apply_migration`, con prechecks/postchecks de solo
+   lectura (ver sección 8). No se probó antes en un branch de Supabase ni
+   en un stack local (seguía sin estar disponible en este entorno) — el
+   riesgo se mitigó en cambio verificando exhaustivamente el estado de
+   datos antes (0 filas en todas las tablas afectadas) y las firmas/
+   constraints/permisos después.
 2. Sigue pendiente de sesiones anteriores: `core.geografia_ni_municipios`
    vacía, falta `SUPABASE_SERVICE_ROLE_KEY` en el proyecto Vercel de
    RRHH, columnas deprecadas (`rrhh.contratos.puesto`/`.departamento`)
@@ -237,5 +255,73 @@ Decisión vigente del usuario (2026-09-17):
    contrato ya filtra correctamente por las plantillas asignadas
    (predeterminadas o no), solo la gestión masiva queda manual (upsert
    directo, no una pantalla).
-4. Nada de este bloque fue subido a `main` ni desplegado — requiere
-   autorización explícita aparte, igual que aplicar la migración.
+4. ~~Nada de este bloque fue subido a `main` ni desplegado~~ — **✅
+   resuelto**: commit `392f676` en `main` (push autorizado explícitamente
+   el 2026-09-17). Sigue sin confirmarse que el deployment de Vercel
+   disparado por ese push haya terminado `READY` en producción — no
+   verificado en ninguna sesión hasta ahora.
+
+## 8. Aplicación de la migración a `nexo-core` (2026-09-18)
+
+Autorizado explícitamente por el usuario, en un turno aparte, únicamente
+para el proyecto `nexo-core` (`yrbjlmiqhkyxtlcerowh`).
+
+**Prechecks de solo lectura** (todos pasaron):
+
+- La migración no estaba registrada en `list_migrations`.
+- `rrhh.contratos`: 0 filas.
+- `rrhh.puestos`: 0 filas sin `departamento_id`.
+- `rrhh.puestos` activos: 0 sin al menos una plantilla activa asignada
+  en `rrhh.puesto_plantillas`.
+- Firmas remotas de `public.crear_contrato`/`rrhh.fn_crear_contrato`/
+  `public.editar_contrato`/`rrhh.fn_editar_contrato`: confirmadas con la
+  firma **antigua** (con `p_fecha_fin_prevista`, sin
+  `p_plantilla_contrato_id`), coincidiendo exactamente con los `DROP
+  FUNCTION` de la migración.
+- Contenido del archivo local verificado por hash MD5 contra el blob del
+  commit `392f676` (`git show 392f676:...`) — sin drift, se aplicó
+  exactamente lo commiteado.
+
+**Aplicación**: `apply_migration` (mecanismo oficial, transaccional) —
+sin SQL manual fuera del archivo, sin duplicar la migración. Quedó
+registrada con versión remota `20260918043955`.
+
+**Postchecks** (todos confirmados):
+
+- Migración registrada en `list_migrations`/`supabase_migrations.schema_migrations`
+  como `20260918043955 rrhh_contratos_reglas_y_endurecimiento` — única
+  versión con ese nombre, ninguna versión `20260917100000`.
+- `rrhh.contratos.plantilla_contrato_id`/`puesto_id`/`departamento_id`:
+  `is_nullable = NO` en los tres.
+- `rrhh.puestos.departamento_id`: `is_nullable = NO`.
+- Firmas remotas nuevas de los 4 RPC confirmadas con
+  `pg_get_function_identity_arguments`: `crear_contrato`/
+  `fn_crear_contrato` sin `p_fecha_fin_prevista`, con
+  `p_plantilla_contrato_id` obligatorio; `editar_contrato`/
+  `fn_editar_contrato` con `p_plantilla_contrato_id` y
+  `p_fecha_fin_prevista` opcionales.
+- `has_function_privilege`: `anon.can_exec = false`,
+  `authenticated.can_exec = true` en `crear_contrato`/`editar_contrato`
+  (`PUBLIC` ya estaba revocado explícitamente por la propia migración).
+- `storage.buckets` (`rrhh-documentos-privados`): `file_size_limit =
+  10485760`, `allowed_mime_types` = pdf/jpeg/png/docx.
+- `get_advisors(security)`: sin hallazgos nuevos atribuibles a esta
+  migración — los `WARN` de `SECURITY DEFINER` en `crear_contrato`/
+  `editar_contrato` son el mismo patrón preexistente e intencional que el
+  resto de RPCs de RRHH.
+
+**Renombre del archivo local** (sin tocar su SQL): `apply_migration`
+registra la versión remota con un timestamp propio (fecha/hora real de
+aplicación), no con el prefijo del nombre del archivo local — mismo
+comportamiento ya visto en migraciones anteriores de este proyecto (ej.
+`20260916150000_...` quedó como `20260916152106` en remoto). Para que el
+archivo del repositorio refleje la versión remota real, se renombró con
+`git mv` de `20260917100000_rrhh_contratos_reglas_y_endurecimiento.sql`
+a `20260918043955_rrhh_contratos_reglas_y_endurecimiento.sql` — el
+`diff` de Git lo registra como una renombrada pura (100% similitud), sin
+ninguna línea de SQL modificada. Sin commit todavía — pendiente de
+autorización aparte del usuario.
+
+Sin errores durante la aplicación ni las verificaciones. No se ejecutó
+ningún DDL manual fuera del contenido de la migración, no se duplicó el
+SQL, no se tocó `Grupo CT/`, no se hizo commit/push/deploy en este paso.

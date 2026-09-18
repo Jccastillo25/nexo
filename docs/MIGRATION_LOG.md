@@ -2,17 +2,27 @@
 
 Orden de bitácora: más reciente arriba.
 
-## 2026-09-17 — Reglas de contratación y endurecimiento de seguridad/integridad (SIN APLICAR)
+## 2026-09-18 — Reglas de contratación y endurecimiento de seguridad/integridad (APLICADA)
 
 Contexto completo, causa raíz del bug de UI auditado y deuda en
 [`status-log/2026-09-17-contratos-reglas-y-endurecimiento.md`](status-log/2026-09-17-contratos-reglas-y-endurecimiento.md).
-**1 migración nueva, escrita y revisada manualmente pero NO aplicada** —
-ni a `nexo-core` (remoto) ni a un stack local (sin Supabase CLI/Docker
-Compose de Supabase en este entorno) — por instrucción explícita del
-usuario de trabajar solo local en esta sesión. Requiere autorización
-aparte antes de `apply_migration`.
+**1 migración, escrita y revisada manualmente el 2026-09-17, aplicada a
+`nexo-core` (remoto) el 2026-09-18** con `apply_migration` — prechecks de
+solo lectura antes de aplicar (migración no registrada, `rrhh.contratos`
+en 0 filas, sin puestos sin departamento, sin puestos activos sin
+plantilla activa, firmas remotas de los 4 RPC todavía con la firma
+antigua) y postchecks después (migración registrada con versión remota
+`20260918043955`, columnas `NOT NULL` confirmadas, firmas nuevas de los 4
+RPC confirmadas, `anon`/`PUBLIC` sin `EXECUTE`, límites del bucket
+confirmados, `get_advisors(security)` sin hallazgos nuevos). El archivo
+local se creó con el prefijo `20260917100000` (fecha de escritura) y se
+renombró a `20260918043955` (la versión remota real que quedó registrada
+al aplicarlo) sin modificar su contenido SQL — mismo desfase ya visto
+antes en este proyecto entre el prefijo de un archivo y la versión que
+`apply_migration` termina registrando (ej. `20260916150000_...` quedó
+como `20260916152106`).
 
-- `20260917100000_rrhh_contratos_reglas_y_endurecimiento` —
+- `20260918043955_rrhh_contratos_reglas_y_endurecimiento` —
   1. Integridad multiempresa: `UNIQUE (id, company_id)` en
      `rrhh.empleados`/`departamentos`/`puestos`/`plantillas_contrato`, y
      FK compuesta `(recurso_id, company_id)` en `rrhh.contratos` y las 4
