@@ -120,29 +120,36 @@ export type Database = {
           rotacion_numero: number;
         }[];
       };
-      // Fase 3 (2026-09-16, bloque pre-F1.5): p_puesto/p_departamento
-      // (texto libre) reemplazados por p_puesto_id/p_departamento_id —
-      // ver supabase/migrations/20260916150000_rrhh_catalogos_contratacion_tablas.sql.
-      // Cambio de tipo de parametro -- requirio DROP + CREATE, no
-      // CREATE OR REPLACE (Postgres distingue funciones por firma).
+      // 2026-09-17: puesto_id/departamento_id/plantilla_contrato_id pasan a
+      // ser OBLIGATORIOS (antes opcionales, Fase 3 2026-09-16) y SIN
+      // p_fecha_fin_prevista -- un borrador nunca puede nacer con fecha de
+      // fin, se elimino el parametro por completo. Valida en servidor que
+      // el puesto pertenece al departamento y que la plantilla esta
+      // asignada y activa para ese puesto -- ver
+      // supabase/migrations/20260917100000_rrhh_contratos_reglas_y_endurecimiento.sql.
+      // Cambio de firma -- requirio DROP + CREATE, no CREATE OR REPLACE.
       crear_contrato: {
         Args: {
           p_company_id: string;
-          p_departamento_id?: string;
           p_empleado_id: string;
-          p_fecha_fin_prevista?: string;
+          p_puesto_id: string;
+          p_departamento_id: string;
+          p_plantilla_contrato_id: string;
           p_fecha_inicio?: string;
           p_modalidad_contrato?: string;
-          p_puesto_id?: string;
           p_salario_base?: number;
         };
         Returns: {
           contrato_id: string;
           numero_contrato: number;
-          /** La plantilla predeterminada activa del puesto elegido, si existe -- sugerencia, no asignacion. */
-          plantilla_sugerida_id: string | null;
+          /** Persistida (no una sugerencia) -- ver rrhh.contratos.plantilla_contrato_id. */
+          plantilla_contrato_id: string;
         }[];
       };
+      // 2026-09-17: agrega p_plantilla_contrato_id (editable, revalida la
+      // relacion puesto/departamento/plantilla contra el estado
+      // resultante). fecha_fin_prevista SI se puede seguir completando al
+      // editar -- la restriccion de "no debe existir" es solo al crear.
       editar_contrato: {
         Args: {
           p_company_id: string;
@@ -151,6 +158,7 @@ export type Database = {
           p_fecha_fin_prevista?: string;
           p_fecha_inicio?: string;
           p_modalidad_contrato?: string;
+          p_plantilla_contrato_id?: string;
           p_puesto_id?: string;
           p_salario_base?: number;
         };
@@ -370,8 +378,12 @@ export type Database = {
           puesto: string | null;
           /** @deprecated Fase 3 (2026-09-16) — usar departamento_id (rrhh.departamentos, organizacional). */
           departamento: string | null;
-          puesto_id: string | null;
-          departamento_id: string | null;
+          /** Obligatorio desde 2026-09-17 (antes nullable, Fase 3 2026-09-16). */
+          puesto_id: string;
+          /** Obligatorio desde 2026-09-17 (antes nullable, Fase 3 2026-09-16). */
+          departamento_id: string;
+          /** Persistida (no una sugerencia) desde 2026-09-17 — obligatoria, validada contra rrhh.puesto_plantillas. */
+          plantilla_contrato_id: string;
           modalidad_contrato: "nomina_estandar" | "comisionista_destajo" | null;
           fecha_inicio: string | null;
           fecha_fin_prevista: string | null;
@@ -392,8 +404,9 @@ export type Database = {
           estado?: "borrador" | "activo" | "finalizado";
           puesto?: string | null;
           departamento?: string | null;
-          puesto_id?: string | null;
-          departamento_id?: string | null;
+          puesto_id: string;
+          departamento_id: string;
+          plantilla_contrato_id: string;
           modalidad_contrato?: "nomina_estandar" | "comisionista_destajo" | null;
           fecha_inicio?: string | null;
           fecha_fin_prevista?: string | null;
@@ -409,8 +422,9 @@ export type Database = {
         Update: {
           // Solo estado='borrador' es editable por RLS/UPDATE directo;
           // activar/finalizar son transiciones exclusivas de sus RPC.
-          puesto_id?: string | null;
-          departamento_id?: string | null;
+          puesto_id?: string;
+          departamento_id?: string;
+          plantilla_contrato_id?: string;
           modalidad_contrato?: "nomina_estandar" | "comisionista_destajo" | null;
           fecha_inicio?: string | null;
           fecha_fin_prevista?: string | null;
@@ -458,7 +472,8 @@ export type Database = {
         Row: {
           id: string;
           company_id: string;
-          departamento_id: string | null;
+          /** Obligatorio desde 2026-09-17 (antes nullable) — un puesto pertenece a un único departamento. */
+          departamento_id: string;
           nombre: string;
           descripcion: string | null;
           activo: boolean;
@@ -470,7 +485,7 @@ export type Database = {
         Insert: {
           id?: string;
           company_id?: string;
-          departamento_id?: string | null;
+          departamento_id: string;
           nombre: string;
           descripcion?: string | null;
           activo?: boolean;
@@ -480,7 +495,7 @@ export type Database = {
           updated_by?: string | null;
         };
         Update: {
-          departamento_id?: string | null;
+          departamento_id?: string;
           nombre?: string;
           descripcion?: string | null;
           activo?: boolean;

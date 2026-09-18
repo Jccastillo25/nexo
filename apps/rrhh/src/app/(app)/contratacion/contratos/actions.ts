@@ -5,9 +5,32 @@ import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
+/**
+ * Datos para CREAR un contrato — puesto/departamento/plantilla son
+ * obligatorios (2026-09-17, ver supabase/migrations/20260917100000_...):
+ * sin `fechaFinPrevista` a propósito, un borrador nunca puede nacer con
+ * fecha de fin (rrhh.fn_crear_contrato ni siquiera tiene ese parámetro —
+ * estructuralmente imposible de mandar, no solo omitido en la UI).
+ */
+export interface CrearContratoInput {
+  puestoId: string;
+  departamentoId: string;
+  plantillaContratoId: string;
+  modalidadContrato?: "nomina_estandar" | "comisionista_destajo";
+  fechaInicio?: string;
+  salarioBase?: number;
+}
+
+/**
+ * Datos para EDITAR un contrato en borrador — a diferencia de crear, acá sí
+ * se puede completar `fechaFinPrevista` (la restricción de "no debe
+ * existir" es solo al crear, ver CrearContratoInput). Todos los campos son
+ * opcionales — solo se actualiza lo que se manda (coalesce en el RPC).
+ */
 export interface ContratoInput {
   puestoId?: string;
   departamentoId?: string;
+  plantillaContratoId?: string;
   modalidadContrato?: "nomina_estandar" | "comisionista_destajo";
   fechaInicio?: string;
   fechaFinPrevista?: string;
@@ -22,8 +45,6 @@ export interface ActionResult {
 export interface CrearContratoResult extends ActionResult {
   /** Id del contrato recien creado — se usa para redirigir a su ficha. */
   contratoId?: string;
-  /** Plantilla predeterminada activa del puesto elegido, si existe (Fase 3) — sugerencia, no se asigna sola. */
-  plantillaSugeridaId?: string | null;
 }
 
 export interface PinResult {
@@ -72,7 +93,7 @@ export interface AsignarJornadaResult {
  */
 export async function crearContrato(
   empleadoId: string,
-  input: ContratoInput
+  input: CrearContratoInput
 ): Promise<CrearContratoResult> {
   const supabase = await createClient();
   const companyId = getCompanyId();
@@ -87,11 +108,11 @@ export async function crearContrato(
   const { data, error } = await supabase.rpc("crear_contrato", {
     p_company_id: companyId,
     p_empleado_id: empleadoId,
-    p_puesto_id: input.puestoId || undefined,
-    p_departamento_id: input.departamentoId || undefined,
+    p_puesto_id: input.puestoId,
+    p_departamento_id: input.departamentoId,
+    p_plantilla_contrato_id: input.plantillaContratoId,
     p_modalidad_contrato: input.modalidadContrato,
     p_fecha_inicio: input.fechaInicio || undefined,
-    p_fecha_fin_prevista: input.fechaFinPrevista || undefined,
     p_salario_base: input.salarioBase,
   });
 
@@ -101,7 +122,6 @@ export async function crearContrato(
   return {
     ok: true,
     contratoId: data?.[0]?.contrato_id,
-    plantillaSugeridaId: data?.[0]?.plantilla_sugerida_id,
   };
 }
 
@@ -124,6 +144,7 @@ export async function editarContrato(
     p_company_id: companyId,
     p_puesto_id: input.puestoId || undefined,
     p_departamento_id: input.departamentoId || undefined,
+    p_plantilla_contrato_id: input.plantillaContratoId || undefined,
     p_modalidad_contrato: input.modalidadContrato,
     p_fecha_inicio: input.fechaInicio || undefined,
     p_fecha_fin_prevista: input.fechaFinPrevista || undefined,

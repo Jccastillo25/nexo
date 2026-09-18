@@ -117,9 +117,19 @@ export interface ConfirmarSubidaInput extends PedirSubidaInput {
 
 /**
  * Paso 2 de 2: el navegador ya subio el archivo directo a Storage con el
- * token de pedirUrlSubidaDocumento -- esto solo crea la fila de metadata
- * (RLS/requirePermission de nuevo, por si el token se uso pero esta accion
- * se llama con datos manipulados).
+ * token de pedirUrlSubidaDocumento -- esto crea la fila de metadata (RLS/
+ * requirePermission de nuevo, por si el token se uso pero esta accion se
+ * llama con datos manipulados).
+ *
+ * 2026-09-17 (hallazgo de seguridad, bloque pre-F1.5): hasta ahora esto
+ * insertaba `mime_type`/`tamano_bytes` directo desde `input`, es decir,
+ * confiaba en metadata que el NAVEGADOR reporta sobre su propio archivo --
+ * un cliente manipulado podia declarar "10KB / PDF" y subir en realidad
+ * algo mas grande o de otro tipo (Storage ya lo hubiera rechazado si el
+ * bucket tuviera limites configurados, pero la fila de metadata igual
+ * hubiera quedado con datos falsos). Ahora se lee el objeto REAL desde
+ * Storage (list() sobre la carpeta, con el nombre exacto) y se valida/
+ * persiste su tamaño y mimetype reales -- nunca los que mando el cliente.
  */
 export async function confirmarDocumentoSubido(
   empleadoId: string,
@@ -135,8 +145,47 @@ export async function confirmarDocumentoSubido(
     throw err;
   }
 
-  if (!input.path.startsWith(`${companyId}/empleados/${empleadoId}/`)) {
+  const prefix = `${companyId}/empleados/${empleadoId}/`;
+  if (!input.path.startsWith(prefix)) {
     return { ok: false, message: "Ruta de archivo inválida." };
+  }
+
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch (err) {
+    return {
+      ok: false,
+      message: `No se pudo inicializar el cliente de Storage: ${(err as Error).message}.`,
+    };
+  }
+
+  const folder = input.path.slice(0, input.path.lastIndexOf("/"));
+  const filename = input.path.slice(input.path.lastIndexOf("/") + 1);
+  const { data: listado, error: listError } = await admin.storage
+    .from(BUCKET)
+    .list(folder, { search: filename });
+  if (listError) return { ok: false, message: `No se pudo verificar la subida: ${listError.message}` };
+
+  const objetoReal = listado?.find((f) => f.name === filename);
+  if (!objetoReal || !objetoReal.metadata) {
+    return {
+      ok: false,
+      message: "El archivo no se encontró en Storage — la subida pudo fallar o todavía no terminó.",
+    };
+  }
+
+  const tamanoReal = Number(objetoReal.metadata.size);
+  const mimeReal = String(objetoReal.metadata.mimetype ?? "");
+
+  if (!Number.isFinite(tamanoReal) || tamanoReal <= 0 || tamanoReal > MAX_BYTES) {
+    return { ok: false, message: `El archivo supera el máximo permitido de ${MAX_BYTES / (1024 * 1024)} MB.` };
+  }
+  if (!ALLOWED_MIME.has(mimeReal)) {
+    return { ok: false, message: "Formato no permitido. Usá PDF, JPG, PNG o Word (.docx)." };
+  }
+  if (!TIPOS.includes(input.tipoDocumento)) {
+    return { ok: false, message: "Tipo de documento inválido." };
   }
 
   const { error } = await supabase.schema("rrhh").from("empleado_documentos").insert({
@@ -145,8 +194,8 @@ export async function confirmarDocumentoSubido(
     tipo_documento: input.tipoDocumento,
     storage_path: input.path,
     nombre_original: input.nombreOriginal,
-    mime_type: input.mimeType,
-    tamano_bytes: input.tamanoBytes,
+    mime_type: mimeReal,
+    tamano_bytes: tamanoReal,
   });
 
   if (error) return { ok: false, message: error.message };

@@ -99,28 +99,33 @@ API correcta: cada `FormTab` lleva su `content: ReactNode` ya resuelto
 nuevo de `FormTabs` debe pasar `content` por tab, nunca `children` como
 función.
 
-**`NexoShell` — logo dinámico, en la cabecera del sidebar (movido
-2026-09-14, antes vivía en `NexoTopbar`)**: prop `logoUrl`
-(`core.platform_settings.logo_url`, editable en Nexo → Configuración →
-Marca) — `NexoShell` se lo pasa a `NexoSidebar`, que lo muestra arriba de
-todo, clickeable, con `aria-label="Volver al inicio de Nexo"`. Click en
-el logo → vuelve al App Launcher (`backHref` en un módulo, navegación
-real de Multi-Zones; `"/"` en el propio panel). Sin logo configurado,
-cae al wordmark "N" por defecto, nunca un logo hardcodeado de otro
-módulo. `NexoTopbar` ya NO muestra logo — quedaría duplicado. Cada app
-que quiera mostrar el logo lo resuelve con su propio
-`lib/platform-settings.ts` (mismo patrón duplicado a propósito que
-`getCopyrightText`) y se lo pasa a `NexoShell`. Las tres apps (`nexo`,
-`rrhh`, `crm`) lo hacen desde 2026-09-14 — antes solo `apps/rrhh` lo
-hacía.
+**`NexoShell`/`NexoSidebar` — cabecera con texto fijo "Nexo" (2026-09-17,
+reemplaza el logo dinámico de 2026-09-14)**: la cabecera del sidebar ya
+NO muestra el logo/ícono de marca (`core.platform_settings.logo_url`) ni
+el nombre de la app activa (antes "RRHH"/"CRM"/"Nexo" junto al logo) —
+muestra exclusivamente el texto **"Nexo"**, siempre igual en las 3 apps,
+clickeable, con `aria-label="Volver al inicio de Nexo"`. Click → vuelve
+al App Launcher (`backHref` en un módulo, navegación real de Multi-Zones;
+`"/"` en el propio panel). `NexoSidebar` ya no acepta las props
+`logoUrl`/`moduleLabel`/`moduleHref` (se retiraron de su interfaz, junto
+con el wiring correspondiente en `NexoShell` y en los 3
+`(app)/layout.tsx`) — el nombre de la app activa sigue visible, pero
+únicamente en el **breadcrumb** de `NexoTopbar` (que `NexoShell` arma
+igual que antes a partir de `moduleLabel`) y en el contenido de cada
+página, nunca en el encabezado que sirve para volver al Launcher.
+`core.platform_settings.logo_url`/`getLogoUrl()`/`/configuracion/marca`
+siguen existiendo sin cambios — solo dejaron de tener un consumidor en el
+sidebar; `BackToPanelLink` (pantallas `sin-acceso`) y el login siguen
+mostrando el logo igual que antes, sin tocar.
 
 **Ya no existe el patrón de texto "← Volver a Nexo"** (retirado
-2026-09-14, decisión vigente del usuario) — el logo de la cabecera del
-sidebar cumple esa función. `BackToPanelLink`
+2026-09-14, decisión vigente del usuario) — el texto "Nexo" de la
+cabecera del sidebar cumple esa función. `BackToPanelLink`
 ([`packages/ui/BackToPanelLink.tsx`](../packages/ui/BackToPanelLink.tsx))
 ya no acepta un `label` de texto: es exclusivamente un link con el
-logo/wordmark, mismo patrón visual que la cabecera del sidebar, usado en
-pantallas fuera del layout autenticado normal (ej. `sin-acceso`).
+logo/wordmark, usado en pantallas fuera del layout autenticado normal
+(ej. `sin-acceso`) — no se tocó en el cambio de 2026-09-17, sigue siendo
+la única excepción documentada que sí muestra el logo gráfico.
 
 **El tema oscuro + `.nexo-glass` sigue existiendo**, en `tokens.css`, pero
 acotado exclusivamente a `apps/rrhh/src/app/kiosco` (pantalla inmersiva de
@@ -143,11 +148,14 @@ dentro de esa app", y eso incluye a Nexo mismo). El árbol de abajo
 refleja el estado actual, no el de 2026-09-07:
 
 ```text
-Nexo (sidebar de apps/nexo — solo páginas propias de Nexo)
-├── Dashboard          (el App Launcher mismo, "/")
+Nexo (sidebar de (app)/layout.tsx en apps/nexo — 2026-09-17: SOLO envuelve
+      /configuracion/marca, "/" ya no vive bajo este layout ni usa este sidebar)
+├── Inicio             (vuelve a "/", el App Launcher — antes "Dashboard")
 └── Configuración → Marca
 
-Launcher (contenido de "/", NO es sidebar — grilla de módulos habilitados)
+Launcher ("/", app/page.tsx — 2026-09-17: SIN NexoShell, sin sidebar/topbar/
+          buscador/menú de usuario; header propio mínimo: "Nexo" + correo +
+          Cerrar sesión)
 ├── RRHH
 ├── CRM
 ├── Transporte          (sin href — Flotilla no está en Multi-Zones todavía)
@@ -206,11 +214,20 @@ módulo y no sigue esta regla.** Reconciliación de navegación 2026-09-14
 de aplicaciones — responde "¿a qué aplicación quiero entrar?", nunca un
 dashboard con KPIs/actividad/pendientes cruzados entre módulos. La
 versión anterior de esta página ("Torre de Control": saludo + KPIs +
-grid de módulos, 2026-09-07) quedó retirada — ver
-[`apps/nexo/src/app/(app)/page.tsx`](../apps/nexo/src/app/(app)/page.tsx)
-(hoy: header "Aplicaciones" + grilla de módulos habilitados por
-categoría, sin KPIs). El árbol de navegación de referencia más abajo
-también cambió: el sidebar de `apps/nexo` ya no lista RRHH/CRM/
+grid de módulos, 2026-09-07) quedó retirada. **2026-09-17: además de sin
+KPIs, "/" pasa a no tener NINGÚN chrome de módulo** — se movió de
+`(app)/page.tsx` a
+[`apps/nexo/src/app/page.tsx`](../apps/nexo/src/app/page.tsx) (fuera del
+grupo `(app)`, que hasta entonces la envolvía en `NexoShell` con
+sidebar/topbar/breadcrumb/buscador/menú de usuario) — ahora es una página
+sin `NexoShell` en absoluto: header propio mínimo ("Nexo" en texto fijo
+sin link + correo + "Cerrar sesión", sin dropdown ni buscador) seguido de
+la grilla de módulos habilitados por categoría. `/configuracion/marca`
+sigue siendo la única ruta envuelta por `(app)/layout.tsx` — conserva su
+`NexoShell` sin cambios de comportamiento, solo que ya no se llega ahí
+desde un menú del Launcher (el Launcher no tiene topbar/menú de usuario)
+— sigue accesible por URL directa. El árbol de navegación de referencia
+más abajo también cambió: el sidebar de `apps/nexo` ya no lista RRHH/CRM/
 Transporte/Fabricación (eso es contenido del Launcher, no navegación
 interna de "la app Nexo") — ver la sección siguiente.
 
@@ -248,7 +265,7 @@ funcionaba en local por coincidencia y rompía en producción real.
 **Las únicas excepciones, a propósito, son los links que vuelven al App
 Launcher** — cruzan de módulo (de *zona* en Multi-Zones), así que
 necesitan una navegación real del navegador, nunca client-side routing:
-el logo de la cabecera de `NexoSidebar` (inline en
+el texto "Nexo" de la cabecera de `NexoSidebar` (inline en
 [`packages/ui/NexoSidebar.tsx`](../packages/ui/NexoSidebar.tsx), apunta a
 `backHref`/`"/"`) y
 [`packages/ui/BackToPanelLink.tsx`](../packages/ui/BackToPanelLink.tsx)

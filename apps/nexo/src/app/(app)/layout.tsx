@@ -31,7 +31,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       onSignOut={signOut}
       settingsHref="/configuracion/marca"
       footerText={settings.copyrightText}
-      logoUrl={settings.logoUrl}
     >
       {children}
     </NexoShell>

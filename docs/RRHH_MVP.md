@@ -1,6 +1,19 @@
 # RRHH — MVP operativo: fuente de verdad
 
-> Actualizado **2026-09-16** (bloque "pre-F1.5" — cédula obligatoria, favicon en RRHH/CRM, catálogos de Contratación, Storage privado y expediente ampliado, resolviendo las tres decisiones pendientes de §15; ver sección 17. Antes 2026-09-14, reconciliación de navegación — separación real de Expediente/Contratación §4.1/§4.2 y edición real del Expediente General; antes 2026-09-08, fix de estabilización — expedientes, contratos, jornadas y navegación, sección 16). Este documento define qué significa “RRHH MVP listo”. Debe leerse junto a `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`, `IMPLEMENTATION_STATUS.md` y `DRIVER_ACCESS_AND_KIOSK.md`.
+> Actualizado **2026-09-17** (auditoría del botón "Crear borrador" +
+> reglas de negocio de creación de contratos (departamento→puesto→plantilla
+> obligatorios en cascada, plantilla persistida, sin fecha fin al crear) +
+> endurecimiento de seguridad/integridad; ver sección 18 — **cambios
+> locales, migración sin aplicar, sin push/deploy**. Antes 2026-09-16,
+> bloque "pre-F1.5" — cédula obligatoria, favicon en RRHH/CRM, catálogos
+> de Contratación, Storage privado y expediente ampliado, resolviendo las
+> tres decisiones pendientes de §15; ver sección 17. Antes 2026-09-14,
+> reconciliación de navegación — separación real de Expediente/Contratación
+> §4.1/§4.2 y edición real del Expediente General; antes 2026-09-08, fix
+> de estabilización — expedientes, contratos, jornadas y navegación,
+> sección 16). Este documento define qué significa “RRHH MVP listo”. Debe
+> leerse junto a `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`,
+> `IMPLEMENTATION_STATUS.md` y `DRIVER_ACCESS_AND_KIOSK.md`.
 
 RRHH no se considera terminado por cantidad de pantallas ni por infraestructura desplegada. Debe ejecutarse de punta a punta el flujo aprobado.
 
@@ -155,6 +168,13 @@ borrador → activo → finalizado
 Un contrato activo simultáneo por empleado/empresa para el MVP — **enforced por un unique index parcial**, no solo por convención de UI.
 
 Debe conservar historial y no borrarse físicamente luego de activación — **sin policy de `DELETE`** en `rrhh.contratos`.
+
+**Reglas de creación (2026-09-17, ver sección 18)**: puesto, departamento
+y plantilla de contrato son obligatorios y se validan en servidor (mismo
+tenant, puesto pertenece al departamento, plantilla asignada y activa
+para ese puesto); la plantilla elegida se **persiste**
+(`plantilla_contrato_id`), no solo se sugiere; un borrador nunca puede
+nacer con `fecha_fin_prevista` (se puede completar recién al editar).
 
 ## 4.3 Compensación contractual
 
@@ -675,3 +695,59 @@ de prueba, misma limitación que el cierre del 2026-09-14); columnas de
 texto libre deprecadas (`rrhh.contratos.puesto`/`.departamento`, columnas
 laborales viejas de `rrhh.empleados`) siguen sin una migración de
 limpieza física.
+
+---
+
+# 18. Auditoría del botón "Crear borrador" + reglas de contratación + endurecimiento (2026-09-17)
+
+Bloque pedido explícitamente por el usuario, continuación directa del
+bloque "pre-F1.5" del 2026-09-16, **sin iniciar F1.5**. Detalle completo,
+causa raíz, migración y deuda:
+[`docs/status-log/2026-09-17-contratos-reglas-y-endurecimiento.md`](status-log/2026-09-17-contratos-reglas-y-endurecimiento.md).
+Resumen funcional:
+
+- **Causa real del botón deshabilitado**: no era de negocio (0 contratos
+  en remoto en el momento del reporte) sino un bug de UI — el `<select>`
+  de empleados no tenía opción vacía, así que el navegador resaltaba
+  visualmente el primer empleado de la lista sin que React lo registrara
+  como elegido. Corregido con una opción vacía explícita y un banner de
+  motivo siempre visible (con link al contrato existente cuando el
+  bloqueo es por un contrato ya abierto).
+- **Reglas de creación de contrato**: departamento se elige primero y
+  filtra los puestos disponibles (solo activos de ese departamento);
+  puesto, departamento y plantilla de contrato son obligatorios; la
+  plantilla elegida se persiste en `rrhh.contratos.plantilla_contrato_id`
+  (ya no es solo una "sugerencia" descartable); un borrador nunca puede
+  nacer con `fecha_fin_prevista` (el parámetro se elimina de
+  `fn_crear_contrato`, sí se puede completar al editar). Todo validado en
+  el propio RPC — mismo tenant, puesto pertenece al departamento,
+  plantilla asignada y activa para el puesto — nunca solo en los
+  `<select>` del navegador.
+- **Integridad multiempresa**: FK compuesta `(id, company_id)` en
+  `rrhh.empleados`/`rrhh.departamentos`/`rrhh.puestos`/
+  `rrhh.plantillas_contrato`, y FK compuesta correspondiente en toda tabla
+  que antes guardaba `company_id` por separado del recurso que referencia
+  (`rrhh.contratos`, las 4 tablas de expediente ampliado,
+  `rrhh.empleado_documentos`, `rrhh.puesto_plantillas`) — cierra una vía
+  teórica para mezclar datos entre empresas.
+- **Condición de carrera corregida**: el trigger de validación de
+  porcentaje de beneficiarios (2026-09-16) ahora toma un lock de fila
+  sobre el empleado antes de sumar — dos escrituras concurrentes ya no
+  pueden superar 100% en conjunto.
+- **Storage endurecido**: el bucket `rrhh-documentos-privados` gana
+  límites reales (`file_size_limit`/`allowed_mime_types`) a nivel de
+  infraestructura; `confirmarDocumentoSubido` verifica el objeto y su
+  metadata REALES en Storage en vez de confiar en lo que reporta el
+  navegador.
+- **Navegación/identidad visual**: `/` de `apps/nexo` es exclusivamente el
+  App Launcher, sin ningún chrome de módulo (sin sidebar/topbar/
+  buscador/menú); el sidebar de RRHH/CRM/Nexo muestra texto fijo "Nexo"
+  en vez del logo/nombre de la app activa — el nombre de la app sigue en
+  el breadcrumb y el contenido. `/configuracion/marca`, favicon y login
+  no se tocaron.
+
+**Todo lo de este bloque es código/migración local** — verificado con
+`tsc`/`next build`/`eslint` en `apps/rrhh`, `apps/nexo` y `apps/crm`, pero
+**sin migración aplicada** (ni remota ni local — no hay Supabase
+CLI/stack local en este entorno) **y sin commit/push/deploy**, por
+instrucción explícita del usuario para esta sesión.

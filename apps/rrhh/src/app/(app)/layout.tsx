@@ -4,7 +4,6 @@ import { NexoShell } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { getPanelUrl } from "@/lib/panel";
-import { getLogoUrl } from "@/lib/platform-settings";
 import { RRHH_NAV_ITEMS } from "@/lib/nav";
 import { signOut } from "./actions";
 
@@ -33,11 +32,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // de en cascada (antes: esperar el permiso de modulo antes de siquiera
   // empezar a pedir el usuario/panelUrl/logo, un round-trip innecesario en
   // cada click del sidebar).
-  const [canSeeModule, panelUrl, { data: { user } }, logoUrl] = await Promise.all([
+  const [canSeeModule, panelUrl, { data: { user } }] = await Promise.all([
     hasPermission({ supabase, companyId }, "rrhh.ver_modulo"),
     getPanelUrl(),
     supabase.auth.getUser(),
-    getLogoUrl(supabase),
   ]);
 
   if (!canSeeModule) {
@@ -52,7 +50,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       userEmail={user?.email}
       onSignOut={signOut}
       backHref={panelUrl}
-      logoUrl={logoUrl}
     >
       {children}
     </NexoShell>

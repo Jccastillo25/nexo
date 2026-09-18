@@ -18,8 +18,6 @@ import { isNavItemActive, type NexoNavItem } from "./nexo-nav";
 
 export interface NexoSidebarProps {
   items: NexoNavItem[];
-  moduleLabel: string;
-  moduleHref?: string;
   pathname: string;
   collapsed: boolean;
   onToggleCollapsed: () => void;
@@ -28,23 +26,16 @@ export interface NexoSidebarProps {
   /** URL absoluta del panel (apps/nexo) — omitir en el propio panel, donde
    * el logo ya apunta a "/" (mismo criterio que ShellBar.backHref). */
   backHref?: string;
-  /** core.platform_settings.logo_url — vive en la cabecera del sidebar
-   * (reconciliacion de navegacion 2026-09-14: antes vivia en el topbar).
-   * Sin configurar, cae al wordmark "N" por defecto. */
-  logoUrl?: string | null;
 }
 
 export function NexoSidebar({
   items,
-  moduleLabel,
-  moduleHref,
   pathname,
   collapsed,
   onToggleCollapsed,
   mobileOpen,
   onCloseMobile,
   backHref,
-  logoUrl,
 }: NexoSidebarProps) {
   // Click en el logo → vuelve al App Launcher de Nexo (decision vigente).
   // En un modulo (RRHH/CRM) eso es una navegacion real de Multi-Zones
@@ -114,27 +105,17 @@ export function NexoSidebar({
           }`}
         >
           <div className={`flex min-w-0 items-center gap-2 ${collapsed ? "md:hidden" : ""}`}>
+            {/* Texto fijo "Nexo" — nunca el logo/ícono gráfico de marca ni
+                el nombre de la app activa (decisión vigente 2026-09-17): el
+                nombre de la app va en el breadcrumb/contenido, este
+                encabezado es exclusivamente "volver al Launcher". */}
             <a
               href={logoHref}
               aria-label="Volver al inicio de Nexo"
-              className="flex flex-shrink-0 items-center justify-center rounded-md transition-opacity hover:opacity-80"
+              className="truncate text-sm font-semibold tracking-tight text-white transition-opacity hover:opacity-80"
             >
-              {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt="" className="h-8 w-8 rounded-md object-contain" />
-              ) : (
-                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
-                  N
-                </span>
-              )}
+              Nexo
             </a>
-            {moduleHref ? (
-              <Link href={moduleHref} className="truncate text-sm font-semibold tracking-tight">
-                {moduleLabel}
-              </Link>
-            ) : (
-              <span className="truncate text-sm font-semibold tracking-tight">{moduleLabel}</span>
-            )}
           </div>
           <button
             type="button"

@@ -39,10 +39,6 @@ export interface NexoShellProps {
   /** Texto de copyright (core.platform_settings.copyright_text) — omitir
    * para no mostrar footer. */
   footerText?: string;
-  /** core.platform_settings.logo_url — se muestra en la cabecera del
-   * sidebar (reconciliacion de navegacion 2026-09-14); sin configurar,
-   * NexoSidebar cae al wordmark "N" por defecto. */
-  logoUrl?: string | null;
   children: React.ReactNode;
 }
 
@@ -57,7 +53,6 @@ export function NexoShell({
   searchPlaceholder,
   backHref,
   footerText,
-  logoUrl,
   children,
 }: NexoShellProps) {
   const pathname = usePathname();
@@ -75,15 +70,12 @@ export function NexoShell({
       <div className="flex min-h-screen bg-[var(--nexo-enterprise-bg)]">
         <NexoSidebar
           items={items}
-          moduleLabel={moduleLabel}
-          moduleHref={moduleHref}
           pathname={pathname}
           collapsed={collapsed}
           onToggleCollapsed={() => setCollapsed((v) => !v)}
           mobileOpen={mobileOpen}
           onCloseMobile={() => setMobileOpen(false)}
           backHref={backHref}
-          logoUrl={logoUrl}
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <NexoTopbar

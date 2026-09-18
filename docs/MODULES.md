@@ -2,17 +2,22 @@
 
 > Estado funcional de alto nivel. Para objetivo y orden de implementación ver `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`; para realidad detallada ver `IMPLEMENTATION_STATUS.md`.
 
-Actualizado: **2026-09-16** (bloque "pre-F1.5" — cédula obligatoria,
-favicon en RRHH/CRM, catálogos de Contratación, Storage privado y
-expediente ampliado; antes 2026-09-14, reconciliación de navegación — App
-Launcher, Expediente/Contratación separados, edición real de expediente;
-antes 2026-09-08, fix de estabilización RRHH — ver `IMPLEMENTATION_STATUS.md`).
+Actualizado: **2026-09-17** (auditoría del botón "Crear borrador" +
+reglas de contratación (puesto/departamento/plantilla obligatorios y en
+cascada, plantilla persistida) + endurecimiento de seguridad/integridad +
+App Launcher sin ningún chrome de módulo + sidebar con texto fijo "Nexo"
+— **local, sin migración aplicada ni push/deploy**; antes 2026-09-16,
+bloque "pre-F1.5" — cédula obligatoria, favicon en RRHH/CRM, catálogos de
+Contratación, Storage privado y expediente ampliado; antes 2026-09-14,
+reconciliación de navegación — App Launcher, Expediente/Contratación
+separados, edición real de expediente; antes 2026-09-08, fix de
+estabilización RRHH — ver `IMPLEMENTATION_STATUS.md`).
 
 | Módulo / superficie | Ruta / plataforma | Estado | Nota |
 |---|---|---|---|
-| Panel Nexo | `/` | ✅ Operativo | Login, launcher y módulos por permiso. |
+| Panel Nexo | `/` | ✅ Operativo | Login, launcher y módulos por permiso. Desde 2026-09-17 (local, sin desplegar): `/` es exclusivamente el App Launcher, sin ningún chrome de módulo (sin sidebar/topbar/buscador). |
 | CRM | `/crm` | 🟡 Base operativa | Cliente CRUD + dashboard. Falta CRM completo: leads, oportunidades, actividades, cotizaciones y pedido. |
-| RRHH | `/rrhh` | 🟡 En validación | Expediente General (persona) y Contratación (relación laboral: contratos/PIN/jornadas/catálogos) separados como dominios reales desde 2026-09-14. Desde 2026-09-16: cédula obligatoria, catálogos de puestos/departamentos/plantillas, Storage privado de documentos y expediente ampliado (Dirección/Info. complementaria/Cuentas bancarias/Beneficiario) — implementado y compilado, sin recorrido autenticado real (sin credenciales de prueba) ni municipios de Nicaragua cargados (ver `IMPLEMENTATION_STATUS.md`). Falta consolidación de asistencia y planillas (F1.5+). |
+| RRHH | `/rrhh` | 🟡 En validación | Expediente General (persona) y Contratación (relación laboral: contratos/PIN/jornadas/catálogos) separados como dominios reales desde 2026-09-14. Desde 2026-09-16: cédula obligatoria, catálogos de puestos/departamentos/plantillas, Storage privado de documentos y expediente ampliado (Dirección/Info. complementaria/Cuentas bancarias/Beneficiario). Desde 2026-09-17 (local, migración sin aplicar): puesto/departamento/plantilla obligatorios y validados server-side al crear un contrato, plantilla persistida, integridad multiempresa reforzada (FKs compuestas), condición de carrera corregida en beneficiarios, límites reales del bucket de Storage — implementado y compilado, sin recorrido autenticado real (sin credenciales de prueba) ni municipios de Nicaragua cargados (ver `IMPLEMENTATION_STATUS.md`). Falta consolidación de asistencia y planillas (F1.5+). |
 | Kiosko RRHH | `/rrhh/kiosco` | ✅ Migrado a PIN contractual | Dispositivo + PIN, validado contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. |
 | Flotilla / Transporte admin | `/flotilla` | ⏳ Código importado | Ruta360 está en el monorepo pero sin adaptar a `nexo-core`, Multi-Zones ni permisos Nexo. |
 | Panel de Conductor Web | ruta final por definir dentro de `/flotilla` | ⏳ Pendiente de adaptación | Superficie operacional distinta del panel administrativo. Login con usuario+contraseña; misma identidad que Mobile. |

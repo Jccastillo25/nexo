@@ -64,6 +64,10 @@ export default function PuestosPanel({
 
   function crear(e: React.FormEvent) {
     e.preventDefault();
+    if (!nuevo.departamentoId) {
+      setError("Elegí un departamento para este puesto.");
+      return;
+    }
     setError(null);
     startTransition(async () => {
       const res = await crearPuesto(nuevo);
@@ -84,6 +88,10 @@ export default function PuestosPanel({
   }
 
   function guardarEdicion(p: PuestoRow) {
+    if (!editForm.departamentoId) {
+      setError("Elegí un departamento para este puesto.");
+      return;
+    }
     setError(null);
     startTransition(async () => {
       const res = await editarPuesto(p.id, { ...editForm, activo: p.activo });
@@ -156,13 +164,14 @@ export default function PuestosPanel({
             />
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Departamento (opcional)</span>
+            <span className="text-neutral-500">Departamento</span>
             <select
+              required
               value={nuevo.departamentoId}
               onChange={(e) => setNuevo((n) => ({ ...n, departamentoId: e.target.value }))}
               className={inputClass}
             >
-              <option value="">Sin asignar</option>
+              <option value="">— Elegí un departamento —</option>
               {departamentos.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.nombre}
@@ -214,11 +223,12 @@ export default function PuestosPanel({
                   className={inputClass}
                 />
                 <select
+                  required
                   value={editForm.departamentoId}
                   onChange={(e) => setEditForm((f) => ({ ...f, departamentoId: e.target.value }))}
                   className={inputClass}
                 >
-                  <option value="">Sin departamento</option>
+                  <option value="">— Elegí un departamento —</option>
                   {departamentos.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.nombre}

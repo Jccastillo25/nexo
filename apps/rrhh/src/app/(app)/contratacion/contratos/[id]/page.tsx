@@ -11,6 +11,8 @@ import ContratoFicha, {
   type JornadaVigente,
   type PuestoOption,
   type DepartamentoOption,
+  type PlantillaOption,
+  type PuestoPlantillaOption,
 } from "./contrato-ficha";
 
 export const metadata: Metadata = {
@@ -46,6 +48,7 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
     canVerTurnos,
     canVerPuestos,
     canVerDepartamentos,
+    canVerPlantillas,
   ] = await Promise.all([
     hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.ver"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar"),
@@ -58,6 +61,7 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
     hasPermission({ supabase, companyId }, "rrhh.asistencia.turnos.ver"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.puestos.ver"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.departamentos.ver"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.plantillas.ver"),
   ]);
 
   if (!canVer) {
@@ -73,7 +77,7 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
     .schema("rrhh")
     .from("contratos")
     .select(
-      "id, empleado_id, numero_contrato, estado, puesto_id, departamento_id, modalidad_contrato, fecha_inicio, fecha_fin_prevista, fecha_fin_real, empleados(nombre, apellido), puestos(nombre), departamentos(nombre)"
+      "id, empleado_id, numero_contrato, estado, puesto_id, departamento_id, plantilla_contrato_id, modalidad_contrato, fecha_inicio, fecha_fin_prevista, fecha_fin_real, empleados(nombre, apellido), puestos(nombre), departamentos(nombre), plantillas_contrato(nombre)"
     )
     .eq("id", id)
     .eq("company_id", companyId)
@@ -89,9 +93,17 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
   const empleado = contrato.empleados as unknown as { nombre: string; apellido: string } | null;
   const puestoActual = contrato.puestos as unknown as { nombre: string } | null;
   const departamentoActual = contrato.departamentos as unknown as { nombre: string } | null;
+  const plantillaActual = contrato.plantillas_contrato as unknown as { nombre: string } | null;
 
-  const [compensacionRes, jornadasCatalogoRes, vigenteRes, credencialRes, puestosRes, departamentosRes] =
-    await Promise.all([
+  const [
+    compensacionRes,
+    jornadasCatalogoRes,
+    vigenteRes,
+    credencialRes,
+    puestosRes,
+    departamentosRes,
+    plantillasRes,
+  ] = await Promise.all([
       canVerSalario
         ? supabase
             .schema("rrhh")
@@ -127,7 +139,7 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
         ? supabase
             .schema("rrhh")
             .from("puestos")
-            .select("id, nombre")
+            .select("id, nombre, departamento_id")
             .eq("company_id", companyId)
             .eq("activo", true)
             .order("nombre")
@@ -141,9 +153,42 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
             .eq("activo", true)
             .order("nombre")
         : Promise.resolve({ data: null }),
+      canVerPlantillas
+        ? supabase
+            .schema("rrhh")
+            .from("plantillas_contrato")
+            .select("id, nombre")
+            .eq("company_id", companyId)
+            .eq("activo", true)
+            .order("nombre")
+        : Promise.resolve({ data: null }),
     ]);
-  const puestos: PuestoOption[] = puestosRes.data ?? [];
+  const puestos: PuestoOption[] = (puestosRes.data ?? []).map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    departamentoId: p.departamento_id,
+  }));
   const departamentos: DepartamentoOption[] = departamentosRes.data ?? [];
+  const plantillas: PlantillaOption[] = plantillasRes.data ?? [];
+
+  let puestoPlantillas: PuestoPlantillaOption[] = [];
+  if (canVerPlantillas && puestos.length > 0) {
+    const { data: relaciones } = await supabase
+      .schema("rrhh")
+      .from("puesto_plantillas")
+      .select("puesto_id, plantilla_id, predeterminada")
+      .eq("company_id", companyId)
+      .eq("activo", true)
+      .in(
+        "puesto_id",
+        puestos.map((p) => p.id)
+      );
+    puestoPlantillas = (relaciones ?? []).map((r) => ({
+      puestoId: r.puesto_id,
+      plantillaId: r.plantilla_id,
+      predeterminada: r.predeterminada,
+    }));
+  }
 
   const salarioBase =
     (compensacionRes.data as { salario_base: number } | null)?.salario_base ?? null;
@@ -195,6 +240,8 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
           puestoNombre: puestoActual?.nombre ?? null,
           departamentoId: contrato.departamento_id,
           departamentoNombre: departamentoActual?.nombre ?? null,
+          plantillaContratoId: contrato.plantilla_contrato_id,
+          plantillaNombre: plantillaActual?.nombre ?? null,
           modalidadContrato: contrato.modalidad_contrato,
           fechaInicio: contrato.fecha_inicio,
           fechaFinPrevista: contrato.fecha_fin_prevista,
@@ -214,6 +261,8 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
         jornadaVigente={jornadaVigente}
         puestos={puestos}
         departamentos={departamentos}
+        plantillas={plantillas}
+        puestoPlantillas={puestoPlantillas}
       />
     </div>
   );

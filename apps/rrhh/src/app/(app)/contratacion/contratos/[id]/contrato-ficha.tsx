@@ -8,7 +8,7 @@
 // esta página (solo editar/jornada) — se unificó acá, reutilizando
 // exactamente las mismas Server Actions/RPC (contratacion/contratos/
 // actions.ts, movidas desde expedientes/[id]/actions.ts, no duplicadas).
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { StatusBadge, useToast, type StatusTone } from "@nexo/ui";
 import {
   editarContrato,
@@ -27,6 +27,8 @@ export interface ContratoFichaData {
   puestoNombre: string | null;
   departamentoId: string | null;
   departamentoNombre: string | null;
+  plantillaContratoId: string | null;
+  plantillaNombre: string | null;
   modalidadContrato: "nomina_estandar" | "comisionista_destajo" | null;
   fechaInicio: string | null;
   fechaFinPrevista: string | null;
@@ -37,11 +39,23 @@ export interface ContratoFichaData {
 export interface PuestoOption {
   id: string;
   nombre: string;
+  departamentoId: string | null;
 }
 
 export interface DepartamentoOption {
   id: string;
   nombre: string;
+}
+
+export interface PlantillaOption {
+  id: string;
+  nombre: string;
+}
+
+export interface PuestoPlantillaOption {
+  puestoId: string;
+  plantillaId: string;
+  predeterminada: boolean;
 }
 
 export interface CredencialEstado {
@@ -68,7 +82,7 @@ const ESTADO_TONE: Record<ContratoFichaData["estado"], StatusTone> = {
 };
 
 const inputClass =
-  "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+  "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:text-neutral-400";
 
 export default function ContratoFicha({
   contrato,
@@ -85,6 +99,8 @@ export default function ContratoFicha({
   jornadaVigente,
   puestos,
   departamentos,
+  plantillas,
+  puestoPlantillas,
 }: {
   contrato: ContratoFichaData;
   canEditar: boolean;
@@ -100,17 +116,55 @@ export default function ContratoFicha({
   jornadaVigente: JornadaVigente | null;
   puestos: PuestoOption[];
   departamentos: DepartamentoOption[];
+  plantillas: PlantillaOption[];
+  puestoPlantillas: PuestoPlantillaOption[];
 }) {
   const { show } = useToast();
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState<ContratoInput>({
     puestoId: contrato.puestoId ?? "",
     departamentoId: contrato.departamentoId ?? "",
+    plantillaContratoId: contrato.plantillaContratoId ?? "",
     modalidadContrato: contrato.modalidadContrato ?? "nomina_estandar",
     fechaInicio: contrato.fechaInicio ?? "",
     fechaFinPrevista: contrato.fechaFinPrevista ?? "",
     salarioBase: contrato.salarioBase ?? undefined,
   });
+
+  const puestosDelDepartamento = useMemo(
+    () => puestos.filter((p) => p.departamentoId === form.departamentoId),
+    [puestos, form.departamentoId]
+  );
+  const plantillasDelPuesto = useMemo(() => {
+    if (!form.puestoId) return [];
+    const idsAsignados = new Set(
+      puestoPlantillas.filter((pp) => pp.puestoId === form.puestoId).map((pp) => pp.plantillaId)
+    );
+    return plantillas.filter((p) => idsAsignados.has(p.id));
+  }, [plantillas, puestoPlantillas, form.puestoId]);
+
+  function cambiarDepartamento(departamentoId: string) {
+    setForm((f) => {
+      const puestoSigueValido = puestos.some(
+        (p) => p.id === f.puestoId && p.departamentoId === departamentoId
+      );
+      return {
+        ...f,
+        departamentoId,
+        puestoId: puestoSigueValido ? f.puestoId : "",
+        plantillaContratoId: puestoSigueValido ? f.plantillaContratoId : "",
+      };
+    });
+  }
+
+  function cambiarPuesto(puestoId: string) {
+    setForm((f) => {
+      const siguePerteneciendo = puestoPlantillas.some(
+        (pp) => pp.puestoId === puestoId && pp.plantillaId === f.plantillaContratoId
+      );
+      return { ...f, puestoId, plantillaContratoId: siguePerteneciendo ? f.plantillaContratoId : "" };
+    });
+  }
   const [jornadaSeleccionada, setJornadaSeleccionada] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pinRevelado, setPinRevelado] = useState<string | null>(null);
@@ -226,33 +280,56 @@ export default function ContratoFicha({
         {editando ? (
           <form onSubmit={guardar} className="flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Puesto">
-                <select
-                  value={form.puestoId}
-                  onChange={(e) => update("puestoId", e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">Sin asignar</option>
-                  {puestos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-                </select>
-              </Field>
               <Field label="Departamento">
                 <select
                   value={form.departamentoId}
-                  onChange={(e) => update("departamentoId", e.target.value)}
+                  onChange={(e) => cambiarDepartamento(e.target.value)}
                   className={inputClass}
                 >
-                  <option value="">Sin asignar</option>
+                  <option value="">— Elegí un departamento —</option>
                   {departamentos.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.nombre}
                     </option>
                   ))}
                 </select>
+              </Field>
+              <Field label="Puesto">
+                <select
+                  value={form.puestoId}
+                  onChange={(e) => cambiarPuesto(e.target.value)}
+                  disabled={!form.departamentoId}
+                  className={inputClass}
+                >
+                  <option value="">
+                    {form.departamentoId ? "— Elegí un puesto —" : "Elegí primero un departamento"}
+                  </option>
+                  {puestosDelDepartamento.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Plantilla de contrato">
+                <select
+                  value={form.plantillaContratoId}
+                  onChange={(e) => update("plantillaContratoId", e.target.value)}
+                  disabled={!form.puestoId}
+                  className={inputClass}
+                >
+                  <option value="">
+                    {form.puestoId ? "— Elegí una plantilla —" : "Elegí primero un puesto"}
+                  </option>
+                  {plantillasDelPuesto.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+                {form.puestoId && plantillasDelPuesto.length === 0 && (
+                  <p className="text-xs text-neutral-400">Sin plantillas asignadas a este puesto.</p>
+                )}
               </Field>
               <Field label="Modalidad">
                 <select
@@ -319,6 +396,7 @@ export default function ContratoFicha({
             <div className="grid grid-cols-2 gap-3 text-sm text-neutral-700 sm:grid-cols-4">
               <Field label="Puesto" value={contrato.puestoNombre ?? "—"} />
               <Field label="Departamento" value={contrato.departamentoNombre ?? "—"} />
+              <Field label="Plantilla de contrato" value={contrato.plantillaNombre ?? "—"} />
               <Field label="Inicio" value={contrato.fechaInicio ?? "—"} />
               {canVerSalario && (
                 <Field

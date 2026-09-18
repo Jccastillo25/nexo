@@ -2,6 +2,50 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-09-17 — Reglas de contratación y endurecimiento de seguridad/integridad (SIN APLICAR)
+
+Contexto completo, causa raíz del bug de UI auditado y deuda en
+[`status-log/2026-09-17-contratos-reglas-y-endurecimiento.md`](status-log/2026-09-17-contratos-reglas-y-endurecimiento.md).
+**1 migración nueva, escrita y revisada manualmente pero NO aplicada** —
+ni a `nexo-core` (remoto) ni a un stack local (sin Supabase CLI/Docker
+Compose de Supabase en este entorno) — por instrucción explícita del
+usuario de trabajar solo local en esta sesión. Requiere autorización
+aparte antes de `apply_migration`.
+
+- `20260917100000_rrhh_contratos_reglas_y_endurecimiento` —
+  1. Integridad multiempresa: `UNIQUE (id, company_id)` en
+     `rrhh.empleados`/`departamentos`/`puestos`/`plantillas_contrato`, y
+     FK compuesta `(recurso_id, company_id)` en `rrhh.contratos` y las 4
+     tablas de expediente ampliado + `empleado_documentos` +
+     `puesto_plantillas` (antes cada una guardaba `company_id` sin
+     verificar que coincidiera con el del recurso referenciado).
+     `rrhh.puestos.departamento_id` pasa a `NOT NULL` (verificado 0 filas
+     nulas en remoto) con FK compuesta a `rrhh.departamentos`.
+  2. `core.geografia_ni_municipios` gana `UNIQUE (id, departamento_id)`;
+     `rrhh.empleado_direccion` gana FK compuesta + `CHECK` que exige que
+     un municipio elegido pertenezca al departamento elegido.
+  3. `rrhh.fn_validar_porcentaje_beneficiarios()`: agrega `perform ...
+     for update` sobre el empleado antes de sumar — cierra una condición
+     de carrera real (dos escrituras concurrentes podían superar 100% en
+     conjunto).
+  4. `storage.buckets` (`rrhh-documentos-privados`): `file_size_limit`
+     10MB + `allowed_mime_types` reales (antes sin límite de
+     infraestructura).
+  5. `rrhh.contratos` gana `plantilla_contrato_id` (`NOT NULL`,
+     persistida); `puesto_id`/`departamento_id` pasan a `NOT NULL`
+     (verificado 0 filas nulas en remoto).
+  6. `rrhh.fn_crear_contrato`/`public.crear_contrato` — `DROP` + `CREATE`
+     (cambio de firma): `p_puesto_id`/`p_departamento_id`/
+     `p_plantilla_contrato_id` pasan a obligatorios, **sin**
+     `p_fecha_fin_prevista` (eliminado, no solo omitido); valida server-side
+     mismo tenant + puesto pertenece al departamento + plantilla asignada
+     y activa para el puesto + rechaza un segundo contrato abierto por
+     empleado (antes solo lo impedía un unique index para `estado='activo'`).
+  7. `rrhh.fn_editar_contrato`/`public.editar_contrato` — `DROP` +
+     `CREATE`: agrega `p_plantilla_contrato_id`, revalida la relación
+     completa contra el estado resultante en cada edición;
+     `fecha_fin_prevista` se sigue pudiendo completar acá.
+
 ## 2026-09-16 — Bloque "pre-F1.5": cédula, catálogos, Storage privado, expediente ampliado
 
 Contexto completo, pruebas y deuda en

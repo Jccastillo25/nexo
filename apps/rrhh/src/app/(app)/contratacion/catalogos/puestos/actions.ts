@@ -13,7 +13,9 @@ export interface ActionResult {
 export interface PuestoInput {
   nombre: string;
   descripcion?: string;
-  departamentoId?: string;
+  /** Obligatorio desde 2026-09-17 (ver supabase/migrations/20260917100000_...)
+   * -- cada puesto pertenece a un único departamento organizacional. */
+  departamentoId: string;
 }
 
 /**
@@ -32,11 +34,15 @@ export async function crearPuesto(input: PuestoInput): Promise<ActionResult> {
     throw err;
   }
 
+  if (!input.departamentoId) {
+    return { ok: false, message: "Elegí un departamento para este puesto." };
+  }
+
   const { error } = await supabase.schema("rrhh").from("puestos").insert({
     company_id: companyId,
     nombre: input.nombre.trim(),
     descripcion: input.descripcion?.trim() || null,
-    departamento_id: input.departamentoId || null,
+    departamento_id: input.departamentoId,
   });
 
   if (error) {
@@ -64,13 +70,17 @@ export async function editarPuesto(
     throw err;
   }
 
+  if (!input.departamentoId) {
+    return { ok: false, message: "Elegí un departamento para este puesto." };
+  }
+
   const { error } = await supabase
     .schema("rrhh")
     .from("puestos")
     .update({
       nombre: input.nombre.trim(),
       descripcion: input.descripcion?.trim() || null,
-      departamento_id: input.departamentoId || null,
+      departamento_id: input.departamentoId,
       activo: input.activo,
     })
     .eq("id", puestoId)

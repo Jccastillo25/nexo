@@ -7,6 +7,8 @@ import NuevoContratoForm, {
   type EmpleadoOption,
   type PuestoOption,
   type DepartamentoOption,
+  type PlantillaOption,
+  type PuestoPlantillaOption,
 } from "./nuevo-contrato-form";
 
 export const metadata: Metadata = {
@@ -21,16 +23,23 @@ export const metadata: Metadata = {
  * contractual (antes nacía embebido en /expedientes/[id]). No crea
  * empleados — eso sigue siendo /expedientes/nuevo (Expediente General,
  * dominio separado).
+ *
+ * 2026-09-17: puesto/departamento/plantilla pasan a ser obligatorios (ver
+ * supabase/migrations/20260917100000_...) — esta página ahora también
+ * carga `puesto_plantillas` (para filtrar plantillas válidas por puesto) y
+ * el `id` del contrato abierto de cada empleado (para poder enlazarlo,
+ * no solo avisar que existe).
  */
 export default async function NuevoContratoPage() {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
-  const [canCrear, canEditarSalario, canVerPuestos, canVerDepartamentos] = await Promise.all([
+  const [canCrear, canEditarSalario, canVerPuestos, canVerDepartamentos, canVerPlantillas] = await Promise.all([
     hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.crear"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.editar"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.puestos.ver"),
     hasPermission({ supabase, companyId }, "rrhh.expedientes.departamentos.ver"),
+    hasPermission({ supabase, companyId }, "rrhh.expedientes.plantillas.ver"),
   ]);
 
   if (!canCrear) {
@@ -42,12 +51,12 @@ export default async function NuevoContratoPage() {
     );
   }
 
-  const [puestosRes, departamentosRes] = await Promise.all([
+  const [puestosRes, departamentosRes, plantillasRes] = await Promise.all([
     canVerPuestos
       ? supabase
           .schema("rrhh")
           .from("puestos")
-          .select("id, nombre")
+          .select("id, nombre, departamento_id")
           .eq("company_id", companyId)
           .eq("activo", true)
           .order("nombre")
@@ -61,9 +70,42 @@ export default async function NuevoContratoPage() {
           .eq("activo", true)
           .order("nombre")
       : Promise.resolve({ data: null }),
+    canVerPlantillas
+      ? supabase
+          .schema("rrhh")
+          .from("plantillas_contrato")
+          .select("id, nombre")
+          .eq("company_id", companyId)
+          .eq("activo", true)
+          .order("nombre")
+      : Promise.resolve({ data: null }),
   ]);
-  const puestos: PuestoOption[] = puestosRes.data ?? [];
+  const puestos: PuestoOption[] = (puestosRes.data ?? []).map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    departamentoId: p.departamento_id,
+  }));
   const departamentos: DepartamentoOption[] = departamentosRes.data ?? [];
+  const plantillas: PlantillaOption[] = plantillasRes.data ?? [];
+
+  let puestoPlantillas: PuestoPlantillaOption[] = [];
+  if (canVerPlantillas && puestos.length > 0) {
+    const { data } = await supabase
+      .schema("rrhh")
+      .from("puesto_plantillas")
+      .select("puesto_id, plantilla_id, predeterminada")
+      .eq("company_id", companyId)
+      .eq("activo", true)
+      .in(
+        "puesto_id",
+        puestos.map((p) => p.id)
+      );
+    puestoPlantillas = (data ?? []).map((r) => ({
+      puestoId: r.puesto_id,
+      plantillaId: r.plantilla_id,
+      predeterminada: r.predeterminada,
+    }));
+  }
 
   const { data: empleados, error } = await supabase
     .schema("rrhh")
@@ -78,18 +120,19 @@ export default async function NuevoContratoPage() {
 
   // Mismo criterio que /expedientes (empleado-row-menu): un empleado con un
   // contrato activo o en borrador ya tiene un contrato "abierto" — crear
-  // otro duplicaría el ciclo contractual. Un empleado con solo contratos
-  // finalizados (o ninguno) puede recibir uno nuevo.
-  const empleadosConAbierto = new Set<string>();
+  // otro duplicaría el ciclo contractual (también se rechaza server-side en
+  // rrhh.fn_crear_contrato, esto es solo para poder avisar antes de
+  // intentarlo y enlazar directo a ese contrato).
+  const abiertoPorEmpleado = new Map<string, string>();
   if ((empleados ?? []).length > 0) {
     const { data: contratosDeTodos } = await supabase
       .schema("rrhh")
       .from("contratos")
-      .select("empleado_id, estado")
+      .select("id, empleado_id, estado")
       .eq("company_id", companyId)
       .in("empleado_id", (empleados ?? []).map((e) => e.id));
     for (const c of contratosDeTodos ?? []) {
-      if (c.estado === "activo" || c.estado === "borrador") empleadosConAbierto.add(c.empleado_id);
+      if (c.estado === "activo" || c.estado === "borrador") abiertoPorEmpleado.set(c.empleado_id, c.id);
     }
   }
 
@@ -98,7 +141,7 @@ export default async function NuevoContratoPage() {
     nombreCompleto: `${e.nombre} ${e.apellido}`,
     codigoEmpleado: e.codigo_empleado,
     documentoIdentidad: e.documento_identidad,
-    tieneContratoAbierto: empleadosConAbierto.has(e.id),
+    contratoAbiertoId: abiertoPorEmpleado.get(e.id) ?? null,
   }));
 
   return (
@@ -118,6 +161,8 @@ export default async function NuevoContratoPage() {
           empleados={opciones}
           puestos={puestos}
           departamentos={departamentos}
+          plantillas={plantillas}
+          puestoPlantillas={puestoPlantillas}
           canEditarSalario={canEditarSalario}
         />
       )}

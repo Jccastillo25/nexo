@@ -4,7 +4,7 @@ import { NexoShell } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { getPanelUrl } from "@/lib/panel";
-import { getCopyrightText, getLogoUrl } from "@/lib/platform-settings";
+import { getCopyrightText } from "@/lib/platform-settings";
 import { CRM_NAV_ITEMS } from "@/lib/nav";
 import { signOut } from "@/app/login/actions";
 
@@ -34,11 +34,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const [panelUrl, {
     data: { user },
-  }, copyrightText, logoUrl] = await Promise.all([
+  }, copyrightText] = await Promise.all([
     getPanelUrl(),
     supabase.auth.getUser(),
     getCopyrightText(supabase),
-    getLogoUrl(supabase),
   ]);
 
   return (
@@ -50,7 +49,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       onSignOut={signOut}
       backHref={panelUrl}
       footerText={copyrightText}
-      logoUrl={logoUrl}
     >
       {children}
     </NexoShell>
