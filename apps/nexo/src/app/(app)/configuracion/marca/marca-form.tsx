@@ -281,8 +281,8 @@ export default function MarcaForm({ initial }: { initial: PlatformSettings }) {
           <input id="copyright_text" name="copyright_text" defaultValue={initial.copyrightText} className={inputClass} />
           <p className="text-xs text-neutral-400">
             Se muestra tal cual en el pie del login, del panel y de cada
-            módulo — incluí el año si querés que aparezca (ej. "© 2026 Grupo
-            CT").
+            módulo — incluí el año si querés que aparezca (ej. &quot;© 2026 Grupo
+            CT&quot;).
           </p>
         </div>
       </FormSection>
