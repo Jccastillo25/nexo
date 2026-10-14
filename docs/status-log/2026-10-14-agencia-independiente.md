@@ -101,6 +101,11 @@ requieren aprobación**:
 Hoy `AGENCIA_APP_URL` solo existe para la rama `feat/issue-18-…` y `nexo-agencia`
 no tiene deploy de Production del código revisado.
 
+**Actualización (mismo día, aprobado por el usuario):** creadas las dos
+variables de Preview de la tabla (rama `feat/usuarios-roles-nexo`) en
+`nexocore` y `nexo-agencia`. La de Production y la activación en la base de
+datos quedan para el merge a `main`, por decisión del usuario.
+
 ## SQL de activación propuesto — NO ejecutado
 
 Aplicar únicamente después del deploy coordinado y aprobación humana. Consultar de nuevo el estado remoto antes de generar la migración con Supabase CLI.
