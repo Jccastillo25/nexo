@@ -151,7 +151,15 @@ refleja el estado actual, no el de 2026-09-07:
 Nexo (sidebar de (app)/layout.tsx en apps/nexo — 2026-09-17: SOLO envuelve
       /configuracion/marca, "/" ya no vive bajo este layout ni usa este sidebar)
 ├── Inicio             (vuelve a "/", el App Launcher — antes "Dashboard")
-└── Configuración → Marca
+├── Dashboard
+└── Configuración      (grupo desde 2026-10-14)
+    ├── Marca
+    ├── Usuarios       (/configuracion/usuarios — alta, rol, vínculo RRHH, estado)
+    ├── Roles          (/configuracion/roles — editor de una sola pantalla)
+    └── Auditoría      (/configuracion/auditoria)
+
+/cambiar-contrasena (2026-10-14): fuera de (app), sin sidebar — primer ingreso
+con contraseña temporal puesta por un administrador.
 
 Launcher ("/", app/page.tsx — 2026-09-17: SIN NexoShell, sin sidebar/topbar/
           buscador/menú de usuario; header propio mínimo: "Nexo" + correo +

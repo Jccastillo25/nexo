@@ -4,7 +4,9 @@ Fecha: 2026-10-14 · Estado: **Paso Cero (sección 3) aprobado y aplicado a `nex
 el 2026-10-14** (migración `20261014201119_nexo_administracion_permisos_paso_cero`).
 Secciones 4-6 (esquema, `has_permission`, RPC): **aplicadas a `nexo-core` el 2026-10-14**
 (migración `20261014203144_nexo_usuarios_roles_esquema`, validada antes con 15 pruebas en una
-transacción revertida). Secciones 7-8 (pantallas, Server Actions de Auth): **sin implementar**.
+transacción revertida). Secciones 7-8 (pantallas, Server Actions de Auth): **implementadas 2026-10-14 en la rama
+`feat/usuarios-roles-nexo`, sin validar con sesión real** (ver
+[status-log](../status-log/2026-10-14-usuarios-roles-pantallas.md)).
 
 > **Ajustes al implementar (prevalecen sobre el SQL de la sección 4):** no hay policies de
 > lectura — `authenticated` no tiene `USAGE` sobre `core`, así que toda lectura también pasa por

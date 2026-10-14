@@ -28,5 +28,14 @@ import type { NexoNavItem } from "@nexo/ui";
 export const NEXO_NAV_ITEMS: NexoNavItem[] = [
   { label: "Inicio", href: "/", icon: "grid" },
   { label: "Dashboard", href: "/dashboard", icon: "list" },
-  { label: "Configuración", href: "/configuracion/marca", icon: "settings" },
+  {
+    label: "Configuración",
+    icon: "settings",
+    children: [
+      { label: "Marca", href: "/configuracion/marca", icon: "sliders" },
+      { label: "Usuarios", href: "/configuracion/usuarios", icon: "users" },
+      { label: "Roles", href: "/configuracion/roles", icon: "shield" },
+      { label: "Auditoría", href: "/configuracion/auditoria", icon: "list" },
+    ],
+  },
 ];

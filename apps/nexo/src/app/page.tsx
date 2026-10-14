@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import type { VisibleApp } from "@/lib/supabase/database.types";
 import { signOut } from "@/app/login/actions";
+import { exigirPasswordDefinitiva } from "@/lib/perfil";
 
 export const metadata: Metadata = {
   title: "Nexo",
@@ -46,6 +47,7 @@ export default async function PanelPage() {
   const [{ data: apps, error }, { data: { user } }] = await Promise.all([
     supabase.rpc("get_visible_apps", { p_company_id: companyId }),
     supabase.auth.getUser(),
+    exigirPasswordDefinitiva(supabase),
   ]);
 
   const groups = groupByCategory(apps ?? []);
@@ -78,11 +80,9 @@ export default async function PanelPage() {
 
         {!error && groups.length === 0 && (
           <p className="rounded-md border border-neutral-200 bg-white px-4 py-6 text-sm text-neutral-500">
-            No tenés ningún módulo habilitado todavía. Esto es DENY BY
-            DEFAULT funcionando como se espera — pedile a un owner/admin
-            que te agregue una membresía en{" "}
-            <code>core.company_memberships</code> o un permiso explícito en{" "}
-            <code>core.user_permissions</code>.
+            No tenés ninguna aplicación habilitada todavía. Pedile a un
+            administrador que te asigne un rol con acceso a las aplicaciones
+            que necesitás (Configuración → Usuarios).
           </p>
         )}
 

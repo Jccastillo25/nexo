@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPlatformSettings } from "@/lib/platform-settings";
 import { NEXO_NAV_ITEMS } from "@/lib/nav";
 import { signOut } from "@/app/login/actions";
+import { exigirPasswordDefinitiva } from "@/lib/perfil";
 
 /**
  * Layout autenticado del panel Nexo — Nexo Enterprise UI (rediseño
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [{ data: { user } }, settings] = await Promise.all([
     supabase.auth.getUser(),
     getPlatformSettings(supabase),
+    exigirPasswordDefinitiva(supabase),
   ]);
 
   return (
