@@ -380,7 +380,11 @@ Atención — pantallas (Sucursales en Configuración, apps/atencion, pantalla p
  ↓
 Atención — proyecto Vercel nexo-atencion ✅ creado 2026-10-14 + ATENCION_APP_URL (Preview)
  ↓
-Atención — activación + prueba real + ATENCION_APP_URL de Production al merge  ⏳ siguiente
+Atención — activada en nexo-core 2026-10-14 (20261014230022), antes del merge por decisión
+                                              del usuario: la tarjeta ya aparece en producción
+                                              pero /atencion solo funciona en el preview
+ ↓
+Atención — prueba real en el preview + merge + ATENCION_APP_URL de Production  ⏳ siguiente
  ↓
 F1.5 — Consolidación de asistencia  ⏳ pendiente (sigue explícitamente NO iniciado —
                                           "no iniciar F1.5" fue parte del alcance de ambos

@@ -226,6 +226,7 @@ completo de cada una:
 20261014203144_nexo_usuarios_roles_esquema
 20261014222454_atencion_paso_cero
 20261014224341_atencion_esquema
+20261014230022_atencion_activar
 ```
 
 Nota: esta lista no reflejaba `20260914090000` hasta esta actualización

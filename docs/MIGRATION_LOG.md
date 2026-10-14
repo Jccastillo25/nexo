@@ -7,6 +7,18 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-14 — Activación del módulo Atención (APLICADA)
+
+- `20261014230022_atencion_activar` — `core.apps.active = true` para
+  `atencion` y `core.company_apps` habilitado para `materiales-jcastillo`.
+  Decisión explícita del usuario: activar **antes del merge** para probar en
+  el preview, aceptando que la tarjeta aparezca en el inicio de producción,
+  donde `/atencion` no funciona hasta configurar `ATENCION_APP_URL` de
+  Production y fusionar. Postcheck: activa, 1 empresa, owner con
+  `atencion.ver_modulo` y `atencion.puesto.sesion.iniciar`; 0 sucursales y 0
+  roles con permisos de Atención (se crean desde las pantallas).
+  Rollback: `update core.apps set active = false where slug = 'atencion'`.
+
 ## 2026-10-14 — Módulo Atención: esquema + RPC + pg_cron (APLICADA)
 
 Detalle, pruebas y postcheck en
