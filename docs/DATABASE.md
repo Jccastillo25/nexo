@@ -127,11 +127,35 @@ evita exponer tablas sensibles como `user_permissions` directo a la API.
   asigna permisos que no tiene, nadie edita su propio rol ni se cambia su
   propio rol/estado, solo el owner toca al owner. Detalle:
   [plan/12-administracion-usuarios-roles.md](plan/12-administracion-usuarios-roles.md)
-- Particiones de `core.audit_log`: **no hay `pg_cron` instalado** — desde
-  2026-10-14 `core.fn_auditar` asegura la partición del mes en curso antes
-  de cada insert, y la migración creó hasta `audit_log_2027_01`. Las
-  particiones de `rrhh.*` siguen dependiendo de llamadas manuales a
-  `core.fn_asegurar_particiones_futuras()`
+- Particiones: **`pg_cron` instalado desde 2026-10-14** (`20261014224341`).
+  El job `nexo-particiones-futuras` (día 1 de cada mes, 03:00 UTC) llama a
+  `core.fn_asegurar_particiones_futuras(3)` para todas las tablas de
+  `core.tablas_particionadas` (`core.audit_log`, `rrhh.*`, `atencion.*`).
+  Además `core.fn_auditar` asegura la partición del mes antes de insertar.
+- `core.sucursales` / `core.usuario_sucursales` — **2026-10-14**: sucursales
+  de la empresa (zona horaria propia, por defecto `America/Managua`) y en qué
+  sucursales trabaja cada usuario. Compartidas por todos los módulos. Solo vía
+  RPC `admin_*sucursal*`.
+
+## Schema `atencion` (2026-10-14, `20261014224341`)
+
+Módulo de turnos de sala de espera ([plan 13](plan/13-atencion-turnos.md)).
+**Sin `USAGE` para `authenticated`/`anon`**: todo el acceso es por RPC
+`public.atencion_*` (security definer + `core.has_permission`), igual que `core`.
+
+| Tabla | Tipo | Contenido |
+|---|---|---|
+| `atencion.puestos` | catálogo | Puestos por sucursal, orden, activo |
+| `atencion.pantallas` | catálogo | Pantallas públicas; su `id` es la credencial del dispositivo; `config` = entretenimiento |
+| `atencion.contadores` | catálogo | Último número por sucursal y día local (reinicio diario) |
+| `atencion.sesiones_activas` | estado | Quién atiende ahora: único por usuario y por puesto |
+| `atencion.sesiones` | hechos, particionada (`inicio`) | Historial de "Iniciar/Cerrar atención" y motivo de cierre |
+| `atencion.turnos` | hechos, particionada (`creado_en`) | Número del día, cliente, factura, estado, puesto, llamados |
+| `atencion.turno_eventos` | hechos, particionada (`creado_en`) | creado/llamado/rellamado/finalizado/ausente/anulado/devuelto/expirado |
+
+Job `atencion-cierre-vencidas` (`pg_cron`, cada 5 min) + cierre en cada RPC:
+cierra atenciones de un día local anterior (motivo `medianoche`) y expira
+turnos pendientes de días anteriores.
 - `core.platform_settings` — singleton de marca de la plataforma
 - `core.geografia_ni_departamentos` / `core.geografia_ni_municipios` —
   **bloque pre-F1.5 (2026-09-16)**: geografía nacional de Nicaragua, sin
@@ -200,6 +224,8 @@ completo de cada una:
 20261014181353_agencia_dashboard_access   (ticket #18, traída por merge a feat/usuarios-roles-nexo)
 20261014201119_nexo_administracion_permisos_paso_cero
 20261014203144_nexo_usuarios_roles_esquema
+20261014222454_atencion_paso_cero
+20261014224341_atencion_esquema
 ```
 
 Nota: esta lista no reflejaba `20260914090000` hasta esta actualización

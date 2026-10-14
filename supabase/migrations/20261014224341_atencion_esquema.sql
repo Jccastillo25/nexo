@@ -4,8 +4,8 @@
 -- Diseño y decisiones del usuario (2026-10-14): docs/plan/13-atencion-turnos.md §4.
 -- Requiere el Paso Cero 20261014222454_atencion_paso_cero.
 --
--- BORRADOR PARA REVISIÓN — NO APLICADO. Al aplicarlo se renombra a la
--- versión remota real.
+-- Aprobada por el usuario el 2026-10-14; probada antes de punta a punta en
+-- una transacción revertida (ver docs/status-log/2026-10-14-atencion-esquema.md).
 --
 -- Resumen:
 --   1. core.sucursales + core.usuario_sucursales (compartidas por la empresa).

@@ -7,6 +7,26 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-14 — Módulo Atención: esquema + RPC + pg_cron (APLICADA)
+
+Detalle, pruebas y postcheck en
+[`status-log/2026-10-14-atencion-esquema.md`](status-log/2026-10-14-atencion-esquema.md).
+Aprobada explícitamente por el usuario; probada antes de punta a punta en una
+transacción revertida (verificado que no quedó nada). Aplicada con
+`apply_migration`; archivo `20261015000000_…` renombrado a la versión remota
+`20261014224341` sin tocar el SQL.
+
+- `20261014224341_atencion_esquema` — `core.sucursales`,
+  `core.usuario_sucursales`; schema `atencion` (sin `USAGE` para la API, solo
+  RPC) con `puestos`, `pantallas`, `contadores`, `sesiones_activas` y las
+  particionadas `sesiones`, `turnos`, `turno_eventos`; 19 RPC; **instala
+  `pg_cron`** con los jobs `atencion-cierre-vencidas` y
+  `nexo-particiones-futuras`. App `atencion` sigue inactiva.
+  Rollback: `cron.unschedule` de ambos jobs, `drop schema atencion cascade`,
+  `drop` de las 4 RPC `admin_*sucursal*`, borrar las 3 filas de
+  `core.tablas_particionadas`, `drop table core.usuario_sucursales,
+  core.sucursales` (y opcionalmente `drop extension pg_cron`).
+
 ## 2026-10-14 — Paso Cero del módulo Atención + permisos de sucursales (APLICADA)
 
 Diseño: [`plan/13-atencion-turnos.md`](plan/13-atencion-turnos.md); detalle en

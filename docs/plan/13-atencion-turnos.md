@@ -2,8 +2,9 @@
 
 Fecha: 2026-10-14 · Estado: **Paso Cero (sección 3) aprobado y aplicado a `nexo-core`
 el 2026-10-14** (migración `20261014222454_atencion_paso_cero`). Asignación de
-sucursales desde Configuración → Usuarios: **aprobada**. Tablas (sección 4) y
-pantallas: **diseño, sin implementar**.
+sucursales desde Configuración → Usuarios: **aprobada**. Tablas, RPC y
+`pg_cron` (sección 4): **aplicados el 2026-10-14** (`20261014224341_atencion_esquema`;
+el SQL real es el de la migración). Pantallas: **sin implementar**; app inactiva.
 Origen: conversación del usuario con ChatGPT ("Buscar sistema de turnos") +
 decisiones de esta sesión. Construye sobre la administración de usuarios y
 roles ([plan 12](12-administracion-usuarios-roles.md)).
@@ -179,4 +180,5 @@ Reglas técnicas:
 
 - ~~Aprobación del Paso Cero (sección 3)~~ — aplicado 2026-10-14.
 - ~~Reparto usuario ↔ sucursal~~ — aprobado: se asignan desde Configuración → Usuarios; con una sola sucursal asignada, "Iniciar atención" la usa sin preguntar; con varias, el usuario elige.
-- Aprobación aparte de la migración de tablas (sección 4) y de instalar `pg_cron`.
+- ~~Migración de tablas (sección 4) e instalación de `pg_cron`~~ — aplicadas 2026-10-14.
+- Pantallas (Sucursales en Configuración, `apps/atencion`, pantalla pública) y activación de la app.
