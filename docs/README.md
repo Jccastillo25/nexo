@@ -12,7 +12,7 @@
 
 | Carpeta | Contenido |
 |---|---|
-| [plan/](plan/) | 11 archivos que desagregan `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md` por objetivo/arquitectura, estrategia móvil, dominio RRHH y cada fase (1 a 8). Ver la tabla del índice para saber cuál leer. |
+| [plan/](plan/) | 12 archivos que desagregan `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md` por objetivo/arquitectura, estrategia móvil, dominio RRHH, cada fase (1 a 8) y la administración de usuarios y roles (`12-…`). Ver la tabla del índice para saber cuál leer. |
 | [status-log/](status-log/) | Una entrada por subfase/bloque ya cerrado, con el detalle completo de auditoría, migraciones y verificación. Ver la tabla de la sección 0 de `IMPLEMENTATION_STATUS.md` para saber cuál leer. |
 
 ## Arquitectura y documentación viva
@@ -22,6 +22,7 @@
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Monorepo, Multi-Zones, Supabase, identidad digital, kiosko, Panel Conductor y estrategia Mobile. |
 | [DATABASE.md](DATABASE.md) | Estado real de `nexo-core`, schemas, tablas, RLS y convenciones. No confundir estado actual con el modelo objetivo pendiente. |
 | [MODULES.md](MODULES.md) | Catálogo de módulos y estado funcional. |
+| [status-log/2026-10-14-agencia-independiente.md](status-log/2026-10-14-agencia-independiente.md) | Agencia digital independiente: matriz aprobada, app/proyecto, pruebas y activación pendiente. |
 | [PERMISSIONS.md](PERMISSIONS.md) | Norma de permisos y roles. |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | Shell compartido, tokens y navegación Web. |
 | [MIGRATION_LOG.md](MIGRATION_LOG.md) | Historial de migraciones y verificaciones. |

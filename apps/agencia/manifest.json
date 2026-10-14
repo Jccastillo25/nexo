@@ -1,0 +1,9 @@
+{
+  "slug": "agencia",
+  "nombre": "Agencia digital",
+  "categoria": "Servicios",
+  "icono": "sun",
+  "color": "indigo",
+  "ruta": "/agencia",
+  "depends": []
+}

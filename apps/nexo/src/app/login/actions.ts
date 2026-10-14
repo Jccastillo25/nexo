@@ -5,6 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 
 export type LoginState = { error: string | null };
 
+/** Solo rutas internas: "//host" o "/\host" serían redirecciones a otro sitio. */
+function destinoSeguro(next: string): string {
+  return next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/";
+}
+
 export async function signIn(
   _prevState: LoginState,
   formData: FormData
@@ -24,7 +29,11 @@ export async function signIn(
     return { error: "Correo o contraseña incorrectos." };
   }
 
-  redirect(next.startsWith("/") ? next : "/");
+  // Contraseña temporal puesta por un administrador -> primero la cambia.
+  const { data: perfil } = await supabase.rpc("mi_perfil");
+  if (perfil?.[0]?.debe_cambiar_password) redirect("/cambiar-contrasena");
+
+  redirect(destinoSeguro(next));
 }
 
 export async function signOut() {

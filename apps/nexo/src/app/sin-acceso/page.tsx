@@ -12,11 +12,9 @@ export const metadata: Metadata = {
  *
  * IMPORTANTE: lanzar PermissionDeniedError NO renderiza esta página por sí
  * solo. Es el guard de servidor de la ruta protegida el que debe redirigir
- * aquí explícitamente. En esta etapa el Dashboard (ticket #13) NO redirige
- * todavía a /sin-acceso: renderiza un estado "sin acceso" en línea con
- * hasPermission fail-closed. Esto está documentado como decisión PENDIENTE
- * de aprobación humana en
- * apps/nexo/docs/DASHBOARD_AGENCIA_IMPLEMENTACION.md.
+ * aquí explícitamente. El ticket #18 mueve Agencia a su propia zona,
+ * cuya pantalla de denegación vive en apps/agencia/src/app/sin-acceso.
+ * Esta página queda disponible para los recursos propios de Nexo.
  */
 export default function SinAccesoPage() {
   return (

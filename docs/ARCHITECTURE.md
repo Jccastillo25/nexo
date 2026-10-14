@@ -1,5 +1,10 @@
 # Arquitectura de Nexo
 
+## Agencia digital — ticket #18, extracción del Dashboard del #13 (2026-10-14)
+
+El usuario aprobó una app independiente `apps/agencia` y proyecto Vercel `nexo-agencia`. `/agencia` pertenece a esa zona (`basePath`); Nexo la cose mediante `AGENCIA_APP_URL`. El catálogo guarda `/agencia`, no el dominio del deployment. El acceso antiguo `/dashboard` redirige a la nueva zona en el candidato de #18; necesita destino desplegado antes del merge. Auth y `NexoShell` compartidos, permisos propios del módulo y de lectura del Dashboard. Catálogo inactivo hasta la activación coordinada. [Estado y runbook](status-log/2026-10-14-agencia-independiente.md).
+
+
 Estado: vigente desde 2026-08-29, actualizado 2026-09-06 con estrategia Mobile y separación de credenciales operativas.
 
 Ver propuestas históricas en `docs/planning/` y decisiones operativas vigentes en `docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`.

@@ -1,6 +1,83 @@
 # Bitácora de migración
 
+## 2026-10-14 — Agencia digital, matriz mínima (APLICADA)
+
+`20261014181353_agencia_dashboard_access`, aplicada en `nexo-core` con aprobación explícita del usuario. Añade el módulo `agencia` inactivo, permiso de módulo del trigger, `agencia.dashboard.resumen.ver` y rol `consulta` con ambos permisos. Sin tablas, políticas o funciones nuevas; sin roles asignados a usuarios ni empresas habilitadas. Postchecks: 2 permisos, 1 rol, 2 grants al rol, 0 usuarios y 0 empresas habilitadas. Advisors antes/después conservan las 4 categorías y los 38 hallazgos previos, sin cambio salvo observed_at. Activación pendiente del deploy y aprobación humana. [Detalle](status-log/2026-10-14-agencia-independiente.md).
+
+
 Orden de bitácora: más reciente arriba.
+
+## 2026-10-14 — Esquema de usuarios y roles + nueva `has_permission` (APLICADA)
+
+Detalle y pruebas en
+[`status-log/2026-10-14-usuarios-roles-esquema.md`](status-log/2026-10-14-usuarios-roles-esquema.md).
+**1 migración, revisada y aprobada explícitamente por el usuario, aplicada
+a `nexo-core` el 2026-10-14** con `apply_migration`. Antes de aplicarla se
+ejecutó completa en una transacción revertida con 15 pruebas (owner, rol
+limitado, anti-escalada, usuario desactivado, sin sesión) — todas
+correctas, y se verificó que no quedó nada persistido. La migración trae
+sus propios prechecks (abortan si `user_app_roles` tiene filas, si hay
+membresías `admin`, si falta el Paso Cero o si las tablas ya existen).
+Postcheck: 3 tablas nuevas, 3 columnas nuevas en `company_memberships`,
+14 RPC, `anon` sin `EXECUTE` en ninguna, helpers `core.fn_*` cerrados a
+`authenticated`, owner conserva acceso a `rrhh`/`nexo` y queda sin acceso a
+`agencia` (módulo no habilitado), 1 membresía activa, partición
+`audit_log_2027_01` creada, 0 roles y 0 filas de auditoría. Archivo local
+creado como `20261014230000_...` y renombrado a la versión remota real
+`20261014203144` sin tocar su SQL. `get_advisors(security)`: solo los
+avisos esperados (`rls_enabled_no_policy` INFO en las 3 tablas nuevas —
+deliberado, acceso solo por RPC; `authenticated_security_definer_function_executable`
+en las RPC nuevas — mismo patrón que el resto de RPC de la suite, cada una
+valida permiso adentro).
+
+- `20261014203144_nexo_usuarios_roles_esquema` —
+  1. `core.roles`, `core.rol_permisos`, `core.perfiles`;
+     `core.company_memberships` + `rol_id` (FK compuesta misma empresa),
+     `activo`, `updated_at`.
+  2. `core.has_permission` reescrita (misma firma): módulo habilitado +
+     membresía activa + rol de empresa; deja de evaluar `user_app_roles` y
+     el bypass `admin`.
+  3. Helpers internos `core.fn_es_owner`, `fn_permisos_rol`,
+     `fn_cubre_permisos`, `fn_exigir_permiso`, `fn_auditar`,
+     `fn_membresia_administrable`, `fn_validar_rol_asignable`,
+     `fn_vincular_empleado`.
+  4. 14 RPC `public.*` (ver [DATABASE.md](DATABASE.md)).
+  5. `core.fn_asegurar_particiones_futuras(3)` — `audit_log` hasta 2027-01.
+
+  Rollback (mientras no haya roles/usuarios creados por la UI): restaurar
+  `core.has_permission` desde `20260902000001_app_scoped_roles.sql`, `drop`
+  de las 14 RPC y 8 helpers, `alter table core.company_memberships drop
+  column rol_id, drop column activo, drop column updated_at`, `drop table
+  core.rol_permisos, core.roles, core.perfiles`.
+
+## 2026-10-14 — Paso Cero de administración de usuarios y roles (APLICADA)
+
+Detalle en
+[`status-log/2026-10-14-paso-cero-administracion-usuarios-roles.md`](status-log/2026-10-14-paso-cero-administracion-usuarios-roles.md);
+diseño en [`plan/12-administracion-usuarios-roles.md`](plan/12-administracion-usuarios-roles.md).
+**1 migración, aprobada explícitamente por el usuario y aplicada a
+`nexo-core` el 2026-10-14** con `apply_migration`. Precheck de solo lectura:
+0 códigos `nexo.administracion.%`, `core.apps` con `nexo` registrada.
+Postcheck: 9 códigos nuevos (`nexo` pasa de 2 a 11 en el catálogo),
+`core.user_permissions` y `core.user_app_roles` siguen en 0 filas (nadie
+recibió permisos), migración registrada con versión remota `20261014201119`
+— el archivo local se nombró directamente con esa versión.
+
+- `20261014201119_nexo_administracion_permisos_paso_cero` — solo `insert`
+  en `core.permissions_catalog` de los 9 códigos
+  `nexo.administracion.{usuarios.ver|crear|editar|desactivar, roles.ver|crear|editar|eliminar, auditoria.ver}`.
+  Sin tablas, sin cambios de RLS ni de `core.has_permission`. Hoy solo el
+  owner los obtiene (bypass de membresía). Rollback: `delete from
+  core.permissions_catalog where code like 'nexo.administracion.%'`
+  (seguro mientras ninguna fila de `user_permissions`/`app_role_permissions`
+  los referencie).
+
+Divergencia detectada en el precheck, sin relación con esta migración:
+`20261014181353_agencia_dashboard_access` está aplicada en `nexo-core` pero
+no existe en `main` (probablemente viene de la rama
+`feat/issue-18-agencia-independiente`). **Reconciliada el mismo día**: esa
+rama se trajo por merge a `feat/usuarios-roles-nexo`, con el archivo de la
+migración incluido.
 
 ## 2026-09-18 — Reglas de contratación y endurecimiento de seguridad/integridad (APLICADA)
 

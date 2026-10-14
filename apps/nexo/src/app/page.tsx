@@ -1,10 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getCategoryColor, getCategoryIcon } from "@nexo/ui";
+import { hasPermission } from "@nexo/permissions";
+import { DEFAULT_CATEGORY_COLOR, NexoIcon, getCategoryColor, getCategoryIcon } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import type { VisibleApp } from "@/lib/supabase/database.types";
 import { signOut } from "@/app/login/actions";
+import { exigirPasswordDefinitiva } from "@/lib/perfil";
 
 export const metadata: Metadata = {
   title: "Nexo",
@@ -22,6 +24,18 @@ function groupByCategory(apps: VisibleApp[]): [string, VisibleApp[]][] {
   }
   return Array.from(groups.entries());
 }
+
+// Tarjeta "Configuración" del Launcher (decisión del usuario 2026-10-14:
+// "tiene que existir en el dashboard", al estilo de Ajustes en Odoo). Lleva
+// a la primera pantalla de Configuración que el usuario puede ver; sin
+// ningún permiso de administración, la tarjeta no aparece. Mostrarla no
+// autoriza nada: cada pantalla valida su propio permiso en el servidor.
+const DESTINOS_CONFIGURACION = [
+  { code: "nexo.administracion.usuarios.ver", href: "/configuracion/usuarios" },
+  { code: "nexo.administracion.roles.ver", href: "/configuracion/roles" },
+  { code: "nexo.administracion.auditoria.ver", href: "/configuracion/auditoria" },
+  { code: "nexo.configuracion.editar", href: "/configuracion/marca" },
+] as const;
 
 /**
  * App Launcher de Nexo — decisión vigente (2026-09-17): "/" es
@@ -43,12 +57,15 @@ export default async function PanelPage() {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
-  const [{ data: apps, error }, { data: { user } }] = await Promise.all([
+  const [{ data: apps, error }, { data: { user } }, , permisosConfig] = await Promise.all([
     supabase.rpc("get_visible_apps", { p_company_id: companyId }),
     supabase.auth.getUser(),
+    exigirPasswordDefinitiva(supabase),
+    Promise.all(DESTINOS_CONFIGURACION.map((d) => hasPermission({ supabase, companyId }, d.code))),
   ]);
 
   const groups = groupByCategory(apps ?? []);
+  const configuracionHref = DESTINOS_CONFIGURACION.find((_, i) => permisosConfig[i])?.href;
 
   return (
     <div className="min-h-screen bg-neutral-100">
@@ -78,11 +95,9 @@ export default async function PanelPage() {
 
         {!error && groups.length === 0 && (
           <p className="rounded-md border border-neutral-200 bg-white px-4 py-6 text-sm text-neutral-500">
-            No tenés ningún módulo habilitado todavía. Esto es DENY BY
-            DEFAULT funcionando como se espera — pedile a un owner/admin
-            que te agregue una membresía en{" "}
-            <code>core.company_memberships</code> o un permiso explícito en{" "}
-            <code>core.user_permissions</code>.
+            No tenés ninguna aplicación habilitada todavía. Pedile a un
+            administrador que te asigne un rol con acceso a las aplicaciones
+            que necesitás (Configuración → Usuarios).
           </p>
         )}
 
@@ -95,10 +110,12 @@ export default async function PanelPage() {
                 </h2>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                   {categoryApps.map((app) => {
+                    // Cambio de zona: cargar la aplicación completa, sin prefetch
+                    // ni navegación cliente con los recursos de Nexo.
                     const color = getCategoryColor(app.category);
                     const AppIcon = getCategoryIcon(app.category);
                     return (
-                      <Link
+                      <a
                         key={app.slug}
                         href={app.route}
                         className="flex flex-col items-center gap-3 rounded-lg border border-neutral-200 bg-white p-5 text-center transition-shadow hover:shadow-md"
@@ -107,13 +124,34 @@ export default async function PanelPage() {
                           <AppIcon className="h-6 w-6" />
                         </span>
                         <span className="text-sm font-medium">{app.name}</span>
-                      </Link>
+                      </a>
                     );
                   })}
                 </div>
               </section>
             ))}
           </div>
+        )}
+
+        {configuracionHref && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-neutral-400">
+              Administración
+            </h2>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+              <Link
+                href={configuracionHref}
+                className="flex flex-col items-center gap-3 rounded-lg border border-neutral-200 bg-white p-5 text-center transition-shadow hover:shadow-md"
+              >
+                <span
+                  className={`flex h-12 w-12 items-center justify-center rounded-lg ${DEFAULT_CATEGORY_COLOR.bg} ${DEFAULT_CATEGORY_COLOR.text}`}
+                >
+                  <NexoIcon name="settings" className="h-6 w-6" />
+                </span>
+                <span className="text-sm font-medium">Configuración</span>
+              </Link>
+            </div>
+          </section>
         )}
       </main>
     </div>
