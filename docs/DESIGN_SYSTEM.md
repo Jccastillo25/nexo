@@ -167,7 +167,10 @@ Launcher ("/", app/page.tsx — 2026-09-17: SIN NexoShell, sin sidebar/topbar/
 ├── RRHH
 ├── CRM
 ├── Transporte          (sin href — Flotilla no está en Multi-Zones todavía)
-└── Fabricación         (sin href — no existe todavía)
+├── Fabricación         (sin href — no existe todavía)
+└── Administración → Configuración  (tarjeta, 2026-10-14 — solo con algún permiso
+                        nexo.administracion.*.ver o nexo.configuracion.editar; lleva a la
+                        primera pantalla de Configuración permitida)
 
 RRHH
 ├── Dashboard
@@ -234,7 +237,11 @@ la grilla de módulos habilitados por categoría. `/configuracion/marca`
 sigue siendo la única ruta envuelta por `(app)/layout.tsx` — conserva su
 `NexoShell` sin cambios de comportamiento, solo que ya no se llega ahí
 desde un menú del Launcher (el Launcher no tiene topbar/menú de usuario)
-— sigue accesible por URL directa. El árbol de navegación de referencia
+— sigue accesible por URL directa. **2026-10-14 (decisión del usuario:
+"tiene que existir en el dashboard")**: el Launcher suma una sección
+"Administración" con una tarjeta "Configuración" (mismo estilo que las
+tarjetas de apps, como Ajustes en Odoo), visible solo con algún permiso de
+administración — sigue sin topbar ni menú de usuario. El árbol de navegación de referencia
 más abajo también cambió: el sidebar de `apps/nexo` ya no lista RRHH/CRM/
 Transporte/Fabricación (eso es contenido del Launcher, no navegación
 interna de "la app Nexo") — ver la sección siguiente.

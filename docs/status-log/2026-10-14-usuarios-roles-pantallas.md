@@ -31,6 +31,11 @@ ya aplicada ([esquema](2026-10-14-usuarios-roles-esquema.md)). Diseño:
 - **Fix de seguridad del análisis del 2026-10-14**: `login/actions.ts` ya no
   acepta `next=//otro-sitio` ni `/\otro-sitio` (redirección abierta).
 - Texto del Launcher sin apps: ya no menciona tablas internas.
+- **Ajuste tras el primer preview (mismo día):** el usuario no encontraba las
+  pantallas porque el Launcher no tenía forma de llegar a Configuración
+  (decisión 2026-09-17). Nueva decisión: sección "Administración" con tarjeta
+  "Configuración" en el Launcher, visible solo con algún permiso de
+  administración. `tsc` y `eslint` limpios.
 
 ## Pruebas ejecutadas
 
