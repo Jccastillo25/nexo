@@ -2,7 +2,7 @@
 
 ## 2026-10-14 — Agencia digital, matriz mínima (APLICADA)
 
-`20261014181353_agencia_dashboard_access`, aplicada en `nexo-core` con aprobación explícita del usuario. Añade el módulo `agencia` inactivo, permiso de módulo del trigger, `agencia.dashboard.resumen.ver` y rol `consulta` con ambos permisos. Sin tablas, políticas o funciones nuevas; sin roles asignados a usuarios ni empresas habilitadas. Postchecks: 2 permisos, 1 rol, 2 grants al rol, 0 usuarios y 0 empresas habilitadas. Advisors antes/después conservan los 4 avisos previos. Activación pendiente del deploy y aprobación humana. [Detalle](status-log/2026-10-14-agencia-independiente.md).
+`20261014181353_agencia_dashboard_access`, aplicada en `nexo-core` con aprobación explícita del usuario. Añade el módulo `agencia` inactivo, permiso de módulo del trigger, `agencia.dashboard.resumen.ver` y rol `consulta` con ambos permisos. Sin tablas, políticas o funciones nuevas; sin roles asignados a usuarios ni empresas habilitadas. Postchecks: 2 permisos, 1 rol, 2 grants al rol, 0 usuarios y 0 empresas habilitadas. Advisors antes/después conservan las 4 categorías y los 38 hallazgos previos, sin cambio salvo observed_at. Activación pendiente del deploy y aprobación humana. [Detalle](status-log/2026-10-14-agencia-independiente.md).
 
 
 Orden de bitácora: más reciente arriba.

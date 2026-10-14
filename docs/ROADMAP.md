@@ -5,7 +5,7 @@
 
 > El orden objetivo detallado vive en `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`. Este documento resume el avance macro. No confundir infraestructura desplegada con MVP funcional validado.
 
-Actualizado: **2026-09-06**.
+Historial anterior: **2026-09-06**.
 
 ---
 

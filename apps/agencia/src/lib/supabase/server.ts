@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import type { Database } from "./database.types";
 
 /** Cliente de Supabase para Server Components/Actions. Apunta a nexo-core,
- * schema por defecto "public" (has_permission/get_visible_apps viven ahi). */
+ * schema por defecto "public" (permisos y marca de la plataforma). */
 export async function createClient() {
   const cookieStore = await cookies();
 

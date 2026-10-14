@@ -15,7 +15,8 @@ export const config = {
     // - /rrhh/* — mismo motivo: apps/rrhh tiene su propio guard
     //   (apps/rrhh/src/proxy.ts), que excluye /rrhh/kiosco por ser la
     //   terminal publica del kiosko (sin sesion, autenticada por PIN).
-    // - /agencia/* — su proxy valida la sesión de esa zona.
+    // - /agencia/* — pertenece exclusivamente a la app Agencia; no crear
+    //   páginas de esa zona dentro de Nexo aunque falte AGENCIA_APP_URL.
     "/((?!_next/static|_next/image|favicon.ico|crm|rrhh|agencia(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

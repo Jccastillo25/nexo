@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const supabase = await createClient();
   const companyId = getCompanyId();
   const canSeeModule = await hasPermission({ supabase, companyId }, "agencia.ver_modulo");
-  if (!canSeeModule) redirect("/agencia/sin-acceso");
+  if (!canSeeModule) redirect("/sin-acceso");
 
   const [panelUrl, { data: { user } }, copyrightText, canViewDashboard] = await Promise.all([
     getPanelUrl(),

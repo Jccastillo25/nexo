@@ -1,6 +1,6 @@
 # Agencia digital — app independiente (ticket #18)
 
-Estado: código separado y controles técnicos locales aprobados; Preview y revisión de Claude en preparación. Merge, publicación de producción, activación del Launcher y pruebas manuales pendientes.
+Estado: código separado y controles técnicos locales aprobados; Previews del primer candidato READY; correcciones de redirecciones hechas, revisión final de Claude pendiente. Merge, publicación de producción, activación del Launcher y pruebas manuales pendientes.
 
 ## Decisión y alcance
 
@@ -41,11 +41,15 @@ Nexo necesita `AGENCIA_APP_URL` con el origen del destino, sin `/agencia` al fin
 - Instalación pnpm 9.15.9 con lockfile congelado: OK. Se añadió únicamente el importer de Agencia, conservando versiones y resoluciones existentes.
 - Lint, `next typegen`, `tsc --noEmit --incremental false` y build en Agencia: OK.
 - Lint, typegen, tipos y build en Nexo: OK.
-- `pnpm --filter nexo-agencia test:access`: 5 casos OK sobre la página real y el wrapper compartido, con RPC y primitivas visuales sustituidas. Cubre ambos permisos concedidos, módulo denegado, consulta denegada, ambos denegados y error de RPC. No usa cuentas ni red.
+- `pnpm --filter nexo-agencia test:access`: 10 casos OK sobre la página real y el wrapper compartido, con RPC y primitivas visuales sustituidas. Cubre ambos permisos concedidos, módulo denegado, consulta denegada, ambos denegados y error de RPC. Incluye además error individual de cada RPC, dato nulo y dos pruebas de redirección que usan el formateador real de Next para comprobar el basePath. No usa cuentas ni red.
 - Los cuatro archivos de `lib/agency` y las cuatro piezas visuales migradas mantienen su contenido. La página cambia permisos y añade un mensaje cuando un ticket no tiene etapas.
-- Advisors de seguridad antes/después: mismo conjunto de 4 avisos preexistentes, sin tablas, políticas ni funciones nuevas.
+- Advisors de seguridad antes/después: las mismas 4 categorías y 38 hallazgos preexistentes (ignorando únicamente observed_at), sin tablas, políticas ni funciones nuevas.
 
 Estos controles no equivalen a pruebas de navegador ni a pruebas contra cuentas reales.
+
+## Build inicial de Vercel
+
+Al crear el proyecto, Vercel generó automáticamente el primer build del candidato como Production (dpl_HBuNCkreyjiesJAG3A7hYVSpuaVZ), protegido y sin conexión desde Nexo. Se crearon también Previews explícitos de ambas zonas. El dominio público Nexo, su variable de Production y el catálogo activo no se cambiaron. El primer build no constituye una revisión manual ni autorización de merge. Antes de conectar la app, publicar el candidato corregido y revisado.
 
 ## Activación coordinada — pendiente de aprobación humana
 
@@ -53,7 +57,7 @@ Estos controles no equivalen a pruebas de navegador ni a pruebas contra cuentas 
 2. Obtener aprobación humana del PR y de su publicación.
 3. Publicar primero el commit revisado de Agencia en su proyecto de Production y comprobar READY; todavía no habilitarla en el Launcher.
 4. Configurar `AGENCIA_APP_URL` de Production de `nexocore` con el destino estable de Agencia y fusionar el PR. Confirmar el deploy Nexo READY antes de habilitar la tarjeta.
-5. Preparar y aplicar una migración de activación acotada a la empresa configurada de Nexo: `core.apps.active = true` y `core.company_apps.enabled = true`. No habilitar otras empresas ni asignar roles de usuarios.
+5. Preparar y aplicar una migración de activación acotada a la empresa configurada de Nexo, verificada en remoto como `materiales-jcastillo`: `core.apps.active = true` y `core.company_apps.enabled = true`. No habilitar otras empresas ni asignar roles de usuarios. El acceso de respaldo para owner/admin de esa empresa es intencional y fue aprobado en la matriz.
 6. El usuario verifica visualización en móvil/tablet/escritorio, navegación, login, cuentas con/sin permiso y cierre de sesión en el dominio compartido; registra resultados en GitHub.
 
 No fusionar ni aplicar la activación automáticamente. Antes de los pasos 3–5, `/dashboard` de producción mantiene el código anterior porque este PR no está fusionado.
@@ -69,3 +73,19 @@ No fusionar ni aplicar la activación automáticamente. Antes de los pasos 3–5
 - Estados vacíos.
 
 El ticket #13 sigue abierto para sus pruebas manuales. Este ticket no inicia el proyecto integral de usuarios/roles/permisos ni certifica pruebas que no se ejecutaron.
+
+## SQL de activación propuesto — NO ejecutado
+
+Aplicar únicamente después del deploy coordinado y aprobación humana. Consultar de nuevo el estado remoto antes de generar la migración con Supabase CLI.
+
+```sql
+begin;
+update core.apps set active = true where slug = 'agencia';
+insert into core.company_apps (company_id, app_id, enabled)
+select c.id, a.id, true
+from core.companies c
+join core.apps a on a.slug = 'agencia'
+where c.slug = 'materiales-jcastillo'
+on conflict (company_id, app_id) do update set enabled = true;
+commit;
+```

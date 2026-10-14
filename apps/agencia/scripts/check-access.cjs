@@ -15,7 +15,15 @@ const originalResolve = Module._resolveFilename;
 let grants = {};
 let rpcError = false;
 const supabase = {
-  rpc: async (_fn, { p_code }) => ({ data: grants[p_code] ?? false, error: rpcError ? new Error("RPC unavailable") : null }),
+  rpc: async (fn, { p_code, p_company_id }) => {
+    assert.equal(fn, "has_permission");
+    assert.equal(p_company_id, "test-company");
+    const failed = rpcError === true || (rpcError instanceof Set && rpcError.has(p_code));
+    return {
+      data: Object.hasOwn(grants, p_code) ? grants[p_code] : false,
+      error: failed ? new Error("RPC unavailable") : null,
+    };
+  },
 };
 
 for (const extension of [".ts", ".tsx"]) {
@@ -45,6 +53,10 @@ Module._load = function (request, parent, ...args) {
 };
 
 const Page = require("../src/app/(app)/dashboard/page.tsx").default;
+const Home = require("../src/app/page.tsx").default;
+const AppLayout = require("../src/app/(app)/layout.tsx").default;
+const { getURLFromRedirectError } = require("next/dist/client/components/redirect");
+const { addPathPrefix } = require("next/dist/shared/lib/router/utils/add-path-prefix");
 const modulePermission = "agencia.ver_modulo";
 const resourcePermission = "agencia.dashboard.resumen.ver";
 async function check(label, moduleGranted, resourceGranted, error, allowed) {
@@ -63,10 +75,29 @@ async function check(label, moduleGranted, resourceGranted, error, allowed) {
   console.log("OK:", label);
 }
 
+async function checkRedirect(label, run, expected) {
+  let target;
+  try {
+    await run();
+  } catch (error) {
+    // Misma función de Next 16 usada por app-render al escribir Location.
+    target = addPathPrefix(getURLFromRedirectError(error), "/agencia");
+  }
+  assert.equal(target, expected);
+  console.log("OK:", label);
+}
+
 (async () => {
   await check("módulo y consulta concedidos", true, true, false, true);
   await check("sin permiso de módulo", false, true, false, false);
   await check("sin permiso de consulta", true, false, false, false);
   await check("ningún permiso", false, false, false, false);
   await check("error de RPC deniega", true, true, true, false);
+  await check("error solo en permiso de módulo", true, true, new Set([modulePermission]), false);
+  await check("error solo en permiso de consulta", true, true, new Set([resourcePermission]), false);
+  await check("permiso nulo deniega", true, null, false, false);
+  await checkRedirect("raíz sin duplicar basePath", () => Home(), "/agencia/dashboard");
+  grants = {};
+  rpcError = false;
+  await checkRedirect("denegación sin duplicar basePath", () => AppLayout({ children: null }), "/agencia/sin-acceso");
 })().catch((error) => { console.error(error); process.exitCode = 1; });

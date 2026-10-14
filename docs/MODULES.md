@@ -1,11 +1,11 @@
 # Catálogo de módulos
 
-**Actualización 2026-10-14 — Agencia digital:** app independiente en `apps/agencia`, zona `/agencia`, proyecto Vercel `nexo-agencia`. Código separado y compilado; matriz mínima aplicada, app todavía inactiva. Preview, revisión de Claude, merge y activación pendientes. Solo lectura y datos de ejemplo del ticket #13. [Detalle](status-log/2026-10-14-agencia-independiente.md).
+**Actualización 2026-10-14 — Agencia digital:** app independiente en `apps/agencia`, zona `/agencia`, proyecto Vercel `nexo-agencia`. Código separado y compilado; matriz mínima aplicada, app todavía inactiva. Previews preparados; revisión final de Claude, merge y activación pendientes. Solo lectura y datos de ejemplo del ticket #13. [Detalle](status-log/2026-10-14-agencia-independiente.md).
 
 
 > Estado funcional de alto nivel. Para objetivo y orden de implementación ver `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`; para realidad detallada ver `IMPLEMENTATION_STATUS.md`.
 
-Actualizado: **2026-09-18** (auditoría del botón "Crear borrador" +
+Historial anterior: **2026-09-18** (auditoría del botón "Crear borrador" +
 reglas de contratación (puesto/departamento/plantilla obligatorios y en
 cascada, plantilla persistida) + endurecimiento de seguridad/integridad +
 App Launcher sin ningún chrome de módulo + sidebar con texto fijo "Nexo"

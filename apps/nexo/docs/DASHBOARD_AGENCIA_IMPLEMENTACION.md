@@ -1,5 +1,11 @@
 # Dashboard de agencia — entrega técnica y revisión manual
 
+> Historial del ticket #13. El candidato del ticket #18 extrae esta vista a
+> `apps/agencia`, con deploy independiente y ruta `/agencia/dashboard`.
+> Al publicar el cambio aprobado, `/dashboard` de Nexo queda como redirect.
+> Estado vigente y matriz: `docs/status-log/2026-10-14-agencia-independiente.md`.
+> Las pruebas manuales del ticket #13 siguen pendientes.
+
 ## Estado
 
 Etapas 1–3 implementadas. Etapa 4 con validación de navegador MANUAL PENDIENTE.
