@@ -41,7 +41,7 @@ Nexo necesita `AGENCIA_APP_URL` con el origen del destino, sin `/agencia` al fin
 - Instalación pnpm 9.15.9 con lockfile congelado: OK. Se añadió únicamente el importer de Agencia, conservando versiones y resoluciones existentes.
 - Lint, `next typegen`, `tsc --noEmit --incremental false` y build en Agencia: OK.
 - Lint, typegen, tipos y build en Nexo: OK.
-- `pnpm --filter nexo-agencia test:access`: 10 casos OK sobre la página real y el wrapper compartido, con RPC y primitivas visuales sustituidas. Cubre ambos permisos concedidos, módulo denegado, consulta denegada, ambos denegados y error de RPC. Incluye además error individual de cada RPC, dato nulo y dos pruebas de redirección que usan el formateador real de Next para comprobar el basePath. No usa cuentas ni red.
+- `pnpm --filter nexo-agencia test:access`: 12 casos OK sobre la página real y el wrapper compartido, con RPC y primitivas visuales sustituidas. Cubre ambos permisos concedidos, módulo denegado, consulta denegada, ambos denegados y error de RPC. Incluye además error individual de cada RPC, dato nulo, layout autorizado/denegado y dos pruebas de redirección que usan el formateador real de Next para comprobar el basePath. No usa cuentas ni red.
 - Los cuatro archivos de `lib/agency` y las cuatro piezas visuales migradas mantienen su contenido. La página cambia permisos y añade un mensaje cuando un ticket no tiene etapas.
 - Advisors de seguridad antes/después: las mismas 4 categorías y 38 hallazgos preexistentes (ignorando únicamente observed_at), sin tablas, políticas ni funciones nuevas.
 
@@ -80,12 +80,21 @@ Aplicar únicamente después del deploy coordinado y aprobación humana. Consult
 
 ```sql
 begin;
-update core.apps set active = true where slug = 'agencia';
-insert into core.company_apps (company_id, app_id, enabled)
-select c.id, a.id, true
-from core.companies c
-join core.apps a on a.slug = 'agencia'
-where c.slug = 'materiales-jcastillo'
-on conflict (company_id, app_id) do update set enabled = true;
+do $
+declare n integer;
+begin
+  update core.apps set active = true where slug = 'agencia';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'Debe existir exactamente una app Agencia'; end if;
+  insert into core.company_apps (company_id, app_id, enabled)
+  select c.id, a.id, true
+  from core.companies c
+  join core.apps a on a.slug = 'agencia'
+  where c.slug = 'materiales-jcastillo'
+  on conflict (company_id, app_id) do update set enabled = true;
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'Debe habilitarse exactamente la empresa de Nexo'; end if;
+end;
+$;
 commit;
 ```

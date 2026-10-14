@@ -15,14 +15,19 @@ const originalResolve = Module._resolveFilename;
 let grants = {};
 let rpcError = false;
 const supabase = {
-  rpc: async (fn, { p_code, p_company_id }) => {
+  auth: { getUser: async () => ({ data: { user: { email: "consulta@example.test" } } }) },
+  rpc: (fn, args) => {
+    if (fn === "get_platform_settings") {
+      return { maybeSingle: async () => ({ data: null, error: null }) };
+    }
+    const { p_code, p_company_id } = args;
     assert.equal(fn, "has_permission");
     assert.equal(p_company_id, "test-company");
     const failed = rpcError === true || (rpcError instanceof Set && rpcError.has(p_code));
-    return {
+    return Promise.resolve({
       data: Object.hasOwn(grants, p_code) ? grants[p_code] : false,
       error: failed ? new Error("RPC unavailable") : null,
-    };
+    });
   },
 };
 
@@ -41,12 +46,14 @@ Module._resolveFilename = function (request, parent, ...args) {
 Module._load = function (request, parent, ...args) {
   if (request === "@/lib/supabase/server") return { createClient: async () => supabase };
   if (request === "@/lib/company") return { getCompanyId: () => "test-company" };
+  if (request === "@/lib/panel") return { getPanelUrl: async () => "https://nexo.example.test" };
   if (request === "@nexo/ui") {
     return {
       PageHeader: ({ title, description }) => React.createElement("header", null, title, description),
       MetricCard: ({ label, value }) => React.createElement("div", { "data-metric": label }, value),
       EmptyState: ({ title, description }) => React.createElement("div", { "data-empty": true }, title, description),
       StatusBadge: ({ children }) => React.createElement("span", null, children),
+      NexoShell: ({ children }) => React.createElement("main", { "data-shell": true }, children),
     };
   }
   return originalLoad.call(this, request, parent, ...args);
@@ -57,6 +64,8 @@ const Home = require("../src/app/page.tsx").default;
 const AppLayout = require("../src/app/(app)/layout.tsx").default;
 const { getURLFromRedirectError } = require("next/dist/client/components/redirect");
 const { addPathPrefix } = require("next/dist/shared/lib/router/utils/add-path-prefix");
+const { basePath } = require("../next.config.ts").default;
+assert.equal(basePath, "/agencia");
 const modulePermission = "agencia.ver_modulo";
 const resourcePermission = "agencia.dashboard.resumen.ver";
 async function check(label, moduleGranted, resourceGranted, error, allowed) {
@@ -81,7 +90,7 @@ async function checkRedirect(label, run, expected) {
     await run();
   } catch (error) {
     // Misma función de Next 16 usada por app-render al escribir Location.
-    target = addPathPrefix(getURLFromRedirectError(error), "/agencia");
+    target = addPathPrefix(getURLFromRedirectError(error), basePath);
   }
   assert.equal(target, expected);
   console.log("OK:", label);
@@ -100,4 +109,11 @@ async function checkRedirect(label, run, expected) {
   grants = {};
   rpcError = false;
   await checkRedirect("denegación sin duplicar basePath", () => AppLayout({ children: null }), "/agencia/sin-acceso");
+  grants = { [modulePermission]: true, [resourcePermission]: true };
+  const layoutHtml = renderToStaticMarkup(await AppLayout({ children: "Contenido autorizado" }));
+  assert.match(layoutHtml, /data-shell/);
+  assert.match(layoutHtml, /Contenido autorizado/);
+  console.log("OK: layout autorizado muestra contenido");
+  rpcError = true;
+  await checkRedirect("error RPC en layout deniega", () => AppLayout({ children: null }), "/agencia/sin-acceso");
 })().catch((error) => { console.error(error); process.exitCode = 1; });

@@ -1,6 +1,6 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
-**Última actualización documental: 2026-10-14 — ticket #18:** matriz mínima aprobada y aplicada; Dashboard separado en `apps/agencia` y proyecto Vercel creado. Lint, typegen, tipos y build locales en Agencia/Nexo OK, 10 pruebas técnicas de denegación OK. Previews preparados; revisión final de Claude en curso; merge, publicación/activación y pruebas manuales pendientes. No se declara validación completa. [Detalle](status-log/2026-10-14-agencia-independiente.md).
+**Última actualización documental: 2026-10-14 — ticket #18:** matriz mínima aprobada y aplicada; Dashboard separado en `apps/agencia` y proyecto Vercel creado. Lint, typegen, tipos y build locales en Agencia/Nexo OK, 12 pruebas técnicas de denegación OK. Previews preparados; revisión final de Claude en curso; merge, publicación/activación y pruebas manuales pendientes. No se declara validación completa. [Detalle](status-log/2026-10-14-agencia-independiente.md).
 
 
 > Tracker operativo. Debe actualizarse en cada sesión que cambie código, base de datos, permisos, despliegue o estado funcional. La fuente del objetivo es `docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`; este archivo registra la realidad verificada.
