@@ -34,7 +34,11 @@ El diff completo y su SHA-256 se conservan en el expediente de la ejecución.
 
 Base: 4b81a00891ccc46d875baa3a971b289097b2715e
 Head: c705782a65104a051ecba3d32ed6fd843785ced4
-SHA-256 del diff: 45c84567465d28fa8914eb3b919ff9f64cad121791c7584e77519444c94cdc7f
+SHA-256 del diff: 9b3ee9d7bfd4f993ddc05eade3bb23b39f2079ee5e63bac2d3a988b16ec8e3e7
+
+Comando reproducible (salida íntegra de Git, incluido el salto de línea final):
+
+    git diff --no-ext-diff --no-textconv 4b81a00891ccc46d875baa3a971b289097b2715e c705782a65104a051ecba3d32ed6fd843785ced4 | sha256sum
 
 Archivos del intervalo:
 
