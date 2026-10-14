@@ -1,0 +1,71 @@
+# Agencia digital — app independiente (ticket #18)
+
+Estado: código separado y controles técnicos locales aprobados; Preview y revisión de Claude en preparación. Merge, publicación de producción, activación del Launcher y pruebas manuales pendientes.
+
+## Decisión y alcance
+
+El usuario aprobó el 2026-10-14 el deploy propio y la matriz mínima de lectura. Se reutiliza la interfaz del ticket #13 y sus fixtures, con un aviso persistente de datos de ejemplo. No se conectan agentes, tickets reales ni integraciones operativas.
+
+- App: `apps/agencia`; paquete `nexo-agencia`.
+- Proyecto Vercel dedicado: `nexo-agencia`, ID `prj_Oo6DtnsjTq9Dv6aDd8l2BhYupzIZ`, Root Directory `apps/agencia`.
+- Zona: `/agencia`, que redirige a `/agencia/dashboard`.
+- Nexo aporta el Launcher y los rewrites; el módulo usa `basePath: "/agencia"`.
+- `/dashboard` antiguo de Nexo se convierte en una redirección de compatibilidad.
+- Las tarjetas del Launcher usan navegación completa con `<a>` entre zonas; la navegación interna del módulo sigue con `next/link`.
+- El Dashboard se retira del sidebar de Nexo porque pertenece a otra app.
+
+## Paso Cero aprobado y aplicado
+
+Migración `20261014181353_agencia_dashboard_access.sql` aplicada en `nexo-core`. El archivo se creó mediante Supabase CLI y se renombró al prefijo de versión realmente registrado por el MCP, conservando el SQL.
+
+| Permiso | Autoridad |
+| --- | --- |
+| `agencia.ver_modulo` | Visibilidad del módulo; generado por el trigger vigente |
+| `agencia.dashboard.resumen.ver` | Consulta del Dashboard; cuatro segmentos |
+
+Rol de app `consulta`: ambos permisos. Owner/admin: fallback actual, sujeto al deny explícito. Sin sesión: login central. Sin permiso de módulo: `/agencia/sin-acceso`. Sin permiso de consulta: estado sin acceso, sin datos del Dashboard.
+
+Verificado en remoto tras la migración: app inactiva, 2 permisos, 1 rol, 2 concesiones al rol, 0 usuarios asignados y 0 empresas habilitadas. No se copiaron concesiones de Nexo ni se crearon tablas o funciones de negocio. Se conserva el motor compartido, incluido el orden deny explícito → rol → fallback. Las comprobaciones de permisos de la ruta siguen el patrón del CRM; la activación comercial por empresa controla la visibilidad en el Launcher.
+
+## Entorno
+
+En el proyecto nuevo están configuradas, separadamente de Nexo:
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXO_COMPANY_ID` y `NEXO_PANEL_URL`, para Preview y Production. El proyecto usa `nexo-core`; no hay `service_role` en Agencia.
+
+Nexo necesita `AGENCIA_APP_URL` con el origen del destino, sin `/agencia` al final. Esta variable también se incluye en el allowlist de `turbo.json`. No se genera un rewrite cuando falta el destino; configurar el valor de Production es una precondición del merge, porque el enlace antiguo se redirige a la nueva zona.
+
+`NEXO_PANEL_URL` puede apuntar al Preview de Nexo al probar las dos zonas juntas; el login siempre vive en Nexo. Un acceso aislado al `*.vercel.app` del módulo no comparte las cookies del dominio público. No usar el dominio del módulo como ruta del catálogo.
+
+## Controles ejecutados
+
+- Instalación pnpm 9.15.9 con lockfile congelado: OK. Se añadió únicamente el importer de Agencia, conservando versiones y resoluciones existentes.
+- Lint, `next typegen`, `tsc --noEmit --incremental false` y build en Agencia: OK.
+- Lint, typegen, tipos y build en Nexo: OK.
+- `pnpm --filter nexo-agencia test:access`: 5 casos OK sobre la página real y el wrapper compartido, con RPC y primitivas visuales sustituidas. Cubre ambos permisos concedidos, módulo denegado, consulta denegada, ambos denegados y error de RPC. No usa cuentas ni red.
+- Los cuatro archivos de `lib/agency` y las cuatro piezas visuales migradas mantienen su contenido. La página cambia permisos y añade un mensaje cuando un ticket no tiene etapas.
+- Advisors de seguridad antes/después: mismo conjunto de 4 avisos preexistentes, sin tablas, políticas ni funciones nuevas.
+
+Estos controles no equivalen a pruebas de navegador ni a pruebas contra cuentas reales.
+
+## Activación coordinada — pendiente de aprobación humana
+
+1. Completar revisión técnica de Claude y confirmar Previews READY de la app nueva y de Nexo.
+2. Obtener aprobación humana del PR y de su publicación.
+3. Publicar primero el commit revisado de Agencia en su proyecto de Production y comprobar READY; todavía no habilitarla en el Launcher.
+4. Configurar `AGENCIA_APP_URL` de Production de `nexocore` con el destino estable de Agencia y fusionar el PR. Confirmar el deploy Nexo READY antes de habilitar la tarjeta.
+5. Preparar y aplicar una migración de activación acotada a la empresa configurada de Nexo: `core.apps.active = true` y `core.company_apps.enabled = true`. No habilitar otras empresas ni asignar roles de usuarios.
+6. El usuario verifica visualización en móvil/tablet/escritorio, navegación, login, cuentas con/sin permiso y cierre de sesión en el dominio compartido; registra resultados en GitHub.
+
+No fusionar ni aplicar la activación automáticamente. Antes de los pasos 3–5, `/dashboard` de producción mantiene el código anterior porque este PR no está fusionado.
+
+## Pruebas manuales pendientes
+
+- Icono y tarjeta en Aplicaciones; apertura de `/agencia/dashboard`.
+- Diseño 360/768/1440 y uso de teclado.
+- Usuario autorizado, sin sesión y usuario sin permiso.
+- Denegación explícita sobre rol/owner-admin.
+- Regresión de Launcher, login, Marca y acceso a CRM/RRHH.
+- Cierre de sesión y regreso a Nexo sin un login propio del módulo.
+- Estados vacíos.
+
+El ticket #13 sigue abierto para sus pruebas manuales. Este ticket no inicia el proyecto integral de usuarios/roles/permisos ni certifica pruebas que no se ejecutaron.

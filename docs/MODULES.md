@@ -1,5 +1,8 @@
 # Catálogo de módulos
 
+**Actualización 2026-10-14 — Agencia digital:** app independiente en `apps/agencia`, zona `/agencia`, proyecto Vercel `nexo-agencia`. Código separado y compilado; matriz mínima aplicada, app todavía inactiva. Preview, revisión de Claude, merge y activación pendientes. Solo lectura y datos de ejemplo del ticket #13. [Detalle](status-log/2026-10-14-agencia-independiente.md).
+
+
 > Estado funcional de alto nivel. Para objetivo y orden de implementación ver `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`; para realidad detallada ver `IMPLEMENTATION_STATUS.md`.
 
 Actualizado: **2026-09-18** (auditoría del botón "Crear borrador" +
@@ -17,6 +20,7 @@ estabilización RRHH — ver `IMPLEMENTATION_STATUS.md`).
 | Módulo / superficie | Ruta / plataforma | Estado | Nota |
 |---|---|---|---|
 | Panel Nexo | `/` | ✅ Operativo | Login, launcher y módulos por permiso. Desde 2026-09-17 (código en `main`, `392f676`): `/` es exclusivamente el App Launcher, sin ningún chrome de módulo (sin sidebar/topbar/buscador) — deployment de Vercel disparado por el push, sin verificar `READY`. |
+| Agencia digital | `/agencia` | 🟡 Preparada, sin activar | App y deploy propio; Dashboard de solo lectura con datos de ejemplo. Matriz aplicada, sin usuarios/empresas asignados. Revisión técnica y despliegue coordinado pendientes. |
 | CRM | `/crm` | 🟡 Base operativa | Cliente CRUD + dashboard. Falta CRM completo: leads, oportunidades, actividades, cotizaciones y pedido. |
 | RRHH | `/rrhh` | 🟡 En validación | Expediente General (persona) y Contratación (relación laboral: contratos/PIN/jornadas/catálogos) separados como dominios reales desde 2026-09-14. Desde 2026-09-16: cédula obligatoria, catálogos de puestos/departamentos/plantillas, Storage privado de documentos y expediente ampliado (Dirección/Info. complementaria/Cuentas bancarias/Beneficiario). Desde 2026-09-18 (migración `20260918043955_...` aplicada a `nexo-core`, código en `main`): puesto/departamento/plantilla obligatorios y validados server-side al crear un contrato, plantilla persistida, integridad multiempresa reforzada (FKs compuestas), condición de carrera corregida en beneficiarios, límites reales del bucket de Storage — implementado, compilado y aplicado en remoto, sin recorrido autenticado real (sin credenciales de prueba) ni municipios de Nicaragua cargados (ver `IMPLEMENTATION_STATUS.md`). Falta consolidación de asistencia y planillas (F1.5+). |
 | Kiosko RRHH | `/rrhh/kiosco` | ✅ Migrado a PIN contractual | Dispositivo + PIN, validado contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. |

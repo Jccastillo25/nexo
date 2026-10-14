@@ -15,6 +15,7 @@ export const config = {
     // - /rrhh/* — mismo motivo: apps/rrhh tiene su propio guard
     //   (apps/rrhh/src/proxy.ts), que excluye /rrhh/kiosco por ser la
     //   terminal publica del kiosko (sin sesion, autenticada por PIN).
-    "/((?!_next/static|_next/image|favicon.ico|crm|rrhh|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // - /agencia/* — su proxy valida la sesión de esa zona.
+    "/((?!_next/static|_next/image|favicon.ico|crm|rrhh|agencia(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

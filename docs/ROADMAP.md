@@ -1,5 +1,8 @@
 # Roadmap de Nexo
 
+**Bloque complementario pedido por el usuario, 2026-10-14:** separar Agencia digital en `apps/agencia` con proyecto Vercel e icono en el Launcher. Matriz mínima aprobada y aplicada; código y compilación preparados, revisión técnica/publicación/activación pendientes. No inicia las fases RRHH ni el proyecto integral de permisos. [Detalle](status-log/2026-10-14-agencia-independiente.md).
+
+
 > El orden objetivo detallado vive en `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`. Este documento resume el avance macro. No confundir infraestructura desplegada con MVP funcional validado.
 
 Actualizado: **2026-09-06**.

@@ -12,6 +12,9 @@ import type { NextConfig } from "next";
 // basePath configurado rompe ese modulo, no lo actives antes de tiempo.
 const CRM_APP_URL = process.env.CRM_APP_URL ?? "http://localhost:3001";
 const RRHH_APP_URL = process.env.RRHH_APP_URL ?? "http://localhost:3002";
+// Se configura por entorno antes de activar el módulo. Sin destino no se
+// publica un rewrite hacia una app inexistente.
+const AGENCIA_APP_URL = process.env.AGENCIA_APP_URL;
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@nexo/permissions", "@nexo/ui"],
@@ -55,6 +58,12 @@ const nextConfig: NextConfig = {
         source: "/rrhh/:path*",
         destination: `${RRHH_APP_URL}/rrhh/:path*`,
       },
+      ...(AGENCIA_APP_URL
+        ? [
+            { source: "/agencia", destination: `${AGENCIA_APP_URL}/agencia` },
+            { source: "/agencia/:path*", destination: `${AGENCIA_APP_URL}/agencia/:path*` },
+          ]
+        : []),
     ];
   },
 };

@@ -164,3 +164,7 @@ y migración SQL en
 [planning/ARQUITECTURA_MVP_ESCALABLE.md §3](planning/ARQUITECTURA_MVP_ESCALABLE.md#3-matriz-de-roles-y-permisos-granulares-rbacabac)
 (`supabase/migrations/20260902000001_app_scoped_roles.sql`, pendiente de
 aplicar al proyecto remoto).
+
+## Agencia digital — matriz mínima aprobada (2026-10-14)
+
+App `agencia`: permiso reservado `agencia.ver_modulo` generado por el trigger y permiso funcional `agencia.dashboard.resumen.ver` (cuatro segmentos). Rol de app `consulta` con ambos permisos; sin asignación automática de usuarios. Owner/admin conserva el fallback sujeto al deny explícito. Matriz aprobada por el usuario y aplicada mediante `20261014181353_agencia_dashboard_access`, inicialmente con app inactiva y ninguna empresa habilitada. No cambia el motor RBAC ni inicia el proyecto integral de usuarios/roles. [Detalle, evidencia y activación](status-log/2026-10-14-agencia-independiente.md).
