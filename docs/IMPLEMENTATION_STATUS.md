@@ -86,7 +86,7 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 |---|---|---|
 | Agencia digital | 🟡 Preparada, sin activar | `apps/agencia`, `/agencia`, proyecto `nexo-agencia`; matriz aplicada, código compilado y pruebas técnicas OK. Revisión final de Claude y activación pendientes; cuentas y visualización manuales. |
 | Nexo Core / Launcher | ✅ Validado | Monorepo, SSO, Multi-Zones, permisos y `nexo-core` operativos según última documentación verificada. Desde 2026-09-14, `/` es un App Launcher puro (selector de aplicaciones, sin KPIs) — ver fila siguiente. |
-| Administración de usuarios y roles (`apps/nexo`) | 🟡 Base de datos aplicada + pantallas implementadas 2026-10-14, sin validar con sesión real | Pantallas en rama `feat/usuarios-roles-nexo` (`/configuracion/usuarios`, `/roles`, `/auditoria`, `/cambiar-contrasena`), build/lint limpios — ver [status-log](status-log/2026-10-14-usuarios-roles-pantallas.md). Base de datos: | Paso Cero (`20261014201119`) + esquema (`20261014203144`) en `nexo-core`: roles de empresa (un rol por usuario), `core.has_permission` reescrita (módulo habilitado + usuario activo + rol), 14 RPC `admin_*` con anti-escalada y auditoría, vínculo con `rrhh.empleados.user_id`. Validado con 15 pruebas SQL (transacción revertida). **Pantallas y Server Actions de Auth sin implementar** — hasta entonces los usuarios se siguen dando de alta por SQL. Diseño: [`plan/12`](plan/12-administracion-usuarios-roles.md). |
+| Administración de usuarios y roles (`apps/nexo`) | 🟡 En producción 2026-10-14 (PR #20, `main` `ff46bce`), sin validar con sesión real | Pantallas `/configuracion/usuarios`, `/roles`, `/auditoria`, `/cambiar-contrasena` + tarjeta "Configuración" en el Launcher; `nexocore` READY en Production; sin sesión redirige al login (verificado en el dominio público). Base de datos: Paso Cero (`20261014201119`) + esquema (`20261014203144`) — roles de empresa (un rol por usuario), `core.has_permission` reescrita, 14 RPC `admin_*` con anti-escalada y auditoría, vínculo con `rrhh.empleados.user_id`; 15 pruebas SQL. Pendiente: recorrido con sesión real. Ver [status-log](status-log/2026-10-14-usuarios-roles-pantallas.md) y [`plan/12`](plan/12-administracion-usuarios-roles.md). |
 | Nexo Enterprise UI (shell/navegación) | 🟡 Pusheado a `main` 2026-09-17 (`392f676`), sin verificar en producción | Sidebar azul persistente + topbar con breadcrumb en RRHH/CRM (`NexoShell`). Desde 2026-09-17: la cabecera del sidebar muestra **texto fijo "Nexo"** (sin logo/ícono, nunca el nombre de la app activa) en vez del logo dinámico + nombre de módulo de 2026-09-14 — el nombre de la app sigue en el breadcrumb/contenido. `/` de `apps/nexo` (App Launcher) se movió fuera del grupo `(app)` y ya no usa `NexoShell` en absoluto (sin sidebar/topbar/buscador/menú) — header propio mínimo. `/configuracion/marca` conserva su `NexoShell` sin cambios de comportamiento. Código en `main`, `next build` limpio en las 3 apps — sin recorrido autenticado real ni verificación visual del deployment de Vercel disparado por el push. |
 | RRHH infraestructura | ✅ Desplegada | Schema, permisos, RLS, expedientes básicos y kiosko existen. |
 | RRHH modelo Expediente General/Laboral | ✅ F1.1 (datos) + reconciliación de UI 2026-09-14 + expediente ampliado 2026-09-16 | `rrhh.empleados` ya no acepta datos laborales/credenciales en el alta (2026-09-07); `documento_identidad` obligatorio desde 2026-09-16. Columnas viejas deprecadas, no eliminadas — limpieza final pendiente. `/expedientes/[id]` (persona) tiene sus 6 pestañas con modelo real desde 2026-09-16 (Datos personales, Dirección, Información complementaria, Cuentas bancarias, Beneficiario, Documentos) — ver fila "RRHH expediente ampliado" abajo. El ciclo contractual completo sigue en `/contratacion/contratos`. |
@@ -359,9 +359,14 @@ Paso Cero — administración de usuarios/roles ✅ aplicado 2026-10-14
 Administración de usuarios/roles — esquema + RPC ✅ aplicado 2026-10-14
                                               (20261014203144, 15 pruebas SQL)
  ↓
-Administración de usuarios/roles — pantallas  🟡 implementadas 2026-10-14 (build/lint
-                                              limpios); falta recorrido con sesión real,
-                                              push y deploy de preview
+Administración de usuarios/roles — pantallas  🟡 EN PRODUCCIÓN 2026-10-14 (PR #20,
+                                              main ff46bce, nexocore READY); falta
+                                              recorrido con sesión real (crear rol/usuario,
+                                              primer ingreso, desactivar)
+Agencia digital (#18)                         ⏸ en espera por decisión del usuario: código en
+                                              main, app inactiva en nexo-core, sin
+                                              AGENCIA_APP_URL de Production (/dashboard no
+                                              funciona hasta activarla)
  ↓
 Turnos (sala de espera) — Paso Cero  ⏳ siguiente, pedido por el usuario
  ↓

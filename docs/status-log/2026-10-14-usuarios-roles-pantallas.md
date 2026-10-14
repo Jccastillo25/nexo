@@ -59,6 +59,12 @@ ya aplicada ([esquema](2026-10-14-usuarios-roles-esquema.md)). Diseño:
 - El correo no se edita después del alta.
 - Activar "Leaked password protection" en Supabase Auth.
 
-## Commit
+## Commit y despliegue
 
-Rama `feat/usuarios-roles-nexo` (sin push ni merge a `main`).
+Rama `feat/usuarios-roles-nexo` (con el ticket #18 de Agencia unido por merge),
+fusionada a `main` en el PR #20 (merge commit `ff46bce`, 2026-10-14) por
+decisión del usuario ("mandar todo a producción", Agencia en espera).
+Production de Vercel: `nexocore` READY; `/configuracion/usuarios` sin sesión
+redirige a `/login` en `nexo.materialesjcastillo.com`. `nexo-crm`/`nexo-rrhh`
+recompilando al momento de escribir esto; `nexo-agencia` READY pero sin
+conectar (sin `AGENCIA_APP_URL` de Production, app inactiva en `nexo-core`).
