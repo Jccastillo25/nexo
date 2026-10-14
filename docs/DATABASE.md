@@ -55,7 +55,19 @@ evita exponer tablas sensibles como `user_permissions` directo a la API.
 ## Tablas de `core` (aplicadas)
 
 - `core.companies` — 1 fila: `materiales-jcastillo`
-- `core.company_memberships` — roles de usuarios por compañía
+- `core.company_memberships` — roles de usuarios por compañía. **Desde
+  2026-10-14** (`20261014203144`): `rol_id` (FK compuesta a
+  `core.roles(id, company_id)`, un solo rol por usuario; `NULL` para el
+  owner), `activo` (false = sin ningún permiso, conserva rol e historial) y
+  `updated_at`. `role` queda solo como `owner`/`member`.
+- `core.roles` / `core.rol_permisos` — **2026-10-14**: roles de empresa
+  definidos desde `apps/nexo` (nombre + apps con acceso vía
+  `<app>.ver_modulo` + permisos internos). Nombre único por empresa
+  (case-insensitive). RLS sin policies y sin `GRANT` — solo vía RPC.
+- `core.perfiles` — **2026-10-14**: datos de la persona detrás de
+  `auth.users` (`nombre_completo`, `telefono`, `cargo`,
+  `debe_cambiar_password`). RLS sin policies y sin `GRANT` — solo vía RPC.
+  El vínculo con RRHH reutiliza `rrhh.empleados.user_id` (ya existente, `UNIQUE`).
 - `core.apps` — sembrada con los 4 módulos (`nexo`, `rrhh`, `flotilla`, `crm`)
 - `core.company_apps` — `materiales-jcastillo` tiene `nexo`, `crm` y
   `rrhh` habilitados (`enabled = true`, verificado 2026-09-04); `flotilla`
@@ -76,7 +88,10 @@ evita exponer tablas sensibles como `user_permissions` directo a la API.
   `rrhh.expedientes.contratos.editar` (existente), sin duplicar ninguno
   (`20260907162904_f1_4_jornadas_permission_matrix.sql`)
 - `core.app_roles` / `core.app_role_permissions` — roles con alcance por
-  app (`app_scoped_roles`, 2026-09-02): para `rrhh`, 5 roles —
+  app (`app_scoped_roles`, 2026-09-02). **Desde 2026-10-14 ya no los evalúa
+  `core.has_permission`** (`core.user_app_roles` tenía 0 filas): se
+  conservan como **plantillas** del editor de roles (`public.admin_plantillas_rol`).
+  Para `rrhh`, 5 roles —
   `admin`, `supervisor_asistencia`, `gestor_expedientes`,
   `especialista_planillas` y `consulta` (ver [PERMISSIONS.md](PERMISSIONS.md)).
   Asignación de los 7 permisos de contratos/credenciales (2026-09-07):
@@ -92,7 +107,28 @@ evita exponer tablas sensibles como `user_permissions` directo a la API.
   particionadas mantiene `core.fn_asegurar_particiones_futuras()` (usado
   también por `rrhh.asistencia_marcas` y `rrhh.seguridad_accesos`)
 - `core.has_permission()` / `public.has_permission()` — función única de
-  la norma v3.0, RLS y apps la llaman por igual (ver PERMISSIONS.md)
+  la norma v3.0, RLS y apps la llaman por igual (ver PERMISSIONS.md).
+  **Reescrita 2026-10-14** (misma firma): código registrado → módulo activo
+  y habilitado en `company_apps` → membresía activa → `user_permissions` →
+  owner → rol de empresa. Ya no hay bypass por membresía `admin`.
+- RPC de administración (2026-10-14, `security definer`, solo
+  `authenticated`, cada una exige su permiso `nexo.administracion.*` y
+  audita en `core.audit_log` con acción `admin.*`):
+  `admin_listar_usuarios`, `admin_listar_roles`, `admin_catalogo_permisos`,
+  `admin_plantillas_rol`, `admin_buscar_empleados`, `admin_listar_auditoria`,
+  `admin_guardar_rol`, `admin_eliminar_rol`, `admin_completar_alta`,
+  `admin_editar_usuario`, `admin_cambiar_estado_usuario`,
+  `admin_marcar_password_temporal`; para cualquier usuario: `mi_perfil`,
+  `confirmar_cambio_password`. Reglas anti-escalada en helpers internos
+  `core.fn_*` (sin `EXECUTE` para `anon`/`authenticated`): nadie otorga ni
+  asigna permisos que no tiene, nadie edita su propio rol ni se cambia su
+  propio rol/estado, solo el owner toca al owner. Detalle:
+  [plan/12-administracion-usuarios-roles.md](plan/12-administracion-usuarios-roles.md)
+- Particiones de `core.audit_log`: **no hay `pg_cron` instalado** — desde
+  2026-10-14 `core.fn_auditar` asegura la partición del mes en curso antes
+  de cada insert, y la migración creó hasta `audit_log_2027_01`. Las
+  particiones de `rrhh.*` siguen dependiendo de llamadas manuales a
+  `core.fn_asegurar_particiones_futuras()`
 - `core.platform_settings` — singleton de marca de la plataforma
 - `core.geografia_ni_departamentos` / `core.geografia_ni_municipios` —
   **bloque pre-F1.5 (2026-09-16)**: geografía nacional de Nicaragua, sin
@@ -157,6 +193,10 @@ completo de cada una:
 20260916160000_rrhh_expediente_ampliado_permisos
 20260916170000_geografia_ni_y_expediente_ampliado
 20260916180000_rrhh_storage_privado_documentos
+20260918043955_rrhh_contratos_reglas_y_endurecimiento
+20261014181353_agencia_dashboard_access   (aplicada en remoto, NO está en main — ver MIGRATION_LOG)
+20261014201119_nexo_administracion_permisos_paso_cero
+20261014203144_nexo_usuarios_roles_esquema
 ```
 
 Nota: esta lista no reflejaba `20260914090000` hasta esta actualización

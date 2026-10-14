@@ -101,7 +101,7 @@ propios dominios según su negocio:
 | RRHH | Centro de Control, Talento, Turnos, Asistencia, Nómina, Sistema *(los 6 de v2.0, sin cambios)* |
 | Flotilla | Viajes, Conductores, Flota, Reportes |
 | CRM | Clientes, Oportunidades |
-| Nexo (panel) | `administracion` — usuarios, roles y auditoría (Paso Cero aplicado 2026-10-14, 9 códigos `nexo.administracion.*`; ver [plan/12-administracion-usuarios-roles.md](plan/12-administracion-usuarios-roles.md), que además propone reemplazar la capa 2 por roles de empresa — **sin implementar**) |
+| Nexo (panel) | `administracion` — usuarios, roles y auditoría (Paso Cero aplicado 2026-10-14, 9 códigos `nexo.administracion.*`; ver [plan/12-administracion-usuarios-roles.md](plan/12-administracion-usuarios-roles.md), ; roles de empresa y RPC de administración aplicados 2026-10-14, ver "Modelo vigente" abajo — pantallas **sin implementar**) |
 | Todos (incluye `nexo`) | `acceso` — dominio reservado para el permiso `<slug>.ver_modulo` que crea el trigger |
 
 ## Dos capas de enforcement, no solo una
@@ -152,7 +152,33 @@ el estado real del proyecto remoto (`core.apps`, `core.permissions_catalog`,
 colisión y anclar el script a la realidad — nunca asumir el estado a
 partir de esta documentación, que puede estar desactualizada.
 
-## Extensión: rol por app (capa 2, entre suite y permiso fino)
+## Modelo vigente desde 2026-10-14: roles de empresa (un rol por usuario)
+
+Decisión del usuario, aplicada en `20261014203144_nexo_usuarios_roles_esquema`
+(diseño en [plan/12-administracion-usuarios-roles.md](plan/12-administracion-usuarios-roles.md)):
+
+- Los roles los crea la empresa desde `apps/nexo` (`core.roles`): nombre +
+  **apps con acceso** (`<app>.ver_modulo` dentro del rol) + **permisos
+  internos** de cada app (`core.rol_permisos`).
+- Cada usuario tiene **un solo rol** (`core.company_memberships.rol_id`).
+  El owner no lleva rol: tiene acceso total.
+- `core.has_permission()` (misma firma) evalúa en orden: código registrado →
+  módulo activo y habilitado para la empresa (**incluso para el owner**) →
+  membresía activa → excepción individual en `core.user_permissions` →
+  owner → rol de empresa. Ya no hay bypass por membresía `admin`.
+- Anti-escalada (en las RPC `public.admin_*`): nadie otorga ni asigna
+  permisos que no tiene; nadie edita su propio rol ni se cambia su propio
+  rol/estado; solo el owner modifica al owner; todo cambio queda en
+  `core.audit_log` (`admin.*`).
+- Un módulo nuevo **sigue necesitando su Paso Cero** (catálogo): sus
+  permisos aparecen solos en el editor de roles una vez registrados y
+  habilitados en `core.company_apps`. `core.app_roles` pasa a ser solo
+  plantillas ("Cargar plantilla") — un Paso Cero puede seguir sembrándolas.
+
+## Extensión: rol por app (capa 2, entre suite y permiso fino) — reemplazada 2026-10-14
+
+> Histórico. Desde 2026-10-14 `core.has_permission` ya no evalúa
+> `core.user_app_roles` (tenía 0 filas); ver la sección anterior.
 
 `core.company_memberships.role` (owner/admin/member) es un rol de
 **suite** — todo o nada por empresa. `core.user_permissions` es un

@@ -2,7 +2,16 @@
 
 Fecha: 2026-10-14 · Estado: **Paso Cero (sección 3) aprobado y aplicado a `nexo-core`
 el 2026-10-14** (migración `20261014201119_nexo_administracion_permisos_paso_cero`).
-Secciones 4-8 (esquema, `has_permission`, RPC, pantallas): **diseño, sin implementar**.
+Secciones 4-6 (esquema, `has_permission`, RPC): **aplicadas a `nexo-core` el 2026-10-14**
+(migración `20261014203144_nexo_usuarios_roles_esquema`, validada antes con 15 pruebas en una
+transacción revertida). Secciones 7-8 (pantallas, Server Actions de Auth): **sin implementar**.
+
+> **Ajustes al implementar (prevalecen sobre el SQL de la sección 4):** no hay policies de
+> lectura — `authenticated` no tiene `USAGE` sobre `core`, así que toda lectura también pasa por
+> RPC (`admin_listar_*`, `admin_catalogo_permisos`, `admin_plantillas_rol`,
+> `admin_buscar_empleados`, `mi_perfil`); `debe_cambiar_password` tiene default `false` (lo
+> pone en `true` el alta); y `core.fn_auditar` crea la partición del mes de `core.audit_log`
+> antes de insertar (no hay `pg_cron`). El SQL real es el de la migración.
 
 ## 1. Decisiones del usuario
 
@@ -185,5 +194,7 @@ solo se usa del lado del servidor con `SUPABASE_SERVICE_ROLE_KEY`, que `nexocore
 ## 9. Pendiente
 
 - ~~Aprobación explícita del Paso Cero (sección 3)~~ — aprobado y aplicado 2026-10-14.
-- Aprobación de la migración de esquema (secciones 4-6) antes de aplicarla.
+- ~~Aprobación de la migración de esquema (secciones 4-6)~~ — aprobada y aplicada 2026-10-14.
+- Activar "Leaked password protection" en Supabase Auth (dashboard → Authentication → Policies):
+  el advisor lo marca desactivado y ahora los administradores ponen contraseñas.
 - Node.js + pnpm en la máquina de desarrollo para `pnpm install`/`next build` (hoy no están instalados en `Ventas03`).
