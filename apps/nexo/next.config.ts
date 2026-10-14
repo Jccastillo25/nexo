@@ -15,6 +15,8 @@ const RRHH_APP_URL = process.env.RRHH_APP_URL ?? "http://localhost:3002";
 // Se configura por entorno antes de activar el módulo. Sin destino no se
 // publica un rewrite hacia una app inexistente.
 const AGENCIA_APP_URL = process.env.AGENCIA_APP_URL;
+// Atención (plan 13): mismo criterio, sin destino no hay rewrite.
+const ATENCION_APP_URL = process.env.ATENCION_APP_URL;
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@nexo/permissions", "@nexo/ui"],
@@ -62,6 +64,12 @@ const nextConfig: NextConfig = {
         ? [
             { source: "/agencia", destination: `${AGENCIA_APP_URL}/agencia` },
             { source: "/agencia/:path*", destination: `${AGENCIA_APP_URL}/agencia/:path*` },
+          ]
+        : []),
+      ...(ATENCION_APP_URL
+        ? [
+            { source: "/atencion", destination: `${ATENCION_APP_URL}/atencion` },
+            { source: "/atencion/:path*", destination: `${ATENCION_APP_URL}/atencion/:path*` },
           ]
         : []),
     ];

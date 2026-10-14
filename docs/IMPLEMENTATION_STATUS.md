@@ -71,6 +71,9 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 | 2026-09-11 | [Limpieza de datos de prueba residuales](status-log/2026-09-11-limpieza-datos-prueba-residuales.md) | Verificación remota de rutina encontró 1 empleado/contrato/PIN de prueba sin limpiar en `nexo-core` (contradecía "0 filas" documentado) — borrado con aprobación explícita del usuario; también corrige una imprecisión de conteo de migraciones de F1.0 (duplicados inertes del bootstrap, sin impacto). |
 | 2026-09-14 | [Reconciliación de navegación — Marca, Launcher, Expediente/Contratación](status-log/2026-09-14-reconciliacion-navegacion-rrhh.md) | Bloque pedido explícitamente (P0-P4, sin iniciar F1.5): fix P0 real de `/configuracion/marca` (límite de body + error boundary global), App Launcher puro sin KPIs con logo en la cabecera del sidebar, Expediente General separado de Contratación (ciclo contractual completo movido a `/contratacion/contratos`), edición real del Expediente General (`rrhh.fn_editar_empleado` nuevo). Mergeado a `main` (`4cc8a6a`, fast-forward) y verificado `READY` en Vercel producción el mismo día — smoke test autenticado NO ejecutado (sin credenciales; el usuario eligió cerrar documentando la limitación). |
 | 2026-09-16 | [Bloque "pre-F1.5" — cédula, favicon, catálogos, Storage privado, expediente ampliado](status-log/2026-09-16-rrhh-pre-f1-5.md) | Bloque pedido explícitamente antes de F1.5: cédula obligatoria (DB+RPC+UI), favicon dinámico en RRHH/CRM, catálogos de Contratación (`rrhh.puestos`/`rrhh.departamentos`/`rrhh.plantillas_contrato`/`rrhh.puesto_plantillas`, `rrhh.contratos.puesto_id`/`departamento_id`), Storage privado (`rrhh-documentos-privados`, subida por URL firmada directa — evita el techo de 4.5MB de Vercel), expediente ampliado (Dirección con geografía de Nicaragua en `core.geografia_ni_*`, Información complementaria, Cuentas bancarias, Beneficiario). `next build`+`eslint` limpios en `apps/rrhh`/`apps/crm`, sin smoke test autenticado (sin credenciales). Deuda explícita: `core.geografia_ni_municipios` queda vacía (fuente web no confiable, ver detalle), falta `SUPABASE_SERVICE_ROLE_KEY` en el proyecto Vercel de RRHH. |
+| 2026-10-14 | [Atención — pantallas y Sucursales](status-log/2026-10-14-atencion-pantallas.md) | `/configuracion/sucursales` y sucursales en Usuarios (Nexo); nueva `apps/atencion` con Iniciar/Cerrar atención, recepción, puesto, configuración y pantalla de TV. Build/lint limpios; sin proyecto Vercel ni activación. |
+| 2026-10-14 | [Atención — esquema, RPC y pg_cron](status-log/2026-10-14-atencion-esquema.md) | Sucursales + schema `atencion` (7 tablas, 3 particionadas), 19 RPC con asignación automática de puesto y cierre a medianoche, `pg_cron` instalado (`20261014224341`). Probado de punta a punta en transacción revertida. App inactiva; pantallas pendientes. |
+| 2026-10-14 | [Paso Cero — módulo Atención](status-log/2026-10-14-atencion-paso-cero.md) | Sistema de turnos de sala de espera (`atencion`): app registrada inactiva, 15 permisos + 2 de sucursales, plantillas Recepción/Agente/Supervisor (`20261014222454`). Tablas, RPC y pantallas pendientes. |
 | 2026-10-14 | [Pantallas de usuarios, roles y auditoría](status-log/2026-10-14-usuarios-roles-pantallas.md) | `/configuracion/usuarios`, `/roles` (editor opción A con plantillas), `/auditoria`, `/cambiar-contrasena` + Server Actions de Auth; fix de redirección abierta en el login. `next build`/`eslint` limpios; sin recorrido con sesión real. |
 | 2026-10-14 | [Esquema de usuarios y roles + nueva `has_permission`](status-log/2026-10-14-usuarios-roles-esquema.md) | `core.roles`/`rol_permisos`/`perfiles`, un rol por usuario, `has_permission` con módulo habilitado + usuario activo + rol de empresa, 14 RPC `admin_*` con anti-escalada y auditoría (`20261014203144`). Validada antes con 15 pruebas en transacción revertida. Pantallas sin implementar. |
 | 2026-10-14 | [Paso Cero — administración de usuarios y roles](status-log/2026-10-14-paso-cero-administracion-usuarios-roles.md) | Decisiones del usuario (1 rol por usuario, rol = apps + permisos internos, contraseña puesta por el admin, vínculo RRHH) + 9 códigos `nexo.administracion.*` aplicados en `nexo-core` (`20261014201119`). Esquema/RPC/UI solo diseñados en [`plan/12`](plan/12-administracion-usuarios-roles.md). Detectada migración `agencia_dashboard_access` en remoto sin estar en `main`. |
@@ -86,7 +89,7 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 |---|---|---|
 | Agencia digital | 🟡 Preparada, sin activar | `apps/agencia`, `/agencia`, proyecto `nexo-agencia`; matriz aplicada, código compilado y pruebas técnicas OK. Revisión final de Claude y activación pendientes; cuentas y visualización manuales. |
 | Nexo Core / Launcher | ✅ Validado | Monorepo, SSO, Multi-Zones, permisos y `nexo-core` operativos según última documentación verificada. Desde 2026-09-14, `/` es un App Launcher puro (selector de aplicaciones, sin KPIs) — ver fila siguiente. |
-| Administración de usuarios y roles (`apps/nexo`) | 🟡 Base de datos aplicada + pantallas implementadas 2026-10-14, sin validar con sesión real | Pantallas en rama `feat/usuarios-roles-nexo` (`/configuracion/usuarios`, `/roles`, `/auditoria`, `/cambiar-contrasena`), build/lint limpios — ver [status-log](status-log/2026-10-14-usuarios-roles-pantallas.md). Base de datos: | Paso Cero (`20261014201119`) + esquema (`20261014203144`) en `nexo-core`: roles de empresa (un rol por usuario), `core.has_permission` reescrita (módulo habilitado + usuario activo + rol), 14 RPC `admin_*` con anti-escalada y auditoría, vínculo con `rrhh.empleados.user_id`. Validado con 15 pruebas SQL (transacción revertida). **Pantallas y Server Actions de Auth sin implementar** — hasta entonces los usuarios se siguen dando de alta por SQL. Diseño: [`plan/12`](plan/12-administracion-usuarios-roles.md). |
+| Administración de usuarios y roles (`apps/nexo`) | 🟡 En producción 2026-10-14 (PR #20, `main` `ff46bce`), sin validar con sesión real | Pantallas `/configuracion/usuarios`, `/roles`, `/auditoria`, `/cambiar-contrasena` + tarjeta "Configuración" en el Launcher; `nexocore` READY en Production; sin sesión redirige al login (verificado en el dominio público). Base de datos: Paso Cero (`20261014201119`) + esquema (`20261014203144`) — roles de empresa (un rol por usuario), `core.has_permission` reescrita, 14 RPC `admin_*` con anti-escalada y auditoría, vínculo con `rrhh.empleados.user_id`; 15 pruebas SQL. Pendiente: recorrido con sesión real. Ver [status-log](status-log/2026-10-14-usuarios-roles-pantallas.md) y [`plan/12`](plan/12-administracion-usuarios-roles.md). |
 | Nexo Enterprise UI (shell/navegación) | 🟡 Pusheado a `main` 2026-09-17 (`392f676`), sin verificar en producción | Sidebar azul persistente + topbar con breadcrumb en RRHH/CRM (`NexoShell`). Desde 2026-09-17: la cabecera del sidebar muestra **texto fijo "Nexo"** (sin logo/ícono, nunca el nombre de la app activa) en vez del logo dinámico + nombre de módulo de 2026-09-14 — el nombre de la app sigue en el breadcrumb/contenido. `/` de `apps/nexo` (App Launcher) se movió fuera del grupo `(app)` y ya no usa `NexoShell` en absoluto (sin sidebar/topbar/buscador/menú) — header propio mínimo. `/configuracion/marca` conserva su `NexoShell` sin cambios de comportamiento. Código en `main`, `next build` limpio en las 3 apps — sin recorrido autenticado real ni verificación visual del deployment de Vercel disparado por el push. |
 | RRHH infraestructura | ✅ Desplegada | Schema, permisos, RLS, expedientes básicos y kiosko existen. |
 | RRHH modelo Expediente General/Laboral | ✅ F1.1 (datos) + reconciliación de UI 2026-09-14 + expediente ampliado 2026-09-16 | `rrhh.empleados` ya no acepta datos laborales/credenciales en el alta (2026-09-07); `documento_identidad` obligatorio desde 2026-09-16. Columnas viejas deprecadas, no eliminadas — limpieza final pendiente. `/expedientes/[id]` (persona) tiene sus 6 pestañas con modelo real desde 2026-09-16 (Datos personales, Dirección, Información complementaria, Cuentas bancarias, Beneficiario, Documentos) — ver fila "RRHH expediente ampliado" abajo. El ciclo contractual completo sigue en `/contratacion/contratos`. |
@@ -359,11 +362,31 @@ Paso Cero — administración de usuarios/roles ✅ aplicado 2026-10-14
 Administración de usuarios/roles — esquema + RPC ✅ aplicado 2026-10-14
                                               (20261014203144, 15 pruebas SQL)
  ↓
-Administración de usuarios/roles — pantallas  🟡 implementadas 2026-10-14 (build/lint
-                                              limpios); falta recorrido con sesión real,
-                                              push y deploy de preview
+Administración de usuarios/roles — pantallas  🟡 EN PRODUCCIÓN 2026-10-14 (PR #20,
+                                              main ff46bce, nexocore READY); falta
+                                              recorrido con sesión real (crear rol/usuario,
+                                              primer ingreso, desactivar)
+Agencia digital (#18)                         ⏸ en espera por decisión del usuario: código en
+                                              main, app inactiva en nexo-core, sin
+                                              AGENCIA_APP_URL de Production (/dashboard no
+                                              funciona hasta activarla)
  ↓
-Turnos (sala de espera) — Paso Cero  ⏳ siguiente, pedido por el usuario
+Atención (turnos de sala de espera) — Paso Cero ✅ aplicado 2026-10-14 (20261014222454)
+ ↓
+Atención — tablas + RPC + pg_cron  ✅ aplicado 2026-10-14 (20261014224341), app inactiva
+ ↓
+Atención — pantallas (Sucursales en Configuración, apps/atencion, pantalla pública)  🟡 implementadas
+                                              2026-10-14 (build/lint limpios)
+ ↓
+Atención — proyecto Vercel nexo-atencion ✅ creado 2026-10-14 + ATENCION_APP_URL (Preview)
+ ↓
+Atención — activada en nexo-core 2026-10-14 (20261014230022), antes del merge por decisión
+                                              del usuario: la tarjeta ya aparece en producción
+                                              pero /atencion solo funciona en el preview
+ ↓
+Atención — ATENCION_APP_URL de Production ✅ configurada 2026-10-14 (efectiva tras el merge)
+ ↓
+Atención — merge a main + prueba real en producción  ⏳ siguiente
  ↓
 F1.5 — Consolidación de asistencia  ⏳ pendiente (sigue explícitamente NO iniciado —
                                           "no iniciar F1.5" fue parte del alcance de ambos

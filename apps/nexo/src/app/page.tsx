@@ -33,6 +33,7 @@ function groupByCategory(apps: VisibleApp[]): [string, VisibleApp[]][] {
 const DESTINOS_CONFIGURACION = [
   { code: "nexo.administracion.usuarios.ver", href: "/configuracion/usuarios" },
   { code: "nexo.administracion.roles.ver", href: "/configuracion/roles" },
+  { code: "nexo.administracion.sucursales.ver", href: "/configuracion/sucursales" },
   { code: "nexo.administracion.auditoria.ver", href: "/configuracion/auditoria" },
   { code: "nexo.configuracion.editar", href: "/configuracion/marca" },
 ] as const;

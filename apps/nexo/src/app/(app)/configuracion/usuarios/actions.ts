@@ -18,6 +18,8 @@ export interface DatosUsuarioInput {
   cargo: string;
   rolId: string | null;
   empleadoId: string | null;
+  /** null = no tocar las sucursales asignadas (sin permiso para verlas). */
+  sucursalIds: string[] | null;
 }
 
 export interface CrearUsuarioInput extends DatosUsuarioInput {
@@ -110,6 +112,18 @@ export async function crearUsuario(input: CrearUsuarioInput): Promise<ActionResu
     return { ok: false, message: error.message };
   }
 
+  if (input.sucursalIds && input.sucursalIds.length > 0) {
+    const { error: sucError } = await ctx.supabase.rpc("admin_asignar_sucursales", {
+      p_company_id: ctx.companyId,
+      p_user_id: creado.user.id,
+      p_sucursales: input.sucursalIds,
+    });
+    if (sucError) {
+      revalidatePath("/configuracion/usuarios");
+      return { ok: false, message: `Usuario creado, pero no se pudieron asignar las sucursales: ${sucError.message}` };
+    }
+  }
+
   revalidatePath("/configuracion/usuarios");
   revalidatePath("/configuracion/roles");
   return { ok: true };
@@ -132,6 +146,15 @@ export async function editarUsuario(userId: string, input: DatosUsuarioInput): P
     p_empleado_id: input.empleadoId,
   });
   if (error) return { ok: false, message: error.message };
+
+  if (input.sucursalIds) {
+    const { error: sucError } = await ctx.supabase.rpc("admin_asignar_sucursales", {
+      p_company_id: ctx.companyId,
+      p_user_id: userId,
+      p_sucursales: input.sucursalIds,
+    });
+    if (sucError) return { ok: false, message: `Datos guardados, pero no las sucursales: ${sucError.message}` };
+  }
 
   revalidatePath("/configuracion/usuarios");
   revalidatePath(`/configuracion/usuarios/${userId}`);

@@ -7,6 +7,55 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-14 — Activación del módulo Atención (APLICADA)
+
+- `20261014230022_atencion_activar` — `core.apps.active = true` para
+  `atencion` y `core.company_apps` habilitado para `materiales-jcastillo`.
+  Decisión explícita del usuario: activar **antes del merge** para probar en
+  el preview, aceptando que la tarjeta aparezca en el inicio de producción,
+  donde `/atencion` no funciona hasta configurar `ATENCION_APP_URL` de
+  Production y fusionar. Postcheck: activa, 1 empresa, owner con
+  `atencion.ver_modulo` y `atencion.puesto.sesion.iniciar`; 0 sucursales y 0
+  roles con permisos de Atención (se crean desde las pantallas).
+  Rollback: `update core.apps set active = false where slug = 'atencion'`.
+
+## 2026-10-14 — Módulo Atención: esquema + RPC + pg_cron (APLICADA)
+
+Detalle, pruebas y postcheck en
+[`status-log/2026-10-14-atencion-esquema.md`](status-log/2026-10-14-atencion-esquema.md).
+Aprobada explícitamente por el usuario; probada antes de punta a punta en una
+transacción revertida (verificado que no quedó nada). Aplicada con
+`apply_migration`; archivo `20261015000000_…` renombrado a la versión remota
+`20261014224341` sin tocar el SQL.
+
+- `20261014224341_atencion_esquema` — `core.sucursales`,
+  `core.usuario_sucursales`; schema `atencion` (sin `USAGE` para la API, solo
+  RPC) con `puestos`, `pantallas`, `contadores`, `sesiones_activas` y las
+  particionadas `sesiones`, `turnos`, `turno_eventos`; 19 RPC; **instala
+  `pg_cron`** con los jobs `atencion-cierre-vencidas` y
+  `nexo-particiones-futuras`. App `atencion` sigue inactiva.
+  Rollback: `cron.unschedule` de ambos jobs, `drop schema atencion cascade`,
+  `drop` de las 4 RPC `admin_*sucursal*`, borrar las 3 filas de
+  `core.tablas_particionadas`, `drop table core.usuario_sucursales,
+  core.sucursales` (y opcionalmente `drop extension pg_cron`).
+
+## 2026-10-14 — Paso Cero del módulo Atención + permisos de sucursales (APLICADA)
+
+Diseño: [`plan/13-atencion-turnos.md`](plan/13-atencion-turnos.md); detalle en
+[`status-log/2026-10-14-atencion-paso-cero.md`](status-log/2026-10-14-atencion-paso-cero.md).
+Aprobada explícitamente por el usuario; validada antes en una transacción
+revertida (y verificado que no quedó nada). Aplicada con `apply_migration`;
+versión remota `20261014222454` (archivo nombrado con esa versión).
+
+- `20261014222454_atencion_paso_cero` — `core.apps` + `atencion` (inactiva,
+  sin `company_apps`); el trigger creó `atencion.ver_modulo`; 14 permisos
+  `atencion.*` + 2 `nexo.administracion.sucursales.*`; 3 plantillas en
+  `core.app_roles` (`recepcion` 6, `agente` 8, `supervisor` 15). Sin tablas.
+  Postcheck: owner sin acceso a Atención (app inactiva, esperado), owner con
+  `sucursales.gestionar`; 0 asignaciones en `user_permissions`/`rol_permisos`.
+  Rollback: borrar `app_role_permissions`/`app_roles` de `atencion`, los 16
+  códigos del catálogo, `atencion.ver_modulo` y la fila de `core.apps`.
+
 ## 2026-10-14 — Esquema de usuarios y roles + nueva `has_permission` (APLICADA)
 
 Detalle y pruebas en
