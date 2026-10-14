@@ -52,9 +52,10 @@ Sucursales en Configuración y su asignación en Usuarios, después la app.
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
    `NEXO_COMPANY_ID` en Production+Preview; `NEXO_PANEL_URL` solo Preview de
    esta rama). `ATENCION_APP_URL` en `nexocore`: solo Preview de
-   `feat/atencion-paso-cero`. **Falta la de Production** (dominio de
-   producción de `nexo-atencion`), a configurar al fusionar a `main`.
-2. Activar la app (`core.apps.active` + `core.company_apps`).
+   `feat/atencion-paso-cero`. Production configurada 2026-10-14 con
+   aprobación del usuario = `https://nexo-atencion.vercel.app`; se aplica
+   en el próximo build de producción de `nexocore` (el merge a `main`).
+2. ~~Activar la app~~ — `20261014230022_atencion_activar`.
 3. Prueba real: sucursal, puestos, roles desde plantillas, usuarios con
    sucursal, recepción + 2 agentes + TV.
 4. Pendientes de UI: liberar el puesto de otro usuario (la RPC existe), reportes.

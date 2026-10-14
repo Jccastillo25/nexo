@@ -384,7 +384,9 @@ Atención — activada en nexo-core 2026-10-14 (20261014230022), antes del merge
                                               del usuario: la tarjeta ya aparece en producción
                                               pero /atencion solo funciona en el preview
  ↓
-Atención — prueba real en el preview + merge + ATENCION_APP_URL de Production  ⏳ siguiente
+Atención — ATENCION_APP_URL de Production ✅ configurada 2026-10-14 (efectiva tras el merge)
+ ↓
+Atención — merge a main + prueba real en producción  ⏳ siguiente
  ↓
 F1.5 — Consolidación de asistencia  ⏳ pendiente (sigue explícitamente NO iniciado —
                                           "no iniciar F1.5" fue parte del alcance de ambos
