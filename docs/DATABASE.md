@@ -1,5 +1,8 @@
 # Base de datos de Nexo
 
+**Actualización acotada 2026-10-14:** matriz de `agencia` registrada en `core.apps` (inactiva), `permissions_catalog`, `app_roles` y `app_role_permissions`. No se crea schema o tabla de negocio, no se modifica RLS ni el resolver. Rol `consulta`, dos permisos de lectura, ningún usuario asignado y ninguna empresa habilitada. [Migración y estado](status-log/2026-10-14-agencia-independiente.md).
+
+
 Estado (verificado contra el proyecto remoto, 2026-09-07): schema `core`
 aplicado (2026-08-30), schema `crm` aplicado y en producción (2026-08-30),
 **schema `rrhh` aplicado y en producción (2026-09-02 a 2026-09-04),
@@ -194,7 +197,7 @@ completo de cada una:
 20260916170000_geografia_ni_y_expediente_ampliado
 20260916180000_rrhh_storage_privado_documentos
 20260918043955_rrhh_contratos_reglas_y_endurecimiento
-20261014181353_agencia_dashboard_access   (aplicada en remoto, NO está en main — ver MIGRATION_LOG)
+20261014181353_agencia_dashboard_access   (ticket #18, traída por merge a feat/usuarios-roles-nexo)
 20261014201119_nexo_administracion_permisos_paso_cero
 20261014203144_nexo_usuarios_roles_esquema
 ```

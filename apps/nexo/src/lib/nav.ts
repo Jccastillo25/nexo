@@ -11,23 +11,15 @@ import type { NexoNavItem } from "@nexo/ui";
  * 2026-09-17 fuera del grupo (app), sin este sidebar/topbar), no un link
  * persistente de sidebar.
  *
- * Esta lista SOLO se usa dentro de (app)/layout.tsx. Tras el ticket #13
- * (etapa 3) el grupo (app) envuelve /dashboard y /configuracion/marca --
- * el item "Inicio" es la forma de volver a "/" desde ahi.
- *
- * OJO (documentacion desactualizada): el comentario historico de
- * (app)/layout.tsx afirma que "no hace falta un guard de permiso
- * adicional"; eso es cierto para /configuracion/marca, pero el
- * middleware solo AUTENTICA -- la ruta /dashboard exige ademas su propio
- * guard de autorizacion de servidor (hasPermission, fail-closed). Ver
- * docs/DASHBOARD_AGENCIA_IMPLEMENTACION.md.
+ * Esta lista SOLO se usa dentro de (app)/layout.tsx. Agencia digital se
+ * extrae a su propia app en el ticket #18 y se abre desde el Launcher;
+ * /dashboard solo conserva una redirección a /agencia/dashboard.
  *
  * Mostrar un item en el sidebar NO autoriza la ruta: ocultarlo o mostrarlo
  * no cambia la proteccion, que vive en el servidor.
  */
 export const NEXO_NAV_ITEMS: NexoNavItem[] = [
   { label: "Inicio", href: "/", icon: "grid" },
-  { label: "Dashboard", href: "/dashboard", icon: "list" },
   {
     label: "Configuración",
     icon: "settings",

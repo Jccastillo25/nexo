@@ -191,3 +191,16 @@ y migración SQL en
 [planning/ARQUITECTURA_MVP_ESCALABLE.md §3](planning/ARQUITECTURA_MVP_ESCALABLE.md#3-matriz-de-roles-y-permisos-granulares-rbacabac)
 (`supabase/migrations/20260902000001_app_scoped_roles.sql`, pendiente de
 aplicar al proyecto remoto).
+
+## Agencia digital — matriz mínima aprobada (2026-10-14)
+
+App `agencia`: permiso reservado `agencia.ver_modulo` generado por el trigger y permiso funcional `agencia.dashboard.resumen.ver` (cuatro segmentos). Rol de app `consulta` con ambos permisos; sin asignación automática de usuarios. Owner/admin conserva el fallback sujeto al deny explícito. Matriz aprobada por el usuario y aplicada mediante `20261014181353_agencia_dashboard_access`, inicialmente con app inactiva y ninguna empresa habilitada. No cambia el motor RBAC ni inicia el proyecto integral de usuarios/roles. [Detalle, evidencia y activación](status-log/2026-10-14-agencia-independiente.md).
+
+> **Ajuste por el modelo de roles de empresa (mismo día, `20261014203144`):**
+> `core.has_permission` ya no evalúa `core.user_app_roles` ni el bypass
+> `admin` — el rol de app `consulta` de Agencia queda como **plantilla** del
+> editor de roles. Acceso efectivo: el owner (una vez la app esté activa y
+> habilitada para la empresa) y cualquier usuario cuyo rol de empresa
+> incluya "Agencia digital" (`agencia.ver_modulo` + `agencia.dashboard.resumen.ver`),
+> asignado desde Configuración → Roles. Mientras `core.apps.active = false`
+> o la empresa no la tenga en `core.company_apps`, nadie la ve (tampoco el owner).

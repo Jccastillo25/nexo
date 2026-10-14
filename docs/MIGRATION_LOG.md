@@ -1,5 +1,10 @@
 # Bitácora de migración
 
+## 2026-10-14 — Agencia digital, matriz mínima (APLICADA)
+
+`20261014181353_agencia_dashboard_access`, aplicada en `nexo-core` con aprobación explícita del usuario. Añade el módulo `agencia` inactivo, permiso de módulo del trigger, `agencia.dashboard.resumen.ver` y rol `consulta` con ambos permisos. Sin tablas, políticas o funciones nuevas; sin roles asignados a usuarios ni empresas habilitadas. Postchecks: 2 permisos, 1 rol, 2 grants al rol, 0 usuarios y 0 empresas habilitadas. Advisors antes/después conservan las 4 categorías y los 38 hallazgos previos, sin cambio salvo observed_at. Activación pendiente del deploy y aprobación humana. [Detalle](status-log/2026-10-14-agencia-independiente.md).
+
+
 Orden de bitácora: más reciente arriba.
 
 ## 2026-10-14 — Esquema de usuarios y roles + nueva `has_permission` (APLICADA)
@@ -70,7 +75,9 @@ recibió permisos), migración registrada con versión remota `20261014201119`
 Divergencia detectada en el precheck, sin relación con esta migración:
 `20261014181353_agencia_dashboard_access` está aplicada en `nexo-core` pero
 no existe en `main` (probablemente viene de la rama
-`feat/issue-18-agencia-independiente`). Pendiente de reconciliar.
+`feat/issue-18-agencia-independiente`). **Reconciliada el mismo día**: esa
+rama se trajo por merge a `feat/usuarios-roles-nexo`, con el archivo de la
+migración incluido.
 
 ## 2026-09-18 — Reglas de contratación y endurecimiento de seguridad/integridad (APLICADA)
 

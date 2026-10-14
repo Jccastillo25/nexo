@@ -1,16 +1,20 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
+**Última actualización documental: 2026-10-14 — ticket #18:** matriz mínima aprobada y aplicada; Dashboard separado en `apps/agencia` y proyecto Vercel creado. Lint, typegen, tipos y build locales en Agencia/Nexo OK, 12 pruebas técnicas de denegación OK. Previews preparados; revisión final de Claude en curso; merge, publicación/activación y pruebas manuales pendientes. No se declara validación completa. [Detalle](status-log/2026-10-14-agencia-independiente.md).
+
+
 > Tracker operativo. Debe actualizarse en cada sesión que cambie código, base de datos, permisos, despliegue o estado funcional. La fuente del objetivo es `docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`; este archivo registra la realidad verificada.
 >
 > **Este archivo es un dashboard corto, no el historial completo.** Desde 2026-09-11 el detalle narrativo de cada subfase (qué se auditó, qué migraciones se aplicaron, qué se verificó paso a paso) vive en archivos individuales bajo [`docs/status-log/`](status-log/), enlazados desde la tabla de la sección 0 de abajo. Las secciones 1-7 de este archivo son el estado consolidado vigente — se leen siempre; el log detallado se lee solo si hace falta el detalle de verificación de una subfase puntual.
 
-Última actualización documental: **2026-10-14** (administración de
-usuarios y roles — Paso Cero + esquema/`has_permission`/RPC aplicados en
-`nexo-core`, ver
-[`status-log/2026-10-14-usuarios-roles-esquema.md`](status-log/2026-10-14-usuarios-roles-esquema.md);
-antes, el Paso Cero con 9 permisos `nexo.administracion.*`; diseño en [`plan/12`](plan/12-administracion-usuarios-roles.md);
-ver [`status-log/2026-10-14-paso-cero-administracion-usuarios-roles.md`](status-log/2026-10-14-paso-cero-administracion-usuarios-roles.md)).
-Antes, **2026-09-17** (auditoría del botón
+También **2026-10-14** (administración de usuarios y roles — Paso Cero +
+esquema/`has_permission`/RPC aplicados en `nexo-core` y pantallas en la
+rama `feat/usuarios-roles-nexo`, que desde el mismo día **incluye el
+ticket #18 de Agencia** por merge; ver
+[`status-log/2026-10-14-usuarios-roles-esquema.md`](status-log/2026-10-14-usuarios-roles-esquema.md),
+[`status-log/2026-10-14-usuarios-roles-pantallas.md`](status-log/2026-10-14-usuarios-roles-pantallas.md)
+y [`plan/12`](plan/12-administracion-usuarios-roles.md)).
+Referencia documental anterior: **2026-09-17** (auditoría del botón
 "Crear borrador" deshabilitado en `/contratacion/contratos/nuevo` +
 reglas de negocio de creación de contratos (departamento→puesto→plantilla
 obligatorios y en cascada, plantilla persistida, sin fecha fin al crear) +
@@ -54,6 +58,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-14 | [Agencia digital independiente](status-log/2026-10-14-agencia-independiente.md) | Matriz mínima aplicada e inactiva; app/proyecto propio y compilación local preparados. Previews preparados; revisión final de Claude, merge, activación y pruebas manuales pendientes. |
 | 2026-09-07 | [F1.0 — Auditoría real](status-log/2026-09-07-f1-0-auditoria-real.md) | Comparación Plan vs `main` vs migraciones vs remoto vs Vercel; detectó `main` local 13 commits atrás (reconciliado) y el hallazgo de seguridad D-06. |
 | 2026-09-07 | [F1.0.1 — Cierre de acceso operativo PIN heredado](status-log/2026-09-07-f1-0-1-cierre-pin-heredado.md) | `EXECUTE` de `public.validar_acceso_operativo` revocado de `anon`/`authenticated` (hotfix inmediato). |
 | 2026-09-07 | [Paso Cero — matriz de permisos de contratos/credenciales](status-log/2026-09-07-paso-cero-permisos-contratos-credenciales.md) | 7 códigos de permiso nuevos en el dominio `expedientes`, asignados a los 5 roles reales de RRHH. |
@@ -79,6 +84,7 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 
 | Área | Estado | Realidad conocida / siguiente paso |
 |---|---|---|
+| Agencia digital | 🟡 Preparada, sin activar | `apps/agencia`, `/agencia`, proyecto `nexo-agencia`; matriz aplicada, código compilado y pruebas técnicas OK. Revisión final de Claude y activación pendientes; cuentas y visualización manuales. |
 | Nexo Core / Launcher | ✅ Validado | Monorepo, SSO, Multi-Zones, permisos y `nexo-core` operativos según última documentación verificada. Desde 2026-09-14, `/` es un App Launcher puro (selector de aplicaciones, sin KPIs) — ver fila siguiente. |
 | Administración de usuarios y roles (`apps/nexo`) | 🟡 Base de datos aplicada + pantallas implementadas 2026-10-14, sin validar con sesión real | Pantallas en rama `feat/usuarios-roles-nexo` (`/configuracion/usuarios`, `/roles`, `/auditoria`, `/cambiar-contrasena`), build/lint limpios — ver [status-log](status-log/2026-10-14-usuarios-roles-pantallas.md). Base de datos: | Paso Cero (`20261014201119`) + esquema (`20261014203144`) en `nexo-core`: roles de empresa (un rol por usuario), `core.has_permission` reescrita (módulo habilitado + usuario activo + rol), 14 RPC `admin_*` con anti-escalada y auditoría, vínculo con `rrhh.empleados.user_id`. Validado con 15 pruebas SQL (transacción revertida). **Pantallas y Server Actions de Auth sin implementar** — hasta entonces los usuarios se siguen dando de alta por SQL. Diseño: [`plan/12`](plan/12-administracion-usuarios-roles.md). |
 | Nexo Enterprise UI (shell/navegación) | 🟡 Pusheado a `main` 2026-09-17 (`392f676`), sin verificar en producción | Sidebar azul persistente + topbar con breadcrumb en RRHH/CRM (`NexoShell`). Desde 2026-09-17: la cabecera del sidebar muestra **texto fijo "Nexo"** (sin logo/ícono, nunca el nombre de la app activa) en vez del logo dinámico + nombre de módulo de 2026-09-14 — el nombre de la app sigue en el breadcrumb/contenido. `/` de `apps/nexo` (App Launcher) se movió fuera del grupo `(app)` y ya no usa `NexoShell` en absoluto (sin sidebar/topbar/buscador/menú) — header propio mínimo. `/configuracion/marca` conserva su `NexoShell` sin cambios de comportamiento. Código en `main`, `next build` limpio en las 3 apps — sin recorrido autenticado real ni verificación visual del deployment de Vercel disparado por el push. |
@@ -321,6 +327,8 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 ---
 
 # 7. Próxima acción obligatoria
+
+**Bloque complementario #18:** revisar Claude/Previews y obtener aprobación humana antes de publicar Agencia, fusionar su integración y habilitar la tarjeta. El orden de RRHH de abajo no cambia. Las pruebas de navegador son manuales por decisión del usuario.
 
 ```text
 F1.0   — Auditoría de realidad RRHH        ✅ completada 2026-09-07

@@ -8,6 +8,7 @@
       "env": [
         "CRM_APP_URL",
         "RRHH_APP_URL",
+        "AGENCIA_APP_URL",
         "NEXO_PANEL_URL",
         "NEXO_COMPANY_ID",
         "SUPABASE_SERVICE_ROLE_KEY",

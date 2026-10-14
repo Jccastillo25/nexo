@@ -110,10 +110,12 @@ export default async function PanelPage() {
                 </h2>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                   {categoryApps.map((app) => {
+                    // Cambio de zona: cargar la aplicación completa, sin prefetch
+                    // ni navegación cliente con los recursos de Nexo.
                     const color = getCategoryColor(app.category);
                     const AppIcon = getCategoryIcon(app.category);
                     return (
-                      <Link
+                      <a
                         key={app.slug}
                         href={app.route}
                         className="flex flex-col items-center gap-3 rounded-lg border border-neutral-200 bg-white p-5 text-center transition-shadow hover:shadow-md"
@@ -122,7 +124,7 @@ export default async function PanelPage() {
                           <AppIcon className="h-6 w-6" />
                         </span>
                         <span className="text-sm font-medium">{app.name}</span>
-                      </Link>
+                      </a>
                     );
                   })}
                 </div>

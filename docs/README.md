@@ -22,6 +22,7 @@
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Monorepo, Multi-Zones, Supabase, identidad digital, kiosko, Panel Conductor y estrategia Mobile. |
 | [DATABASE.md](DATABASE.md) | Estado real de `nexo-core`, schemas, tablas, RLS y convenciones. No confundir estado actual con el modelo objetivo pendiente. |
 | [MODULES.md](MODULES.md) | Catálogo de módulos y estado funcional. |
+| [status-log/2026-10-14-agencia-independiente.md](status-log/2026-10-14-agencia-independiente.md) | Agencia digital independiente: matriz aprobada, app/proyecto, pruebas y activación pendiente. |
 | [PERMISSIONS.md](PERMISSIONS.md) | Norma de permisos y roles. |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | Shell compartido, tokens y navegación Web. |
 | [MIGRATION_LOG.md](MIGRATION_LOG.md) | Historial de migraciones y verificaciones. |
