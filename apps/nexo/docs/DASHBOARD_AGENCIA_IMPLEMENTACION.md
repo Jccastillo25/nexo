@@ -1,61 +1,86 @@
-# Dashboard de agencia digital — implementación (ticket 13, etapa 3)
+# Dashboard de agencia — entrega técnica y revisión manual
 
-Estado: IMPLEMENTADO, pendiente de revisión de Claude CLI y aprobación humana. Solo lectura, datos de ejemplo.
-Base: `23ee9f2e1860f4168b4589264967ce84eebf9f71`. Ticket #13, etapa 3.
+## Estado
 
-## 1. Evidencia real (verificada en este commit)
+Etapas 1–3 implementadas. Etapa 4 con validación de navegador MANUAL PENDIENTE.
+Decisión del usuario del 2026-10-14: revisar visualización, navegación y acceso
+manualmente cuando el deploy esté listo. No se declara validación completa.
 
-- Rutas existentes en `apps/nexo/src/app`: `layout.tsx` raíz, `page.tsx` (Launcher `/`), `login/page.tsx` y `LoginForm.tsx`, `ajustes/page.tsx`, `(app)/layout.tsx`, `(app)/configuracion/marca/{page,marca-form,actions}.tsx`. **No existía `/dashboard` ni `/sin-acceso` en Nexo antes de esta etapa.**
-- `src/lib/nav.ts` alimenta `NEXO_NAV_ITEMS`, consumido por `(app)/layout.tsx`. El sidebar es de Nexo; saltar de app es del Launcher.
-- **`packages/ui/src` y `packages/permissions/src` NO existen**: los paquetes son planos — `packages/ui/*.tsx` + `packages/ui/index.ts` y `packages/permissions/index.ts`. Ambos quedan **fuera** de la zona editable (solo lectura).
-- `middleware.ts`: `PUBLIC_PATHS=["/login"]`, **solo autentica** (redirige a `/login` sin sesión). No autoriza.
-- `hasPermission` → RPC `public.has_permission` con `auth.uid()`; **fail-closed** (false ante error o código no registrado). `requirePermission` lanza `PermissionDeniedError`.
-- Migración (solo lectura) `20260830000001_core_schema.sql`: trigger `trg_seed_module_permission` crea `<slug>.ver_modulo` al registrar el módulo; existe `nexo.ver_modulo`. `20260902000001_app_scoped_roles.sql`: un `granted=false` explícito deniega incluso a owner/admin; el fallback de membresía owner/admin **no** es bypass total.
-- `StatusBadge`/`StatusTone` reales: `neutral|positive|warning|negative|info` (no existe `success` ni `danger`). `NexoIcon` no tiene `"dashboard"`. Los candidatos iniciales se corrigieron a valores vigentes.
+El controlador ejecuta lint, next typegen, tsc y build antes de solicitar
+la revisión de Claude. Sus códigos de salida y registros son las evidencias
+automáticas de esta ejecución; no se sustituyen por pruebas del agente sin red
+o sin tipos generados. El PR solo puede entregarse si esos controles pasan
+y Claude aprueba el cambio técnico. La revisión manual sigue pendiente.
 
-## 2. Archivos cambiados (8, dentro del límite)
+## Alcance
 
-1. `src/app/(app)/dashboard/page.tsx` — página Server Component.
-2. `src/app/(app)/dashboard/labels.ts` — etiquetas español + tonos.
-3. `src/app/(app)/dashboard/progress-bar.tsx` — barra HTML/CSS propia.
-4. `src/app/(app)/dashboard/agent-card.tsx` — tarjeta de agente.
-5. `src/app/(app)/dashboard/ticket-card.tsx` — tarjeta de ticket.
-6. `src/app/sin-acceso/page.tsx` — patrón CRM/RRHH, fuera de `(app)`.
-7. `src/lib/nav.ts` — entrada de navegación (edición).
-8. `docs/DASHBOARD_AGENCIA_IMPLEMENTACION.md` — este documento.
+Ruta /dashboard de apps/nexo, datos locales de ejemplo, solo lectura.
+Se conserva la etiqueta de demostración. No conecta agentes reales ni añade
+acciones de escritura. La página consulta nexo.ver_modulo mediante hasPermission;
+el guard de servidor deniega si el permiso falta o la consulta falla.
+Ese rechazo muestra un EmptyState; no redirige actualmente a /sin-acceso.
+No se modifican permisos, roles, migraciones, dependencias ni lockfiles.
 
-Sin librerías nuevas, sin migraciones, sin integraciones operativas, sin archivos borrados. `(app)/layout.tsx` queda intacto.
+La entrada de Dashboard del menú no sustituye el control de servidor.
+getCompanyId obtiene la empresa de configuración; este documento no afirma
+que exista selección multiempresa ni verifica pertenencia de cuentas reales.
 
-## 3. Matriz de acceso
+## Evidencia del intervalo completo
 
-| Capa | Mecanismo | Estado |
-| --- | --- | --- |
-| Autenticación | middleware de sesión | vigente (protege `/dashboard` igual que el resto) |
-| Autorización de ruta | guard de servidor `hasPermission` | implementado en la página |
-| Código de permiso | `nexo.ver_modulo` (ya creado por trigger) | **usado, PENDIENTE de aprobación humana de su semántica** |
-| Empresa | `getCompanyId()` por env | sin cambios |
-| Datos mostrados | fixtures locales (`DEMO_DATASET`) | solo lectura, sin RPC de negocio |
+El controlador ejecutó la comparación del padre de la etapa 1 hasta la base
+actual, incluyendo el modelo de datos de etapa 2 y la interfaz de etapa 3.
+La comparación del candidato de esta etapa es separada: solo este Markdown.
+El diff completo y su SHA-256 se conservan en el expediente de la ejecución.
 
-Contrastado: un comentario histórico en `(app)/layout.tsx` afirma que "no hace falta un guard de permiso adicional". Es cierto para `/configuracion/marca`, pero **el middleware solo autentica**, así que `/dashboard` sí necesita su guard. Se registra como **documentación desactualizada** (igual que el alcance del grupo `(app)` descrito en `README`/docs, menor que el real).
+Base: 4b81a00891ccc46d875baa3a971b289097b2715e
+Head: c705782a65104a051ecba3d32ed6fd843785ced4
+SHA-256 del diff: 9b3ee9d7bfd4f993ddc05eade3bb23b39f2079ee5e63bac2d3a988b16ec8e3e7
 
-## 4. Acceso denegado — decisión PENDIENTE
+Comando reproducible (salida íntegra de Git, incluido el salto de línea final):
 
-Lanzar `PermissionDeniedError` **no** renderiza una página de acceso denegado: no hay handler que la convierta. En esta etapa `/dashboard` **no redirige** a `/sin-acceso`; muestra un `EmptyState` "Sin acceso a este Dashboard" en línea y mantiene el shell con sesión. Se creó `apps/nexo/src/app/sin-acceso/page.tsx` (patrón CRM/RRHH, fuera de `(app)` para evitar bucles), pero su **uso desde el Dashboard y el paso de `<html>`/shell quedan pendientes de aprobación humana** — crear la página no equivale a autorizar la redirección.
+    git diff --no-ext-diff --no-textconv 4b81a00891ccc46d875baa3a971b289097b2715e c705782a65104a051ecba3d32ed6fd843785ced4 | sha256sum
 
-## 5. Boceto responsivo (360 / 768 / 1440)
+Archivos del intervalo:
 
-- Encabezado `PageHeader`; **sin** `BackToPanelLink` (Nexo ya es el panel).
-- Aviso persistente de datos de ejemplo (`role="note"`), siempre visible.
-- Métricas: 1 col (360) → 2 (`sm`, 768) → 4 (`lg`, 1440), con `MetricCard`.
-- Agentes: 1 col → 2 (`md`); tickets y progreso: 1 col → 2 (`lg`).
-- Todo contenedor usa `min-w-0`, `break-words` y `flex-wrap`; sin anchos fijos: sin desbordamiento horizontal esperado.
+A	apps/nexo/docs/DASHBOARD_AGENCIA_IMPLEMENTACION.md
+A	apps/nexo/docs/DASHBOARD_AGENCIA_PROPUESTA.md
+A	apps/nexo/src/app/(app)/dashboard/agent-card.tsx
+A	apps/nexo/src/app/(app)/dashboard/labels.ts
+A	apps/nexo/src/app/(app)/dashboard/page.tsx
+A	apps/nexo/src/app/(app)/dashboard/progress-bar.tsx
+A	apps/nexo/src/app/(app)/dashboard/ticket-card.tsx
+A	apps/nexo/src/app/sin-acceso/page.tsx
+A	apps/nexo/src/lib/agency/checks.ts
+A	apps/nexo/src/lib/agency/fixtures.ts
+A	apps/nexo/src/lib/agency/selectors.ts
+A	apps/nexo/src/lib/agency/types.ts
+M	apps/nexo/src/lib/nav.ts
 
-## 6. Validaciones ejecutadas y pendientes
+## Lista de revisión manual del usuario
 
-Ejecutado (por el agente): inspección estática de solo lectura (rutas, `nav.ts`, `middleware.ts`, `company.ts`, `packages/ui/index.ts` y componentes reales, `packages/permissions/index.ts`, migraciones citadas); `tsc -p tsconfig.json` del panel; comprobación focalizada de `src/lib/agency/checks.ts` compilada a /tmp (importaciones relativas **sin** `.ts`, TS5097 evitado sin tocar `tsconfig`); contraste docs vs. código.
+- [ ] Abrir el Dashboard y comprobar el aviso de demostración, agentes,
+      responsables, estados, porcentajes y progreso por etapa.
+- [ ] Revisar a 360, 768 y 1440 píxeles sin recortes, solapamientos o
+      desbordamiento; revisar títulos largos y foco de teclado.
+- [ ] Probar entrada sin sesión y con una cuenta autorizada.
+- [ ] Probar una cuenta autenticada sin permiso: no debe ver datos del Dashboard.
+- [ ] Comprobar /, /login, /configuracion/marca y enlaces CRM/RRHH.
+- [ ] Revisar estados vacíos con datos controlados, sin cambiar datos reales.
 
-Verificado en la página: cada agente muestra estado y tickets; cada ticket muestra responsable, estado y avance por etapa; no hay acciones de crear/asignar/editar/ejecutar/cambiar estado; etiquetas textuales junto al color; aviso persistente; estados vacíos; textos en español; `aria-labelledby`/`role=progressbar`/`aria-valuenow` y foco visible en enlaces.
+Estos pasos no se ejecutaron automáticamente en esta etapa y no están aprobados.
+Se revisan en el deploy/Preview. La aprobación de código de Claude y la
+autorización humana de merge no sustituyen la confirmación de estas pruebas.
 
-Pendiente (controlador independiente): acceso real con usuario sin permiso, caso negativo de ruta mal formada, colisión en runtime con rewrites, lint/build completos y capturas visuales a 360/768/1440.
+## Observaciones y límites
 
-Fuera de alcance: migraciones, permisos nuevos en catálogo, dependencias, integraciones operativas y cualquier sustitución del Launcher o de módulos ajenos.
+La sección Progreso por etapa de la interfaz actual no muestra un mensaje
+específico para un ticket con cero etapas. TicketCard sí tiene esa presentación.
+Este estado y los demás vacíos deben comprobarse manualmente; no se afirma
+que los fixtures actuales permitan activar cada caso desde la interfaz.
+
+La semántica de nexo.ver_modulo, el icono provisional y una eventual redirección
+a /sin-acceso se conservan sin ampliar el alcance. El mapa de administración
+de usuarios y permisos se trabajará por separado después.
+
+No hay capturas automatizadas ni pruebas con cuentas reales en este expediente
+generado por el controlador. No hay autorización automática de merge.
