@@ -1,6 +1,9 @@
 # Módulo Atención (turnos de sala de espera) — Paso Cero y diseño (borrador para aprobación)
 
-Fecha: 2026-10-14 · Estado: **BORRADOR — nada aplicado a `nexo-core`**.
+Fecha: 2026-10-14 · Estado: **Paso Cero (sección 3) aprobado y aplicado a `nexo-core`
+el 2026-10-14** (migración `20261014222454_atencion_paso_cero`). Asignación de
+sucursales desde Configuración → Usuarios: **aprobada**. Tablas (sección 4) y
+pantallas: **diseño, sin implementar**.
 Origen: conversación del usuario con ChatGPT ("Buscar sistema de turnos") +
 decisiones de esta sesión. Construye sobre la administración de usuarios y
 roles ([plan 12](12-administracion-usuarios-roles.md)).
@@ -174,6 +177,6 @@ Reglas técnicas:
 
 ## 5. Pendiente
 
-- Aprobación del Paso Cero (sección 3).
-- Confirmar el reparto usuario ↔ sucursal (propuesto: se asignan desde Configuración → Usuarios; con una sola sucursal asignada, "Iniciar atención" la usa sin preguntar; con varias, el usuario elige).
+- ~~Aprobación del Paso Cero (sección 3)~~ — aplicado 2026-10-14.
+- ~~Reparto usuario ↔ sucursal~~ — aprobado: se asignan desde Configuración → Usuarios; con una sola sucursal asignada, "Iniciar atención" la usa sin preguntar; con varias, el usuario elige.
 - Aprobación aparte de la migración de tablas (sección 4) y de instalar `pg_cron`.

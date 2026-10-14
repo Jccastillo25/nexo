@@ -7,6 +7,23 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-14 — Paso Cero del módulo Atención + permisos de sucursales (APLICADA)
+
+Diseño: [`plan/13-atencion-turnos.md`](plan/13-atencion-turnos.md); detalle en
+[`status-log/2026-10-14-atencion-paso-cero.md`](status-log/2026-10-14-atencion-paso-cero.md).
+Aprobada explícitamente por el usuario; validada antes en una transacción
+revertida (y verificado que no quedó nada). Aplicada con `apply_migration`;
+versión remota `20261014222454` (archivo nombrado con esa versión).
+
+- `20261014222454_atencion_paso_cero` — `core.apps` + `atencion` (inactiva,
+  sin `company_apps`); el trigger creó `atencion.ver_modulo`; 14 permisos
+  `atencion.*` + 2 `nexo.administracion.sucursales.*`; 3 plantillas en
+  `core.app_roles` (`recepcion` 6, `agente` 8, `supervisor` 15). Sin tablas.
+  Postcheck: owner sin acceso a Atención (app inactiva, esperado), owner con
+  `sucursales.gestionar`; 0 asignaciones en `user_permissions`/`rol_permisos`.
+  Rollback: borrar `app_role_permissions`/`app_roles` de `atencion`, los 16
+  códigos del catálogo, `atencion.ver_modulo` y la fila de `core.apps`.
+
 ## 2026-10-14 — Esquema de usuarios y roles + nueva `has_permission` (APLICADA)
 
 Detalle y pruebas en
