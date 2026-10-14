@@ -47,9 +47,13 @@ Sucursales en Configuración y su asignación en Usuarios, después la app.
 
 ## Pendiente
 
-1. Crear el proyecto Vercel `nexo-atencion` (Root Directory `apps/atencion`,
-   variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `NEXO_COMPANY_ID`) y `ATENCION_APP_URL` en `nexocore`.
+1. ~~Crear el proyecto Vercel `nexo-atencion`~~ — creado 2026-10-14 con
+   aprobación del usuario (Root Directory `apps/atencion`, repo conectado;
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `NEXO_COMPANY_ID` en Production+Preview; `NEXO_PANEL_URL` solo Preview de
+   esta rama). `ATENCION_APP_URL` en `nexocore`: solo Preview de
+   `feat/atencion-paso-cero`. **Falta la de Production** (dominio de
+   producción de `nexo-atencion`), a configurar al fusionar a `main`.
 2. Activar la app (`core.apps.active` + `core.company_apps`).
 3. Prueba real: sucursal, puestos, roles desde plantillas, usuarios con
    sucursal, recepción + 2 agentes + TV.

@@ -3,8 +3,9 @@
 ## Atención — zona `/atencion` (2026-10-14)
 
 App independiente `apps/atencion` (`basePath: "/atencion"`, puerto local 3004),
-proyecto Vercel previsto `nexo-atencion` (Root Directory `apps/atencion`,
-**pendiente de crear**). Nexo la cose con `ATENCION_APP_URL` (rewrite solo si
+proyecto Vercel `nexo-atencion` (`prj_FT2U6mICFnLJGgy94IZ2M8BDJlN6`, Root
+Directory `apps/atencion`, creado 2026-10-14 con la misma protección que
+CRM/RRHH). Nexo la cose con `ATENCION_APP_URL` (rewrite solo si
 la variable existe; agregada al allowlist de `turbo.json`). Login único y
 `NexoShell` compartidos. Toda la lógica vive en RPC `public.atencion_*`
 (schema `atencion` sin exponer a la API), reutilizable por una futura app de

@@ -378,7 +378,9 @@ Atención — tablas + RPC + pg_cron  ✅ aplicado 2026-10-14 (20261014224341), 
 Atención — pantallas (Sucursales en Configuración, apps/atencion, pantalla pública)  🟡 implementadas
                                               2026-10-14 (build/lint limpios)
  ↓
-Atención — proyecto Vercel nexo-atencion + ATENCION_APP_URL + activación + prueba real  ⏳ siguiente
+Atención — proyecto Vercel nexo-atencion ✅ creado 2026-10-14 + ATENCION_APP_URL (Preview)
+ ↓
+Atención — activación + prueba real + ATENCION_APP_URL de Production al merge  ⏳ siguiente
  ↓
 F1.5 — Consolidación de asistencia  ⏳ pendiente (sigue explícitamente NO iniciado —
                                           "no iniciar F1.5" fue parte del alcance de ambos
