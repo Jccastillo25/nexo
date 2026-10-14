@@ -35,10 +35,14 @@ export default async function EditarUsuarioPage({ params }: PageProps<"/configur
     );
   }
 
-  const [{ data: usuarios, error }, { data: roles }] = await Promise.all([
-    supabase.rpc("admin_listar_usuarios", { p_company_id: companyId }),
-    supabase.rpc("admin_listar_roles", { p_company_id: companyId }),
-  ]);
+  const [{ data: usuarios, error }, { data: roles }, { data: sucursales, error: sucError }, { data: asignadas }] =
+    await Promise.all([
+      supabase.rpc("admin_listar_usuarios", { p_company_id: companyId }),
+      supabase.rpc("admin_listar_roles", { p_company_id: companyId }),
+      supabase.rpc("admin_listar_sucursales", { p_company_id: companyId }),
+      supabase.rpc("admin_sucursales_de_usuario", { p_company_id: companyId, p_user_id: id }),
+    ]);
+  const idsAsignadas = (asignadas ?? []).map((a) => a.sucursal_id);
 
   if (error) {
     return (
@@ -69,6 +73,14 @@ export default async function EditarUsuarioPage({ params }: PageProps<"/configur
         roles={(roles ?? [])
           .filter((r) => r.activo || r.id === u.rol_id)
           .map((r) => ({ id: r.id, nombre: r.nombre }))}
+        sucursales={
+          sucError
+            ? null
+            : (sucursales ?? [])
+                .filter((s) => s.activa || idsAsignadas.includes(s.id))
+                .map((s) => ({ id: s.id, nombre: s.nombre }))
+        }
+        sucursalesAsignadas={idsAsignadas}
         usuario={{
           userId: u.user_id,
           email: u.email,

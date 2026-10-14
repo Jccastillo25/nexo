@@ -27,6 +27,7 @@ export const NEXO_NAV_ITEMS: NexoNavItem[] = [
       { label: "Marca", href: "/configuracion/marca", icon: "sliders" },
       { label: "Usuarios", href: "/configuracion/usuarios", icon: "users" },
       { label: "Roles", href: "/configuracion/roles", icon: "shield" },
+      { label: "Sucursales", href: "/configuracion/sucursales", icon: "building" },
       { label: "Auditoría", href: "/configuracion/auditoria", icon: "list" },
     ],
   },

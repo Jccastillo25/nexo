@@ -18,6 +18,14 @@ const ACCIONES: Record<string, string> = {
   "admin.usuario.desactivar": "Desactivó un usuario",
   "admin.usuario.reactivar": "Reactivó un usuario",
   "admin.usuario.password_restablecida": "Restableció una contraseña",
+  "admin.usuario.sucursales": "Cambió las sucursales de un usuario",
+  "admin.sucursal.crear": "Creó una sucursal",
+  "admin.sucursal.editar": "Editó una sucursal",
+  "admin.atencion.puesto.crear": "Creó un puesto de atención",
+  "admin.atencion.puesto.editar": "Editó un puesto de atención",
+  "admin.atencion.pantalla.crear": "Creó una pantalla",
+  "admin.atencion.pantalla.editar": "Editó una pantalla",
+  "admin.atencion.sesion.liberar": "Liberó un puesto",
 };
 
 function resumen(detalle: Json): string {

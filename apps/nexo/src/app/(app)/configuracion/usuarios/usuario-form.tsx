@@ -13,6 +13,9 @@ const labelClass = "text-xs font-medium uppercase tracking-wide text-neutral-500
 
 export interface UsuarioFormProps {
   roles: { id: string; nombre: string }[];
+  /** null = el administrador no puede ver sucursales: no se muestra la sección. */
+  sucursales: { id: string; nombre: string }[] | null;
+  sucursalesAsignadas: string[];
   /** null = alta nueva. */
   usuario: {
     userId: string;
@@ -119,7 +122,7 @@ function EmpleadoPicker({
  * usuario, contraseña temporal puesta por el administrador, vínculo
  * opcional con un empleado de RRHH. El correo no se edita después del alta.
  */
-export default function UsuarioForm({ roles, usuario }: UsuarioFormProps) {
+export default function UsuarioForm({ roles, sucursales, sucursalesAsignadas, usuario }: UsuarioFormProps) {
   const router = useRouter();
   const { show } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -130,6 +133,7 @@ export default function UsuarioForm({ roles, usuario }: UsuarioFormProps) {
   const [password, setPassword] = useState("");
   const [rolId, setRolId] = useState(usuario?.rolId ?? "");
   const [empleado, setEmpleado] = useState(usuario?.empleado ?? null);
+  const [sucursalIds, setSucursalIds] = useState<Set<string>>(() => new Set(sucursalesAsignadas));
   const [error, setError] = useState<string | null>(null);
 
   const rolBloqueado = usuario?.esOwner || usuario?.esUnoMismo;
@@ -149,6 +153,7 @@ export default function UsuarioForm({ roles, usuario }: UsuarioFormProps) {
       cargo,
       rolId: usuario?.esOwner ? null : rolId || null,
       empleadoId: empleado?.id ?? null,
+      sucursalIds: sucursales ? Array.from(sucursalIds) : null,
     };
 
     startTransition(async () => {
@@ -263,6 +268,42 @@ export default function UsuarioForm({ roles, usuario }: UsuarioFormProps) {
           )}
         </div>
       </FormSection>
+
+      {sucursales && (
+        <FormSection
+          title="Sucursales"
+          description="Dónde trabaja. Con una sola, al iniciar atención se usa sin preguntar; con varias, elige al iniciar."
+        >
+          {sucursales.length === 0 ? (
+            <p className="text-sm text-neutral-500">
+              Todavía no hay sucursales.{" "}
+              <Link href="/configuracion/sucursales" className="text-blue-600 underline">
+                Crear una
+              </Link>
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              {sucursales.map((s) => (
+                <label key={s.id} className="flex items-center gap-2 text-sm text-neutral-700">
+                  <input
+                    type="checkbox"
+                    checked={sucursalIds.has(s.id)}
+                    onChange={(e) =>
+                      setSucursalIds((prev) => {
+                        const next = new Set(prev);
+                        if (e.target.checked) next.add(s.id);
+                        else next.delete(s.id);
+                        return next;
+                      })
+                    }
+                  />
+                  {s.nombre}
+                </label>
+              ))}
+            </div>
+          )}
+        </FormSection>
+      )}
 
       <FormSection title="Empleado de RRHH" description="Opcional: vincula la cuenta con el expediente de la persona.">
         <EmpleadoPicker value={empleado} onChange={setEmpleado} />

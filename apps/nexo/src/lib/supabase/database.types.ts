@@ -191,6 +191,38 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
       };
+      // Sucursales (migración 20261014224341_atencion_esquema).
+      admin_listar_sucursales: {
+        Args: { p_company_id: string };
+        Returns: {
+          id: string;
+          nombre: string;
+          direccion: string | null;
+          zona_horaria: string;
+          activa: boolean;
+          usuarios: number;
+          puestos: number;
+        }[];
+      };
+      admin_guardar_sucursal: {
+        Args: {
+          p_company_id: string;
+          p_sucursal_id: string | null;
+          p_nombre: string;
+          p_direccion: string | null;
+          p_zona_horaria: string | null;
+          p_activa: boolean;
+        };
+        Returns: string;
+      };
+      admin_sucursales_de_usuario: {
+        Args: { p_company_id: string; p_user_id: string };
+        Returns: { sucursal_id: string; nombre: string }[];
+      };
+      admin_asignar_sucursales: {
+        Args: { p_company_id: string; p_user_id: string; p_sucursales: string[] };
+        Returns: undefined;
+      };
     };
     Enums: {
       [_ in never]: never;
@@ -211,3 +243,4 @@ export type PermisoCatalogo = Fn["admin_catalogo_permisos"]["Returns"][number];
 export type PlantillaRol = Fn["admin_plantillas_rol"]["Returns"][number];
 export type EmpleadoBusqueda = Fn["admin_buscar_empleados"]["Returns"][number];
 export type EventoAuditoria = Fn["admin_listar_auditoria"]["Returns"][number];
+export type Sucursal = Fn["admin_listar_sucursales"]["Returns"][number];
