@@ -2,6 +2,33 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-14 — Paso Cero de administración de usuarios y roles (APLICADA)
+
+Detalle en
+[`status-log/2026-10-14-paso-cero-administracion-usuarios-roles.md`](status-log/2026-10-14-paso-cero-administracion-usuarios-roles.md);
+diseño en [`plan/12-administracion-usuarios-roles.md`](plan/12-administracion-usuarios-roles.md).
+**1 migración, aprobada explícitamente por el usuario y aplicada a
+`nexo-core` el 2026-10-14** con `apply_migration`. Precheck de solo lectura:
+0 códigos `nexo.administracion.%`, `core.apps` con `nexo` registrada.
+Postcheck: 9 códigos nuevos (`nexo` pasa de 2 a 11 en el catálogo),
+`core.user_permissions` y `core.user_app_roles` siguen en 0 filas (nadie
+recibió permisos), migración registrada con versión remota `20261014201119`
+— el archivo local se nombró directamente con esa versión.
+
+- `20261014201119_nexo_administracion_permisos_paso_cero` — solo `insert`
+  en `core.permissions_catalog` de los 9 códigos
+  `nexo.administracion.{usuarios.ver|crear|editar|desactivar, roles.ver|crear|editar|eliminar, auditoria.ver}`.
+  Sin tablas, sin cambios de RLS ni de `core.has_permission`. Hoy solo el
+  owner los obtiene (bypass de membresía). Rollback: `delete from
+  core.permissions_catalog where code like 'nexo.administracion.%'`
+  (seguro mientras ninguna fila de `user_permissions`/`app_role_permissions`
+  los referencie).
+
+Divergencia detectada en el precheck, sin relación con esta migración:
+`20261014181353_agencia_dashboard_access` está aplicada en `nexo-core` pero
+no existe en `main` (probablemente viene de la rama
+`feat/issue-18-agencia-independiente`). Pendiente de reconciliar.
+
 ## 2026-09-18 — Reglas de contratación y endurecimiento de seguridad/integridad (APLICADA)
 
 Contexto completo, causa raíz del bug de UI auditado y deuda en

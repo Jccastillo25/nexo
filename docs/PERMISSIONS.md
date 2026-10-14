@@ -101,6 +101,7 @@ propios dominios según su negocio:
 | RRHH | Centro de Control, Talento, Turnos, Asistencia, Nómina, Sistema *(los 6 de v2.0, sin cambios)* |
 | Flotilla | Viajes, Conductores, Flota, Reportes |
 | CRM | Clientes, Oportunidades |
+| Nexo (panel) | `administracion` — usuarios, roles y auditoría (Paso Cero aplicado 2026-10-14, 9 códigos `nexo.administracion.*`; ver [plan/12-administracion-usuarios-roles.md](plan/12-administracion-usuarios-roles.md), que además propone reemplazar la capa 2 por roles de empresa — **sin implementar**) |
 | Todos (incluye `nexo`) | `acceso` — dominio reservado para el permiso `<slug>.ver_modulo` que crea el trigger |
 
 ## Dos capas de enforcement, no solo una

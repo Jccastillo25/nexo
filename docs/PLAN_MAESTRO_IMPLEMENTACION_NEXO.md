@@ -21,7 +21,7 @@ Fuente específica de acceso: [`DRIVER_ACCESS_AND_KIOSK.md`](DRIVER_ACCESS_AND_K
 
 ## Índice temático (`docs/plan/`)
 
-Leer **solo el archivo que aplica a la tarea actual**, además de esta página. No hace falta leer los 11 archivos en cada sesión.
+Leer **solo el archivo que aplica a la tarea actual**, además de esta página. No hace falta leer los 12 archivos en cada sesión.
 
 | Archivo | Contenido | Leer cuando la tarea toque… |
 |---|---|---|
@@ -36,6 +36,7 @@ Leer **solo el archivo que aplica a la tarea actual**, además de esta página. 
 | [`plan/09-fase6-fabricacion.md`](plan/09-fase6-fabricacion.md) | FASE 6 — Fabricación | Fase 6 (Fabricación) |
 | [`plan/10-fase7-mobile.md`](plan/10-fase7-mobile.md) | FASE 7 — Nexo Mobile consolidado Android/iOS | Fase 7 (app móvil como producto) |
 | [`plan/11-fase8-integracion.md`](plan/11-fase8-integracion.md) | FASE 8 — Integración completa + integraciones internas (RPC cross-schema) | Fase 8, o cualquier integración entre módulos existentes |
+| [`plan/12-administracion-usuarios-roles.md`](plan/12-administracion-usuarios-roles.md) | Administración de usuarios y roles en `apps/nexo` (decisiones 2026-10-14: un rol por usuario, rol = apps + permisos internos, contraseña puesta por el administrador, vínculo con RRHH). Paso Cero + diseño de `core.roles`/`has_permission` — **borrador, sin aplicar** | usuarios, roles, permisos, `core.has_permission`, alta de cuentas, y antes del módulo de Turnos |
 
 ---
 
