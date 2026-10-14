@@ -4,7 +4,10 @@ Fecha: 2026-10-14 · Estado: **Paso Cero (sección 3) aprobado y aplicado a `nex
 el 2026-10-14** (migración `20261014222454_atencion_paso_cero`). Asignación de
 sucursales desde Configuración → Usuarios: **aprobada**. Tablas, RPC y
 `pg_cron` (sección 4): **aplicados el 2026-10-14** (`20261014224341_atencion_esquema`;
-el SQL real es el de la migración). Pantallas: **sin implementar**; app inactiva.
+el SQL real es el de la migración). Pantallas: **implementadas 2026-10-14**
+(`apps/atencion` + Sucursales en `apps/nexo`, ver
+[status-log](../status-log/2026-10-14-atencion-pantallas.md)); app inactiva y sin
+proyecto Vercel todavía.
 Origen: conversación del usuario con ChatGPT ("Buscar sistema de turnos") +
 decisiones de esta sesión. Construye sobre la administración de usuarios y
 roles ([plan 12](12-administracion-usuarios-roles.md)).

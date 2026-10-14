@@ -1,0 +1,9 @@
+{
+  "slug": "atencion",
+  "nombre": "Atención",
+  "categoria": "Servicios",
+  "icono": "ticket",
+  "color": "teal",
+  "ruta": "/atencion",
+  "depends": []
+}

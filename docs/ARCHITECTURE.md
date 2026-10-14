@@ -1,5 +1,19 @@
 # Arquitectura de Nexo
 
+## Atención — zona `/atencion` (2026-10-14)
+
+App independiente `apps/atencion` (`basePath: "/atencion"`, puerto local 3004),
+proyecto Vercel previsto `nexo-atencion` (Root Directory `apps/atencion`,
+**pendiente de crear**). Nexo la cose con `ATENCION_APP_URL` (rewrite solo si
+la variable existe; agregada al allowlist de `turbo.json`). Login único y
+`NexoShell` compartidos. Toda la lógica vive en RPC `public.atencion_*`
+(schema `atencion` sin exponer a la API), reutilizable por una futura app de
+tablets/móvil. `/atencion/pantalla/<id>` queda fuera del proxy de sesión: la
+pantalla de TV no tiene usuario y llama con la clave anónima a
+`atencion_pantalla_estado` (solo números y puestos) cada 3 s. `pg_cron`
+cierra atenciones a medianoche (hora de la sucursal). Diseño:
+[plan 13](plan/13-atencion-turnos.md).
+
 ## Agencia digital — ticket #18, extracción del Dashboard del #13 (2026-10-14)
 
 El usuario aprobó una app independiente `apps/agencia` y proyecto Vercel `nexo-agencia`. `/agencia` pertenece a esa zona (`basePath`); Nexo la cose mediante `AGENCIA_APP_URL`. El catálogo guarda `/agencia`, no el dominio del deployment. El acceso antiguo `/dashboard` redirige a la nueva zona en el candidato de #18; necesita destino desplegado antes del merge. Auth y `NexoShell` compartidos, permisos propios del módulo y de lectura del Dashboard. Catálogo inactivo hasta la activación coordinada. [Estado y runbook](status-log/2026-10-14-agencia-independiente.md).

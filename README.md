@@ -56,6 +56,7 @@ rutas) en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | `nexocore` | `apps/nexo` | `nexo.materialesjcastillo.com/` (zona raíz) |
 | `nexo-crm` | `apps/crm` | `nexo.materialesjcastillo.com/crm` |
 | `nexo-rrhh` | `apps/rrhh` | `nexo.materialesjcastillo.com/rrhh` |
+| `nexo-atencion` (por crear) | `apps/atencion` | `nexo.materialesjcastillo.com/atencion` |
 
 ## Quick start
 
