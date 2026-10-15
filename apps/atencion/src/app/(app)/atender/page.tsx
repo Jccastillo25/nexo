@@ -41,19 +41,23 @@ export default async function AtenderPage() {
   }
 
   if (sesion.tipo === "recepcion") {
-    const puedeAnular = await hasPermission(ctx, "atencion.recepcion.turno.cancelar");
+    const [puedeAnular, puedeReactivar] = await Promise.all([
+      hasPermission(ctx, "atencion.recepcion.turno.cancelar"),
+      hasPermission(ctx, "atencion.cola.turno.reactivar"),
+    ]);
     return (
       <div className="flex max-w-5xl flex-col gap-6">
         <PageHeader title="Recepción" description={`Entregá turnos en ${sesion.sucursal}. La numeración vuelve a 1 cada día.`} />
-        <Recepcion sucursalId={sesion.sucursal_id} puedeAnular={puedeAnular} />
+        <Recepcion sucursalId={sesion.sucursal_id} puedeAnular={puedeAnular} puedeReactivar={puedeReactivar} />
       </div>
     );
   }
 
-  const [fueraOrden, finalizar, ausente] = await Promise.all([
+  const [fueraOrden, finalizar, ausente, reactivar] = await Promise.all([
     hasPermission(ctx, "atencion.puesto.turno.llamar_fuera_orden"),
     hasPermission(ctx, "atencion.puesto.turno.finalizar"),
     hasPermission(ctx, "atencion.puesto.turno.marcar_ausente"),
+    hasPermission(ctx, "atencion.cola.turno.reactivar"),
   ]);
 
   return (
@@ -65,6 +69,7 @@ export default async function AtenderPage() {
         puedeFueraOrden={fueraOrden}
         puedeFinalizar={finalizar}
         puedeAusente={ausente}
+        puedeReactivar={reactivar}
       />
     </div>
   );

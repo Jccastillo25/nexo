@@ -207,9 +207,9 @@ global; un turno marcado "No se presentó" se puede reactivar (está asociado a
 una factura), una factura no se registra dos veces, y los "no se presentó" no
 afectan las métricas de atención.
 
-**Estado: matriz de métricas aprobada por el usuario (2026-10-15); el permiso
-de reactivar y las reglas 6.3 están propuestos, sin aprobar. No hay código ni
-migración de esta sección.**
+**Estado: todo aprobado por el usuario (2026-10-15). Paso Cero aplicado
+(`20261015165620`); 6.3 implementado (`20261015172012`); métricas y dashboards
+(6.2) pendientes.**
 
 ### 6.1 Matriz de permisos (Paso Cero)
 
@@ -222,7 +222,7 @@ inicial: decisión del usuario, quién puede reactivar **se configura en el rol*
 |---|---|:-:|:-:|:-:|
 | `atencion.reportes.turno.ver` (existe) | Ver reportes de la sucursal y de todos los agentes | | | ✓ |
 | `atencion.reportes.mis_metricas.ver` (nuevo, aprobado) | Ver mis propias métricas | | ✓ | ✓ |
-| `atencion.cola.turno.reactivar` (nuevo, propuesto) | Reactivar un turno que no se presentó | ✓ | | ✓ |
+| `atencion.cola.turno.reactivar` (nuevo, aprobado) | Reactivar un turno que no se presentó | ✓ | | ✓ |
 
 ```sql
 -- Paso Cero: métricas y reactivación de Atención. Solo catálogo + plantillas.
@@ -271,7 +271,7 @@ Filtro por fecha (hoy, 7 días, 30 días, rango) y sucursal. El global agrega
 una tabla por agente y por puesto. Lógica en RPC `public.atencion_metricas_*`
 (security definer + permiso), reutilizable por la app móvil.
 
-### 6.3 "No se presentó", reactivación y factura única (propuesto)
+### 6.3 "No se presentó", reactivación y factura única (aprobado, implementado)
 
 - **"No se presentó"** sigue igual en el puesto. Esos turnos **no entran** en
   espera ni atención promedio; se cuentan aparte. El tiempo que el agente pasó
@@ -290,8 +290,7 @@ una tabla por agente y por puesto. Lógica en RPC `public.atencion_metricas_*`
   - atendido → bloquea: "Esa factura ya fue atendida (turno N del día D)";
   - no se presentó **hoy** → bloquea y ofrece "Reactivar turno N";
   - anulado o vencido → **no** bloquea (anular suele corregir un error de carga).
-- **Caso a decidir:** "no se presentó" **de un día anterior**. No se puede
-  reactivar en la fila de hoy (su número es de otro día y chocaría con la
-  numeración de hoy). Propuesta: se permite un turno nuevo con esa factura y
-  el viejo queda marcado como reemplazado.
+- "No se presentó" **de un día anterior** (aprobado): no se reactiva en la
+  fila de hoy (su número chocaría con la numeración de hoy); se permite un
+  turno nuevo con esa factura y el viejo queda marcado como reemplazado.
 - Sin factura (es opcional): no aplica la regla; se reactiva igual.

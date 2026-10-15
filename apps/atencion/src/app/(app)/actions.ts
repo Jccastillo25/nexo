@@ -10,6 +10,8 @@ export interface Resultado<T = undefined> {
   ok: boolean;
   message?: string;
   data?: T;
+  /** Alta rechazada porque la factura ya tiene un "no se presentó" de hoy que se puede reactivar. */
+  reactivable?: { id: string; numero: number };
 }
 
 /**
@@ -69,7 +71,7 @@ export async function cargarCola(
 ): Promise<Resultado<{ turnos: TurnoCola[]; ahora: string }>> {
   const ctx = await contexto("atencion.cola.turno.ver");
   if ("error" in ctx) return { ok: false, message: ctx.error };
-  const { data, error } = await ctx.supabase.rpc("atencion_cola_v2", {
+  const { data, error } = await ctx.supabase.rpc("atencion_cola_v3", {
     p_company_id: ctx.companyId,
     p_sucursal_id: sucursalId,
   });
@@ -86,6 +88,25 @@ export async function crearTurno(nombre: string, telefono: string, factura: stri
     p_cliente_nombre: nombre.trim(),
     p_cliente_telefono: telefono.trim() || null,
     p_factura: factura.trim() || null,
+  });
+  if (error) {
+    // atencion_crear_turno marca el caso con detail = 'reactivable:<id>:<numero>'.
+    const [marca, id, numero] = (error.details ?? "").split(":");
+    return {
+      ok: false,
+      message: error.message,
+      reactivable: marca === "reactivable" && id ? { id, numero: Number(numero) } : undefined,
+    };
+  }
+  return { ok: true, data: { numero: Number((data as { numero: number }).numero) } };
+}
+
+export async function reactivarTurno(turnoId: string): Promise<Resultado<{ numero: number }>> {
+  const ctx = await contexto("atencion.cola.turno.reactivar");
+  if ("error" in ctx) return { ok: false, message: ctx.error };
+  const { data, error } = await ctx.supabase.rpc("atencion_reactivar_turno", {
+    p_company_id: ctx.companyId,
+    p_turno_id: turnoId,
   });
   if (error) return { ok: false, message: error.message };
   return { ok: true, data: { numero: Number((data as { numero: number }).numero) } };
