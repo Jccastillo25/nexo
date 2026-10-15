@@ -69,6 +69,18 @@ MCP: nada de `DROP`, ni `UPDATE`/`DELETE` sin `WHERE`.
   real (revertido) OK.
 - `next build` + `eslint` de `apps/atencion` limpios. Sin navegador real.
 
+## Revisión de Codex (PR #27) — 2 hallazgos, ambos corregidos
+
+1. La búsqueda de factura repetida no usaba `turnos_factura_idx` (índice
+   parcial `factura is not null`; `fn_factura_normal` no es STRICT, así que el
+   planificador no deduce el predicado): recorría todas las particiones.
+   Migración `20261015172709_atencion_factura_usa_indice` (archivo creado como
+   `20261015230000_…`): `atencion_crear_turno` agrega `t.factura is not null`.
+   Verificado con `EXPLAIN`: Index Scan por partición.
+2. En recepción, cambiar la factura tras el aviso dejaba el botón "Reactivar
+   turno N" apuntando al turno de la factura anterior. Ahora la oferta queda
+   ligada a la factura enviada y se descarta al editarla.
+
 ## Pendiente
 
 - Merge, deploy y prueba en recepción/puesto.

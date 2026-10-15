@@ -30,7 +30,8 @@ export default function Recepcion({
   const [ultimo, setUltimo] = useState<{ numero: number; nombre: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Factura con un "no se presentó" de hoy: se ofrece reactivar ese turno en vez de crear otro.
-  const [reactivable, setReactivable] = useState<{ id: string; numero: number } | null>(null);
+  // Queda ligado a la factura enviada y se descarta si la factura cambia.
+  const [reactivable, setReactivable] = useState<{ id: string; numero: number; factura: string } | null>(null);
   const [anular, setAnular] = useState<{ id: string; numero: number } | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -46,7 +47,7 @@ export default function Recepcion({
       const res = await crearTurno(nombre, telefono, factura);
       if (!res.ok || !res.data) {
         setError(res.message ?? "No se pudo entregar el turno.");
-        setReactivable(res.reactivable ?? null);
+        setReactivable(res.reactivable ? { ...res.reactivable, factura } : null);
         return;
       }
       setReactivable(null);
@@ -92,13 +93,22 @@ export default function Recepcion({
                 <label htmlFor="r_fac" className={labelClass}>
                   Número de factura
                 </label>
-                <input id="r_fac" value={factura} maxLength={50} onChange={(e) => setFactura(e.target.value)} className={inputClass} />
+                <input
+                  id="r_fac"
+                  value={factura}
+                  maxLength={50}
+                  onChange={(e) => {
+                    setFactura(e.target.value);
+                    setReactivable(null);
+                  }}
+                  className={inputClass}
+                />
               </div>
             </div>
             {error && (
               <div role="alert" className="flex flex-col gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                 <p>{error}</p>
-                {reactivable &&
+                {reactivable && reactivable.factura === factura &&
                   (puedeReactivar ? (
                     <button
                       type="button"

@@ -19,6 +19,9 @@ Orden de bitácora: más reciente arriba.
   `atencion_cola_v3`. Probada antes en bloque revertido (8 casos). Rollback:
   volver a las definiciones de `20261015163957`/`20261015161222`/
   `20261014224341`, borrar las 2 funciones nuevas, el índice y las 4 columnas.
+- `20261015172709_atencion_factura_usa_indice`: `atencion_crear_turno` con
+  `t.factura is not null` para usar el índice parcial (revisión de Codex).
+  Rollback: la definición de `20261015172012`.
 - Conector MCP: también retiene `UPDATE` sin `WHERE` (ver status-log).
   [Detalle](status-log/2026-10-15-atencion-reactivar-factura-unica.md).
 
