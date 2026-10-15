@@ -8,6 +8,8 @@
 
 No iniciar CRM/Fabricación antes de RRHH MVP completo.
 
+**Corte incremental aprobado el 2026-10-15:** [RRHH y kiosco — piloto supervisado/MVP operativo](../RRHH_PILOTO_MVP_OPERATIVO.md) define P1–P7 y M1–M4. El piloto de un par por contrato/día y la corrección posterior no cierran F1.5–F1.10 ni autorizan nómina/cálculos salariales. El piloto exige pruebas críticas y recorrido con usuarios reales; un fallo lo pospone. Las funciones y el buzón exacto se designan privadamente en P7, sin bloquear documentación ni tickets.
+
 ## F1.0 — Auditoría real
 
 Verificar:

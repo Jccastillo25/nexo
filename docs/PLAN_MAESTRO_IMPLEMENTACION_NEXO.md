@@ -14,6 +14,7 @@
 6. El Panel de Conductor Web y Nexo Mobile comparten la misma identidad digital.
 7. **Nexo Mobile no replica toda la versión Web**: solo muestra funciones operacionales aprobadas por rol/permisos.
 8. Nexo debe prepararse desde ahora para Android/iOS mediante RPC/servicios reutilizables, no lógica encerrada en Next.js.
+9. RRHH tiene un **corte incremental aprobado el 2026-10-15**: [piloto supervisado y MVP operativo de kiosco/marcas](RRHH_PILOTO_MVP_OPERATIVO.md), con un par por contrato/día `America/Managua`, canal corporativo de RRHH para reportes y corrección auditada posterior. No reemplaza F1.5–F1.10 completos ni incluye nómina; aún no se ha validado con usuarios reales.
 
 Fuente específica de acceso: [`DRIVER_ACCESS_AND_KIOSK.md`](DRIVER_ACCESS_AND_KIOSK.md).
 

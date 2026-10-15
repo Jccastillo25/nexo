@@ -28,6 +28,7 @@
 | [MIGRATION_LOG.md](MIGRATION_LOG.md) | Historial de migraciones y verificaciones. |
 | [ROADMAP.md](ROADMAP.md) | Orden macro vigente de implementación. |
 | [RRHH_MVP.md](RRHH_MVP.md) | Definition of Done de RRHH: expediente, contrato, PIN de asistencia, jornada, consolidación, planilla y E2E. |
+| [RRHH_PILOTO_MVP_OPERATIVO.md](RRHH_PILOTO_MVP_OPERATIVO.md) | Corte aprobado 2026-10-15: piloto supervisado de un par/día y MVP operativo con corrección auditada; reglas, funciones, pantallas y tickets P1–P7/M1–M4. No es implementación validada. |
 
 ## Planeación y decisiones históricas
 
