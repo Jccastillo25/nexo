@@ -105,3 +105,5 @@ Pedido del usuario: que la pantalla traiga el número de factura del turno.
 - Pruebas: build/lint de `apps/atencion`; bloque revertido con turno ficticio
   (sin config → `null`; encendida → `001-1234`; apagada explícita → `null`);
   remoto después: la pantalla real devuelve `factura: null` hasta encenderla.
+- En producción: PR #24 fusionado (`main` `953e52e`), los 5 deploys READY;
+  pantalla verificada sin sesión en el dominio público. Falta probar en el TV.

@@ -11,7 +11,7 @@ la variable existe; agregada al allowlist de `turbo.json`). Login único y
 (schema `atencion` sin exponer a la API), reutilizable por una futura app de
 tablets/móvil. `/atencion/pantalla/<id>` queda fuera del proxy de sesión: la
 pantalla de TV no tiene usuario y llama con la clave anónima a
-`atencion_pantalla_estado` cada 3 s (número siempre; puesto, cliente y agente según la configuración de cada pantalla, desde 2026-10-15). El proxy de `apps/nexo` excluye `/atencion` (como `/crm`, `/rrhh`, `/agencia`): sin esa exclusión, la pantalla y sus `/atencion/_next/static/*` iban al login antes del rewrite. `pg_cron`
+`atencion_pantalla_estado` cada 3 s (número siempre; puesto, cliente y agente según la configuración de cada pantalla, desde 2026-10-15). Puesto y recepción reciben los cambios de la fila por Supabase Realtime (`postgres_changes` sobre `public.atencion_cola_senales`, una señal sin datos del cliente) y recargan por RPC; el refresco periódico queda como respaldo (Chrome lo congela en segundo plano). El proxy de `apps/nexo` excluye `/atencion` (como `/crm`, `/rrhh`, `/agencia`): sin esa exclusión, la pantalla y sus `/atencion/_next/static/*` iban al login antes del rewrite. `pg_cron`
 cierra atenciones a medianoche (hora de la sucursal). Diseño:
 [plan 13](plan/13-atencion-turnos.md).
 

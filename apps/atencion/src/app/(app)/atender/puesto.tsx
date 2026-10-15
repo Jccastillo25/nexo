@@ -1,31 +1,53 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { FormSection, useToast } from "@nexo/ui";
 import { llamarTurno, rellamarTurno, terminarTurno } from "../actions";
 import { horaCorta, useCola } from "./use-cola";
+import { useAvisoSonoro } from "./aviso-sonoro";
 
 /**
  * Puesto de atención: llamar al siguiente, repetir el llamado, terminar
  * (atendido / ausente) y, con permiso, llamar a un turno fuera de orden.
  */
 export default function Puesto({
+  sucursalId,
   puesto,
   puedeFueraOrden,
   puedeFinalizar,
   puedeAusente,
 }: {
+  sucursalId: string;
   puesto: string;
   puedeFueraOrden: boolean;
   puedeFinalizar: boolean;
   puedeAusente: boolean;
 }) {
   const { show } = useToast();
-  const { cola, error: errorCola, recargar } = useCola();
+  const aviso = useAvisoSonoro();
+  const { cola, error: errorCola, recargar, enVivo } = useCola({
+    sucursalId,
+    onNuevos: (nuevos) => {
+      aviso.sonar();
+      show(
+        nuevos.length === 1 ? `Nuevo cliente en fila: turno ${nuevos[0].numero}.` : `${nuevos.length} clientes nuevos en fila.`,
+        "info"
+      );
+    },
+  });
   const [isPending, startTransition] = useTransition();
 
   const actual = cola.find((t) => t.estado === "llamado" && t.puesto === puesto) ?? null;
   const esperando = cola.filter((t) => t.estado === "esperando");
+
+  // La cantidad en espera en el título de la pestaña, visible desde otra ventana.
+  useEffect(() => {
+    const base = `${puesto || "Puesto"} · Atención`;
+    document.title = esperando.length > 0 ? `(${esperando.length}) ${base}` : base;
+    return () => {
+      document.title = base;
+    };
+  }, [esperando.length, puesto]);
 
   function ejecutar(accion: () => Promise<{ ok: boolean; message?: string }>, exito: string) {
     startTransition(async () => {
@@ -101,6 +123,26 @@ export default function Puesto({
       </section>
 
       <FormSection title={`Fila (${esperando.length})`}>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className={enVivo ? "text-emerald-700" : "text-neutral-500"}>
+            {enVivo ? "● En vivo" : "○ Reconectando… (se actualiza cada 15 s)"}
+          </span>
+          <button
+            type="button"
+            onClick={aviso.alternar}
+            aria-pressed={aviso.activado}
+            className={`rounded-md border px-3 py-1.5 font-semibold ${
+              aviso.activado
+                ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+            }`}
+          >
+            {aviso.activado ? "Sonido activado" : "Activar sonido de nuevos clientes"}
+          </button>
+        </div>
+        {aviso.activado && aviso.bloqueado && (
+          <p className="text-xs text-amber-700">Tocá cualquier parte de la página para habilitar el sonido.</p>
+        )}
         {errorCola && <p className="text-sm text-red-600">{errorCola}</p>}
         {esperando.length === 0 ? (
           <p className="text-sm text-neutral-500">Nadie en espera.</p>

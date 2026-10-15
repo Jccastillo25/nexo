@@ -7,6 +7,21 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-15 — Atención: fila en tiempo real (APLICADA)
+
+- `20261015162540_atencion_cola_tiempo_real`: tabla
+  `public.atencion_cola_senales` (una fila por sucursal, sin datos del
+  cliente) en `supabase_realtime`, con RLS de solo lectura vía
+  `public.atencion_puede_escuchar(uuid)`; trigger `trg_atencion_turnos_avisar`
+  en `atencion.turnos`. Probada antes en un bloque revertido. Postcheck:
+  versión registrada, publicación, grants y trigger en las particiones.
+  Archivo renombrado de `20261015190000_…`. Rollback: `drop trigger
+  trg_atencion_turnos_avisar on atencion.turnos`, `alter publication
+  supabase_realtime drop table public.atencion_cola_senales`, `drop table
+  public.atencion_cola_senales`, `drop function
+  atencion.fn_avisar_cambio_turno(), public.atencion_puede_escuchar(uuid)`.
+  [Detalle](status-log/2026-10-15-atencion-fila-tiempo-real.md).
+
 ## 2026-10-15 — Atención: factura en la pantalla (APLICADA)
 
 - `20261015161222_atencion_pantalla_factura`: `create or replace` de
