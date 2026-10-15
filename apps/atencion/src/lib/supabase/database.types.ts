@@ -37,6 +37,9 @@ export interface TurnoCola {
   cliente_telefono: string | null;
   factura: string | null;
   creado_en: string;
+  /** Llamado que sacó el turno de la espera; no cambia con "Repetir llamado" (20261015163957). */
+  inicio_atencion_en: string | null;
+  finalizado_en: string | null;
 }
 
 export interface PuestoEstado {
@@ -115,7 +118,8 @@ export type Database = {
         Returns: Json;
       };
       atencion_cancelar_turno: { Args: C & { p_turno_id: string }; Returns: undefined };
-      atencion_cola: { Args: C & { p_sucursal_id?: string | null }; Returns: TurnoCola[] };
+      // atencion_cola (sin tiempos) queda sin uso desde 20261015163957; retirarla.
+      atencion_cola_v2: { Args: C & { p_sucursal_id?: string | null }; Returns: TurnoCola[] };
       atencion_llamar: { Args: C & { p_turno_id?: string | null }; Returns: Json };
       atencion_rellamar: { Args: C; Returns: Json };
       atencion_terminar: { Args: C & { p_resultado: string }; Returns: undefined };

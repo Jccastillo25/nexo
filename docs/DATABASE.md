@@ -170,6 +170,12 @@ los muestra ni los anuncia: `config.mostrar` y `config.anunciar`
 `20261015161222` también `factura` (`turnos.factura`), pero al revés: sin clave
 = no; solo sale si `config.mostrar.factura` o `config.anunciar.factura` es `true`.
 
+Tiempos (`20261015163957`): `atencion.turnos.inicio_atencion_en` lo fija
+`atencion_llamar` y no cambia con "Repetir llamado" (que sí cambia
+`llamado_en`). Espera = `inicio_atencion_en − creado_en`; atención =
+`finalizado_en − inicio_atencion_en`. La fila se lee con
+`public.atencion_cola_v2`; `public.atencion_cola` queda sin uso, a retirar.
+
 Tiempo real (`20261015162540`): `public.atencion_cola_senales` (`sucursal_id`
 PK, `version`, `cambiado_en`) es la única tabla de Atención expuesta a la API.
 No guarda datos del cliente; el trigger `trg_atencion_turnos_avisar` sube la
