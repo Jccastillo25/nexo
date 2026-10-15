@@ -10,9 +10,9 @@ const inputClass =
 const labelClass = "text-xs font-medium uppercase tracking-wide text-neutral-500";
 
 /** Recepción: registra al cliente (nombre, teléfono, factura) y entrega el número. */
-export default function Recepcion({ puedeAnular }: { puedeAnular: boolean }) {
+export default function Recepcion({ sucursalId, puedeAnular }: { sucursalId: string; puedeAnular: boolean }) {
   const { show } = useToast();
-  const { cola, error: errorCola, recargar } = useCola();
+  const { cola, error: errorCola, recargar } = useCola({ sucursalId });
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [factura, setFactura] = useState("");

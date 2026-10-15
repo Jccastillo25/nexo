@@ -45,7 +45,7 @@ export default async function AtenderPage() {
     return (
       <div className="flex max-w-5xl flex-col gap-6">
         <PageHeader title="Recepción" description={`Entregá turnos en ${sesion.sucursal}. La numeración vuelve a 1 cada día.`} />
-        <Recepcion puedeAnular={puedeAnular} />
+        <Recepcion sucursalId={sesion.sucursal_id} puedeAnular={puedeAnular} />
       </div>
     );
   }
@@ -60,6 +60,7 @@ export default async function AtenderPage() {
     <div className="flex max-w-5xl flex-col gap-6">
       <PageHeader title={sesion.puesto ?? "Puesto"} description={`Atendiendo en ${sesion.sucursal}.`} />
       <Puesto
+        sucursalId={sesion.sucursal_id}
         puesto={sesion.puesto ?? ""}
         puedeFueraOrden={fueraOrden}
         puedeFinalizar={finalizar}

@@ -169,6 +169,13 @@ los muestra ni los anuncia: `config.mostrar` y `config.anunciar`
 `atencion.fn_pantalla_campo` (sin `EXECUTE` para la API). Desde
 `20261015161222` también `factura` (`turnos.factura`), pero al revés: sin clave
 = no; solo sale si `config.mostrar.factura` o `config.anunciar.factura` es `true`.
+
+Tiempo real (`20261015162540`): `public.atencion_cola_senales` (`sucursal_id`
+PK, `version`, `cambiado_en`) es la única tabla de Atención expuesta a la API.
+No guarda datos del cliente; el trigger `trg_atencion_turnos_avisar` sube la
+versión en cada alta/cambio de turno, está en `supabase_realtime` y su RLS
+(solo `select`) usa `public.atencion_puede_escuchar(sucursal_id)`. Los
+navegadores la escuchan y vuelven a pedir la fila por `atencion_cola`.
 - `core.platform_settings` — singleton de marca de la plataforma
 - `core.geografia_ni_departamentos` / `core.geografia_ni_municipios` —
   **bloque pre-F1.5 (2026-09-16)**: geografía nacional de Nicaragua, sin
