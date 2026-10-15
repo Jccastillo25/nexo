@@ -75,6 +75,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 | 2026-09-11 | [Limpieza de datos de prueba residuales](status-log/2026-09-11-limpieza-datos-prueba-residuales.md) | Verificación remota de rutina encontró 1 empleado/contrato/PIN de prueba sin limpiar en `nexo-core` (contradecía "0 filas" documentado) — borrado con aprobación explícita del usuario; también corrige una imprecisión de conteo de migraciones de F1.0 (duplicados inertes del bootstrap, sin impacto). |
 | 2026-09-14 | [Reconciliación de navegación — Marca, Launcher, Expediente/Contratación](status-log/2026-09-14-reconciliacion-navegacion-rrhh.md) | Bloque pedido explícitamente (P0-P4, sin iniciar F1.5): fix P0 real de `/configuracion/marca` (límite de body + error boundary global), App Launcher puro sin KPIs con logo en la cabecera del sidebar, Expediente General separado de Contratación (ciclo contractual completo movido a `/contratacion/contratos`), edición real del Expediente General (`rrhh.fn_editar_empleado` nuevo). Mergeado a `main` (`4cc8a6a`, fast-forward) y verificado `READY` en Vercel producción el mismo día — smoke test autenticado NO ejecutado (sin credenciales; el usuario eligió cerrar documentando la limitación). |
 | 2026-09-16 | [Bloque "pre-F1.5" — cédula, favicon, catálogos, Storage privado, expediente ampliado](status-log/2026-09-16-rrhh-pre-f1-5.md) | Bloque pedido explícitamente antes de F1.5: cédula obligatoria (DB+RPC+UI), favicon dinámico en RRHH/CRM, catálogos de Contratación (`rrhh.puestos`/`rrhh.departamentos`/`rrhh.plantillas_contrato`/`rrhh.puesto_plantillas`, `rrhh.contratos.puesto_id`/`departamento_id`), Storage privado (`rrhh-documentos-privados`, subida por URL firmada directa — evita el techo de 4.5MB de Vercel), expediente ampliado (Dirección con geografía de Nicaragua en `core.geografia_ni_*`, Información complementaria, Cuentas bancarias, Beneficiario). `next build`+`eslint` limpios en `apps/rrhh`/`apps/crm`, sin smoke test autenticado (sin credenciales). Deuda explícita: `core.geografia_ni_municipios` queda vacía (fuente web no confiable, ver detalle), falta `SUPABASE_SERVICE_ROLE_KEY` en el proyecto Vercel de RRHH. |
+| 2026-10-15 | [Atención — Paso Cero de métricas, reactivar y factura única](status-log/2026-10-15-atencion-reactivar-factura-unica.md) | Permisos `mis_metricas.ver` y `cola.turno.reactivar` (`20261015165620`); reactivar "no se presentó" al final de la fila, factura única por sucursal, fila por `en_fila_desde` (`20261015172012`). |
 | 2026-10-15 | [Atención — cronómetros de espera y atención](status-log/2026-10-15-atencion-cronometros.md) | `atencion.turnos.inicio_atencion_en` (no cambia con "Repetir llamado") + `atencion_cola_v2`; cronómetros en puesto y recepción (`20261015163957`). Dashboards: Paso Cero propuesto, sin aprobar. |
 | 2026-10-15 | [Atención — fila en tiempo real + aviso sonoro](status-log/2026-10-15-atencion-fila-tiempo-real.md) | Realtime (`postgres_changes` sobre `public.atencion_cola_senales`, sin datos del cliente) en puesto y recepción; sonido y título con la cantidad en espera (`20261015162540`). Sin prueba en navegador real. |
 | 2026-10-15 | [Atención — factura en la pantalla](status-log/2026-10-15-atencion-pantalla-configurable.md#ampliación-número-de-factura-mismo-día) | Número de factura como cuarto dato configurable, apagado por defecto (`20261015161222`). |
@@ -413,11 +414,15 @@ Atención — fila en tiempo real + aviso sonoro  🟡 en producción 2026-10-15
                                               (PR #25, main 9e015cc, migración 20261015162540);
                                               falta prueba en el puesto con navegador real
  ↓
-Atención — cronómetros de espera y atención  🟡 migración 20261015163957 aplicada;
-                                              build/lint OK; falta merge y prueba en el puesto
+Atención — cronómetros de espera y atención  🟡 en producción (PR #26, main 88748ea);
+                                              falta prueba en el puesto
  ↓
-Atención — dashboards por agente y global  ⛔ Paso Cero propuesto (plan 13 §6),
-                                              esperando aprobación del usuario
+Atención — Paso Cero métricas/reactivar  ✅ aplicado 2026-10-15 (20261015165620)
+ ↓
+Atención — reactivar "no se presentó" + factura única  🟡 migración 20261015172012
+                                              aplicada; build/lint OK; falta merge y prueba
+ ↓
+Atención — métricas y dashboards por agente y global  ⏳ siguiente (plan 13 §6.2)
  ↓
 F1.5 — Consolidación de asistencia  ⏳ pendiente (sigue explícitamente NO iniciado —
                                           "no iniciar F1.5" fue parte del alcance de ambos

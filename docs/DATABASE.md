@@ -176,6 +176,16 @@ Tiempos (`20261015163957`): `atencion.turnos.inicio_atencion_en` lo fija
 `finalizado_en − inicio_atencion_en`. La fila se lee con
 `public.atencion_cola_v2`; `public.atencion_cola` queda sin uso, a retirar.
 
+Fila y factura (`20261015172012`): `en_fila_desde` (alta o última
+reactivación) ordena la fila y mide la espera (espera = `inicio_atencion_en −
+en_fila_desde`). `reactivaciones` cuenta las veces que un "no se presentó"
+volvió a la fila (`atencion_reactivar_turno`, permiso
+`atencion.cola.turno.reactivar`). Factura única por sucursal comparada con
+`atencion.fn_factura_normal` (índice `turnos_factura_idx`); anulados y
+vencidos no la ocupan; un ausente de otro día queda `reemplazado_en`/
+`reemplazado_por`. La fila se lee con `public.atencion_cola_v3`
+(`atencion_cola` y `atencion_cola_v2` sin uso, a retirar).
+
 Tiempo real (`20261015162540`): `public.atencion_cola_senales` (`sucursal_id`
 PK, `version`, `cambiado_en`) es la única tabla de Atención expuesta a la API.
 No guarda datos del cliente; el trigger `trg_atencion_turnos_avisar` sube la

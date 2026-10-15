@@ -2,16 +2,25 @@
 
 import { useState, useTransition } from "react";
 import { ConfirmDialog, FormSection, StatusBadge, useToast } from "@nexo/ui";
-import { cancelarTurno, crearTurno } from "../actions";
+import { cancelarTurno, crearTurno, reactivarTurno } from "../actions";
 import { horaCorta, useCola } from "./use-cola";
 import { duracion, transcurrido, useReloj } from "./reloj";
+import NoSePresentaron from "./no-se-presentaron";
 
 const inputClass =
   "w-full rounded-md border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
 const labelClass = "text-xs font-medium uppercase tracking-wide text-neutral-500";
 
 /** Recepción: registra al cliente (nombre, teléfono, factura) y entrega el número. */
-export default function Recepcion({ sucursalId, puedeAnular }: { sucursalId: string; puedeAnular: boolean }) {
+export default function Recepcion({
+  sucursalId,
+  puedeAnular,
+  puedeReactivar,
+}: {
+  sucursalId: string;
+  puedeAnular: boolean;
+  puedeReactivar: boolean;
+}) {
   const { show } = useToast();
   const { cola, error: errorCola, recargar, desfase } = useCola({ sucursalId });
   const ahora = useReloj(desfase);
@@ -20,6 +29,9 @@ export default function Recepcion({ sucursalId, puedeAnular }: { sucursalId: str
   const [factura, setFactura] = useState("");
   const [ultimo, setUltimo] = useState<{ numero: number; nombre: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Factura con un "no se presentó" de hoy: se ofrece reactivar ese turno en vez de crear otro.
+  // Queda ligado a la factura enviada y se descarta si la factura cambia.
+  const [reactivable, setReactivable] = useState<{ id: string; numero: number; factura: string } | null>(null);
   const [anular, setAnular] = useState<{ id: string; numero: number } | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -35,8 +47,10 @@ export default function Recepcion({ sucursalId, puedeAnular }: { sucursalId: str
       const res = await crearTurno(nombre, telefono, factura);
       if (!res.ok || !res.data) {
         setError(res.message ?? "No se pudo entregar el turno.");
+        setReactivable(res.reactivable ? { ...res.reactivable, factura } : null);
         return;
       }
+      setReactivable(null);
       setUltimo({ numero: res.data.numero, nombre: nombre.trim() });
       setNombre("");
       setTelefono("");
@@ -79,13 +93,51 @@ export default function Recepcion({ sucursalId, puedeAnular }: { sucursalId: str
                 <label htmlFor="r_fac" className={labelClass}>
                   Número de factura
                 </label>
-                <input id="r_fac" value={factura} maxLength={50} onChange={(e) => setFactura(e.target.value)} className={inputClass} />
+                <input
+                  id="r_fac"
+                  value={factura}
+                  maxLength={50}
+                  onChange={(e) => {
+                    setFactura(e.target.value);
+                    setReactivable(null);
+                  }}
+                  className={inputClass}
+                />
               </div>
             </div>
             {error && (
-              <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                {error}
-              </p>
+              <div role="alert" className="flex flex-col gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <p>{error}</p>
+                {reactivable && reactivable.factura === factura &&
+                  (puedeReactivar ? (
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() =>
+                        startTransition(async () => {
+                          const res = await reactivarTurno(reactivable.id);
+                          if (!res.ok) {
+                            setError(res.message ?? "No se pudo reactivar.");
+                            return;
+                          }
+                          show(`Turno ${reactivable.numero} reactivado: vuelve al final de la fila.`, "success");
+                          setUltimo({ numero: reactivable.numero, nombre: nombre.trim() });
+                          setNombre("");
+                          setTelefono("");
+                          setFactura("");
+                          setError(null);
+                          setReactivable(null);
+                          await recargar();
+                        })
+                      }
+                      className="self-start rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                    >
+                      Reactivar turno {reactivable.numero}
+                    </button>
+                  ) : (
+                    <p className="text-xs">Pedile a alguien con permiso de reactivar turnos que lo devuelva a la fila.</p>
+                  ))}
+              </div>
             )}
             <button
               type="submit"
@@ -104,6 +156,8 @@ export default function Recepcion({ sucursalId, puedeAnular }: { sucursalId: str
             <p className="mt-1 text-sm text-blue-800">{ultimo.nombre}</p>
           </div>
         )}
+
+        <NoSePresentaron cola={cola} puedeReactivar={puedeReactivar} alReactivar={recargar} />
       </div>
 
       <FormSection title={`En espera (${pendientes.filter((t) => t.estado === "esperando").length})`}>
@@ -123,7 +177,7 @@ export default function Recepcion({ sucursalId, puedeAnular }: { sucursalId: str
                         <>
                           Esperando{" "}
                           <span className="font-semibold tabular-nums text-neutral-700">
-                            {duracion(transcurrido(t.creado_en, ahora))}
+                            {duracion(transcurrido(t.en_fila_desde, ahora))}
                           </span>{" "}
                           · {horaCorta(t.creado_en)}
                         </>

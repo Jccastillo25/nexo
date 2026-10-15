@@ -31,7 +31,7 @@ export default async function DashboardPage() {
   let puestos: PuestoEstado[] = [];
   if (sucursalId) {
     const [colaRes, puestosRes] = await Promise.all([
-      supabase.rpc("atencion_cola_v2", { p_company_id: companyId, p_sucursal_id: sucursalId }),
+      supabase.rpc("atencion_cola_v3", { p_company_id: companyId, p_sucursal_id: sucursalId }),
       supabase.rpc("atencion_listar_puestos", { p_company_id: companyId, p_sucursal_id: sucursalId }),
     ]);
     cola = colaRes.data ?? [];

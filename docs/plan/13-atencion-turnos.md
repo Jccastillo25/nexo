@@ -200,57 +200,69 @@ Reglas técnicas:
 - ~~Migración de tablas (sección 4) e instalación de `pg_cron`~~ — aplicadas 2026-10-14.
 - Pantallas (Sucursales en Configuración, `apps/atencion`, pantalla pública) y activación de la app.
 
-## 6. Métricas y dashboards (borrador para aprobación)
+## 6. Métricas, "no se presentó" y dashboards (borrador para aprobación)
 
 Pedido del usuario 2026-10-15: un dashboard de métricas para cada agente y uno
-global. Base de datos ya disponible (`20261015163957`): `creado_en`,
-`inicio_atencion_en`, `finalizado_en`, `estado`, `atendido_por`, `puesto_id`,
-`fuera_de_orden` en `atencion.turnos`, y `atencion.sesiones` (tiempo con
-atención abierta).
+global; un turno marcado "No se presentó" se puede reactivar (está asociado a
+una factura), una factura no se registra dos veces, y los "no se presentó" no
+afectan las métricas de atención.
 
-**Estado: propuesta, no aprobada. No hay código ni migración de esta sección.**
+**Estado: todo aprobado por el usuario (2026-10-15). Paso Cero aplicado
+(`20261015165620`); 6.3 implementado (`20261015172012`); métricas y dashboards
+(6.2) pendientes.**
 
 ### 6.1 Matriz de permisos (Paso Cero)
 
 Verificado en `nexo-core` el 2026-10-15: existe `atencion.reportes.turno.ver`
-("Ver reportes", solo plantilla Supervisor). No hay permiso para que un agente
-vea solo lo suyo.
+("Ver reportes", solo plantilla Supervisor). Las plantillas son solo el valor
+inicial: decisión del usuario, quién puede reactivar **se configura en el rol**
+(Configuración → Roles).
 
 | Código | Etiqueta | Recepción | Agente | Supervisor |
 |---|---|:-:|:-:|:-:|
 | `atencion.reportes.turno.ver` (existe) | Ver reportes de la sucursal y de todos los agentes | | | ✓ |
-| `atencion.reportes.mis_metricas.ver` (nuevo) | Ver mis propias métricas | | ✓ | ✓ |
+| `atencion.reportes.mis_metricas.ver` (nuevo, aprobado) | Ver mis propias métricas | | ✓ | ✓ |
+| `atencion.cola.turno.reactivar` (nuevo, aprobado) | Reactivar un turno que no se presentó | ✓ | | ✓ |
 
 ```sql
--- Paso Cero: métricas de Atención. Solo catálogo + plantillas.
+-- Paso Cero: métricas y reactivación de Atención. Solo catálogo + plantillas.
 do $$
 begin
-  if exists (select 1 from core.permissions_catalog where code = 'atencion.reportes.mis_metricas.ver') then
-    raise exception 'precheck: el permiso ya existe';
+  if exists (select 1 from core.permissions_catalog
+             where code in ('atencion.reportes.mis_metricas.ver', 'atencion.cola.turno.reactivar')) then
+    raise exception 'precheck: alguno de los permisos ya existe';
   end if;
 end;
 $$;
 
 insert into core.permissions_catalog (code, module_slug, domain, label, description) values
   ('atencion.reportes.mis_metricas.ver', 'atencion', 'reportes', 'Ver mis métricas',
-   'Turnos atendidos, tiempos de espera y de atención propios.');
+   'Turnos atendidos, tiempos de espera y de atención propios.'),
+  ('atencion.cola.turno.reactivar', 'atencion', 'cola', 'Reactivar turnos',
+   'Devolver a la fila, al final, un turno marcado como "no se presentó".');
 
 insert into core.app_role_permissions (app_role_id, permission_code)
-select r.id, 'atencion.reportes.mis_metricas.ver'
+select r.id, x.code
 from core.app_roles r
-where r.module_slug = 'atencion' and r.role_key in ('agente', 'supervisor');
+join (values
+  ('agente', 'atencion.reportes.mis_metricas.ver'),
+  ('supervisor', 'atencion.reportes.mis_metricas.ver'),
+  ('recepcion', 'atencion.cola.turno.reactivar'),
+  ('supervisor', 'atencion.cola.turno.reactivar')
+) as x(role_key, code) on x.role_key = r.role_key
+where r.module_slug = 'atencion';
 ```
 
-Los roles de empresa ya creados desde Configuración → Roles no se tocan: el
-permiso se agrega a mano en cada rol que lo necesite.
+Los roles de empresa ya creados desde Configuración → Roles no se tocan: cada
+permiso se marca a mano en el rol que lo necesite.
 
-### 6.2 Métricas propuestas
+### 6.2 Métricas (aprobadas)
 
 | Métrica | Fuente |
 |---|---|
-| Turnos atendidos / no se presentó / anulados | `estado` |
-| Espera promedio y máxima (y mediana) | `inicio_atencion_en − creado_en` |
-| Atención promedio y máxima (y mediana) | `finalizado_en − inicio_atencion_en` |
+| Turnos atendidos / no se presentó / anulados / reactivados | `estado`, eventos |
+| Espera promedio, mediana y máxima | `inicio_atencion_en − en_fila_desde` (solo atendidos) |
+| Atención promedio, mediana y máxima | `finalizado_en − inicio_atencion_en` (solo atendidos) |
 | Llamados fuera de orden | `fuera_de_orden` |
 | Tiempo con atención abierta | `atencion.sesiones` |
 | Turnos por hora del día | `creado_en` (hora de Nicaragua) |
@@ -258,3 +270,27 @@ permiso se agrega a mano en cada rol que lo necesite.
 Filtro por fecha (hoy, 7 días, 30 días, rango) y sucursal. El global agrega
 una tabla por agente y por puesto. Lógica en RPC `public.atencion_metricas_*`
 (security definer + permiso), reutilizable por la app móvil.
+
+### 6.3 "No se presentó", reactivación y factura única (aprobado, implementado)
+
+- **"No se presentó"** sigue igual en el puesto. Esos turnos **no entran** en
+  espera ni atención promedio; se cuentan aparte. El tiempo que el agente pasó
+  llamando a alguien que no vino tampoco cuenta como atención.
+- **Reactivar** (permiso `atencion.cola.turno.reactivar`): el turno vuelve a
+  "esperando" **al final de la fila** (decisión del usuario), conserva su
+  número y la pantalla lo muestra en "Próximos". Nueva columna
+  `en_fila_desde` (= alta; al reactivar = ahora): la fila se ordena por ella y
+  la espera se mide desde ahí. Queda el evento `reactivado` en el historial.
+  Se reactiva desde la fila de recepción/puesto (sección "No se presentaron
+  hoy") o desde el aviso de factura repetida.
+- **Factura única por sucursal, en toda la historia** (decisión del usuario).
+  Se compara sin espacios y en mayúsculas ("b-8786" = "B-8786"). Al registrar
+  una factura que ya tiene turno:
+  - en espera o en atención → bloquea: "Esa factura ya tiene el turno N";
+  - atendido → bloquea: "Esa factura ya fue atendida (turno N del día D)";
+  - no se presentó **hoy** → bloquea y ofrece "Reactivar turno N";
+  - anulado o vencido → **no** bloquea (anular suele corregir un error de carga).
+- "No se presentó" **de un día anterior** (aprobado): no se reactiva en la
+  fila de hoy (su número chocaría con la numeración de hoy); se permite un
+  turno nuevo con esa factura y el viejo queda marcado como reemplazado.
+- Sin factura (es opcional): no aplica la regla; se reactiva igual.

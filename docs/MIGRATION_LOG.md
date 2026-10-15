@@ -7,6 +7,24 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-15 — Atención: reactivar y factura única (APLICADAS)
+
+- `20261015165620_atencion_paso_cero_metricas_reactivar`: 2 permisos +
+  4 asignaciones a plantillas. Rollback: borrar esas filas de
+  `core.app_role_permissions` y `core.permissions_catalog`.
+- `20261015172012_atencion_reactivar_factura_unica`: columnas `en_fila_desde`,
+  `reactivaciones`, `reemplazado_en`, `reemplazado_por`; `fn_factura_normal` +
+  `turnos_factura_idx`; `atencion_crear_turno`, `atencion_llamar`,
+  `atencion_pantalla_estado` reemplazadas; nuevas `atencion_reactivar_turno` y
+  `atencion_cola_v3`. Probada antes en bloque revertido (8 casos). Rollback:
+  volver a las definiciones de `20261015163957`/`20261015161222`/
+  `20261014224341`, borrar las 2 funciones nuevas, el índice y las 4 columnas.
+- `20261015172709_atencion_factura_usa_indice`: `atencion_crear_turno` con
+  `t.factura is not null` para usar el índice parcial (revisión de Codex).
+  Rollback: la definición de `20261015172012`.
+- Conector MCP: también retiene `UPDATE` sin `WHERE` (ver status-log).
+  [Detalle](status-log/2026-10-15-atencion-reactivar-factura-unica.md).
+
 ## 2026-10-15 — Atención: inicio de atención y cola con tiempos (APLICADA)
 
 - `20261015163957_atencion_inicio_atencion`: columna
