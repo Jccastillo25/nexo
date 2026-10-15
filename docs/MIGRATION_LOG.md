@@ -7,6 +7,20 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-15 — Atención: datos configurables de la pantalla (APLICADA)
+
+- `20261015155035_atencion_pantalla_campos_configurables`: nueva
+  `atencion.fn_pantalla_campo` (sin `EXECUTE` para la API) y `create or
+  replace` de `public.atencion_pantalla_estado`, que devuelve `null` en
+  `cliente`/`agente`/`puesto` cuando `config.mostrar` y `config.anunciar` los
+  apagan (sin clave = sí, así que las pantallas existentes no cambian).
+  Probada antes en un bloque revertido (3 casos). Postcheck: versión
+  registrada, grants correctos, la pantalla real devuelve lo mismo. Archivo
+  local renombrado de `20261015170000_…` a la versión remota sin tocar el SQL.
+  Rollback: volver a ejecutar la definición de `20261015151609` y
+  `drop function atencion.fn_pantalla_campo(jsonb, text)`.
+  [Detalle](status-log/2026-10-15-atencion-pantalla-configurable.md).
+
 ## 2026-10-15 — Atención: nombres en la pantalla pública (APLICADA)
 
 - `20261015151609_atencion_pantalla_nombres`: `create or replace` de

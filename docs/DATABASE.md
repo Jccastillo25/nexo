@@ -162,7 +162,11 @@ para `anon` (televisor sin login). Devuelve sucursal, `config`, `proximos`
 (solo números) y `llamados[]` con `numero`, `puesto`, `cliente`
 (`turnos.cliente_nombre`), `agente` (`core.perfiles.nombre_completo` de
 `turnos.atendido_por`, o `null`), `llamado_en` y `veces`. `cliente` y `agente`
-se agregaron el 2026-10-15 (`20261015151609`, decisión del usuario).
+se agregaron el 2026-10-15 (`20261015151609`, decisión del usuario). Desde
+`20261015155035`, `cliente`/`agente`/`puesto` llegan `null` si la pantalla no
+los muestra ni los anuncia: `config.mostrar` y `config.anunciar`
+(`{cliente, agente, puesto}`, sin clave = sí), evaluados por
+`atencion.fn_pantalla_campo` (sin `EXECUTE` para la API).
 - `core.platform_settings` — singleton de marca de la plataforma
 - `core.geografia_ni_departamentos` / `core.geografia_ni_municipios` —
   **bloque pre-F1.5 (2026-09-16)**: geografía nacional de Nicaragua, sin

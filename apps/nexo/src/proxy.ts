@@ -17,6 +17,10 @@ export const config = {
     //   terminal publica del kiosko (sin sesion, autenticada por PIN).
     // - /agencia/* — pertenece exclusivamente a la app Agencia; no crear
     //   páginas de esa zona dentro de Nexo aunque falte AGENCIA_APP_URL.
-    "/((?!_next/static|_next/image|favicon.ico|crm|rrhh|agencia(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // - /atencion/* — apps/atencion tiene su propio guard (redirige al login
+    //   de este panel) y deja pública /atencion/pantalla, el televisor sin
+    //   sesión. Si este proxy corriera ahí, mandaría la pantalla (y sus
+    //   /atencion/_next/static/*) al login.
+    "/((?!_next/static|_next/image|favicon.ico|crm|rrhh|agencia(?:/|$)|atencion(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
