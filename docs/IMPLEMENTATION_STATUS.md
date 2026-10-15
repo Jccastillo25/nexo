@@ -408,8 +408,9 @@ Atención — número de factura en la pantalla (opt-in)  🟡 en producción 20
                                               (PR #24, main 953e52e, migración 20261015161222);
                                               falta prueba en TV
  ↓
-Atención — fila en tiempo real + aviso sonoro  🟡 migración 20261015162540 aplicada;
-                                              build/lint OK; falta merge y prueba en el puesto
+Atención — fila en tiempo real + aviso sonoro  🟡 en producción 2026-10-15
+                                              (PR #25, main 9e015cc, migración 20261015162540);
+                                              falta prueba en el puesto con navegador real
  ↓
 F1.5 — Consolidación de asistencia  ⏳ pendiente (sigue explícitamente NO iniciado —
                                           "no iniciar F1.5" fue parte del alcance de ambos
