@@ -199,3 +199,62 @@ Reglas técnicas:
 - ~~Reparto usuario ↔ sucursal~~ — aprobado: se asignan desde Configuración → Usuarios; con una sola sucursal asignada, "Iniciar atención" la usa sin preguntar; con varias, el usuario elige.
 - ~~Migración de tablas (sección 4) e instalación de `pg_cron`~~ — aplicadas 2026-10-14.
 - Pantallas (Sucursales en Configuración, `apps/atencion`, pantalla pública) y activación de la app.
+
+## 6. Métricas y dashboards (borrador para aprobación)
+
+Pedido del usuario 2026-10-15: un dashboard de métricas para cada agente y uno
+global. Base de datos ya disponible (`20261015163957`): `creado_en`,
+`inicio_atencion_en`, `finalizado_en`, `estado`, `atendido_por`, `puesto_id`,
+`fuera_de_orden` en `atencion.turnos`, y `atencion.sesiones` (tiempo con
+atención abierta).
+
+**Estado: propuesta, no aprobada. No hay código ni migración de esta sección.**
+
+### 6.1 Matriz de permisos (Paso Cero)
+
+Verificado en `nexo-core` el 2026-10-15: existe `atencion.reportes.turno.ver`
+("Ver reportes", solo plantilla Supervisor). No hay permiso para que un agente
+vea solo lo suyo.
+
+| Código | Etiqueta | Recepción | Agente | Supervisor |
+|---|---|:-:|:-:|:-:|
+| `atencion.reportes.turno.ver` (existe) | Ver reportes de la sucursal y de todos los agentes | | | ✓ |
+| `atencion.reportes.mis_metricas.ver` (nuevo) | Ver mis propias métricas | | ✓ | ✓ |
+
+```sql
+-- Paso Cero: métricas de Atención. Solo catálogo + plantillas.
+do $$
+begin
+  if exists (select 1 from core.permissions_catalog where code = 'atencion.reportes.mis_metricas.ver') then
+    raise exception 'precheck: el permiso ya existe';
+  end if;
+end;
+$$;
+
+insert into core.permissions_catalog (code, module_slug, domain, label, description) values
+  ('atencion.reportes.mis_metricas.ver', 'atencion', 'reportes', 'Ver mis métricas',
+   'Turnos atendidos, tiempos de espera y de atención propios.');
+
+insert into core.app_role_permissions (app_role_id, permission_code)
+select r.id, 'atencion.reportes.mis_metricas.ver'
+from core.app_roles r
+where r.module_slug = 'atencion' and r.role_key in ('agente', 'supervisor');
+```
+
+Los roles de empresa ya creados desde Configuración → Roles no se tocan: el
+permiso se agrega a mano en cada rol que lo necesite.
+
+### 6.2 Métricas propuestas
+
+| Métrica | Fuente |
+|---|---|
+| Turnos atendidos / no se presentó / anulados | `estado` |
+| Espera promedio y máxima (y mediana) | `inicio_atencion_en − creado_en` |
+| Atención promedio y máxima (y mediana) | `finalizado_en − inicio_atencion_en` |
+| Llamados fuera de orden | `fuera_de_orden` |
+| Tiempo con atención abierta | `atencion.sesiones` |
+| Turnos por hora del día | `creado_en` (hora de Nicaragua) |
+
+Filtro por fecha (hoy, 7 días, 30 días, rango) y sucursal. El global agrega
+una tabla por agente y por puesto. Lógica en RPC `public.atencion_metricas_*`
+(security definer + permiso), reutilizable por la app móvil.

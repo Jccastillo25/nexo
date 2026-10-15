@@ -59,15 +59,22 @@ export async function cerrarAtencion(): Promise<Resultado> {
   return { ok: true };
 }
 
-export async function cargarCola(sucursalId: string | null = null): Promise<Resultado<TurnoCola[]>> {
+/**
+ * Fila del día. `ahora` es la hora del servidor: el navegador la usa para
+ * corregir su reloj en los cronómetros (una PC del puesto puede estar
+ * desfasada minutos).
+ */
+export async function cargarCola(
+  sucursalId: string | null = null
+): Promise<Resultado<{ turnos: TurnoCola[]; ahora: string }>> {
   const ctx = await contexto("atencion.cola.turno.ver");
   if ("error" in ctx) return { ok: false, message: ctx.error };
-  const { data, error } = await ctx.supabase.rpc("atencion_cola", {
+  const { data, error } = await ctx.supabase.rpc("atencion_cola_v2", {
     p_company_id: ctx.companyId,
     p_sucursal_id: sucursalId,
   });
   if (error) return { ok: false, message: error.message };
-  return { ok: true, data: data ?? [] };
+  return { ok: true, data: { turnos: data ?? [], ahora: new Date().toISOString() } };
 }
 
 export async function crearTurno(nombre: string, telefono: string, factura: string): Promise<Resultado<{ numero: number }>> {

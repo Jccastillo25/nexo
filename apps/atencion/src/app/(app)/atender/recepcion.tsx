@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { ConfirmDialog, FormSection, StatusBadge, useToast } from "@nexo/ui";
 import { cancelarTurno, crearTurno } from "../actions";
 import { horaCorta, useCola } from "./use-cola";
+import { duracion, transcurrido, useReloj } from "./reloj";
 
 const inputClass =
   "w-full rounded-md border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
@@ -12,7 +13,8 @@ const labelClass = "text-xs font-medium uppercase tracking-wide text-neutral-500
 /** Recepción: registra al cliente (nombre, teléfono, factura) y entrega el número. */
 export default function Recepcion({ sucursalId, puedeAnular }: { sucursalId: string; puedeAnular: boolean }) {
   const { show } = useToast();
-  const { cola, error: errorCola, recargar } = useCola({ sucursalId });
+  const { cola, error: errorCola, recargar, desfase } = useCola({ sucursalId });
+  const ahora = useReloj(desfase);
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [factura, setFactura] = useState("");
@@ -117,7 +119,17 @@ export default function Recepcion({ sucursalId, puedeAnular }: { sucursalId: str
                   <div>
                     <p className="text-sm font-medium text-neutral-800">{t.cliente_nombre}</p>
                     <p className="text-xs text-neutral-400">
-                      {horaCorta(t.creado_en)}
+                      {t.estado === "esperando" ? (
+                        <>
+                          Esperando{" "}
+                          <span className="font-semibold tabular-nums text-neutral-700">
+                            {duracion(transcurrido(t.creado_en, ahora))}
+                          </span>{" "}
+                          · {horaCorta(t.creado_en)}
+                        </>
+                      ) : (
+                        horaCorta(t.creado_en)
+                      )}
                       {t.factura ? ` · Factura ${t.factura}` : ""}
                     </p>
                   </div>

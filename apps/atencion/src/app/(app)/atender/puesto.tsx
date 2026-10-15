@@ -5,6 +5,7 @@ import { FormSection, useToast } from "@nexo/ui";
 import { llamarTurno, rellamarTurno, terminarTurno } from "../actions";
 import { horaCorta, useCola } from "./use-cola";
 import { useAvisoSonoro } from "./aviso-sonoro";
+import { duracion, transcurrido, useReloj } from "./reloj";
 
 /**
  * Puesto de atención: llamar al siguiente, repetir el llamado, terminar
@@ -25,7 +26,7 @@ export default function Puesto({
 }) {
   const { show } = useToast();
   const aviso = useAvisoSonoro();
-  const { cola, error: errorCola, recargar, enVivo } = useCola({
+  const { cola, error: errorCola, recargar, enVivo, desfase } = useCola({
     sucursalId,
     onNuevos: (nuevos) => {
       aviso.sonar();
@@ -39,6 +40,12 @@ export default function Puesto({
 
   const actual = cola.find((t) => t.estado === "llamado" && t.puesto === puesto) ?? null;
   const esperando = cola.filter((t) => t.estado === "esperando");
+  const ahora = useReloj(desfase);
+  // Último turno terminado en este puesto (atendido o ausente), con sus tiempos guardados.
+  const ultimo =
+    cola
+      .filter((t) => t.puesto === puesto && t.finalizado_en && (t.estado === "atendido" || t.estado === "ausente"))
+      .sort((a, b) => Date.parse(b.finalizado_en!) - Date.parse(a.finalizado_en!))[0] ?? null;
 
   // La cantidad en espera en el título de la pestaña, visible desde otra ventana.
   useEffect(() => {
@@ -74,6 +81,20 @@ export default function Puesto({
                 Llamado {actual.veces_llamado} {actual.veces_llamado === 1 ? "vez" : "veces"} · {horaCorta(actual.llamado_en)}
               </p>
             </div>
+            <dl className="grid grid-cols-2 gap-6 text-center">
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-neutral-500">Esperó</dt>
+                <dd className="text-xl font-semibold tabular-nums text-neutral-700">
+                  {duracion(transcurrido(actual.creado_en, actual.inicio_atencion_en))}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-blue-700">En atención</dt>
+                <dd className="text-3xl font-bold tabular-nums text-blue-700">
+                  {duracion(transcurrido(actual.inicio_atencion_en, ahora))}
+                </dd>
+              </div>
+            </dl>
             <div className="flex flex-wrap justify-center gap-2">
               <button
                 type="button"
@@ -120,6 +141,13 @@ export default function Puesto({
             </button>
           </>
         )}
+        {ultimo && (
+          <p className="text-xs text-neutral-500">
+            Último: turno {ultimo.numero} ({ultimo.estado === "atendido" ? "atendido" : "no se presentó"}) · esperó{" "}
+            <span className="tabular-nums">{duracion(transcurrido(ultimo.creado_en, ultimo.inicio_atencion_en))}</span> ·
+            atención <span className="tabular-nums">{duracion(transcurrido(ultimo.inicio_atencion_en, ultimo.finalizado_en))}</span>
+          </p>
+        )}
       </section>
 
       <FormSection title={`Fila (${esperando.length})`}>
@@ -154,7 +182,13 @@ export default function Puesto({
                   <span className="w-12 text-2xl font-bold tabular-nums text-neutral-900">{t.numero}</span>
                   <div>
                     <p className="text-sm font-medium text-neutral-800">{t.cliente_nombre}</p>
-                    <p className="text-xs text-neutral-400">Desde las {horaCorta(t.creado_en)}</p>
+                    <p className="text-xs text-neutral-500">
+                      Esperando{" "}
+                      <span className="font-semibold tabular-nums text-neutral-800">
+                        {duracion(transcurrido(t.creado_en, ahora))}
+                      </span>{" "}
+                      · desde las {horaCorta(t.creado_en)}
+                    </p>
                   </div>
                 </div>
                 {puedeFueraOrden && !actual && i > 0 && (

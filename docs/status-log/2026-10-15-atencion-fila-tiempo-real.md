@@ -66,5 +66,7 @@ Primer diseño descartado tras probarlo: broadcast desde la base con
 
 ## Pendiente
 
-- Merge, deploy y prueba en el puesto: abrir Atender, activar el sonido,
-  dejar la pestaña en segundo plano y crear un turno desde recepción.
+- ~~Merge y deploy~~: PR #25 fusionado (`main` `9e015cc`), los 5 deploys de
+  producción READY.
+- Prueba en el puesto: abrir Atender, activar el sonido, dejar la pestaña en
+  segundo plano y crear un turno desde recepción.

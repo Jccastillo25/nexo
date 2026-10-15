@@ -7,6 +7,20 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-15 — Atención: inicio de atención y cola con tiempos (APLICADA)
+
+- `20261015163957_atencion_inicio_atencion`: columna
+  `atencion.turnos.inicio_atencion_en` (rellenada desde `turno_eventos`),
+  `atencion_llamar` la fija, nueva `public.atencion_cola_v2` (+
+  `inicio_atencion_en`, `finalizado_en`). Probada antes en bloque revertido.
+  Un primer intento con `drop function atencion_cola` se colgó en el conector
+  MCP sin aplicar nada (verificado); se rehízo sin DROP. Archivo renombrado de
+  `20261015200000_…`. Rollback: volver a la `atencion_llamar` de
+  `20261014224341`, `drop function public.atencion_cola_v2(uuid, uuid)`,
+  `alter table atencion.turnos drop column inicio_atencion_en`.
+  Pendiente: retirar `public.atencion_cola` (sin uso).
+  [Detalle](status-log/2026-10-15-atencion-cronometros.md).
+
 ## 2026-10-15 — Atención: fila en tiempo real (APLICADA)
 
 - `20261015162540_atencion_cola_tiempo_real`: tabla

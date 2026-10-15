@@ -29,6 +29,8 @@ export function useCola({
   const [cola, setCola] = useState<TurnoCola[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [enVivo, setEnVivo] = useState(false);
+  // Hora del servidor menos hora local, para los cronómetros.
+  const [desfase, setDesfase] = useState(0);
   const conocidos = useRef<Set<string> | null>(null);
   const avisar = useRef(onNuevos);
   useEffect(() => {
@@ -41,7 +43,8 @@ export function useCola({
       setError(res.message ?? "No se pudo cargar la fila.");
       return;
     }
-    const data = res.data ?? [];
+    const data = res.data?.turnos ?? [];
+    if (res.data) setDesfase(Date.parse(res.data.ahora) - Date.now());
     const esperando = data.filter((t) => t.estado === "esperando");
     if (conocidos.current) {
       const nuevos = esperando.filter((t) => !conocidos.current!.has(t.id));
@@ -92,7 +95,7 @@ export function useCola({
     };
   }, [recargar, sucursalId]);
 
-  return { cola, error, recargar, enVivo };
+  return { cola, error, recargar, enVivo, desfase };
 }
 
 export function horaCorta(iso: string | null) {
