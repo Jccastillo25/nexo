@@ -63,7 +63,7 @@ export interface Pantalla {
 export interface PantallaEstado {
   sucursal: string;
   config: PantallaConfig;
-  llamados: { numero: number; puesto: string; llamado_en: string; veces: number }[];
+  llamados: { numero: number; puesto: string; cliente?: string; agente?: string | null; llamado_en: string; veces: number }[];
   proximos: number[];
   generado_en: string;
 }

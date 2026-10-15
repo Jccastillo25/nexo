@@ -7,6 +7,21 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-15 — Atención: nombres en la pantalla pública (APLICADA)
+
+- `20261015151609_atencion_pantalla_nombres`: `create or replace` de
+  `public.atencion_pantalla_estado`. `llamados[]` agrega `cliente`
+  (`turnos.cliente_nombre`) y `agente` (`core.perfiles.nombre_completo` de
+  `turnos.atendido_por`, `left join`). Grants iguales (`anon`,
+  `authenticated`). Decisión explícita del usuario; revierte "solo números y
+  puestos". Precheck: la función remota coincidía con `20261014224341`.
+  Postcheck: versión registrada, `anon` con `EXECUTE`, prueba con turno
+  ficticio en bloque revertido. Archivo local renombrado de
+  `20261015120000_…` a la versión remota sin tocar el SQL.
+  Rollback: volver a ejecutar la definición de la sección 9 de
+  `20261014224341_atencion_esquema.sql`.
+  [Detalle](status-log/2026-10-15-atencion-pantalla-nombres.md).
+
 ## 2026-10-14 — Activación del módulo Atención (APLICADA)
 
 - `20261014230022_atencion_activar` — `core.apps.active = true` para

@@ -49,7 +49,7 @@ export default function PantallasPanel({ sucursalId, pantallas }: { sucursalId: 
   return (
     <FormSection
       title="Pantallas públicas"
-      description="Muestran los números llamados, el puesto y los próximos turnos (nunca nombres). Abrí el enlace en el televisor."
+      description="Muestran el turno llamado con el nombre del cliente, quién lo atiende y el puesto, más los próximos números. Abrí el enlace en el televisor."
     >
       <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200">
         {pantallas.map((p) => (

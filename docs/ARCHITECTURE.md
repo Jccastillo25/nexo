@@ -11,7 +11,7 @@ la variable existe; agregada al allowlist de `turbo.json`). Login único y
 (schema `atencion` sin exponer a la API), reutilizable por una futura app de
 tablets/móvil. `/atencion/pantalla/<id>` queda fuera del proxy de sesión: la
 pantalla de TV no tiene usuario y llama con la clave anónima a
-`atencion_pantalla_estado` (solo números y puestos) cada 3 s. `pg_cron`
+`atencion_pantalla_estado` cada 3 s (números y puestos; de los turnos llamados también el nombre del cliente y del agente, desde 2026-10-15). `pg_cron`
 cierra atenciones a medianoche (hora de la sucursal). Diseño:
 [plan 13](plan/13-atencion-turnos.md).
 
