@@ -186,6 +186,12 @@ vencidos no la ocupan; un ausente de otro día queda `reemplazado_en`/
 `reemplazado_por`. La fila se lee con `public.atencion_cola_v3`
 (`atencion_cola` y `atencion_cola_v2` sin uso, a retirar).
 
+Métricas (`20261015173729`): `public.atencion_metricas(company, desde, hasta,
+sucursal?, solo_mias)` devuelve jsonb (`resumen`, `por_hora`, `por_dia`,
+`por_agente`, `por_puesto`); tiempos solo de atendidos, "no se presentó" desde
+eventos `ausente`, tiempo en puesto desde `atencion.sesiones`. Permisos
+`reportes.mis_metricas.ver` / `reportes.turno.ver`; rango máximo 92 días.
+
 Tiempo real (`20261015162540`): `public.atencion_cola_senales` (`sucursal_id`
 PK, `version`, `cambiado_en`) es la única tabla de Atención expuesta a la API.
 No guarda datos del cliente; el trigger `trg_atencion_turnos_avisar` sube la

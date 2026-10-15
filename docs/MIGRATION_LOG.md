@@ -7,6 +7,13 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-15 — Atención: métricas (APLICADA)
+
+- `20261015173729_atencion_metricas`: nuevas `public.atencion_metricas` y
+  `public.atencion_sucursales_reportes` (solo `authenticated`). Probada antes en
+  transacción revertida. Archivo renombrado de `20261015240000_…`. Rollback:
+  borrar las 2 funciones. [Detalle](status-log/2026-10-15-atencion-metricas-dashboards.md).
+
 ## 2026-10-15 — Atención: reactivar y factura única (APLICADAS)
 
 - `20261015165620_atencion_paso_cero_metricas_reactivar`: 2 permisos +
