@@ -59,7 +59,9 @@ Plan 13 §6.2, aprobado por el usuario el 2026-10-15. Permisos del Paso Cero
 
 ## Pendiente
 
-- Merge, deploy y prueba con sesión real.
+- ~~Merge y deploy~~: PR #28 fusionado (`main` `bf21845`), los 5 deploys de
+  producción READY.
+- Prueba con sesión real.
 - Marcar "Ver mis métricas" en los roles de empresa que lo necesiten.
 - Retirar `atencion_cola` y `atencion_cola_v2` (requiere DROP fuera del
   conector MCP).

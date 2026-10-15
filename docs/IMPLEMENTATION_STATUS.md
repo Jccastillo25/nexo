@@ -423,8 +423,9 @@ Atención — Paso Cero métricas/reactivar  ✅ aplicado 2026-10-15 (2026101516
 Atención — reactivar "no se presentó" + factura única  🟡 en producción (PR #27,
                                               main 23329db); falta prueba con sesión real
  ↓
-Atención — métricas y dashboards por agente y global  🟡 migración 20261015173729
-                                              aplicada; build/lint OK; falta merge y prueba
+Atención — métricas y dashboards por agente y global  🟡 en producción 2026-10-15
+                                              (PR #28, main bf21845, migración 20261015173729);
+                                              falta prueba con sesión real
  ↓
 F1.5 — Consolidación de asistencia  ⏳ pendiente (sigue explícitamente NO iniciado —
                                           "no iniciar F1.5" fue parte del alcance de ambos

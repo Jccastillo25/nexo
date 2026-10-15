@@ -83,7 +83,8 @@ MCP: nada de `DROP`, ni `UPDATE`/`DELETE` sin `WHERE`.
 
 ## Pendiente
 
-- Merge, deploy y prueba en recepción/puesto.
+- ~~Merge y deploy~~: PR #27 fusionado (`main` `23329db`), deploys READY.
+- Prueba en recepción/puesto con sesión real.
 - Retirar `atencion_cola` y `atencion_cola_v2` (migración con DROP: aplicar
   fuera del conector MCP o con confirmación del usuario).
 - Métricas y dashboards (plan 13 §6.2).
