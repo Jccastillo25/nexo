@@ -72,5 +72,9 @@ deploy, porque la página no se recarga sola. **No confirmado en el TV.**
 
 ## Pendiente
 
-- Merge y deploy; verificar sin sesión que el dominio público abre la pantalla.
+- ~~Merge y deploy~~: PR #23 fusionado (`main` `6db1a54`, Codex sin
+  hallazgos), los 5 deploys de producción READY. Verificado sin sesión en el
+  dominio público: `/atencion/pantalla/<id>` → `x-matched-path: /pantalla/[id]`
+  (antes `/login`); `/atencion/configuracion` sigue yendo al login central con
+  `next=/atencion/configuracion`.
 - Recargar el televisor y probar voz y casillas.

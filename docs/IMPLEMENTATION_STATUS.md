@@ -1,6 +1,6 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
-**Última actualización documental: 2026-10-15 — Atención (2):** la pantalla de TV ya no pasa por el login de Nexo (`/atencion` excluido del proxy del panel) y cada pantalla elige en Configuración qué datos del turno muestra y anuncia; la base filtra lo apagado (`20261015155035`). Build/lint OK y SQL probado en transacción revertida; falta merge y prueba en el TV. [Detalle](status-log/2026-10-15-atencion-pantalla-configurable.md).
+**Última actualización documental: 2026-10-15 — Atención (2):** la pantalla de TV ya no pasa por el login de Nexo (`/atencion` excluido del proxy del panel) y cada pantalla elige en Configuración qué datos del turno muestra y anuncia; la base filtra lo apagado (`20261015155035`). En producción (PR #23, `main` `6db1a54`): pantalla verificada sin sesión en el dominio público; falta probar en el TV. [Detalle](status-log/2026-10-15-atencion-pantalla-configurable.md).
 
 **2026-10-15 — Atención:** la pantalla de turnos anuncia "Turno 5, Juan Pérez, será atendido por María López en Puesto 2" (decisión del usuario que revierte "solo números y puestos"). Migración `20261015151609` aplicada y probada en transacción revertida; en producción (PR #22, `main` `9e52219`, `nexo-atencion` READY); sin probar en un televisor real. [Detalle](status-log/2026-10-15-atencion-pantalla-nombres.md).
 
@@ -398,8 +398,9 @@ Atención — nombre del cliente y del agente en la pantalla  🟡 en producció
                                               (PR #22, main 9e52219, nexo-atencion READY,
                                               migración 20261015151609); falta prueba en el televisor
  ↓
-Atención — pantalla sin login + datos configurables  🟡 migración 20261015155035
-                                              aplicada; build/lint OK; falta merge y prueba en TV
+Atención — pantalla sin login + datos configurables  🟡 en producción 2026-10-15
+                                              (PR #23, main 6db1a54, migración 20261015155035);
+                                              pantalla sin sesión verificada; falta prueba en TV
  ↓
 F1.5 — Consolidación de asistencia  ⏳ pendiente (sigue explícitamente NO iniciado —
                                           "no iniciar F1.5" fue parte del alcance de ambos
