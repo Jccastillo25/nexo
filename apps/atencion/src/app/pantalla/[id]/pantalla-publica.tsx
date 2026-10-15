@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import type { PantallaEstado } from "@/lib/supabase/database.types";
+import { campoActivo, type CamposPantalla, type PantallaEstado } from "@/lib/supabase/database.types";
 
 const INTERVALO_MS = 3000;
 const DESTACADO_MS = 8000;
@@ -27,16 +27,27 @@ function embedYoutube(url: string | undefined): string | null {
 
 type Llamado = PantallaEstado["llamados"][number];
 
+/** Deja solo los datos que esta pantalla muestra (o anuncia) según Configuración. */
+function filtrar(llamado: Llamado, campos: CamposPantalla | undefined): Llamado {
+  return {
+    ...llamado,
+    cliente: campoActivo(campos, "cliente") ? llamado.cliente : null,
+    agente: campoActivo(campos, "agente") ? llamado.agente : null,
+    puesto: campoActivo(campos, "puesto") ? llamado.puesto : null,
+  };
+}
+
 /**
- * "Turno 5, Juan Pérez, será atendido por María López en Puesto 2". Sin perfil
- * del agente, solo el puesto; sin cliente (RPC anterior a 20261015120000), la
- * frase original.
+ * "Turno 5, Juan Pérez, será atendido por María López en Puesto 2", armada
+ * solo con los datos presentes: sin agente, "pase a Puesto 2"; sin nada,
+ * "Turno 5".
  */
 function frase({ numero, cliente, agente, puesto }: Llamado): string {
-  if (!cliente) return `Turno ${numero}, ${puesto}`;
-  return agente
-    ? `Turno ${numero}, ${cliente}, será atendido por ${agente} en ${puesto}`
-    : `Turno ${numero}, ${cliente}, pase a ${puesto}`;
+  const partes = [`Turno ${numero}`];
+  if (cliente) partes.push(cliente);
+  if (agente) partes.push(puesto ? `será atendido por ${agente} en ${puesto}` : `será atendido por ${agente}`);
+  else if (puesto) partes.push(`pase a ${puesto}`);
+  return partes.join(", ");
 }
 
 function anunciar(llamado: Llamado, conSonido: boolean) {
@@ -109,7 +120,7 @@ export default function PantallaPublica({ pantallaId }: { pantallaId: string }) 
         if (reciente) {
           setDestacado(`${reciente.numero}|${reciente.llamado_en}`);
           volumen(VOLUMEN_ANUNCIO);
-          anunciar(reciente, sonido);
+          anunciar(filtrar(reciente, nuevo.config.anunciar), sonido);
           window.setTimeout(() => {
             setDestacado(null);
             volumen(VOLUMEN_NORMAL);
@@ -144,7 +155,8 @@ export default function PantallaPublica({ pantallaId }: { pantallaId: string }) 
     );
   }
 
-  const principal = estado?.llamados[0] ?? null;
+  const llamados = (estado?.llamados ?? []).map((l) => filtrar(l, estado?.config.mostrar));
+  const principal = llamados[0] ?? null;
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-neutral-950 text-white">
@@ -161,27 +173,29 @@ export default function PantallaPublica({ pantallaId }: { pantallaId: string }) 
             >
               <p className="text-8xl font-bold tabular-nums leading-none">{principal.numero}</p>
               {principal.cliente && <p className="mt-3 break-words text-3xl font-semibold">{principal.cliente}</p>}
-              <p className="mt-3 text-xl text-blue-200">
-                {principal.agente ? (
-                  <>
-                    Será atendido por <span className="font-semibold">{principal.agente}</span>
-                  </>
-                ) : (
-                  "Pase a"
-                )}
-              </p>
-              <p className="text-3xl font-semibold text-blue-200">{principal.puesto}</p>
+              {(principal.agente || principal.puesto) && (
+                <p className="mt-3 text-xl text-blue-200">
+                  {principal.agente ? (
+                    <>
+                      Será atendido por <span className="font-semibold">{principal.agente}</span>
+                    </>
+                  ) : (
+                    "Pase a"
+                  )}
+                </p>
+              )}
+              {principal.puesto && <p className="text-3xl font-semibold text-blue-200">{principal.puesto}</p>}
             </div>
           ) : (
             <p className="mt-2 text-2xl text-neutral-500">Esperando el próximo llamado</p>
           )}
         </div>
 
-        {estado && estado.llamados.length > 1 && (
+        {llamados.length > 1 && (
           <div className="flex flex-col gap-2">
-            {estado.llamados.slice(1).map((l) => (
+            {llamados.slice(1).map((l) => (
               <div
-                key={`${l.numero}|${l.puesto}`}
+                key={`${l.numero}|${l.llamado_en}`}
                 className={`flex items-center justify-between rounded-xl px-5 py-3 ${
                   destacado === `${l.numero}|${l.llamado_en}` ? "animate-pulse bg-blue-600" : "bg-neutral-900"
                 }`}

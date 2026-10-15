@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import type { CampoPantalla, CamposPantalla } from "@/lib/supabase/database.types";
 
 export interface Resultado {
   ok: boolean;
@@ -50,6 +51,8 @@ export async function guardarPantalla(input: {
   nombre: string;
   activa: boolean;
   youtube: string;
+  mostrar: CamposPantalla;
+  anunciar: CamposPantalla;
 }): Promise<Resultado> {
   const ctx = await contexto("atencion.configuracion.pantalla.gestionar");
   if ("error" in ctx) return { ok: false, message: ctx.error };
@@ -63,9 +66,22 @@ export async function guardarPantalla(input: {
     p_sucursal_id: input.sucursalId,
     p_nombre: input.nombre.trim(),
     p_activa: input.activa,
-    p_config: youtube ? { youtube } : {},
+    p_config: {
+      ...(youtube ? { youtube } : {}),
+      mostrar: soloCampos(input.mostrar),
+      anunciar: soloCampos(input.anunciar),
+    },
   });
   if (error) return { ok: false, message: error.message };
   revalidatePath("/configuracion");
   return { ok: true };
+}
+
+/** Normaliza lo que llega del navegador: solo las 3 claves conocidas, booleanas. */
+function soloCampos(campos: CamposPantalla): Record<CampoPantalla, boolean> {
+  return {
+    cliente: campos.cliente === true,
+    agente: campos.agente === true,
+    puesto: campos.puesto === true,
+  };
 }

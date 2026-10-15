@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormSection, StatusBadge, useToast } from "@nexo/ui";
-import type { Pantalla } from "@/lib/supabase/database.types";
+import { campoActivo, type CampoPantalla, type CamposPantalla, type Pantalla } from "@/lib/supabase/database.types";
 import { guardarPantalla } from "./actions";
 
 const inputClass =
@@ -15,6 +15,32 @@ interface Borrador {
   nombre: string;
   activa: boolean;
   youtube: string;
+  mostrar: Record<CampoPantalla, boolean>;
+  anunciar: Record<CampoPantalla, boolean>;
+}
+
+const CAMPOS: { campo: CampoPantalla; etiqueta: string; ejemplo: string }[] = [
+  { campo: "cliente", etiqueta: "Nombre del cliente", ejemplo: "Juan Pérez" },
+  { campo: "agente", etiqueta: "Quién lo atiende", ejemplo: "será atendido por María López" },
+  { campo: "puesto", etiqueta: "Puesto", ejemplo: "Puesto 2" },
+];
+
+/** Config guardada → casillas (sin clave = marcada, ver campoActivo). */
+function casillas(campos: CamposPantalla | undefined): Record<CampoPantalla, boolean> {
+  return {
+    cliente: campoActivo(campos, "cliente"),
+    agente: campoActivo(campos, "agente"),
+    puesto: campoActivo(campos, "puesto"),
+  };
+}
+
+/** Lo que el televisor diría con estas casillas, para que se vea antes de guardar. */
+function ejemploAnuncio(anunciar: Record<CampoPantalla, boolean>): string {
+  const partes = ["Turno 5"];
+  if (anunciar.cliente) partes.push("Juan Pérez");
+  if (anunciar.agente) partes.push(anunciar.puesto ? "será atendido por María López en Puesto 2" : "será atendido por María López");
+  else if (anunciar.puesto) partes.push("pase a Puesto 2");
+  return `“${partes.join(", ")}”`;
 }
 
 /**
@@ -49,7 +75,7 @@ export default function PantallasPanel({ sucursalId, pantallas }: { sucursalId: 
   return (
     <FormSection
       title="Pantallas públicas"
-      description="Muestran el turno llamado con el nombre del cliente, quién lo atiende y el puesto, más los próximos números. Abrí el enlace en el televisor."
+      description="Muestran el turno llamado y los próximos números. En cada pantalla elegís qué datos del turno se ven y cuáles se anuncian por voz. Abrí el enlace en el televisor."
     >
       <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200">
         {pantallas.map((p) => (
@@ -76,7 +102,14 @@ export default function PantallasPanel({ sucursalId, pantallas }: { sucursalId: 
               <button
                 type="button"
                 onClick={() => {
-                  setBorrador({ pantallaId: p.id, nombre: p.nombre, activa: p.activa, youtube: p.config.youtube ?? "" });
+                  setBorrador({
+                    pantallaId: p.id,
+                    nombre: p.nombre,
+                    activa: p.activa,
+                    youtube: p.config.youtube ?? "",
+                    mostrar: casillas(p.config.mostrar),
+                    anunciar: casillas(p.config.anunciar),
+                  });
                   setError(null);
                 }}
                 className="text-xs font-medium text-blue-600 hover:text-blue-700"
@@ -104,6 +137,43 @@ export default function PantallasPanel({ sucursalId, pantallas }: { sucursalId: 
               className={inputClass}
             />
           </label>
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-xs text-neutral-500">Datos del turno llamado (el número siempre sale)</legend>
+            <table className="text-sm">
+              <thead>
+                <tr className="text-left text-xs text-neutral-500">
+                  <th className="py-1 font-medium">Dato</th>
+                  <th className="px-3 py-1 text-center font-medium">Mostrar</th>
+                  <th className="px-3 py-1 text-center font-medium">Anunciar por voz</th>
+                </tr>
+              </thead>
+              <tbody>
+                {CAMPOS.map(({ campo, etiqueta, ejemplo }) => (
+                  <tr key={campo} className="border-t border-neutral-100">
+                    <td className="py-1.5 text-neutral-800">
+                      {etiqueta} <span className="text-xs text-neutral-400">({ejemplo})</span>
+                    </td>
+                    {(["mostrar", "anunciar"] as const).map((donde) => (
+                      <td key={donde} className="px-3 py-1.5 text-center">
+                        <input
+                          type="checkbox"
+                          aria-label={`${donde === "mostrar" ? "Mostrar" : "Anunciar"}: ${etiqueta}`}
+                          checked={borrador[donde][campo]}
+                          onChange={(e) => setBorrador({ ...borrador, [donde]: { ...borrador[donde], [campo]: e.target.checked } })}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-xs text-neutral-500">Se anunciará: {ejemploAnuncio(borrador.anunciar)}</p>
+            {(borrador.mostrar.cliente || borrador.anunciar.cliente) && (
+              <p className="text-xs text-amber-700">
+                El nombre del cliente queda visible para cualquiera que tenga el enlace de esta pantalla.
+              </p>
+            )}
+          </fieldset>
           <label className="flex items-center gap-2 text-sm text-neutral-700">
             <input type="checkbox" checked={borrador.activa} onChange={(e) => setBorrador({ ...borrador, activa: e.target.checked })} />
             Activa
@@ -128,7 +198,14 @@ export default function PantallasPanel({ sucursalId, pantallas }: { sucursalId: 
           <button
             type="button"
             onClick={() => {
-              setBorrador({ pantallaId: null, nombre: "Pantalla sala de espera", activa: true, youtube: "" });
+              setBorrador({
+                pantallaId: null,
+                nombre: "Pantalla sala de espera",
+                activa: true,
+                youtube: "",
+                mostrar: casillas(undefined),
+                anunciar: casillas(undefined),
+              });
               setError(null);
             }}
             className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"

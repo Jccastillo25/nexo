@@ -48,9 +48,22 @@ export interface PuestoEstado {
   ocupado_desde: string | null;
 }
 
+/** Datos opcionales del turno llamado; el número siempre sale. */
+export type CampoPantalla = "cliente" | "agente" | "puesto";
+export type CamposPantalla = Partial<Record<CampoPantalla, boolean>>;
+
 export interface PantallaConfig {
   youtube?: string;
   volumen?: number;
+  /** Qué se ve en el televisor. Sin clave = sí. */
+  mostrar?: CamposPantalla;
+  /** Qué se dice por voz. Sin clave = sí. */
+  anunciar?: CamposPantalla;
+}
+
+/** Valor efectivo de un campo: ausente cuenta como activado (20261015170000). */
+export function campoActivo(campos: CamposPantalla | undefined, campo: CampoPantalla): boolean {
+  return campos?.[campo] ?? true;
 }
 
 export interface Pantalla {
@@ -63,7 +76,8 @@ export interface Pantalla {
 export interface PantallaEstado {
   sucursal: string;
   config: PantallaConfig;
-  llamados: { numero: number; puesto: string; cliente?: string; agente?: string | null; llamado_en: string; veces: number }[];
+  // cliente/agente/puesto llegan null si la pantalla no los muestra ni los anuncia.
+  llamados: { numero: number; puesto?: string | null; cliente?: string | null; agente?: string | null; llamado_en: string; veces: number }[];
   proximos: number[];
   generado_en: string;
 }
