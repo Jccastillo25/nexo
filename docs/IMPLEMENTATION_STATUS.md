@@ -1,6 +1,6 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
-**Última actualización documental: 2026-10-15 — Atención (2):** la pantalla de TV ya no pasa por el login de Nexo (`/atencion` excluido del proxy del panel) y cada pantalla elige en Configuración qué datos del turno muestra y anuncia; la base filtra lo apagado (`20261015155035`). Build/lint OK y SQL probado en transacción revertida; falta merge y prueba en el TV. [Detalle](status-log/2026-10-15-atencion-pantalla-configurable.md).
+**Última actualización documental: 2026-10-15 — Atención (2):** la pantalla de TV ya no pasa por el login de Nexo (`/atencion` excluido del proxy del panel) y cada pantalla elige en Configuración qué datos del turno muestra y anuncia; la base filtra lo apagado (`20261015155035`). En producción (PR #23, `main` `6db1a54`): pantalla verificada sin sesión en el dominio público; falta probar en el TV. [Detalle](status-log/2026-10-15-atencion-pantalla-configurable.md).
 
 **2026-10-15 — Atención:** la pantalla de turnos anuncia "Turno 5, Juan Pérez, será atendido por María López en Puesto 2" (decisión del usuario que revierte "solo números y puestos"). Migración `20261015151609` aplicada y probada en transacción revertida; en producción (PR #22, `main` `9e52219`, `nexo-atencion` READY); sin probar en un televisor real. [Detalle](status-log/2026-10-15-atencion-pantalla-nombres.md).
 
@@ -75,6 +75,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 | 2026-09-11 | [Limpieza de datos de prueba residuales](status-log/2026-09-11-limpieza-datos-prueba-residuales.md) | Verificación remota de rutina encontró 1 empleado/contrato/PIN de prueba sin limpiar en `nexo-core` (contradecía "0 filas" documentado) — borrado con aprobación explícita del usuario; también corrige una imprecisión de conteo de migraciones de F1.0 (duplicados inertes del bootstrap, sin impacto). |
 | 2026-09-14 | [Reconciliación de navegación — Marca, Launcher, Expediente/Contratación](status-log/2026-09-14-reconciliacion-navegacion-rrhh.md) | Bloque pedido explícitamente (P0-P4, sin iniciar F1.5): fix P0 real de `/configuracion/marca` (límite de body + error boundary global), App Launcher puro sin KPIs con logo en la cabecera del sidebar, Expediente General separado de Contratación (ciclo contractual completo movido a `/contratacion/contratos`), edición real del Expediente General (`rrhh.fn_editar_empleado` nuevo). Mergeado a `main` (`4cc8a6a`, fast-forward) y verificado `READY` en Vercel producción el mismo día — smoke test autenticado NO ejecutado (sin credenciales; el usuario eligió cerrar documentando la limitación). |
 | 2026-09-16 | [Bloque "pre-F1.5" — cédula, favicon, catálogos, Storage privado, expediente ampliado](status-log/2026-09-16-rrhh-pre-f1-5.md) | Bloque pedido explícitamente antes de F1.5: cédula obligatoria (DB+RPC+UI), favicon dinámico en RRHH/CRM, catálogos de Contratación (`rrhh.puestos`/`rrhh.departamentos`/`rrhh.plantillas_contrato`/`rrhh.puesto_plantillas`, `rrhh.contratos.puesto_id`/`departamento_id`), Storage privado (`rrhh-documentos-privados`, subida por URL firmada directa — evita el techo de 4.5MB de Vercel), expediente ampliado (Dirección con geografía de Nicaragua en `core.geografia_ni_*`, Información complementaria, Cuentas bancarias, Beneficiario). `next build`+`eslint` limpios en `apps/rrhh`/`apps/crm`, sin smoke test autenticado (sin credenciales). Deuda explícita: `core.geografia_ni_municipios` queda vacía (fuente web no confiable, ver detalle), falta `SUPABASE_SERVICE_ROLE_KEY` en el proyecto Vercel de RRHH. |
+| 2026-10-15 | [Atención — factura en la pantalla](status-log/2026-10-15-atencion-pantalla-configurable.md#ampliación-número-de-factura-mismo-día) | Número de factura como cuarto dato configurable, apagado por defecto (`20261015161222`). |
 | 2026-10-15 | [Atención — pantalla configurable y sin login](status-log/2026-10-15-atencion-pantalla-configurable.md) | Proxy de Nexo excluye `/atencion` (la pantalla iba al login sin sesión); casillas Mostrar/Anunciar por pantalla; la RPC anónima no devuelve los datos apagados (`20261015155035`). |
 | 2026-10-15 | [Atención — nombres en la pantalla](status-log/2026-10-15-atencion-pantalla-nombres.md) | `atencion_pantalla_estado` devuelve cliente y agente de los turnos llamados (`20261015151609`); voz y TV: "Turno N, cliente, será atendido por agente en puesto". Riesgo de privacidad aceptado por el usuario. Sin prueba en TV real. |
 | 2026-10-14 | [Atención — pantallas y Sucursales](status-log/2026-10-14-atencion-pantallas.md) | `/configuracion/sucursales` y sucursales en Usuarios (Nexo); nueva `apps/atencion` con Iniciar/Cerrar atención, recepción, puesto, configuración y pantalla de TV. Build/lint limpios; sin proyecto Vercel ni activación. |
@@ -398,7 +399,11 @@ Atención — nombre del cliente y del agente en la pantalla  🟡 en producció
                                               (PR #22, main 9e52219, nexo-atencion READY,
                                               migración 20261015151609); falta prueba en el televisor
  ↓
-Atención — pantalla sin login + datos configurables  🟡 migración 20261015155035
+Atención — pantalla sin login + datos configurables  🟡 en producción 2026-10-15
+                                              (PR #23, main 6db1a54, migración 20261015155035);
+                                              pantalla sin sesión verificada; falta prueba en TV
+ ↓
+Atención — número de factura en la pantalla (opt-in)  🟡 migración 20261015161222
                                               aplicada; build/lint OK; falta merge y prueba en TV
  ↓
 F1.5 — Consolidación de asistencia  ⏳ pendiente (sigue explícitamente NO iniciado —

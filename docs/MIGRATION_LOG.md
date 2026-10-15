@@ -7,6 +7,17 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-15 — Atención: factura en la pantalla (APLICADA)
+
+- `20261015161222_atencion_pantalla_factura`: `create or replace` de
+  `public.atencion_pantalla_estado`, que agrega `factura` a `llamados[]` solo si
+  `config.mostrar.factura` o `config.anunciar.factura` es `true` (sin clave =
+  no). Probada antes en un bloque revertido. Dos intentos previos con un `DROP
+  FUNCTION` se cortaron a los 60 s en el conector sin aplicar nada; se rediseñó
+  sin `DROP`. Postcheck: versión registrada, `anon` con `EXECUTE`, la pantalla
+  real devuelve `factura: null`. Archivo renombrado de `20261015180000_…`.
+  Rollback: volver a ejecutar la definición de `20261015155035`.
+
 ## 2026-10-15 — Atención: datos configurables de la pantalla (APLICADA)
 
 - `20261015155035_atencion_pantalla_campos_configurables`: nueva

@@ -21,23 +21,34 @@ interface Borrador {
 
 const CAMPOS: { campo: CampoPantalla; etiqueta: string; ejemplo: string }[] = [
   { campo: "cliente", etiqueta: "Nombre del cliente", ejemplo: "Juan Pérez" },
+  { campo: "factura", etiqueta: "Número de factura", ejemplo: "factura 001-1234" },
   { campo: "agente", etiqueta: "Quién lo atiende", ejemplo: "será atendido por María López" },
   { campo: "puesto", etiqueta: "Puesto", ejemplo: "Puesto 2" },
 ];
 
-/** Config guardada → casillas (sin clave = marcada, ver campoActivo). */
+/** Config guardada → casillas (sin clave: marcada, salvo factura; ver campoActivo). */
 function casillas(campos: CamposPantalla | undefined): Record<CampoPantalla, boolean> {
   return {
     cliente: campoActivo(campos, "cliente"),
+    factura: campoActivo(campos, "factura"),
     agente: campoActivo(campos, "agente"),
     puesto: campoActivo(campos, "puesto"),
   };
+}
+
+/** Datos del cliente que esta configuración expone por el enlace público. */
+function expuestos({ mostrar, anunciar }: Borrador): string[] {
+  return [
+    (mostrar.cliente || anunciar.cliente) && "el nombre del cliente",
+    (mostrar.factura || anunciar.factura) && "el número de factura",
+  ].filter((x): x is string => Boolean(x));
 }
 
 /** Lo que el televisor diría con estas casillas, para que se vea antes de guardar. */
 function ejemploAnuncio(anunciar: Record<CampoPantalla, boolean>): string {
   const partes = ["Turno 5"];
   if (anunciar.cliente) partes.push("Juan Pérez");
+  if (anunciar.factura) partes.push("factura 001-1234");
   if (anunciar.agente) partes.push(anunciar.puesto ? "será atendido por María López en Puesto 2" : "será atendido por María López");
   else if (anunciar.puesto) partes.push("pase a Puesto 2");
   return `“${partes.join(", ")}”`;
@@ -168,9 +179,11 @@ export default function PantallasPanel({ sucursalId, pantallas }: { sucursalId: 
               </tbody>
             </table>
             <p className="text-xs text-neutral-500">Se anunciará: {ejemploAnuncio(borrador.anunciar)}</p>
-            {(borrador.mostrar.cliente || borrador.anunciar.cliente) && (
+            {expuestos(borrador).length > 0 && (
               <p className="text-xs text-amber-700">
-                El nombre del cliente queda visible para cualquiera que tenga el enlace de esta pantalla.
+                {expuestos(borrador).join(" y ").replace(/^./, (c) => c.toUpperCase())}{" "}
+                {expuestos(borrador).length > 1 ? "quedan visibles" : "queda visible"} para cualquiera que tenga el enlace
+                de esta pantalla.
               </p>
             )}
           </fieldset>

@@ -44,7 +44,8 @@ entretenimiento; se registran ausencias y llamados fuera de orden.
 >
 > **Ampliado el mismo día:** cada pantalla elige en Configuración qué datos
 > (cliente, agente, puesto) muestra y cuáles anuncia por voz. Lo apagado no
-> sale de la RPC anónima. Ver
+> sale de la RPC anónima. El número de factura es un cuarto dato, apagado
+> por defecto (era un dato protegido por `atencion.cliente.datos.ver`). Ver
 > [status-log](../status-log/2026-10-15-atencion-pantalla-configurable.md).
 
 ## 2. Flujo
@@ -190,7 +191,7 @@ Reglas técnicas:
 - **Puesto automático:** la RPC toma el primer puesto activo sin sesión abierta con `FOR UPDATE SKIP LOCKED`; dos agentes al mismo tiempo nunca reciben el mismo puesto.
 - **Cierre a medianoche:** `pg_cron` (disponible, hoy no instalado) ejecuta a las 06:00 UTC (= 00:00 Nicaragua) el cierre de sesiones abiertas. Respaldo: cualquier RPC trata como cerrada una sesión de un día anterior. `pg_cron` también resolvería las particiones mensuales (hoy manuales).
 - **Lógica en RPC** (`public.atencion_*`, security definer + `core.has_permission`), reutilizable por la web y una futura app de tablets/móvil.
-- **Pantalla pública:** número siempre; puesto, nombre del cliente y del agente según la configuración de cada pantalla (2026-10-15); teléfono y factura nunca salen hacia ella.
+- **Pantalla pública:** número siempre; puesto, nombre del cliente y del agente según la configuración de cada pantalla (2026-10-15); número de factura solo si la pantalla lo enciende; el teléfono nunca sale hacia ella.
 
 ## 5. Pendiente
 

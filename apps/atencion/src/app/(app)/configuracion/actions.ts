@@ -81,6 +81,7 @@ export async function guardarPantalla(input: {
 function soloCampos(campos: CamposPantalla): Record<CampoPantalla, boolean> {
   return {
     cliente: campos.cliente === true,
+    factura: campos.factura === true,
     agente: campos.agente === true,
     puesto: campos.puesto === true,
   };
