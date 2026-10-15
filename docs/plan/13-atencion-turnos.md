@@ -209,7 +209,7 @@ afectan las métricas de atención.
 
 **Estado: todo aprobado por el usuario (2026-10-15). Paso Cero aplicado
 (`20261015165620`); 6.3 implementado (`20261015172012`); métricas y dashboards
-(6.2) pendientes.**
+(6.2) implementados (`20261015173729`, `/metricas` y `/reportes`).**
 
 ### 6.1 Matriz de permisos (Paso Cero)
 

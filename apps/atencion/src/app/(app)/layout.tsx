@@ -16,19 +16,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!(await hasPermission(ctx, "atencion.ver_modulo"))) redirect("/sin-acceso");
 
-  const [panelUrl, { data: { user } }, copyrightText, puestos, pantallas] = await Promise.all([
+  const [panelUrl, { data: { user } }, copyrightText, puestos, pantallas, misMetricas, reportes] = await Promise.all([
     getPanelUrl(),
     supabase.auth.getUser(),
     getCopyrightText(supabase),
     hasPermission(ctx, "atencion.configuracion.puesto.gestionar"),
     hasPermission(ctx, "atencion.configuracion.pantalla.gestionar"),
+    hasPermission(ctx, "atencion.reportes.mis_metricas.ver"),
+    hasPermission(ctx, "atencion.reportes.turno.ver"),
   ]);
 
   return (
     <NexoShell
       moduleLabel="Atención"
       moduleHref="/dashboard"
-      items={atencionNav(puestos || pantallas)}
+      items={atencionNav({
+        puedeConfigurar: puestos || pantallas,
+        puedeMisMetricas: misMetricas,
+        puedeReportes: reportes,
+      })}
       userEmail={user?.email}
       onSignOut={signOut}
       backHref={panelUrl}

@@ -126,6 +126,11 @@ export type Database = {
       // atencion_cola y atencion_cola_v2 quedan sin uso desde 20261015172012; retirarlas.
       atencion_cola_v3: { Args: C & { p_sucursal_id?: string | null }; Returns: TurnoCola[] };
       atencion_reactivar_turno: { Args: C & { p_turno_id: string }; Returns: Json };
+      atencion_metricas: {
+        Args: C & { p_desde: string; p_hasta: string; p_sucursal_id?: string | null; p_solo_mias?: boolean };
+        Returns: Json;
+      };
+      atencion_sucursales_reportes: { Args: C; Returns: { id: string; nombre: string }[] };
       atencion_llamar: { Args: C & { p_turno_id?: string | null }; Returns: Json };
       atencion_rellamar: { Args: C; Returns: Json };
       atencion_terminar: { Args: C & { p_resultado: string }; Returns: undefined };
