@@ -1,6 +1,6 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
-**Última actualización documental: 2026-10-15 — Atención:** la pantalla de turnos anuncia "Turno 5, Juan Pérez, será atendido por María López en Puesto 2" (decisión del usuario que revierte "solo números y puestos"). Migración `20261015151609` aplicada y probada en transacción revertida; build/lint OK; sin probar en un televisor real. [Detalle](status-log/2026-10-15-atencion-pantalla-nombres.md).
+**Última actualización documental: 2026-10-15 — Atención:** la pantalla de turnos anuncia "Turno 5, Juan Pérez, será atendido por María López en Puesto 2" (decisión del usuario que revierte "solo números y puestos"). Migración `20261015151609` aplicada y probada en transacción revertida; en producción (PR #22, `main` `9e52219`, `nexo-atencion` READY); sin probar en un televisor real. [Detalle](status-log/2026-10-15-atencion-pantalla-nombres.md).
 
 **2026-10-14 — ticket #18:** matriz mínima aprobada y aplicada; Dashboard separado en `apps/agencia` y proyecto Vercel creado. Lint, typegen, tipos y build locales en Agencia/Nexo OK, 12 pruebas técnicas de denegación OK. Previews preparados; revisión final de Claude en curso; merge, publicación/activación y pruebas manuales pendientes. No se declara validación completa. [Detalle](status-log/2026-10-14-agencia-independiente.md).
 
@@ -391,9 +391,9 @@ Atención — ATENCION_APP_URL de Production ✅ configurada 2026-10-14 (efectiv
  ↓
 Atención — merge a main + prueba real en producción  ⏳ siguiente
  ↓
-Atención — nombre del cliente y del agente en la pantalla  🟡 migración 20261015151609
-                                              aplicada; código en claude/determined-brown-75ksp9;
-                                              falta merge y prueba en el televisor
+Atención — nombre del cliente y del agente en la pantalla  🟡 en producción 2026-10-15
+                                              (PR #22, main 9e52219, nexo-atencion READY,
+                                              migración 20261015151609); falta prueba en el televisor
  ↓
 F1.5 — Consolidación de asistencia  ⏳ pendiente (sigue explícitamente NO iniciado —
                                           "no iniciar F1.5" fue parte del alcance de ambos

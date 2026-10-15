@@ -21,7 +21,8 @@ Decisiones del usuario (2026-10-15):
 ## Estado anterior → estado nuevo
 
 - Pantalla y voz: "Turno 5, Puesto 2" → "Turno 5, Juan Pérez, será atendido
-  por María López en Puesto 2". **Aplicado en remoto, sin probar en un
+  por María López en Puesto 2". **Aplicado en remoto y en producción (PR #22,
+  `main` `9e52219`, deploy `nexo-atencion` READY), sin probar en un
   televisor real.**
 
 ## Entregado
