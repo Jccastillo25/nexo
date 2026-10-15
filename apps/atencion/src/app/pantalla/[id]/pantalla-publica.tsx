@@ -25,7 +25,21 @@ function embedYoutube(url: string | undefined): string | null {
   return null;
 }
 
-function anunciar(numero: number, puesto: string, conSonido: boolean) {
+type Llamado = PantallaEstado["llamados"][number];
+
+/**
+ * "Turno 5, Juan Pérez, será atendido por María López en Puesto 2". Sin perfil
+ * del agente, solo el puesto; sin cliente (RPC anterior a 20261015120000), la
+ * frase original.
+ */
+function frase({ numero, cliente, agente, puesto }: Llamado): string {
+  if (!cliente) return `Turno ${numero}, ${puesto}`;
+  return agente
+    ? `Turno ${numero}, ${cliente}, será atendido por ${agente} en ${puesto}`
+    : `Turno ${numero}, ${cliente}, pase a ${puesto}`;
+}
+
+function anunciar(llamado: Llamado, conSonido: boolean) {
   if (!conSonido || typeof window === "undefined") return;
   try {
     const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -44,7 +58,7 @@ function anunciar(numero: number, puesto: string, conSonido: boolean) {
     // Sin audio disponible: el anuncio visual alcanza.
   }
   if ("speechSynthesis" in window) {
-    const voz = new SpeechSynthesisUtterance(`Turno ${numero}, ${puesto}`);
+    const voz = new SpeechSynthesisUtterance(frase(llamado));
     voz.lang = "es-ES";
     voz.rate = 0.9;
     window.setTimeout(() => window.speechSynthesis.speak(voz), 800);
@@ -95,7 +109,7 @@ export default function PantallaPublica({ pantallaId }: { pantallaId: string }) 
         if (reciente) {
           setDestacado(`${reciente.numero}|${reciente.llamado_en}`);
           volumen(VOLUMEN_ANUNCIO);
-          anunciar(reciente.numero, reciente.puesto, sonido);
+          anunciar(reciente, sonido);
           window.setTimeout(() => {
             setDestacado(null);
             volumen(VOLUMEN_NORMAL);
@@ -146,7 +160,17 @@ export default function PantallaPublica({ pantallaId }: { pantallaId: string }) 
               }`}
             >
               <p className="text-8xl font-bold tabular-nums leading-none">{principal.numero}</p>
-              <p className="mt-3 text-3xl font-semibold text-blue-200">{principal.puesto}</p>
+              {principal.cliente && <p className="mt-3 break-words text-3xl font-semibold">{principal.cliente}</p>}
+              <p className="mt-3 text-xl text-blue-200">
+                {principal.agente ? (
+                  <>
+                    Será atendido por <span className="font-semibold">{principal.agente}</span>
+                  </>
+                ) : (
+                  "Pase a"
+                )}
+              </p>
+              <p className="text-3xl font-semibold text-blue-200">{principal.puesto}</p>
             </div>
           ) : (
             <p className="mt-2 text-2xl text-neutral-500">Esperando el próximo llamado</p>
@@ -163,6 +187,7 @@ export default function PantallaPublica({ pantallaId }: { pantallaId: string }) 
                 }`}
               >
                 <span className="text-4xl font-bold tabular-nums">{l.numero}</span>
+                <span className="min-w-0 flex-1 truncate px-4 text-lg text-neutral-200">{l.cliente}</span>
                 <span className="text-xl text-blue-200">{l.puesto}</span>
               </div>
             ))}

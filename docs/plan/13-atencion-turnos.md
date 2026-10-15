@@ -34,6 +34,14 @@ los demás pierdan su posición; la pantalla pública muestra **solo números y
 puestos** (nunca nombres ni teléfonos), los próximos turnos y un área de
 entretenimiento; se registran ausencias y llamados fuera de orden.
 
+> **Cambio aprobado por el usuario (2026-10-15), reemplaza lo anterior para
+> los turnos llamados:** la pantalla y la voz anuncian "Turno 5, Juan Pérez,
+> será atendido por María López en Puesto 2": nombre completo del cliente,
+> nombre del agente que llamó y puesto. Los próximos siguen siendo solo
+> números; teléfono y factura nunca salen. El usuario aceptó que la RPC
+> anónima de la pantalla exponga esos nombres a quien tenga su URL.
+> Ver [status-log](../status-log/2026-10-15-atencion-pantalla-nombres.md).
+
 ## 2. Flujo
 
 ```text
@@ -177,7 +185,7 @@ Reglas técnicas:
 - **Puesto automático:** la RPC toma el primer puesto activo sin sesión abierta con `FOR UPDATE SKIP LOCKED`; dos agentes al mismo tiempo nunca reciben el mismo puesto.
 - **Cierre a medianoche:** `pg_cron` (disponible, hoy no instalado) ejecuta a las 06:00 UTC (= 00:00 Nicaragua) el cierre de sesiones abiertas. Respaldo: cualquier RPC trata como cerrada una sesión de un día anterior. `pg_cron` también resolvería las particiones mensuales (hoy manuales).
 - **Lógica en RPC** (`public.atencion_*`, security definer + `core.has_permission`), reutilizable por la web y una futura app de tablets/móvil.
-- **Pantalla pública:** solo números y puestos; los datos del cliente nunca salen hacia ella.
+- **Pantalla pública:** número, puesto y, solo de los turnos llamados, nombre del cliente y del agente (cambio del 2026-10-15); teléfono y factura nunca salen hacia ella.
 
 ## 5. Pendiente
 

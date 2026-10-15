@@ -156,6 +156,13 @@ Módulo de turnos de sala de espera ([plan 13](plan/13-atencion-turnos.md)).
 Job `atencion-cierre-vencidas` (`pg_cron`, cada 5 min) + cierre en cada RPC:
 cierra atenciones de un día local anterior (motivo `medianoche`) y expira
 turnos pendientes de días anteriores.
+
+`public.atencion_pantalla_estado(p_pantalla_id)` es la única RPC con `EXECUTE`
+para `anon` (televisor sin login). Devuelve sucursal, `config`, `proximos`
+(solo números) y `llamados[]` con `numero`, `puesto`, `cliente`
+(`turnos.cliente_nombre`), `agente` (`core.perfiles.nombre_completo` de
+`turnos.atendido_por`, o `null`), `llamado_en` y `veces`. `cliente` y `agente`
+se agregaron el 2026-10-15 (`20261015151609`, decisión del usuario).
 - `core.platform_settings` — singleton de marca de la plataforma
 - `core.geografia_ni_departamentos` / `core.geografia_ni_municipios` —
   **bloque pre-F1.5 (2026-09-16)**: geografía nacional de Nicaragua, sin
