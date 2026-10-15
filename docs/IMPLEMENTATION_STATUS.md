@@ -403,8 +403,9 @@ Atención — pantalla sin login + datos configurables  🟡 en producción 2026
                                               (PR #23, main 6db1a54, migración 20261015155035);
                                               pantalla sin sesión verificada; falta prueba en TV
  ↓
-Atención — número de factura en la pantalla (opt-in)  🟡 migración 20261015161222
-                                              aplicada; build/lint OK; falta merge y prueba en TV
+Atención — número de factura en la pantalla (opt-in)  🟡 en producción 2026-10-15
+                                              (PR #24, main 953e52e, migración 20261015161222);
+                                              falta prueba en TV
  ↓
 F1.5 — Consolidación de asistencia  ⏳ pendiente (sigue explícitamente NO iniciado —
                                           "no iniciar F1.5" fue parte del alcance de ambos
