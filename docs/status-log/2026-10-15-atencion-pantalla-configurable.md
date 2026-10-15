@@ -78,3 +78,30 @@ deploy, porque la página no se recarga sola. **No confirmado en el TV.**
   (antes `/login`); `/atencion/configuracion` sigue yendo al login central con
   `next=/atencion/configuracion`.
 - Recargar el televisor y probar voz y casillas.
+
+## Ampliación: número de factura (mismo día)
+
+Pedido del usuario: que la pantalla traiga el número de factura del turno.
+
+- Cuarto dato configurable, **apagado por defecto** (cliente, agente y puesto
+  vienen encendidos). Motivo: en el plan 13 la factura era un dato protegido
+  por `atencion.cliente.datos.ver`, y la pantalla se lee sin sesión; solo sale
+  en las pantallas donde se marca en Configuración.
+- Migración `20261015161222_atencion_pantalla_factura` (archivo creado como
+  `20261015180000_…`, renombrado a la versión remota sin tocar el SQL). Solo un
+  `create or replace` de `atencion_pantalla_estado`, que agrega `factura`.
+  `atencion.fn_pantalla_campo` no cambia: la factura se evalúa en la RPC con
+  "sin clave = no".
+- Incidente al aplicar: dos intentos con un `DROP FUNCTION` de la auxiliar se
+  cortaron a los 60 s sin aplicar nada (verificado: función vieja intacta, sin
+  versión registrada). Un ensayo con `lock_timeout = 5s` también se cortó a los
+  60 s y las consultas simples respondían. Hipótesis, sin confirmar: el
+  conector de Supabase retiene sentencias destructivas esperando una
+  confirmación. Se rediseñó sin `DROP` y se aplicó al primer intento.
+- Pantalla: "Factura 001-1234" bajo el nombre del cliente y en las filas
+  secundarias ("Fact. …"); voz: "Turno 5, Juan Pérez, factura 001-1234, será
+  atendido por…". Configuración: fila "Número de factura" y aviso de exposición
+  que incluye la factura.
+- Pruebas: build/lint de `apps/atencion`; bloque revertido con turno ficticio
+  (sin config → `null`; encendida → `001-1234`; apagada explícita → `null`);
+  remoto después: la pantalla real devuelve `factura: null` hasta encenderla.

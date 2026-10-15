@@ -34,17 +34,19 @@ function filtrar(llamado: Llamado, campos: CamposPantalla | undefined): Llamado 
     cliente: campoActivo(campos, "cliente") ? llamado.cliente : null,
     agente: campoActivo(campos, "agente") ? llamado.agente : null,
     puesto: campoActivo(campos, "puesto") ? llamado.puesto : null,
+    factura: campoActivo(campos, "factura") ? llamado.factura : null,
   };
 }
 
 /**
- * "Turno 5, Juan Pérez, será atendido por María López en Puesto 2", armada
- * solo con los datos presentes: sin agente, "pase a Puesto 2"; sin nada,
- * "Turno 5".
+ * "Turno 5, Juan Pérez, factura 001-1234, será atendido por María López en
+ * Puesto 2", armada solo con los datos presentes: sin agente, "pase a
+ * Puesto 2"; sin nada, "Turno 5".
  */
-function frase({ numero, cliente, agente, puesto }: Llamado): string {
+function frase({ numero, cliente, factura, agente, puesto }: Llamado): string {
   const partes = [`Turno ${numero}`];
   if (cliente) partes.push(cliente);
+  if (factura) partes.push(`factura ${factura}`);
   if (agente) partes.push(puesto ? `será atendido por ${agente} en ${puesto}` : `será atendido por ${agente}`);
   else if (puesto) partes.push(`pase a ${puesto}`);
   return partes.join(", ");
@@ -173,6 +175,11 @@ export default function PantallaPublica({ pantallaId }: { pantallaId: string }) 
             >
               <p className="text-8xl font-bold tabular-nums leading-none">{principal.numero}</p>
               {principal.cliente && <p className="mt-3 break-words text-3xl font-semibold">{principal.cliente}</p>}
+              {principal.factura && (
+                <p className="mt-2 break-words text-xl text-neutral-300">
+                  Factura <span className="font-semibold tabular-nums text-white">{principal.factura}</span>
+                </p>
+              )}
               {(principal.agente || principal.puesto) && (
                 <p className="mt-3 text-xl text-blue-200">
                   {principal.agente ? (
@@ -201,7 +208,9 @@ export default function PantallaPublica({ pantallaId }: { pantallaId: string }) 
                 }`}
               >
                 <span className="text-4xl font-bold tabular-nums">{l.numero}</span>
-                <span className="min-w-0 flex-1 truncate px-4 text-lg text-neutral-200">{l.cliente}</span>
+                <span className="min-w-0 flex-1 truncate px-4 text-lg text-neutral-200">
+                  {[l.cliente, l.factura && `Fact. ${l.factura}`].filter(Boolean).join(" · ")}
+                </span>
                 <span className="text-xl text-blue-200">{l.puesto}</span>
               </div>
             ))}

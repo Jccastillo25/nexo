@@ -49,21 +49,24 @@ export interface PuestoEstado {
 }
 
 /** Datos opcionales del turno llamado; el número siempre sale. */
-export type CampoPantalla = "cliente" | "agente" | "puesto";
+export type CampoPantalla = "cliente" | "agente" | "puesto" | "factura";
 export type CamposPantalla = Partial<Record<CampoPantalla, boolean>>;
 
 export interface PantallaConfig {
   youtube?: string;
   volumen?: number;
-  /** Qué se ve en el televisor. Sin clave = sí. */
+  /** Qué se ve en el televisor. Sin clave = sí (factura: no). */
   mostrar?: CamposPantalla;
-  /** Qué se dice por voz. Sin clave = sí. */
+  /** Qué se dice por voz. Sin clave = sí (factura: no). */
   anunciar?: CamposPantalla;
 }
 
-/** Valor efectivo de un campo: ausente cuenta como activado (20261015170000). */
+/**
+ * Valor efectivo de un campo. Ausente = activado, salvo la factura, que es
+ * opt-in (mismo criterio que la RPC de la pantalla, 20261015180000).
+ */
 export function campoActivo(campos: CamposPantalla | undefined, campo: CampoPantalla): boolean {
-  return campos?.[campo] ?? true;
+  return campos?.[campo] ?? campo !== "factura";
 }
 
 export interface Pantalla {
@@ -76,8 +79,16 @@ export interface Pantalla {
 export interface PantallaEstado {
   sucursal: string;
   config: PantallaConfig;
-  // cliente/agente/puesto llegan null si la pantalla no los muestra ni los anuncia.
-  llamados: { numero: number; puesto?: string | null; cliente?: string | null; agente?: string | null; llamado_en: string; veces: number }[];
+  // cliente/agente/puesto/factura llegan null si la pantalla no los muestra ni los anuncia.
+  llamados: {
+    numero: number;
+    puesto?: string | null;
+    cliente?: string | null;
+    agente?: string | null;
+    factura?: string | null;
+    llamado_en: string;
+    veces: number;
+  }[];
   proximos: number[];
   generado_en: string;
 }

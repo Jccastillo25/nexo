@@ -166,7 +166,9 @@ se agregaron el 2026-10-15 (`20261015151609`, decisión del usuario). Desde
 `20261015155035`, `cliente`/`agente`/`puesto` llegan `null` si la pantalla no
 los muestra ni los anuncia: `config.mostrar` y `config.anunciar`
 (`{cliente, agente, puesto}`, sin clave = sí), evaluados por
-`atencion.fn_pantalla_campo` (sin `EXECUTE` para la API).
+`atencion.fn_pantalla_campo` (sin `EXECUTE` para la API). Desde
+`20261015161222` también `factura` (`turnos.factura`), pero al revés: sin clave
+= no; solo sale si `config.mostrar.factura` o `config.anunciar.factura` es `true`.
 - `core.platform_settings` — singleton de marca de la plataforma
 - `core.geografia_ni_departamentos` / `core.geografia_ni_municipios` —
   **bloque pre-F1.5 (2026-09-16)**: geografía nacional de Nicaragua, sin
