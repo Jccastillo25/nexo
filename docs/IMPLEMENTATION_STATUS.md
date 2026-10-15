@@ -1,6 +1,8 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
-**Última actualización documental: 2026-10-15 — Atención (2):** la pantalla de TV ya no pasa por el login de Nexo (`/atencion` excluido del proxy del panel) y cada pantalla elige en Configuración qué datos del turno muestra y anuncia; la base filtra lo apagado (`20261015155035`). En producción (PR #23, `main` `6db1a54`): pantalla verificada sin sesión en el dominio público; falta probar en el TV. [Detalle](status-log/2026-10-15-atencion-pantalla-configurable.md).
+**Última actualización documental: 2026-10-15 — RRHH P1 (issue #30):** `rrhh.fn_registrar_marca_kiosko` deja de resolver la credencial con `limit 1`: cuenta las credenciales vigentes de la empresa del kiosco que aceptan el PIN y, con más de una coincidencia, **falla cerrado** (ninguna marca, ninguna identidad, señal técnica sin PIN). Migración nueva `20261015181000`, implementada y probada en un PostgreSQL embebido con bcrypt real (13 casos/28 aserciones + control negativo), **sin fusionar y sin aplicar a `nexo-core`**. No se avanzó a P2. [Detalle](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md).
+
+**2026-10-15 — Atención (2):** la pantalla de TV ya no pasa por el login de Nexo (`/atencion` excluido del proxy del panel) y cada pantalla elige en Configuración qué datos del turno muestra y anuncia; la base filtra lo apagado (`20261015155035`). En producción (PR #23, `main` `6db1a54`): pantalla verificada sin sesión en el dominio público; falta probar en el TV. [Detalle](status-log/2026-10-15-atencion-pantalla-configurable.md).
 
 **2026-10-15 — Atención:** la pantalla de turnos anuncia "Turno 5, Juan Pérez, será atendido por María López en Puesto 2" (decisión del usuario que revierte "solo números y puestos"). Migración `20261015151609` aplicada y probada en transacción revertida; en producción (PR #22, `main` `9e52219`, `nexo-atencion` READY); sin probar en un televisor real. [Detalle](status-log/2026-10-15-atencion-pantalla-nombres.md).
 
@@ -62,6 +64,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-15 | [RRHH P1 — PIN ambiguo, fallo cerrado](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md) | La búsqueda del kiosco cuenta coincidencias y no marca si el PIN es ambiguo. Migración `20261015181000` probada en PG embebido; sin fusionar y sin aplicar a remoto. |
 | 2026-10-14 | [Agencia digital independiente](status-log/2026-10-14-agencia-independiente.md) | Matriz mínima aplicada e inactiva; app/proyecto propio y compilación local preparados. Previews preparados; revisión final de Claude, merge, activación y pruebas manuales pendientes. |
 | 2026-09-07 | [F1.0 — Auditoría real](status-log/2026-09-07-f1-0-auditoria-real.md) | Comparación Plan vs `main` vs migraciones vs remoto vs Vercel; detectó `main` local 13 commits atrás (reconciliado) y el hallazgo de seguridad D-06. |
 | 2026-09-07 | [F1.0.1 — Cierre de acceso operativo PIN heredado](status-log/2026-09-07-f1-0-1-cierre-pin-heredado.md) | `EXECUTE` de `public.validar_acceso_operativo` revocado de `anon`/`authenticated` (hotfix inmediato). |
@@ -112,7 +115,7 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 | RRHH jornadas | ✅ F1.4 completada (modelo mínimo) | `rrhh.jornadas`/`jornada_dias`/`contrato_jornadas`/`feriados` existen, con RLS, RPC de asignación e interfaz de lectura para F1.5 (2026-09-07). Jornada obligatoria para activar contrato. Falta el motor de consolidación (F1.5) y las decisiones de negocio (hora extra, feriado pagado, etc.), explícitamente no implementadas. |
 | RRHH consolidación de asistencia | ⏳ Pendiente | No existe marcas → horas consolidadas. |
 | RRHH planillas | ⏳ Pendiente | Ruta actual es placeholder; falta motor/reporte. |
-| Kiosko RRHH | ✅ Migrado a PIN contractual | `rrhh.fn_registrar_marca_kiosko` valida contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. Misma UI/rate-limit de antes. |
+| Kiosko RRHH | ✅ Migrado a PIN contractual | `rrhh.fn_registrar_marca_kiosko` valida contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. Misma UI/rate-limit de antes. **2026-10-15 (P1, issue #30, sin fusionar):** además cuenta coincidencias y no marca si el PIN es ambiguo en la empresa del kiosco — misma UI; falta fusionar el PR y aplicar `20261015181000`. [Detalle](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md). |
 | Identidad digital de empleados | ⚠️ Refactor de PIN cerrado, identidad digital sigue pendiente | `nombre_usuario + PIN` para acceso operativo ya no existe como diseño vigente (D-06 cerrado F1.3). Falta construir usuario+contraseña vía Supabase Auth (Fase 2, `core.identidad`) — diseño objetivo documentado, sin implementar. |
 | Panel de Conductor Web | 🟡 Código legacy aprovechable | Ruta360 tiene flujo de conductor, pero falta adaptación a identidad Nexo, contrato RRHH y permisos unificados. |
 | CRM | 🟡 MVP muy básico | Cliente CRUD y dashboard; faltan leads, oportunidades, actividades, cotizaciones/pedido. |
@@ -341,6 +344,8 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 ---
 
 # 7. Próxima acción obligatoria
+
+**RRHH P1 (issue #30, [especificación del piloto](https://github.com/Jccastillo25/nexo/pull/41) — todavía no en `main`):** implementado en la rama `codex/rrhh-p1-pin-ambiguo` (commit `0ce10f9`) con su prueba. Falta revisión humana, fusión del PR y —paso aparte y autorizado— aplicar la migración `20261015181000` en `nexo-core`. P2 (unicidad del PIN al activar/regenerar) no se inició: depende de P1. Aplicar P1 sin P2 protege la atribución, no la usabilidad del PIN colisionado.
 
 **Bloque complementario #18:** revisar Claude/Previews y obtener aprobación humana antes de publicar Agencia, fusionar su integración y habilitar la tarjeta. El orden de RRHH de abajo no cambia. Las pruebas de navegador son manuales por decisión del usuario.
 
