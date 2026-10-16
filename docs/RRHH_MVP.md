@@ -19,6 +19,8 @@
 
 RRHH no se considera terminado por cantidad de pantallas ni por infraestructura desplegada. Debe ejecutarse de punta a punta el flujo aprobado.
 
+> **Corte incremental aprobado el 2026-10-15:** [RRHH y kiosco — piloto supervisado y MVP operativo](RRHH_PILOTO_MVP_OPERATIVO.md). Limita el piloto a un par por contrato y día `America/Managua`, sin descansos marcados ni cruces de medianoche, y pospone nómina/cálculos salariales. La presente Definition of Done completa (F1.5–F1.10) permanece pendiente; no interpretar el corte como validación con usuarios reales.
+
 ---
 
 # 1. Estado conocido antes del refactor
@@ -70,7 +72,7 @@ El PIN:
 - se muestra una sola vez;
 - se guarda solo como hash (`rrhh.contrato_credenciales`, sin `GRANT` de `SELECT` a nadie);
 - se usa exclusivamente para asistencia en kiosko (`rrhh.fn_registrar_marca_kiosko`, reescrita para validar contra la credencial contractual);
-- la búsqueda del kiosco cuenta las coincidencias y **falla cerrado** si el PIN es ambiguo en la empresa del dispositivo: sin marca, sin identidad y con señal técnica sin PIN (**P1, issue #30**, migración `20261015181000`, probada y todavía sin fusionar/aplicar). La unicidad real del PIN al activar/regenerar es P2 y sigue pendiente;
+- la búsqueda del kiosco cuenta las coincidencias y **falla cerrado** si el PIN es ambiguo en la empresa del dispositivo: sin marca, sin identidad y con señal técnica sin PIN (**P1, issue #30**, migración `20261015181000`, probada y ya fusionada en `main` `fc2b309`; la migración todavía no se aplicó a `nexo-core`). La unicidad real del PIN al activar/regenerar es P2 y sigue pendiente;
 - se revoca al finalizar contrato (`rrhh.fn_finalizar_contrato`);
 - se regenera solo sobre un contrato activo (`rrhh.fn_regenerar_pin_contrato`);
 - no es contraseña Web/Mobile;

@@ -9,10 +9,10 @@ Orden de bitácora: más reciente arriba.
 
 ## 2026-10-15 — RRHH P1: PIN ambiguo, fallo cerrado (NO APLICADA)
 
-- `20261015181000_p1_pin_ambiguo_fallo_cerrado` (rama
-  `codex/rrhh-p1-pin-ambiguo`, commit `0ce10f9`) — **pendiente de fusión y
-  todavía no aplicada a `nexo-core`, por pedido explícito del usuario**: no se
-  tocó el remoto. Reemplaza `rrhh.fn_registrar_marca_kiosko` para CONTAR las
+- `20261015181000_p1_pin_ambiguo_fallo_cerrado` (fusionada en `main`
+  `fc2b309`, vía PR #42) — **todavía no aplicada a `nexo-core`, por pedido
+  explícito del usuario**: no se tocó el remoto. Reemplaza
+  `rrhh.fn_registrar_marca_kiosko` para CONTAR las
   credenciales vigentes de la empresa del kiosco que aceptan el PIN; con más
   de una coincidencia no inserta marca, no identifica a nadie y emite una
   señal técnica sin PIN (señal en el log del servidor). Misma firma, mismo

@@ -4,9 +4,9 @@
 
 Primer ticket de la especificación de RRHH/kiosco aprobada el mismo día:
 [RRHH P1 #30](https://github.com/Jccastillo25/nexo/issues/30), dentro del
-piloto supervisado de `docs/RRHH_PILOTO_MVP_OPERATIVO.md` (publicada en el
-[PR #41](https://github.com/Jccastillo25/nexo/pull/41) — **todavía no está en
-`main`**).
+piloto supervisado de `docs/RRHH_PILOTO_MVP_OPERATIVO.md` (la especificación
+llega a `main` con el [PR #41](https://github.com/Jccastillo25/nexo/pull/41),
+posterior a este registro).
 
 Brecha real: desde F1.3, `rrhh.fn_registrar_marca_kiosko` resolvía la
 credencial con `limit 1` sobre las credenciales vigentes de la empresa del
@@ -21,8 +21,8 @@ de ejecución, sin ninguna señal.
   coincidencias: 0 = PIN inválido (sin cambios), 1 = marca normal (sin
   cambios), >1 = **fallo cerrado**: ninguna marca, ninguna identidad y señal
   técnica sin PIN.
-- Implementado y probado, **sin fusionar** (rama `codex/rrhh-p1-pin-ambiguo`,
-  commit `0ce10f9`). **No aplicado a `nexo-core` ni a producción.**
+- Implementado y probado; fusionado en `main` (`fc2b309`, vía PR #42).
+  **La migración todavía no se aplicó a `nexo-core` ni a producción.**
 
 ## Entregado
 
@@ -76,7 +76,8 @@ de ejecución, sin ninguna señal.
 
 ## Pendiente / deuda (fuera del alcance pedido)
 
-- **No aplicada a `nexo-core` ni a producción**, y **no fusionada**.
+- **La migración no está aplicada a `nexo-core` ni a producción** (el código sí
+  está fusionado en `main`).
 - No ejecutados: `lint`/`typecheck`/`build` (no se tocó TypeScript ni ninguna
   app), pruebas contra el esquema real completo (RLS, particiones, resto de
   columnas), recorrido del kiosco en navegador (Server Action → PostgREST →
