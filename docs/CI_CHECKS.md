@@ -24,8 +24,11 @@ Versiones fijadas para que local y CI coincidan: Node **24**, pnpm **9.15.9**
 
 ## Checks que corren en cada PR (`.github/workflows/ci.yml`)
 
-Workflow `CI`. En la lista de checks del PR cada fila aparece como
-`CI / <nombre>`.
+Workflow `CI`. Los nombres exactos de los checks (los mismos que hay que marcar
+como obligatorios) son los de la primera columna; en la web de GitHub aparecen
+agrupados bajo el workflow `CI`. Verificado por API sobre el commit `b3edfb9`
+(`gh api .../check-runs`): `typecheck`, `lint`, `build`, `test-db-rrhh`,
+`test-agencia-access`, `lint-deuda (no bloquea)`, todos con `app=github-actions`.
 
 | Check | Comando | Qué cubre | ¿Bloquea el merge? |
 |---|---|---|---|
@@ -43,16 +46,22 @@ Supabase.
 
 ## Cómo se comprueba que el workflow falla cuando la prueba falla
 
-Evidencia real, no supuesta (issue #43, criterio de aceptación): en la rama del
-PR se empujó **primero** una versión de la migración P1 que vuelve a resolver la
-credencial con `limit 1` (el bug que P1 corrige) y el check `test-db-rrhh` falló
-en C4; **después** se restauró la migración correcta y el mismo check volvió a
-verde, sin tocar nada más. Eso prueba las dos mitades: que el CI ejecuta el
-archivo de migración real del repo (no una copia) y que una aserción rota no
-pasa desapercibida.
+Evidencia real, no supuesta (issue #43, criterio de aceptación). En la rama del
+PR #44 se empujó **primero** una versión de la migración P1 que vuelve a
+resolver la credencial con la primera coincidencia (el bug que P1 corrige,
+`>= 1` en lugar de fallar cerrado) y **después** se revirtió con
+`git revert --no-edit`, sin tocar nada más:
 
-Los enlaces a los dos runs quedan en el comentario/descripción del PR y en la
-entrada de `docs/status-log/` de este cambio.
+| Paso | Commit | Run | Resultado de `test-db-rrhh` |
+|---|---|---|---|
+| Migración con el bug reintroducido | `71416fa` | [run 38852180729](https://github.com/Jccastillo25/nexo/actions/runs/38852180729) | ❌ **fail** (17 s): `FALLO P1: C4: un PIN ambiguo devuelve cero filas (fallo cerrado)` → `Process completed with exit code 1` |
+| Reversión (`git revert`, migración idéntica a `main`) | `b3edfb9` | [run 38852370017](https://github.com/Jccastillo25/nexo/actions/runs/38852370017) | ✅ pass (18 s) |
+
+Eso prueba las dos mitades: que el CI ejecuta **el archivo de migración real**
+del repo (cambiar ese archivo cambia el resultado del check, no una copia
+guardada) y que una aserción rota no pasa desapercibida. El primer run de la
+rama ([38851449971](https://github.com/Jccastillo25/nexo/actions/runs/38851449971))
+sirvió además para descubrir el problema de `next typegen` descrito abajo.
 
 ## Límites de cobertura (lo que estos checks NO prueban)
 
@@ -89,13 +98,15 @@ puede hacerlo** (no hay endpoint de settings expuesto en esta sesión):
    protection rule*) para `main`.
 2. Activar **Require status checks to pass before merging** y, dentro de
    *Status checks that are required*, buscar y marcar (deben existir al menos
-   una vez; corren en el primer PR de esta rama):
-   - `CI / typecheck`
-   - `CI / lint`
-   - `CI / build`
-   - `CI / test-db-rrhh`
-   - `CI / test-agencia-access`
-   > `CI / lint-deuda (no bloquea)` **no** se marca: es informativo a propósito.
+   una vez; ya corren en el PR #44):
+   - `typecheck`
+   - `lint`
+   - `build`
+   - `test-db-rrhh`
+   - `test-agencia-access`
+   > `lint-deuda (no bloquea)` **no** se marca: es informativo a propósito.
+   > Si en el buscador aparecen agrupados bajo el workflow `CI`, son esos
+   > mismos nombres.
 3. Recomendado: **Require branches to be up to date before merging** y
    **Do not allow bypassing the above settings** (si se quiere que aplique
    también al owner).

@@ -27,7 +27,8 @@
 - Línea base sobre `main` `fc2b309`: `tsc --noEmit` en las 7 apps → **0 errores previos**; `eslint` por app → 5 limpias, `crm` y `flotilla` con los errores de arriba; `next build` de las 7 apps → **OK sin variables de entorno** (~50 s en total); `apps/agencia/scripts/check-access.cjs` → OK.
 - Lockfile: `pnpm install --lockfile-only --frozen-lockfile` con pnpm 9.15.9 → **exitoso** (el lockfile coincide con los `package.json`), sin tocar `node_modules`.
 - Prueba P1 con el runner ya conectado a la dependencia fijada: 28 aserciones en verde (detalle en el status-log de P1).
-- **Control negativo en el propio workflow** (criterio de aceptación del issue): se empujó primero una migración P1 que vuelve a resolver con `limit 1` → el check `test-db-rrhh` **falló en C4**; al restaurar la migración correcta, el mismo check volvió a verde. Enlaces a los dos runs: ver el PR de esta rama.
+- **Control negativo en el propio workflow** (criterio de aceptación del issue), en la rama del PR #44: commit `71416fa` con la migración P1 vuelta a resolver con la primera coincidencia → [run 38852180729](https://github.com/Jccastillo25/nexo/actions/runs/38852180729), `test-db-rrhh` **fail** en 17 s con `FALLO P1: C4: un PIN ambiguo devuelve cero filas (fallo cerrado)` y `exit code 1`; `git revert --no-edit` → commit `b3edfb9` (la migración queda **idéntica a `main`**, verificado con `git diff`) → [run 38852370017](https://github.com/Jccastillo25/nexo/actions/runs/38852370017), **success** con `test-db-rrhh` en verde.
+- Runs completos: primero [38851449971](https://github.com/Jccastillo25/nexo/actions/runs/38851449971) (donde apareció el fallo de `typecheck` descrito abajo), después [38851916254](https://github.com/Jccastillo25/nexo/actions/runs/38851916254) ya con los 5 checks bloqueantes en verde.
 
 ## Hallazgo del primer run real del workflow
 
