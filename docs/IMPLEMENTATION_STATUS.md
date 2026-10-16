@@ -5,7 +5,7 @@ Rama codex/rrhh-piloto-mvp: 0.2–0.3 rehechos, decisiones 0.4 registradas y
 kiosco configurado en 0.5 sin marcaciones. P2–P6 implementados y probados
 localmente; paquete P7 preparado. **Sin migraciones aplicadas, sin cambios en
 Vercel ni piloto autorizado.** Siguiente: aprobación, Operador y P7 remoto/manual.
-[Paquete único](RRHH_PAQUETE_OPERADOR.md).
+[Paquete único](RRHH_PAQUETE_OPERADOR.md). Publicación pendiente de autenticación Git: todavía sin PR ni CI remoto.
 
 
 **2026-10-16 — CI y validación (issue #43):** primera puerta de calidad del repo: workflow `CI` en `.github/workflows/ci.yml` (checks `typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access` + `lint-deuda` informativo), orden local única `pnpm install --frozen-lockfile && pnpm verify`, `typecheck` real en las 7 apps (antes ejecutaba **0 tareas con exit 0**) y prueba SQL de P1 conectada con `@electric-sql/pglite` fijado en `0.5.10`. **El gate de merge está ACTIVO y verificado** en `main`: los cinco checks obligatorios (app GitHub Actions), `strict: false`, `enforce_admins: true`, sin force push ni borrado de rama — `lint-deuda` no bloquea ([detalle y comandos](CI_CHECKS.md)). Sin migraciones aplicadas ni despliegues. [Detalle](status-log/2026-10-16-ci-checks-automatizados.md).
@@ -76,6 +76,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-16 | [RRHH publicación pendiente](status-log/2026-10-16-rrhh-publicacion-pendiente.md) | Implementación local verificada; push sin credencial de escritura. PR y CI pendientes, sin cambios remotos. |
 | 2026-10-16 | [RRHH revisión final](status-log/2026-10-16-rrhh-revision-final.md) | Regresiones: agotamiento al activar y rechazo de PIN ambiguo tras P4; solo PGlite, sin remoto. |
 | 2026-10-16 | [RRHH p7-paquete](status-log/2026-10-16-rrhh-p7-paquete.md) | Paquete unico del Operador preparado: migraciones P1-P6 con postchecks y rollback, SQL de grants/RLS/particiones, arnes remoto de carreras y guion manual P7. Sin ejecucion remota ni autorizacion de piloto. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [RRHH p6-marcas](status-log/2026-10-16-rrhh-p6-marcas.md) | P6 implementado: consulta segura por empresa con marcas.ver, listado de solo lectura, filtros y detalle con numero de contrato, estados calculables y paginacion. Pruebas SQL y validacion de fechas locales. Solo local; pendiente de aplicar y validar en remoto. |

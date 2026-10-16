@@ -235,7 +235,7 @@ No usar solamente `LIKE 'PRUEBA%'`, no borrar catálogos/kiosco real ni auditor�
 no usar `CASCADE` manual para forzar la limpieza. Si existe una retención o
 trigger que impide borrar, conservar historial y reportarlo.
 
-El PR queda **en borrador**. No mergear ni cambiar Vercel. Aplicar migraciones,
+El PR debe abrirse **en borrador**. En esta sesión su creación y el CI quedaron pendientes: Git no dispone de una credencial de escritura y la rama todavía no se publicó. No mergear ni cambiar Vercel. Aplicar migraciones,
 ejecutar P7 y publicar son pasos separados sujetos a aprobación del usuario.
 Consultar el enlace y estado exacto del CI en la entrega final de esta sesión;
 `lint-deuda` sigue siendo informativo, no prueba una regresión de RRHH.
