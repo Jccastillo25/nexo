@@ -67,8 +67,8 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
 | 2026-10-15 | [RRHH P1 — PIN ambiguo, fallo cerrado](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md) | La búsqueda del kiosco cuenta coincidencias y no marca si el PIN es ambiguo. Migración `20261015181000` fusionada en `main` (`fc2b309`) y probada en PG embebido; sin aplicar a remoto. |
-| 2026-10-14 | [Agencia digital independiente](status-log/2026-10-14-agencia-independiente.md) | Matriz mínima aplicada e inactiva; app/proyecto propio y compilación local preparados. Previews preparados; revisión final de Claude, merge, activación y pruebas manuales pendientes. |
 | 2026-10-15 | [RRHH/kiosco — especificación de piloto y MVP operativo](status-log/2026-10-15-rrhh-piloto-mvp-especificacion.md) | Corte y tickets P1–P7/M1–M4 aprobados como diseño; sin implementación ni validación con usuarios reales. |
+| 2026-10-14 | [Agencia digital independiente](status-log/2026-10-14-agencia-independiente.md) | Matriz mínima aplicada e inactiva; app/proyecto propio y compilación local preparados. Previews preparados; revisión final de Claude, merge, activación y pruebas manuales pendientes. |
 | 2026-09-07 | [F1.0 — Auditoría real](status-log/2026-09-07-f1-0-auditoria-real.md) | Comparación Plan vs `main` vs migraciones vs remoto vs Vercel; detectó `main` local 13 commits atrás (reconciliado) y el hallazgo de seguridad D-06. |
 | 2026-09-07 | [F1.0.1 — Cierre de acceso operativo PIN heredado](status-log/2026-09-07-f1-0-1-cierre-pin-heredado.md) | `EXECUTE` de `public.validar_acceso_operativo` revocado de `anon`/`authenticated` (hotfix inmediato). |
 | 2026-09-07 | [Paso Cero — matriz de permisos de contratos/credenciales](status-log/2026-09-07-paso-cero-permisos-contratos-credenciales.md) | 7 códigos de permiso nuevos en el dominio `expedientes`, asignados a los 5 roles reales de RRHH. |
