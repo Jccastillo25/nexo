@@ -68,6 +68,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-16 | [RRHH p5-confirmacion](status-log/2026-10-16-rrhh-p5-confirmacion.md) | P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [RRHH p4-secuencia](status-log/2026-10-16-rrhh-p4-secuencia.md) | P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [RRHH p3-contrato](status-log/2026-10-16-rrhh-p3-contrato.md) | P3 implementado: contrato obligatorio con FK compuesta, indices y cierre de escrituras directas en padre y particiones. PGlite comprueba vinculo, recontratacion y revocacion. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [RRHH p2-pin-unico](status-log/2026-10-16-rrhh-p2-pin-unico.md) | P2 implementado: generacion criptografica y lock por empresa; firmas y autorizacion conservadas. Pruebas de unicidad, regeneracion, empresa ajena y agotamiento en PGlite. Solo local; pendiente de aplicar y validar en remoto. |
@@ -110,6 +111,8 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 ---
 
 # 1. Estado general
+
+Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
@@ -154,6 +157,8 @@ Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia 
 ---
 
 # 2. Divergencias conocidas: estado actual vs modelo objetivo
+
+Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
@@ -221,6 +226,8 @@ Estado: ℹ️ hallazgo de F1.0, sin urgencia — no contradice el modelo objeti
 
 # 3. Fase 1 — tablero de ejecución RRHH
 
+Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
 Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (p3-contrato): P3 implementado: contrato obligatorio con FK compuesta, indices y cierre de escrituras directas en padre y particiones. PGlite comprueba vinculo, recontratacion y revocacion. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
@@ -253,6 +260,8 @@ Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia 
 ---
 
 # 4. Acceso de Conductores y Kiosko
+
+Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
@@ -323,6 +332,8 @@ Si ya existe identidad digital, no crear otra.
 
 # 5. Preparación Nexo Mobile
 
+Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
 Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (p3-contrato): P3 implementado: contrato obligatorio con FK compuesta, indices y cierre de escrituras directas en padre y particiones. PGlite comprueba vinculo, recontratacion y revocacion. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
@@ -392,6 +403,8 @@ No debe incluir por defecto administración de empleados, planillas, permisos, c
 
 # 6. Protocolo de actualización para Claude
 
+Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
 Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (p3-contrato): P3 implementado: contrato obligatorio con FK compuesta, indices y cierre de escrituras directas en padre y particiones. PGlite comprueba vinculo, recontratacion y revocacion. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
@@ -434,6 +447,8 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 ---
 
 # 7. Próxima acción obligatoria
+
+Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 

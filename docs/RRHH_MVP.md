@@ -779,3 +779,6 @@ P3 local: nuevas marcas vinculadas al contrato exacto; historia de recontratacio
 
 ## RRHH P4 — preparado, sin aplicar
 P4 local probado: un par diario por contrato, ayer abierto inicia hoy con entrada, tercer envio rechazado, confirmacion sin insercion, reintentos exactos sin duplicar ni sumar fallos. Finalizacion coordinada mediante lock contractual y revalidacion. Falta P5 UI completa y validacion remota de carreras.
+
+## RRHH P5 — cliente local
+ConfirmDialog compartido para toda salida, sin identidad; envio unico en memoria, mismo UUID para reintento/confirmacion, cancelar sin RPC y borrado al terminar. Reloj visible America/Managua. Pruebas unitarias del flujo, sin recorrido autenticado ni marcacion remota.

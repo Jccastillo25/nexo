@@ -8,6 +8,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { marcarAsistencia, type MarcarResult } from "./actions";
+import { ConfirmDialog } from "@nexo/ui";
+import { KioskFlow } from "./kiosk-flow";
 
 const PIN_LENGTH = 4;
 type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
@@ -20,6 +22,8 @@ const KEYS: KeypadKey[] = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0",
 type Status =
   | { kind: "idle" }
   | { kind: "loading" }
+  | { kind: "confirm" }
+  | { kind: "retry"; message: string }
   | { kind: "success"; result: MarcarResult }
   | { kind: "error"; message: string };
 
@@ -37,36 +41,45 @@ export default function KioskClient({ kioskoNombre }: { kioskoNombre?: string })
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const now = useClock();
+  const flow = useRef<KioskFlow | null>(null);
+  if (flow.current === null) {
+    flow.current = new KioskFlow(marcarAsistencia);
+  }
 
   const reset = useCallback(() => {
+    flow.current?.cancel();
     setPin("");
     setStatus({ kind: "idle" });
   }, []);
 
-  const submit = useCallback(async (value: string) => {
-    setStatus({ kind: "loading" });
-    try {
-      const result = await marcarAsistencia(value, crypto.randomUUID(), false);
-      if (result.estado === "registrada") {
-        setStatus({ kind: "success", result });
-      } else {
-        setStatus({ kind: "error", message: result.message });
-      }
-    } catch {
-      setStatus({ kind: "error", message: "Error de conexión. Intentá de nuevo." });
-    }
+  const send = useCallback(async (operation: () => Promise<MarcarResult>) => {
+    if (resetTimer.current) clearTimeout(resetTimer.current);
     setPin("");
-    resetTimer.current = setTimeout(reset, 3500);
+    setStatus({ kind: "loading" });
+    const result = await operation();
+    if (result.estado === "confirmacion_requerida") setStatus({ kind: "confirm" });
+    else if (result.estado === "error") setStatus({ kind: "retry", message: result.message });
+    else {
+      setStatus(result.estado === "registrada" ? { kind: "success", result } : { kind: "error", message: result.message });
+      resetTimer.current = setTimeout(reset, 3500);
+    }
   }, [reset]);
+
+  const submit = useCallback((value: string) => {
+    if (flow.current!.busy || flow.current!.hasPending) return;
+    void send(() => flow.current!.submit(value));
+  }, [send]);
 
   useEffect(() => {
     return () => {
+      flow.current?.clear();
       if (resetTimer.current) clearTimeout(resetTimer.current);
     };
   }, []);
 
   function pressDigit(d: string) {
-    if (status.kind === "loading" || status.kind === "success") return;
+    if (status.kind === "loading" || status.kind === "success" || status.kind === "confirm" || status.kind === "retry") return;
+    if (resetTimer.current) { clearTimeout(resetTimer.current); resetTimer.current = null; }
     if (status.kind === "error") {
       // Cualquier tecla despues de un error limpia el mensaje y arranca de nuevo.
       setStatus({ kind: "idle" });
@@ -80,7 +93,7 @@ export default function KioskClient({ kioskoNombre }: { kioskoNombre?: string })
   }
 
   function pressBackspace() {
-    if (status.kind === "loading" || status.kind === "success") return;
+    if (status.kind === "loading" || status.kind === "success" || status.kind === "confirm" || status.kind === "retry") return;
     setPin((p) => p.slice(0, -1));
   }
 
@@ -91,10 +104,11 @@ export default function KioskClient({ kioskoNombre }: { kioskoNombre?: string })
           {kioskoNombre ?? "Materiales J Castillo · RRHH"}
         </p>
         <p className="text-5xl font-semibold tabular-nums">
-          {now.toLocaleTimeString("es-NI", { hour: "2-digit", minute: "2-digit" })}
+          {now.toLocaleTimeString("es-NI", { hour: "2-digit", minute: "2-digit", timeZone: "America/Managua" })}
         </p>
         <p className="text-sm capitalize text-white/50">
           {now.toLocaleDateString("es-NI", {
+            timeZone: "America/Managua",
             weekday: "long",
             day: "numeric",
             month: "long",
@@ -105,6 +119,14 @@ export default function KioskClient({ kioskoNombre }: { kioskoNombre?: string })
       <div className="nexo-glass flex w-full max-w-sm flex-col items-center gap-8 rounded-3xl px-8 py-10">
         {status.kind === "success" ? (
           <SuccessPanel result={status.result} />
+        ) : status.kind === "confirm" ? (
+          <p role="status" className="text-center text-white/70">Confirma o cancela la salida.</p>
+        ) : status.kind === "retry" ? (
+          <div className="flex flex-col gap-4 text-center" role="alert">
+            <p>{status.message}</p>
+            <button type="button" className="nexo-glass rounded-xl p-4" onClick={() => void send(() => flow.current!.retry())}>Reintentar</button>
+            <button type="button" className="nexo-glass rounded-xl p-4" onClick={reset}>Cancelar</button>
+          </div>
         ) : (
           <>
             <div className="flex flex-col items-center gap-3">
@@ -124,6 +146,14 @@ export default function KioskClient({ kioskoNombre }: { kioskoNombre?: string })
           </>
         )}
       </div>
+      <ConfirmDialog
+        open={status.kind === "confirm"}
+        title="¿Registrar salida?"
+        confirmLabel="Confirmar"
+        cancelLabel="Cancelar"
+        onConfirm={() => void send(() => flow.current!.confirm())}
+        onCancel={reset}
+      />
     </div>
   );
 }
