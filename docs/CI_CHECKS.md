@@ -113,7 +113,13 @@ puede hacerlo** (no hay endpoint de settings expuesto en esta sesión):
 4. Si la pestaña **Actions** del repositorio estuviera deshabilitada
    (*Settings → Actions → General*), habilitarla: sin eso ningún workflow corre.
 5. Los checks de **Vercel** (preview por app) siguen siendo informativos: no
-   sustituyen a estos checks ni al check de pruebas sobre migraciones.
+   sustituyen a estos checks ni al check de pruebas sobre migraciones, y
+   **no** deben marcarse como obligatorios. Dos razones concretas observadas al
+   preparar este PR: (a) cada push dispara **5 builds** (una por app), así que
+   varios pushes seguidos agotan el límite de builds de la cuenta — los
+   previews de la rama terminaron en `Deployment rate limited — retry in 24
+   hours`, que no es un fallo del código; y (b) el check de **Supabase
+   Preview** puede quedar en `skipping` sin validar nada.
 
 Hasta que el paso 2 esté hecho, **el gate no está activo**: los checks se
 ejecutan y se ven en el PR, pero GitHub todavía permite fusionar sin ellos. Este

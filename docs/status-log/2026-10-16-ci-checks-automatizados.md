@@ -40,5 +40,6 @@ El primer run del workflow en el PR (run `38851449971`) dio: `lint` ✅, `build`
 
 - **Owner**: activar en `main` *Require status checks to pass before merging* con `CI / typecheck`, `CI / lint`, `CI / build`, `CI / test-db-rrhh`, `CI / test-agencia-access` (y habilitar Actions si estuviera desactivado). Hasta entonces el gate **no** está activo.
 - Corregir el lint pre-existente de `crm` y `flotilla` y mover sus filtros a `lint:gate` (ticket aparte).
+- Los **previews de Vercel** de la rama quedaron en `Deployment rate limited — retry in 24 hours`: cada push dispara 5 builds (una por app) y varios pushes seguidos agotan el límite de la cuenta. No es un fallo del código y por eso los checks de Vercel **no** se marcan como obligatorios (el `build` de este workflow sí cubre la compilación, sin depender de Vercel).
 - La cobertura de RLS, particiones y concurrencia **no** existe en PGlite: si un caso las necesita, hace falta un Postgres desechable en el job o una base de staging descartable — nunca `nexo-core` de producción.
 - `main` sigue sin la migración `20261015181000` aplicada: este issue no la aplica (fuera de alcance).
