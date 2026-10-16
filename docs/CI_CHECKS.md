@@ -112,42 +112,102 @@ Medido sobre `main` `fc2b309` antes de tocar nada:
 | Sin workflows | No existía `.github/workflows/`. | Se agregó `ci.yml`. |
 | Supabase Preview | El check de Supabase Preview puede quedar omitido y **no** valida migraciones. | Se documenta como no confiable; la validación de migraciones es `test-db-rrhh`. |
 
-## Configuración de GitHub pendiente de intervención del owner
+## Protección de `main`: estado verificado
 
-El workflow ya corre solo (se dispara en cada PR). Falta **exigir** sus checks
-antes de permitir el merge; eso se configura en el repositorio y **este PR no
-puede hacerlo** (no hay endpoint de settings expuesto en esta sesión):
+**ACTIVA desde el 2026-10-16 y verificada por API.** `main` exige cinco
+check-runs del workflow `CI` (app GitHub Actions, `app_id 15368`) antes de
+fusionar:
 
-1. **Settings → Branches → Add branch ruleset** (o *Add classic branch
-   protection rule*) para `main`.
-2. Activar **Require status checks to pass before merging** y, dentro de
-   *Status checks that are required*, buscar y marcar (deben existir al menos
-   una vez; ya corren en el PR #44):
-   - `typecheck`
-   - `lint`
-   - `build`
-   - `test-db-rrhh`
-   - `test-agencia-access`
-   > `lint-deuda (no bloquea)` **no** se marca: es informativo a propósito.
-   > Si en el buscador aparecen agrupados bajo el workflow `CI`, son esos
-   > mismos nombres.
-3. Recomendado: **Require branches to be up to date before merging** y
-   **Do not allow bypassing the above settings** (si se quiere que aplique
-   también al owner).
-4. Si la pestaña **Actions** del repositorio estuviera deshabilitada
-   (*Settings → Actions → General*), habilitarla: sin eso ningún workflow corre.
-5. Los checks de **Vercel** (preview por app) siguen siendo informativos: no
-   sustituyen a estos checks ni al check de pruebas sobre migraciones, y
-   **no** deben marcarse como obligatorios. Dos razones concretas observadas al
-   preparar este PR: (a) cada push dispara **5 builds** (una por app), así que
-   varios pushes seguidos agotan el límite de builds de la cuenta — los
-   previews de la rama terminaron en `Deployment rate limited — retry in 24
-   hours`, que no es un fallo del código; y (b) el check de **Supabase
-   Preview** puede quedar en `skipping` sin validar nada.
+| Check | ¿Obligatorio? |
+|---|---|
+| `typecheck` | **Sí** |
+| `lint` | **Sí** |
+| `build` | **Sí** |
+| `test-db-rrhh` | **Sí** |
+| `test-agencia-access` | **Sí** |
+| `lint-deuda (no bloquea)` | **No** — es informativo a propósito: mide la deuda pre-existente de `crm`/`flotilla` y se deja visible en cada PR |
+| `Vercel Preview Comments` y previews de Vercel | **No** — dependen del proyecto de Vercel y de su límite de builds |
+| `Supabase Preview` | **No** — puede quedar en `skipping` y no valida migraciones |
 
-Hasta que el paso 2 esté hecho, **el gate no está activo**: los checks se
-ejecutan y se ven en el PR, pero GitHub todavía permite fusionar sin ellos. Este
-documento no declara el gate como activo hasta verificarlo en el repositorio.
+Configuración exacta (classic branch protection; el repositorio no tiene
+rulesets):
+
+- `required_status_checks.strict` = **`false`** (no se exige que la rama esté al
+  día antes de fusionar).
+- `enforce_admins` = **`true`** (la regla aplica también al owner: no hay
+  bypass).
+- `allow_force_pushes` = **`false`** y `allow_deletions` = **`false`**.
+- Sin `required_pull_request_reviews`, sin restricciones de push y sin
+  `required_conversation_resolution`.
+
+Comprobación reproducible:
+
+```bash
+gh api repos/Jccastillo25/nexo/branches/main --jq .protected   # true
+gh api repos/Jccastillo25/nexo/branches/main/protection --jq \
+  '{checks: [.required_status_checks.checks[] | .context],
+    strict: .required_status_checks.strict,
+    enforce_admins: .enforce_admins.enabled,
+    force_pushes: .allow_force_pushes.enabled,
+    deletions: .allow_deletions.enabled}'
+# → checks: [typecheck, lint, build, test-db-rrhh, test-agencia-access],
+#   strict: false, enforce_admins: true, force_pushes: false, deletions: false
+```
+
+Cómo se aplicó (idempotente):
+
+```bash
+# el cuerpo completo importa: el PUT reemplaza el objeto de protección
+gh api --method PUT repos/Jccastillo25/nexo/branches/main/protection --input proteccion.json
+```
+
+```json
+{
+  "required_status_checks": {
+    "strict": false,
+    "checks": [
+      { "context": "typecheck",           "app_id": 15368 },
+      { "context": "lint",                "app_id": 15368 },
+      { "context": "build",               "app_id": 15368 },
+      { "context": "test-db-rrhh",        "app_id": 15368 },
+      { "context": "test-agencia-access", "app_id": 15368 }
+    ]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": null,
+  "restrictions": null,
+  "required_linear_history": false,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_conversation_resolution": false,
+  "lock_branch": false,
+  "allow_fork_syncing": false
+}
+```
+
+> En la web: *Settings → Rules → Branches* → regla para `main` → **Require
+> status checks to pass before merging** → marcar los cinco. Si se cambia por
+> API, mandar el cuerpo completo de arriba: un `PUT` con un solo campo puede
+> borrar el resto de la configuración.
+
+Notas operativas:
+
+- `Actions` está habilitado en el repositorio (`gh api
+  repos/Jccastillo25/nexo/actions/permissions` → `enabled: true`); sin eso
+  ningún workflow correría.
+- Con la protección activa, un push directo a `main` que no traiga los checks
+  aprobados en ese commit queda rechazado: el camino es PR → checks en verde →
+  merge.
+- Verificado sobre el PR #44 (head `3dbf147`): los cinco checks obligatorios en
+  `success` y el PR seguía `MERGEABLE`, con `mergeStateStatus: UNSTABLE` — que
+  solo refleja checks **no** obligatorios fallando (`lint-deuda` y los previews
+  de Vercel limitados por rate limit), no un bloqueo del merge.
+- Los checks de Vercel no se marcan como obligatorios por dos razones concretas
+  observadas al preparar este PR: (a) cada push dispara **5 builds** (una por
+  app), así que varios pushes seguidos agotan el límite de la cuenta — los
+  previews de la rama terminaron en `Deployment rate limited — retry in 24
+  hours`, que no es un fallo del código; y (b) el check de **Supabase Preview**
+  puede quedar en `skipping` sin validar nada.
 
 ## Añadir pruebas más adelante
 

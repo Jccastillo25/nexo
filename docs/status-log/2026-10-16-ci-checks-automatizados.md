@@ -38,7 +38,6 @@ El primer run del workflow en el PR (run `38851449971`) dio: `lint` ✅, `build`
 
 ## Pendiente / acción manual
 
-- **Owner**: activar en `main` *Require status checks to pass before merging* con `CI / typecheck`, `CI / lint`, `CI / build`, `CI / test-db-rrhh`, `CI / test-agencia-access` (y habilitar Actions si estuviera desactivado). Hasta entonces el gate **no** está activo.
 - Corregir el lint pre-existente de `crm` y `flotilla` y mover sus filtros a `lint:gate` (ticket aparte).
 - Los **previews de Vercel** de la rama quedaron en `Deployment rate limited — retry in 24 hours`: cada push dispara 5 builds (una por app) y varios pushes seguidos agotan el límite de la cuenta. No es un fallo del código y por eso los checks de Vercel **no** se marcan como obligatorios (el `build` de este workflow sí cubre la compilación, sin depender de Vercel).
 - La cobertura de RLS, particiones y concurrencia **no** existe en PGlite: si un caso las necesita, hace falta un Postgres desechable en el job o una base de staging descartable — nunca `nexo-core` de producción.
@@ -66,3 +65,24 @@ verify` y el CI). Se reemplazó por [`scripts/lint-apps.mjs`](../../scripts/lint
 Verificado en local: `lint:plan` OK (gate 5 / deuda 2), `lint:self-test` con sus
 tres casos OK, `lint:gate` 5/5 tareas OK y `lint:deuda` fallando como se espera
 (deuda pre-existente).
+
+## Protección de `main` — activa y verificada (2026-10-16, posterior a este registro)
+
+`main` quedó protegida exigiendo los cinco checks obligatorios del workflow `CI`
+(`typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access`; app GitHub
+Actions `app_id 15368`) antes de fusionar, con `strict: false`,
+`enforce_admins: true` y sin force push ni borrado de rama. **No** se exigen
+`lint-deuda (no bloquea)` (es informativo a propósito: mide la deuda
+pre-existente de `crm`/`flotilla`), `Vercel Preview Comments` ni
+`Supabase Preview`.
+
+Verificado por API: `GET /branches/main` → `"protected": true` (antes `false`,
+404) y `GET /branches/main/protection` devuelve exactamente esos cinco
+contextos, con `enforce_admins.enabled: true`, `allow_force_pushes.enabled:
+false` y `allow_deletions.enabled: false`. No hay rulesets: es la protección
+clásica de rama. El cuerpo exacto aplicado y los comandos reproducibles están en
+[`docs/CI_CHECKS.md`](../CI_CHECKS.md).
+
+Consecuencia operativa: con la regla activa, un push directo a `main` que no
+traiga los checks aprobados en ese commit queda rechazado — el camino es
+PR → checks en verde → merge.

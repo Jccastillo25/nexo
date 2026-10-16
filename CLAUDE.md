@@ -500,8 +500,9 @@ pnpm verify
 ```
 
 Los checks que bloquean el merge, qué cubre cada uno, qué **no** cubre (PGlite
-no es el Postgres de Supabase: no prueba RLS, particiones ni concurrencia) y la
-configuración de GitHub que todavía requiere intervención del owner están en
+no es el Postgres de Supabase: no prueba RLS, particiones ni concurrencia) y el
+estado verificado de la protección de `main` (activa desde el 2026-10-16: cinco
+checks obligatorios, `enforce_admins: true`, sin force push) están en
 [`docs/CI_CHECKS.md`](docs/CI_CHECKS.md). Reglas que se derivan de eso:
 
 - No declarar algo "probado" con un check que en realidad no corre: `turbo`
