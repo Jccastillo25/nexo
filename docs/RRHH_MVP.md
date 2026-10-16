@@ -6,7 +6,8 @@
 > endurecimiento de seguridad/integridad; ver sección 18 — código
 > commiteado y pusheado a `main` (`392f676`), **migración
 > `20260918043955_rrhh_contratos_reglas_y_endurecimiento` aplicada a
-> `nexo-core`**. Antes 2026-09-16,
+> 
+exo-core`**. Antes 2026-09-16,
 > bloque "pre-F1.5" — cédula obligatoria, favicon en RRHH/CRM, catálogos
 > de Contratación, Storage privado y expediente ampliado, resolviendo las
 > tres decisiones pendientes de §15; ver sección 17. Antes 2026-09-14,
@@ -72,7 +73,8 @@ El PIN:
 - se muestra una sola vez;
 - se guarda solo como hash (`rrhh.contrato_credenciales`, sin `GRANT` de `SELECT` a nadie);
 - se usa exclusivamente para asistencia en kiosko (`rrhh.fn_registrar_marca_kiosko`, reescrita para validar contra la credencial contractual);
-- la búsqueda del kiosco cuenta las coincidencias y **falla cerrado** si el PIN es ambiguo en la empresa del dispositivo: sin marca, sin identidad y con señal técnica sin PIN (**P1, issue #30**, migración `20261015181000`, probada y ya fusionada en `main` `fc2b309`; la migración todavía no se aplicó a `nexo-core`). La unicidad real del PIN al activar/regenerar es P2 y sigue pendiente;
+- la búsqueda del kiosco cuenta las coincidencias y **falla cerrado** si el PIN es ambiguo en la empresa del dispositivo: sin marca, sin identidad y con señal técnica sin PIN (**P1, issue #30**, migración `20261015181000`, probada y ya fusionada en `main` `fc2b309`; la migración todavía no se aplicó a 
+exo-core`). La unicidad real del PIN al activar/regenerar es P2 y sigue pendiente;
 - se revoca al finalizar contrato (`rrhh.fn_finalizar_contrato`);
 - se regenera solo sobre un contrato activo (`rrhh.fn_regenerar_pin_contrato`);
 - no es contraseña Web/Mobile;
@@ -421,7 +423,8 @@ Actualizado 2026-09-07 tras F1.0.1-F1.3 — ver `IMPLEMENTATION_STATUS.md` secci
 - ✅ `public.validar_acceso_operativo` ya NO es ejecutable por `anon`/`authenticated` (F1.0.1) — `rrhh.fn_validar_acceso_operativo()` y su wrapper quedan `DEPRECADAS`, sin eliminarse todavía.
 - ✅ `rrhh.empleado_compensacion` 1:1 con empleado — reemplazada por `rrhh.contrato_compensacion` 1:1 con el contrato (F1.2). La tabla vieja sigue existiendo sin datos, pendiente de limpieza posterior.
 - ✅ **`rrhh.fn_registrar_marca_kiosko` (el kiosko real) ya NO lee `rrhh.empleados.pin_hash/estado/pin_bloqueado`** (F1.3) — valida contra `rrhh.contrato_credenciales`. Esas columnas de `rrhh.empleados` quedan sin ningún consumidor real, en cualquier función, por primera vez.
-- ⏳ `nombre_usuario`/`user_id`/`pin_hash`/`pin_bloqueado`/`intentos_fallidos` de `rrhh.empleados`, y `rrhh.empleado_compensacion`/`rrhh.fn_validar_acceso_operativo`/`rrhh.fn_set_pin_empleado` siguen existiendo físicamente, ya sin ningún consumidor — su eliminación real queda para una migración de limpieza posterior (no crítica, no bloquea F1.4).
+- ⏳ 
+ombre_usuario`/`user_id`/`pin_hash`/`pin_bloqueado`/`intentos_fallidos` de `rrhh.empleados`, y `rrhh.empleado_compensacion`/`rrhh.fn_validar_acceso_operativo`/`rrhh.fn_set_pin_empleado` siguen existiendo físicamente, ya sin ningún consumidor — su eliminación real queda para una migración de limpieza posterior (no crítica, no bloquea F1.4).
 
 Ninguna migración aplicada fue editada — todos los cambios de arriba se hicieron con migraciones nuevas.
 
@@ -694,7 +697,8 @@ Resumen funcional:
 
 **Deuda que sigue abierta** (no bloquea el uso normal de lo demás):
 `core.geografia_ni_municipios` vacía; falta `SUPABASE_SERVICE_ROLE_KEY`
-en el proyecto Vercel de `nexo-rrhh` para que Storage funcione en
+en el proyecto Vercel de 
+exo-rrhh` para que Storage funcione en
 producción; sin recorrido autenticado real en navegador (sin credenciales
 de prueba, misma limitación que el cierre del 2026-09-14); columnas de
 texto libre deprecadas (`rrhh.contratos.puesto`/`.departamento`, columnas
@@ -751,11 +755,13 @@ Resumen funcional:
   el breadcrumb y el contenido. `/configuracion/marca`, favicon y login
   no se tocaron.
 
-**Estado de cierre**: verificado con `tsc`/`next build`/`eslint` en
+**Estado de cierre**: verificado con `tsc`/
+ext build`/`eslint` en
 `apps/rrhh`, `apps/nexo` y `apps/crm`; código commiteado y pusheado a
 `main` (`392f676`, 2026-09-17); migración
 `20260918043955_rrhh_contratos_reglas_y_endurecimiento` **aplicada a
-`nexo-core`** el 2026-09-18, con prechecks de solo lectura antes de
+
+exo-core`** el 2026-09-18, con prechecks de solo lectura antes de
 aplicar y postchecks después (firma de RPC, `NOT NULL`, FKs compuestas,
 permisos `authenticated`/`anon`, límites del bucket) — sin hallazgos
 nuevos en `get_advisors(security)`. El archivo de migración se creó
@@ -764,3 +770,6 @@ renombró a `20260918043955` (versión remota real que quedó registrada al
 aplicarlo) sin tocar su contenido SQL. Sigue pendiente, sin relación con
 la migración: un recorrido autenticado real en navegador (sin
 credenciales de prueba en este entorno).
+
+## Corte local P2 (2026-10-16)
+PIN único por empresa al activar/regenerar implementado y probado en PGlite, sin aplicar a nexo-core. No equivale a piloto autorizado ni a E2E remoto.

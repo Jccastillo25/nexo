@@ -148,3 +148,51 @@ reset check_function_bodies;
 
 revoke execute on function public.registrar_marca_kiosko(text, uuid) from public;
 grant execute on function public.registrar_marca_kiosko(text, uuid) to anon, authenticated;
+
+-- Extensiones minimas para P2; no constituye esquema remoto completo.
+create schema auth;
+create function auth.uid() returns uuid language sql stable as $$
+ select nullif(current_setting('request.jwt.claim.sub', true),'')::uuid
+$$;
+create table core.prueba_permisos(usuario uuid, empresa uuid, codigo text, primary key(usuario, empresa, codigo));
+create function core.has_permission(u uuid, e uuid, c text) returns boolean language sql stable as $$
+ select exists(select 1 from core.prueba_permisos p where p.usuario=u and p.empresa=e and p.codigo=c)
+$$;
+alter table rrhh.contratos add column activado_at timestamptz, add column activado_by uuid,
+ add column finalizado_at timestamptz, add column finalizado_by uuid, add column fecha_fin_real date;
+alter table rrhh.contrato_credenciales add column creado_by uuid, add column revocado_by uuid;
+create table rrhh.contrato_jornadas(contrato_id uuid references rrhh.contratos(id));
+create or replace function rrhh.fn_finalizar_contrato(
+  p_contrato_id uuid,
+  p_company_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = rrhh, core, extensions, pg_temp
+as $$
+declare
+  v_estado text;
+begin
+  if not core.has_permission(auth.uid(), p_company_id, 'rrhh.expedientes.contratos.finalizar') then
+    raise exception 'Permiso denegado: rrhh.expedientes.contratos.finalizar';
+  end if;
+
+  select estado into v_estado from rrhh.contratos where id = p_contrato_id and company_id = p_company_id;
+
+  if v_estado is null then
+    raise exception 'Contrato no encontrado en esta empresa';
+  elsif v_estado <> 'activo' then
+    raise exception 'Solo se puede finalizar un contrato activo';
+  end if;
+
+  update rrhh.contratos
+  set estado = 'finalizado', finalizado_at = now(), finalizado_by = auth.uid(), fecha_fin_real = current_date
+  where id = p_contrato_id and company_id = p_company_id;
+
+  -- F1.3: revoca la credencial de asistencia -- sin nueva marcacion posible.
+  update rrhh.contrato_credenciales
+  set activo = false, revocado_at = now(), revocado_by = auth.uid()
+  where contrato_id = p_contrato_id and activo = true;
+end;
+$$;

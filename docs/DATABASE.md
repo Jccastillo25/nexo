@@ -12,7 +12,8 @@ jornadas mínimas) completados (2026-09-07)**. `flotilla` todavía no existe.
 
 ## Proyecto
 
-- Nombre: `nexo-core`
+- Nombre: 
+exo-core`
 - Project ref: `yrbjlmiqhkyxtlcerowh`
 - Organización: `Grupo CT` (`uahxpcssvfzlfxcvtvhu`)
 - Región: `us-east-1`
@@ -68,11 +69,14 @@ evita exponer tablas sensibles como `user_permissions` directo a la API.
   `<app>.ver_modulo` + permisos internos). Nombre único por empresa
   (case-insensitive). RLS sin policies y sin `GRANT` — solo vía RPC.
 - `core.perfiles` — **2026-10-14**: datos de la persona detrás de
-  `auth.users` (`nombre_completo`, `telefono`, `cargo`,
+  `auth.users` (
+ombre_completo`, `telefono`, `cargo`,
   `debe_cambiar_password`). RLS sin policies y sin `GRANT` — solo vía RPC.
   El vínculo con RRHH reutiliza `rrhh.empleados.user_id` (ya existente, `UNIQUE`).
-- `core.apps` — sembrada con los 4 módulos (`nexo`, `rrhh`, `flotilla`, `crm`)
-- `core.company_apps` — `materiales-jcastillo` tiene `nexo`, `crm` y
+- `core.apps` — sembrada con los 4 módulos (
+exo`, `rrhh`, `flotilla`, `crm`)
+- `core.company_apps` — `materiales-jcastillo` tiene 
+exo`, `crm` y
   `rrhh` habilitados (`enabled = true`, verificado 2026-09-04); `flotilla`
   no tiene fila todavía
 - `core.permissions_catalog` — catálogo único de códigos de permiso
@@ -115,7 +119,8 @@ evita exponer tablas sensibles como `user_permissions` directo a la API.
   y habilitado en `company_apps` → membresía activa → `user_permissions` →
   owner → rol de empresa. Ya no hay bypass por membresía `admin`.
 - RPC de administración (2026-10-14, `security definer`, solo
-  `authenticated`, cada una exige su permiso `nexo.administracion.*` y
+  `authenticated`, cada una exige su permiso 
+exo.administracion.*` y
   audita en `core.audit_log` con acción `admin.*`):
   `admin_listar_usuarios`, `admin_listar_roles`, `admin_catalogo_permisos`,
   `admin_plantillas_rol`, `admin_buscar_empleados`, `admin_listar_auditoria`,
@@ -128,7 +133,8 @@ evita exponer tablas sensibles como `user_permissions` directo a la API.
   propio rol/estado, solo el owner toca al owner. Detalle:
   [plan/12-administracion-usuarios-roles.md](plan/12-administracion-usuarios-roles.md)
 - Particiones: **`pg_cron` instalado desde 2026-10-14** (`20261014224341`).
-  El job `nexo-particiones-futuras` (día 1 de cada mes, 03:00 UTC) llama a
+  El job 
+exo-particiones-futuras` (día 1 de cada mes, 03:00 UTC) llama a
   `core.fn_asegurar_particiones_futuras(3)` para todas las tablas de
   `core.tablas_particionadas` (`core.audit_log`, `rrhh.*`, `atencion.*`).
   Además `core.fn_auditar` asegura la partición del mes antes de insertar.
@@ -159,11 +165,14 @@ turnos pendientes de días anteriores.
 
 `public.atencion_pantalla_estado(p_pantalla_id)` es la única RPC con `EXECUTE`
 para `anon` (televisor sin login). Devuelve sucursal, `config`, `proximos`
-(solo números) y `llamados[]` con `numero`, `puesto`, `cliente`
+(solo números) y `llamados[]` con 
+umero`, `puesto`, `cliente`
 (`turnos.cliente_nombre`), `agente` (`core.perfiles.nombre_completo` de
-`turnos.atendido_por`, o `null`), `llamado_en` y `veces`. `cliente` y `agente`
+`turnos.atendido_por`, o 
+ull`), `llamado_en` y `veces`. `cliente` y `agente`
 se agregaron el 2026-10-15 (`20261015151609`, decisión del usuario). Desde
-`20261015155035`, `cliente`/`agente`/`puesto` llegan `null` si la pantalla no
+`20261015155035`, `cliente`/`agente`/`puesto` llegan 
+ull` si la pantalla no
 los muestra ni los anuncia: `config.mostrar` y `config.anunciar`
 (`{cliente, agente, puesto}`, sin clave = sí), evaluados por
 `atencion.fn_pantalla_campo` (sin `EXECUTE` para la API). Desde
@@ -276,7 +285,8 @@ Nota: esta lista no reflejaba `20260914090000` hasta esta actualización
 corregida de paso (ver también [MIGRATION_LOG.md](MIGRATION_LOG.md)).
 
 Las últimas 5 (auditoría de seguridad de RRHH, 2026-09-05) se aplicaron
-directamente a `nexo-core` con `apply_migration` — no hubo validación
+directamente a 
+exo-core` con `apply_migration` — no hubo validación
 local previa con Docker (bloqueada por falta de WSL2/Docker en el
 entorno de la sesión), autorizado explícitamente por el usuario dado
 que `20260905000004` ya corregía un fallo real confirmado en una
@@ -309,9 +319,11 @@ hardcodeado en la app (todo pasa por `core.has_permission()`).
 
 | Tabla | Tipo | Propósito |
 |---|---|---|
-| `rrhh.empleados` | Catálogo (no particionada) | **Expediente General desde F1.1 (2026-09-07)**: nombre, apellido, documento, email, teléfono. `puesto`, `departamento`, `fecha_ingreso`/`fecha_baja`, `estado` (default `sin_contrato`), `pin_hash`, `nombre_usuario`, `pin_bloqueado`, `intentos_fallidos`, `user_id` siguen existiendo como columnas pero quedan **DEPRECADAS** (nullable, `comment on column` explícito) — pertenecen al contrato (F1.2) o a la credencial de asistencia (F1.3), no al Expediente General. **Desde F1.3, `rrhh.fn_registrar_marca_kiosko` ya NO lee `estado`/`pin_hash` de esta tabla** — quedan huérfanas, sin ningún consumidor real, pendientes de limpieza |
+| `rrhh.empleados` | Catálogo (no particionada) | **Expediente General desde F1.1 (2026-09-07)**: nombre, apellido, documento, email, teléfono. `puesto`, `departamento`, `fecha_ingreso`/`fecha_baja`, `estado` (default `sin_contrato`), `pin_hash`, 
+ombre_usuario`, `pin_bloqueado`, `intentos_fallidos`, `user_id` siguen existiendo como columnas pero quedan **DEPRECADAS** (nullable, `comment on column` explícito) — pertenecen al contrato (F1.2) o a la credencial de asistencia (F1.3), no al Expediente General. **Desde F1.3, `rrhh.fn_registrar_marca_kiosko` ya NO lee `estado`/`pin_hash` de esta tabla** — quedan huérfanas, sin ningún consumidor real, pendientes de limpieza |
 | `rrhh.empleado_compensacion` | Catálogo, 1:1 con `empleados` | **DEPRECADA desde F1.2 (2026-09-07)** — reemplazada por `rrhh.contrato_compensacion` (1:1 con el contrato, no el empleado). Sigue existiendo sin datos, pendiente de limpieza posterior |
-| `rrhh.contratos` | Catálogo (no particionada) | **Expediente Laboral (F1.2, 2026-09-07)**: `estado` `borrador→activo→finalizado` (trigger de transición, sin reabrir), `puesto_id`/`departamento_id`/`modalidad_contrato`/fechas congelados fuera de `borrador`. Un solo contrato `activo` por empleado (unique index parcial). Sin `DELETE` — historial nunca se borra. **Desde el bloque pre-F1.5 (2026-09-16)**: `puesto_id`/`departamento_id` (FK a `rrhh.puestos`/`rrhh.departamentos`) reemplazan las columnas de texto libre `puesto`/`departamento`, que quedan **DEPRECADAS** (nullable, `comment on column`, sin eliminar). **2026-09-18 (migración `20260918043955_rrhh_contratos_reglas_y_endurecimiento`, aplicada a `nexo-core`)**: `puesto_id`/`departamento_id` son `NOT NULL`; nueva columna `plantilla_contrato_id` (`NOT NULL`, persistida — ya no es solo una "sugerencia"); FK compuestas `(puesto_id/departamento_id/plantilla_contrato_id, company_id)` contra el mismo tenant; `fecha_fin_prevista` ya no se puede fijar al crear (solo al editar) |
+| `rrhh.contratos` | Catálogo (no particionada) | **Expediente Laboral (F1.2, 2026-09-07)**: `estado` `borrador→activo→finalizado` (trigger de transición, sin reabrir), `puesto_id`/`departamento_id`/`modalidad_contrato`/fechas congelados fuera de `borrador`. Un solo contrato `activo` por empleado (unique index parcial). Sin `DELETE` — historial nunca se borra. **Desde el bloque pre-F1.5 (2026-09-16)**: `puesto_id`/`departamento_id` (FK a `rrhh.puestos`/`rrhh.departamentos`) reemplazan las columnas de texto libre `puesto`/`departamento`, que quedan **DEPRECADAS** (nullable, `comment on column`, sin eliminar). **2026-09-18 (migración `20260918043955_rrhh_contratos_reglas_y_endurecimiento`, aplicada a 
+exo-core`)**: `puesto_id`/`departamento_id` son `NOT NULL`; nueva columna `plantilla_contrato_id` (`NOT NULL`, persistida — ya no es solo una "sugerencia"); FK compuestas `(puesto_id/departamento_id/plantilla_contrato_id, company_id)` contra el mismo tenant; `fecha_fin_prevista` ya no se puede fijar al crear (solo al editar) |
 | `rrhh.puestos` | Catálogo (no particionada) | **Bloque pre-F1.5 (2026-09-16)**: catálogo de puestos de trabajo. `departamento_id` nullable, FK a `rrhh.departamentos` (organizacional, no geográfico). Sin `DELETE` — se activa/desactiva. **2026-09-18 (migración `20260918043955_...`, aplicada)**: `departamento_id` es `NOT NULL` — un puesto pertenece a un único departamento — con FK compuesta `(departamento_id, company_id)` contra el mismo tenant |
 | `rrhh.departamentos` | Catálogo (no particionada) | **Bloque pre-F1.5**: departamento ORGANIZACIONAL de la empresa (ej. Ventas) — no confundir con `core.geografia_ni_departamentos` (geografía de Nicaragua). Sin `DELETE` |
 | `rrhh.plantillas_contrato` | Catálogo (no particionada) | **Bloque pre-F1.5**: catálogo de plantillas de contrato. `storage_path` nullable — el archivo real (bucket `rrhh-documentos-privados`) no se construyó en este bloque, solo el catálogo de nombres |
@@ -320,7 +332,8 @@ hardcodeado en la app (todo pasa por `core.has_permission()`).
 | `rrhh.empleado_info_complementaria` | Catálogo, 1:1 con `empleados` | **Bloque pre-F1.5**: estado civil + contacto de emergencia — set deliberadamente mínimo. Gateada por `rrhh.expedientes.info_complementaria.ver/editar` |
 | `rrhh.empleado_cuentas_bancarias` | Catálogo (no particionada) | **Bloque pre-F1.5**, dato sensible: cuentas bancarias del empleado, a lo sumo una `principal=true` activa (índice único parcial). Gateada por `rrhh.expedientes.cuentas_bancarias.*` (solo `admin`). Sin `DELETE` |
 | `rrhh.empleado_beneficiarios` | Catálogo (no particionada) | **Bloque pre-F1.5**, dato sensible: beneficiarios del empleado. Trigger `trg_validar_porcentaje_beneficiarios` — suma de `porcentaje` de filas activas por empleado ≤ 100 (regla entre filas, no expresable como `CHECK`). Gateada por `rrhh.expedientes.beneficiarios.*` (solo `admin`). Sin `DELETE`. **2026-09-18 (migración `20260918043955_...`, aplicada)**: el trigger corrige una condición de carrera real (`perform ... for update` sobre el empleado antes de sumar) — dos escrituras concurrentes ya no pueden superar 100% en conjunto |
-| `rrhh.empleado_documentos` | Catálogo (no particionada) | **Bloque pre-F1.5**: metadata de documentos del legajo — el archivo real vive en el bucket privado `rrhh-documentos-privados` (`storage_path`). Soft delete (`eliminado_at`), nunca `DELETE` físico. Gateada por `rrhh.expedientes.documentos.{ver,subir,eliminar}` (existentes desde 2026-09-02, huérfanas hasta este bloque). **2026-09-18 (migración `20260918043955_...`, aplicada)**: el bucket ya tiene `file_size_limit`=10MB/`allowed_mime_types` reales en `nexo-core` (verificado post-aplicación; antes sin límite de infraestructura, solo validado en la Server Action); `confirmarDocumentoSubido` ahora lee el objeto y su metadata REALES desde Storage (`list()`) en vez de confiar en lo que reporta el navegador |
+| `rrhh.empleado_documentos` | Catálogo (no particionada) | **Bloque pre-F1.5**: metadata de documentos del legajo — el archivo real vive en el bucket privado `rrhh-documentos-privados` (`storage_path`). Soft delete (`eliminado_at`), nunca `DELETE` físico. Gateada por `rrhh.expedientes.documentos.{ver,subir,eliminar}` (existentes desde 2026-09-02, huérfanas hasta este bloque). **2026-09-18 (migración `20260918043955_...`, aplicada)**: el bucket ya tiene `file_size_limit`=10MB/`allowed_mime_types` reales en 
+exo-core` (verificado post-aplicación; antes sin límite de infraestructura, solo validado en la Server Action); `confirmarDocumentoSubido` ahora lee el objeto y su metadata REALES desde Storage (`list()`) en vez de confiar en lo que reporta el navegador |
 | `rrhh.contrato_compensacion` | Catálogo, 1:1 con `contratos` | **F1.2**: salario base y frecuencia de pago del contrato — no del empleado (D-03: una recontratación crea un contrato nuevo, conserva histórico). Reutiliza `rrhh.expedientes.compensacion.ver/editar` (permisos existentes, re-scopeados) |
 | `rrhh.contrato_credenciales` | Catálogo, 1:1 con `contratos` | **F1.3 (2026-09-07)**: `pin_hash`, `activo`, `pin_bloqueado`, `intentos_fallidos`, `rotacion_numero`. Nace al activar el contrato (`fn_activar_contrato`), se revoca al finalizar. RLS habilitado **sin ninguna policy** y **sin `GRANT` de `SELECT` a nadie** — deny-by-default total, toda interacción vía RPC que ni siquiera seleccionan `pin_hash` en su respuesta |
 | `rrhh.jornadas` | Catálogo (no particionada) | **F1.4 (2026-09-07)**: plantilla de jornada reutilizable (ej. "Administrativo 8-17"). No hay una jornada universal única — una empresa puede tener varias. RLS/GRANT directo (sin RPC), gateada por `rrhh.asistencia.turnos.ver/crear/editar/eliminar` (reutilizados, existían sin consumidor desde la matriz original) |
@@ -329,7 +342,8 @@ hardcodeado en la app (todo pasa por `core.has_permission()`).
 | `rrhh.feriados` | Catálogo (no particionada) | **F1.4**: calendario de feriados por empresa. Sin columna de tipo/alcance ni de pago — decisión de negocio pendiente (ver `RRHH_MVP.md` sección 14). RLS/GRANT directo, gateada por `rrhh.asistencia.feriados.ver/crear/editar/eliminar` (únicos 4 códigos nuevos de F1.4) |
 | `rrhh.kiosko_dispositivos` | Catálogo (no particionada) | Terminales físicas de marcaje. El `id` (UUID aleatorio) actúa como credencial del dispositivo frente al RPC de marcación |
 | `rrhh.asistencia_marcas` | **Hechos, particionada por mes** (`marcado_en`) | Un renglón por marca de entrada/salida, para siempre. Particiones vigentes: `_2026_09`, `_2026_10`, `_2026_11` (mantenidas por `core.fn_asegurar_particiones_futuras`, 2 meses de anticipación) |
-| `rrhh.seguridad_accesos` | **Hechos, particionada por mes** (`intentado_en`) | Solo intentos **fallidos** de acceso operativo (`nombre_usuario` + PIN) — no es un log de éxitos. Señal de fuerza bruta/enumeración |
+| `rrhh.seguridad_accesos` | **Hechos, particionada por mes** (`intentado_en`) | Solo intentos **fallidos** de acceso operativo (
+ombre_usuario` + PIN) — no es un log de éxitos. Señal de fuerza bruta/enumeración |
 | `rrhh.parametros_ley` | Catálogo versionado | Valores oficiales INSS/INATEC que debe leer el motor de planillas (nunca hardcodeados). Versionado por `vigente_desde`/`vigente_hasta`: nunca se sobreescribe un valor histórico. **`techo_inss` sembrado con un valor de ejemplo (100000.00), no verificado como el oficial vigente** — ver [RRHH_MVP.md](RRHH_MVP.md) "Decisiones de negocio pendientes" |
 | `rrhh.planillas` | Catálogo (no particionada — volumen acotado, una fila por corrida) | Corridas de nómina: `periodo_inicio/fin`, `estado` (`borrador`/`aprobada`/`anulada`), `total`. `asiento_contable_id` queda suelto hasta que exista el schema `contabilidad` |
 | `rrhh.planilla_detalles` | Catálogo (no particionada) | Un renglón por empleado por planilla: `salario_base`, `horas_extra`, `bonos`, `deducciones`, `total` |
@@ -343,11 +357,14 @@ Todas `SECURITY DEFINER`, con `search_path` fijado explícitamente
 
 | Función (`public.*`, wrapper) | Función real (`rrhh.*`) | Rol que la ejecuta | Qué hace |
 |---|---|---|---|
-| `registrar_marca_kiosko(pin, kiosko_id)` | `fn_registrar_marca_kiosko` | `anon`, `authenticated` **a propósito** (el kiosko no tiene sesión) — función interna sin `EXECUTE` para nadie más que su dueño desde `20260905000005` | **Reescrita en F1.3 (2026-09-07)**: valida formato de PIN y bcrypt contra `rrhh.contrato_credenciales` de contratos `activo` de la empresa del kiosko (ya NO contra `rrhh.empleados.pin_hash/estado` — deprecados desde F1.1), nunca recibe `company_id` del cliente (lo deriva del `kiosko_id`), aplica el rate-limit persistente de `rrhh.kiosko_rate_limits` (8 fallos/1min → bloqueo 5min, el bloqueo siempre prevalece sobre el reinicio de ventana), alterna entrada/salida, inserta en `asistencia_marcas`. Rechaza con `RETURN` (nunca `RAISE EXCEPTION`). No devuelve datos personales del empleado. Verificado end-to-end (activar→marcar→regenerar→PIN viejo rechazado→finalizar→PIN rechazado). **P1 (2026-10-15, migración `20261015181000`, todavía SIN aplicar en `nexo-core`)**: deja de resolver con `limit 1` — cuenta las credenciales vigentes de la empresa del kiosco que aceptan el PIN y, con más de una coincidencia, no inserta marca, no identifica a nadie y emite `RAISE WARNING` sin PIN (log del servidor, no expuesto por PostgREST), con el mismo camino observable que un PIN inválido. No evita la colisión: eso es P2 |
-| `validar_acceso_operativo(nombre_usuario, pin)` | `fn_validar_acceso_operativo` | **Ninguno** — `EXECUTE` revocado de `anon`/`authenticated` desde `20260907151106` (F1.0.1, D-06). Ambas funciones quedan `comment on function`-marcadas como **DEPRECADAS**: el diseño de "PIN de doble propósito" (login operativo con el mismo PIN del kiosko) fue rechazado como arquitectura final por `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`/`DRIVER_ACCESS_AND_KIOSK.md` §10. Sin consumidores reales en el código (verificado F1.0). No eliminadas todavía — pendiente de una migración de limpieza aparte, junto con `rrhh.seguridad_accesos` y las columnas `nombre_usuario`/`user_id`/`pin_bloqueado`/`intentos_fallidos` de `rrhh.empleados` (ahora **sin ningún consumidor real**, ni siquiera el kiosko desde F1.3) | Valida credencial, bloquea a 3 fallos consecutivos, registra fallidos en `seguridad_accesos`, devuelve `auth.users.id` si es válido. Rechaza con `RETURN NULL` (corrige un bug real: antes usaba `RAISE EXCEPTION` después de escribir el intento fallido, lo que revertía esa escritura y el bloqueo a 3 fallos nunca persistía). **Deprecada desde 2026-09-07** — no usar como base de ningún código nuevo |
+| `registrar_marca_kiosko(pin, kiosko_id)` | `fn_registrar_marca_kiosko` | `anon`, `authenticated` **a propósito** (el kiosko no tiene sesión) — función interna sin `EXECUTE` para nadie más que su dueño desde `20260905000005` | **Reescrita en F1.3 (2026-09-07)**: valida formato de PIN y bcrypt contra `rrhh.contrato_credenciales` de contratos `activo` de la empresa del kiosko (ya NO contra `rrhh.empleados.pin_hash/estado` — deprecados desde F1.1), nunca recibe `company_id` del cliente (lo deriva del `kiosko_id`), aplica el rate-limit persistente de `rrhh.kiosko_rate_limits` (8 fallos/1min → bloqueo 5min, el bloqueo siempre prevalece sobre el reinicio de ventana), alterna entrada/salida, inserta en `asistencia_marcas`. Rechaza con `RETURN` (nunca `RAISE EXCEPTION`). No devuelve datos personales del empleado. Verificado end-to-end (activar→marcar→regenerar→PIN viejo rechazado→finalizar→PIN rechazado). **P1 (2026-10-15, migración `20261015181000`, todavía SIN aplicar en 
+exo-core`)**: deja de resolver con `limit 1` — cuenta las credenciales vigentes de la empresa del kiosco que aceptan el PIN y, con más de una coincidencia, no inserta marca, no identifica a nadie y emite `RAISE WARNING` sin PIN (log del servidor, no expuesto por PostgREST), con el mismo camino observable que un PIN inválido. No evita la colisión: eso es P2 |
+| `validar_acceso_operativo(nombre_usuario, pin)` | `fn_validar_acceso_operativo` | **Ninguno** — `EXECUTE` revocado de `anon`/`authenticated` desde `20260907151106` (F1.0.1, D-06). Ambas funciones quedan `comment on function`-marcadas como **DEPRECADAS**: el diseño de "PIN de doble propósito" (login operativo con el mismo PIN del kiosko) fue rechazado como arquitectura final por `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`/`DRIVER_ACCESS_AND_KIOSK.md` §10. Sin consumidores reales en el código (verificado F1.0). No eliminadas todavía — pendiente de una migración de limpieza aparte, junto con `rrhh.seguridad_accesos` y las columnas 
+ombre_usuario`/`user_id`/`pin_bloqueado`/`intentos_fallidos` de `rrhh.empleados` (ahora **sin ningún consumidor real**, ni siquiera el kiosko desde F1.3) | Valida credencial, bloquea a 3 fallos consecutivos, registra fallidos en `seguridad_accesos`, devuelve `auth.users.id` si es válido. Rechaza con `RETURN NULL` (corrige un bug real: antes usaba `RAISE EXCEPTION` después de escribir el intento fallido, lo que revertía esa escritura y el bloqueo a 3 fallos nunca persistía). **Deprecada desde 2026-09-07** — no usar como base de ningún código nuevo |
 | `crear_empleado(...)` | `fn_crear_empleado` | Solo `authenticated` (revocado de `anon` y `PUBLIC` explícitamente) | **F1.1 (2026-09-07)**: alta de Expediente General exclusivamente (nombre/apellido/documento/email/teléfono) — sin PIN/laboral. Exige `rrhh.expedientes.empleados.crear`. **Corregida el mismo día** (`fix_crear_empleado_returning_ambiguous`): la firma original de F1.1 nunca pudo ejecutarse (`RETURNING` ambiguo contra las variables `OUT` de `RETURNS TABLE`) |
 | `set_pin_empleado(...)` | `fn_set_pin_empleado` | Solo `authenticated` (revocado de `anon` y `PUBLIC` explícitamente) | **Superada por F1.3** — el PIN ya no se asigna al empleado, sino al contrato vía `activar_contrato`/`regenerar_pin_contrato`. Sin consumidores en el código (ya lo estaba desde antes). No eliminada todavía |
-| `crear_contrato(...)` | `fn_crear_contrato` | Solo `authenticated` | **F1.2 (2026-09-07)**: crea un contrato `borrador`. Exige `rrhh.expedientes.contratos.crear`; salario exige además `compensacion.editar`. **Corregida el mismo día** (`fix_crear_contrato_returning_ambiguous`): mismo bug de `RETURNING` ambiguo que `crear_empleado`. **Firma cambiada en el bloque pre-F1.5 (2026-09-16)**: `p_puesto`/`p_departamento` (`text`) → `p_puesto_id`/`p_departamento_id` (`uuid`), devolvía `plantilla_sugerida_id` informativo. **Firma cambiada de nuevo el 2026-09-18 (migración `20260918043955_rrhh_contratos_reglas_y_endurecimiento`, aplicada a `nexo-core`)**: `p_puesto_id`/`p_departamento_id`/`p_plantilla_contrato_id` pasan a obligatorios (sin default); **sin** `p_fecha_fin_prevista` (eliminado del todo, no solo omitido); valida server-side que el puesto pertenece al departamento, que la plantilla está asignada y activa para ese puesto, y que el empleado no tenga ya un contrato abierto (antes solo lo impedía un unique index para `estado='activo'`, una llamada RPC directa podía crear un segundo borrador). Devuelve `plantilla_contrato_id` ya persistido, no una sugerencia. Firma remota verificada post-aplicación (`pg_get_function_identity_arguments`) |
+| `crear_contrato(...)` | `fn_crear_contrato` | Solo `authenticated` | **F1.2 (2026-09-07)**: crea un contrato `borrador`. Exige `rrhh.expedientes.contratos.crear`; salario exige además `compensacion.editar`. **Corregida el mismo día** (`fix_crear_contrato_returning_ambiguous`): mismo bug de `RETURNING` ambiguo que `crear_empleado`. **Firma cambiada en el bloque pre-F1.5 (2026-09-16)**: `p_puesto`/`p_departamento` (`text`) → `p_puesto_id`/`p_departamento_id` (`uuid`), devolvía `plantilla_sugerida_id` informativo. **Firma cambiada de nuevo el 2026-09-18 (migración `20260918043955_rrhh_contratos_reglas_y_endurecimiento`, aplicada a 
+exo-core`)**: `p_puesto_id`/`p_departamento_id`/`p_plantilla_contrato_id` pasan a obligatorios (sin default); **sin** `p_fecha_fin_prevista` (eliminado del todo, no solo omitido); valida server-side que el puesto pertenece al departamento, que la plantilla está asignada y activa para ese puesto, y que el empleado no tenga ya un contrato abierto (antes solo lo impedía un unique index para `estado='activo'`, una llamada RPC directa podía crear un segundo borrador). Devuelve `plantilla_contrato_id` ya persistido, no una sugerencia. Firma remota verificada post-aplicación (`pg_get_function_identity_arguments`) |
 | `editar_contrato(...)` | `fn_editar_contrato` | Solo `authenticated` | **F1.2**: edita SOLO en estado `borrador` (verificado explícito, además de RLS/trigger). Exige `rrhh.expedientes.contratos.editar`. Cambio de firma `puesto_id`/`departamento_id` del bloque pre-F1.5 (2026-09-16). **2026-09-18 (migración `20260918043955_...`, aplicada)**: agrega `p_plantilla_contrato_id` (opcional, editable) y revalida la relación puesto/departamento/plantilla completa contra el estado resultante en cada edición — `fecha_fin_prevista` sí se sigue pudiendo completar acá |
 | `activar_contrato(contrato_id, company_id)` | `fn_activar_contrato` | Solo `authenticated` | **F1.3, endurecida en F1.4**: activa el contrato Y genera el PIN de asistencia (`rrhh.contrato_credenciales`), devuelto en texto plano una sola vez. **Desde F1.4 (2026-09-07)**, exige además al menos una fila en `rrhh.contrato_jornadas` — jornada obligatoria, decisión explícita del usuario. Exige `rrhh.expedientes.contratos.activar` |
 | `finalizar_contrato(contrato_id, company_id)` | `fn_finalizar_contrato` | Solo `authenticated` | **F1.3**: finaliza el contrato Y revoca la credencial de asistencia. Exige `rrhh.expedientes.contratos.finalizar` |
@@ -357,7 +374,8 @@ Todas `SECURITY DEFINER`, con `search_path` fijado explícitamente
 | `jornada_vigente_contrato(contrato_id, company_id, fecha?)` | `fn_jornada_vigente_contrato` | Solo `authenticated` | **F1.4**: interfaz de solo lectura para F1.5 — resuelve contrato+fecha → jornada+regla del día (ISO-8601, `extract(isodow)`). No implementa consolidación/cálculo. Exige `rrhh.expedientes.contratos.ver` |
 
 Verificado en producción (2026-09-05, `has_function_privilege` contra
-`nexo-core`): `anon` y `authenticated` en `false` para las 4 funciones
+
+exo-core`): `anon` y `authenticated` en `false` para las 4 funciones
 internas del schema `rrhh` (`fn_crear_empleado`, `fn_set_pin_empleado`,
 `fn_registrar_marca_kiosko`, `fn_validar_acceso_operativo`) — el único
 camino de entrada para cada una es su wrapper en `public`, que sigue
@@ -422,7 +440,8 @@ próximo módulo.
 
 Los hallazgos de `get_advisors(type=security)` del 2026-09-04 (listados
 originalmente en esta sección) se cerraron con las migraciones
-`20260905000001` a `005`, aplicadas a `nexo-core` y verificadas en
+`20260905000001` a `005`, aplicadas a 
+exo-core` y verificadas en
 producción el mismo día. Detalle completo, matrices de prueba y
 evidencia paso a paso en
 [SECURITY_VALIDATION_HANDOFF.md](SECURITY_VALIDATION_HANDOFF.md).
@@ -431,7 +450,8 @@ Resumen verificado:
 1. **Resuelto** — `rrhh.fn_crear_empleado` y `rrhh.fn_set_pin_empleado`
    ya no son ejecutables por `anon` ni por `PUBLIC`
    (`20260905000001`/`004`). Verificado con `has_function_privilege`
-   contra `nexo-core`: `false` para ambos roles en las dos funciones. El
+   contra 
+exo-core`: `false` para ambos roles en las dos funciones. El
    único camino de entrada sigue siendo su wrapper en `public`
    (`authenticated` con permiso interno), que no perdió funcionalidad.
 2. **Resuelto** — `rrhh.fn_registrar_marca_kiosko` y
@@ -478,3 +498,6 @@ transacción (puerto `6543`); migraciones y `pg_cron` usan conexión
 directa/sesión (`5432`). Read replicas se aprovisionan recién cuando
 aparezca el primer reporte cross-módulo pesado (Torre de Control) — no
 antes.
+
+## RRHH P2 — preparado, no aplicado (2026-10-16)
+Migración 20261016231000: conserva firmas y retorno de activar/regenerar, usa gen_random_bytes y lock transaccional por empresa. Comparación bcrypt con credenciales vigentes; 128 intentos y rollback ante agotamiento. Costo lineal en credenciales por candidato; pendiente validación concurrente remota.

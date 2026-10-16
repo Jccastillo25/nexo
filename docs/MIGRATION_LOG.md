@@ -2,7 +2,8 @@
 
 ## 2026-10-14 — Agencia digital, matriz mínima (APLICADA)
 
-`20261014181353_agencia_dashboard_access`, aplicada en `nexo-core` con aprobación explícita del usuario. Añade el módulo `agencia` inactivo, permiso de módulo del trigger, `agencia.dashboard.resumen.ver` y rol `consulta` con ambos permisos. Sin tablas, políticas o funciones nuevas; sin roles asignados a usuarios ni empresas habilitadas. Postchecks: 2 permisos, 1 rol, 2 grants al rol, 0 usuarios y 0 empresas habilitadas. Advisors antes/después conservan las 4 categorías y los 38 hallazgos previos, sin cambio salvo observed_at. Activación pendiente del deploy y aprobación humana. [Detalle](status-log/2026-10-14-agencia-independiente.md).
+`20261014181353_agencia_dashboard_access`, aplicada en 
+exo-core` con aprobación explícita del usuario. Añade el módulo `agencia` inactivo, permiso de módulo del trigger, `agencia.dashboard.resumen.ver` y rol `consulta` con ambos permisos. Sin tablas, políticas o funciones nuevas; sin roles asignados a usuarios ni empresas habilitadas. Postchecks: 2 permisos, 1 rol, 2 grants al rol, 0 usuarios y 0 empresas habilitadas. Advisors antes/después conservan las 4 categorías y los 38 hallazgos previos, sin cambio salvo observed_at. Activación pendiente del deploy y aprobación humana. [Detalle](status-log/2026-10-14-agencia-independiente.md).
 
 
 Orden de bitácora: más reciente arriba.
@@ -10,7 +11,8 @@ Orden de bitácora: más reciente arriba.
 ## 2026-10-15 — RRHH P1: PIN ambiguo, fallo cerrado (NO APLICADA)
 
 - `20261015181000_p1_pin_ambiguo_fallo_cerrado` (fusionada en `main`
-  `fc2b309`, vía PR #42) — **todavía no aplicada a `nexo-core`, por pedido
+  `fc2b309`, vía PR #42) — **todavía no aplicada a 
+exo-core`, por pedido
   explícito del usuario**: no se tocó el remoto. Reemplaza
   `rrhh.fn_registrar_marca_kiosko` para CONTAR las
   credenciales vigentes de la empresa del kiosco que aceptan el PIN; con más
@@ -18,7 +20,8 @@ Orden de bitácora: más reciente arriba.
   señal técnica sin PIN (señal en el log del servidor). Misma firma, mismo
   tipo de retorno, mismo rate-limit y mismos `GRANT`/`REVOKE`; ninguna
   migración histórica modificada.
-- Verificado antes de escribirla (solo lectura sobre `nexo-core`): la función
+- Verificado antes de escribirla (solo lectura sobre 
+exo-core`): la función
   desplegada seguía resolviendo con `limit 1` y con el mismo tipo de retorno;
   `anon` sin `EXECUTE` sobre la función interna y con `EXECUTE` sobre
   `public.registrar_marca_kiosko`.
@@ -98,7 +101,8 @@ Orden de bitácora: más reciente arriba.
 
 - `20261015155035_atencion_pantalla_campos_configurables`: nueva
   `atencion.fn_pantalla_campo` (sin `EXECUTE` para la API) y `create or
-  replace` de `public.atencion_pantalla_estado`, que devuelve `null` en
+  replace` de `public.atencion_pantalla_estado`, que devuelve 
+ull` en
   `cliente`/`agente`/`puesto` cuando `config.mostrar` y `config.anunciar` los
   apagan (sin clave = sí, así que las pantallas existentes no cambian).
   Probada antes en un bloque revertido (3 casos). Postcheck: versión
@@ -149,7 +153,8 @@ transacción revertida (verificado que no quedó nada). Aplicada con
   RPC) con `puestos`, `pantallas`, `contadores`, `sesiones_activas` y las
   particionadas `sesiones`, `turnos`, `turno_eventos`; 19 RPC; **instala
   `pg_cron`** con los jobs `atencion-cierre-vencidas` y
-  `nexo-particiones-futuras`. App `atencion` sigue inactiva.
+  
+exo-particiones-futuras`. App `atencion` sigue inactiva.
   Rollback: `cron.unschedule` de ambos jobs, `drop schema atencion cascade`,
   `drop` de las 4 RPC `admin_*sucursal*`, borrar las 3 filas de
   `core.tablas_particionadas`, `drop table core.usuario_sucursales,
@@ -165,7 +170,8 @@ versión remota `20261014222454` (archivo nombrado con esa versión).
 
 - `20261014222454_atencion_paso_cero` — `core.apps` + `atencion` (inactiva,
   sin `company_apps`); el trigger creó `atencion.ver_modulo`; 14 permisos
-  `atencion.*` + 2 `nexo.administracion.sucursales.*`; 3 plantillas en
+  `atencion.*` + 2 
+exo.administracion.sucursales.*`; 3 plantillas en
   `core.app_roles` (`recepcion` 6, `agente` 8, `supervisor` 15). Sin tablas.
   Postcheck: owner sin acceso a Atención (app inactiva, esperado), owner con
   `sucursales.gestionar`; 0 asignaciones en `user_permissions`/`rol_permisos`.
@@ -177,7 +183,8 @@ versión remota `20261014222454` (archivo nombrado con esa versión).
 Detalle y pruebas en
 [`status-log/2026-10-14-usuarios-roles-esquema.md`](status-log/2026-10-14-usuarios-roles-esquema.md).
 **1 migración, revisada y aprobada explícitamente por el usuario, aplicada
-a `nexo-core` el 2026-10-14** con `apply_migration`. Antes de aplicarla se
+a 
+exo-core` el 2026-10-14** con `apply_migration`. Antes de aplicarla se
 ejecutó completa en una transacción revertida con 15 pruebas (owner, rol
 limitado, anti-escalada, usuario desactivado, sin sesión) — todas
 correctas, y se verificó que no quedó nada persistido. La migración trae
@@ -185,7 +192,8 @@ sus propios prechecks (abortan si `user_app_roles` tiene filas, si hay
 membresías `admin`, si falta el Paso Cero o si las tablas ya existen).
 Postcheck: 3 tablas nuevas, 3 columnas nuevas en `company_memberships`,
 14 RPC, `anon` sin `EXECUTE` en ninguna, helpers `core.fn_*` cerrados a
-`authenticated`, owner conserva acceso a `rrhh`/`nexo` y queda sin acceso a
+`authenticated`, owner conserva acceso a `rrhh`/
+exo` y queda sin acceso a
 `agencia` (módulo no habilitado), 1 membresía activa, partición
 `audit_log_2027_01` creada, 0 roles y 0 filas de auditoría. Archivo local
 creado como `20261014230000_...` y renombrado a la versión remota real
@@ -221,16 +229,21 @@ Detalle en
 [`status-log/2026-10-14-paso-cero-administracion-usuarios-roles.md`](status-log/2026-10-14-paso-cero-administracion-usuarios-roles.md);
 diseño en [`plan/12-administracion-usuarios-roles.md`](plan/12-administracion-usuarios-roles.md).
 **1 migración, aprobada explícitamente por el usuario y aplicada a
-`nexo-core` el 2026-10-14** con `apply_migration`. Precheck de solo lectura:
-0 códigos `nexo.administracion.%`, `core.apps` con `nexo` registrada.
-Postcheck: 9 códigos nuevos (`nexo` pasa de 2 a 11 en el catálogo),
+
+exo-core` el 2026-10-14** con `apply_migration`. Precheck de solo lectura:
+0 códigos 
+exo.administracion.%`, `core.apps` con 
+exo` registrada.
+Postcheck: 9 códigos nuevos (
+exo` pasa de 2 a 11 en el catálogo),
 `core.user_permissions` y `core.user_app_roles` siguen en 0 filas (nadie
 recibió permisos), migración registrada con versión remota `20261014201119`
 — el archivo local se nombró directamente con esa versión.
 
 - `20261014201119_nexo_administracion_permisos_paso_cero` — solo `insert`
   en `core.permissions_catalog` de los 9 códigos
-  `nexo.administracion.{usuarios.ver|crear|editar|desactivar, roles.ver|crear|editar|eliminar, auditoria.ver}`.
+  
+exo.administracion.{usuarios.ver|crear|editar|desactivar, roles.ver|crear|editar|eliminar, auditoria.ver}`.
   Sin tablas, sin cambios de RLS ni de `core.has_permission`. Hoy solo el
   owner los obtiene (bypass de membresía). Rollback: `delete from
   core.permissions_catalog where code like 'nexo.administracion.%'`
@@ -238,7 +251,8 @@ recibió permisos), migración registrada con versión remota `20261014201119`
   los referencie).
 
 Divergencia detectada en el precheck, sin relación con esta migración:
-`20261014181353_agencia_dashboard_access` está aplicada en `nexo-core` pero
+`20261014181353_agencia_dashboard_access` está aplicada en 
+exo-core` pero
 no existe en `main` (probablemente viene de la rama
 `feat/issue-18-agencia-independiente`). **Reconciliada el mismo día**: esa
 rama se trajo por merge a `feat/usuarios-roles-nexo`, con el archivo de la
@@ -249,7 +263,8 @@ migración incluido.
 Contexto completo, causa raíz del bug de UI auditado y deuda en
 [`status-log/2026-09-17-contratos-reglas-y-endurecimiento.md`](status-log/2026-09-17-contratos-reglas-y-endurecimiento.md).
 **1 migración, escrita y revisada manualmente el 2026-09-17, aplicada a
-`nexo-core` (remoto) el 2026-09-18** con `apply_migration` — prechecks de
+
+exo-core` (remoto) el 2026-09-18** con `apply_migration` — prechecks de
 solo lectura antes de aplicar (migración no registrada, `rrhh.contratos`
 en 0 filas, sin puestos sin departamento, sin puestos activos sin
 plantilla activa, firmas remotas de los 4 RPC todavía con la firma
@@ -302,7 +317,8 @@ como `20260916152106`).
 
 Contexto completo, pruebas y deuda en
 [`status-log/2026-09-16-rrhh-pre-f1-5.md`](status-log/2026-09-16-rrhh-pre-f1-5.md).
-**6 migraciones nuevas, todas aplicadas a `nexo-core` con
+**6 migraciones nuevas, todas aplicadas a 
+exo-core` con
 `apply_migration` y verificadas** (`get_advisors(security)` sin
 hallazgos nuevos después de cada tanda):
 
@@ -354,7 +370,8 @@ sección 0.15. Alcance predominantemente de UI/navegación
 (`packages/ui`/`apps/nexo`/`apps/rrhh`/`apps/crm`) — solo 3 migraciones,
 ninguna toca contratos/PIN/jornadas/asistencia/planillas.
 
-**3 migraciones nuevas, aplicadas a `nexo-core` y verificadas con RPC
+**3 migraciones nuevas, aplicadas a 
+exo-core` y verificadas con RPC
 real** (mismo patrón: `apply_migration` primero, archivo de Git después
 con el `version` que Supabase asignó):
 
@@ -365,7 +382,8 @@ con el `version` que Supabase asignó):
   `create or replace` lo rechaza con error real, confirmado al
   intentarlo sin el drop). Probado end-to-end: `update_platform_settings`
   con favicon → `get_platform_settings` lo devuelve; limpiado después
-  (favicon vuelto a `null`, cero residuo).
+  (favicon vuelto a 
+ull`, cero residuo).
 - `20260907224007_nexo_enterprise_ui_eliminar_empleado` —
   `rrhh.fn_eliminar_empleado`/`public.eliminar_empleado`: completa el
   hueco de UI de "eliminar empleado" (permiso `rrhh.expedientes.
@@ -396,9 +414,11 @@ migradas en este mismo commit); reemplazados por `NexoShell`/
 `sonner` se agregó como dependencia real de `packages/ui` y `apps/nexo`.
 `pnpm-lock.yaml` actualizado con `pnpm install --no-frozen-lockfile
 --lockfile-only` (el `pnpm install` normal fallaba con `EPERM` de entorno
-sobre binarios nativos de `turbo` al materializar `node_modules` — mismo
+sobre binarios nativos de `turbo` al materializar 
+ode_modules` — mismo
 tipo de bloqueo de Windows/OneDrive ya documentado para `tsc`; el modo
-`--lockfile-only` no escribe `node_modules`, evita el problema por
+`--lockfile-only` no escribe 
+ode_modules`, evita el problema por
 completo).
 
 ## 2026-09-07 — F1.4: Jornadas mínimas
@@ -417,7 +437,8 @@ vigente), y su alcance (evidencia fotográfica en kiosco, redondeo,
 incidencias, consolidación) excede F1.4. El propio documento dice "nada de
 esto se aplicó". Stash intacto, sin `pop` — nada se integró.
 
-**3 migraciones nuevas, aplicadas a `nexo-core` y verificadas** (aplicadas
+**3 migraciones nuevas, aplicadas a 
+exo-core` y verificadas** (aplicadas
 primero vía `apply_migration`, archivo de Git escrito después con el mismo
 `version` que Supabase asignó — mismo patrón que las migraciones
 anteriores de esta fecha):
@@ -485,10 +506,14 @@ Cero — queda señalada para aprobación aparte, no aplicada.
 **No verificado en navegador/UI** — mismo `EPERM` de entorno ya
 documentado (2026-09-05), reconfirmado en esta sesión. Verificación
 equivalente ejecutada después del push a `main` (commit `a68c5e9`): build
-real de Vercel para los 3 proyectos afectados (`nexo-rrhh`, `nexocore`,
-`nexo-crm` — reconstruyen por el cambio en `packages/ui/Sidebar.tsx`),
+real de Vercel para los 3 proyectos afectados (
+exo-rrhh`, 
+exocore`,
+
+exo-crm` — reconstruyen por el cambio en `packages/ui/Sidebar.tsx`),
 los 3 en `readyState: READY`, sin `get_runtime_errors` nuevos en
-`nexo-rrhh`. Frontend nuevo: `/rrhh/jornadas` (catálogo de jornadas +
+
+exo-rrhh`. Frontend nuevo: `/rrhh/jornadas` (catálogo de jornadas +
 días + feriados) y sección "Jornada" en `/rrhh/expedientes/[id]`
 (asignar/reasignar por contrato). Verificado por revisión estática
 cuidadosa del código + la verificación exhaustiva de esquema/RPC/RLS de
@@ -501,9 +526,11 @@ Contexto completo en [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md)
 sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
 
 - **F1.0 no generó migraciones** — fue una auditoría de solo lectura contra
-  `main`, `nexo-core` remoto y Vercel. El único hallazgo con acción
+  `main`, 
+exo-core` remoto y Vercel. El único hallazgo con acción
   inmediata fue de seguridad (D-06, ver abajo).
-- **1 migración nueva, aplicada a `nexo-core` y verificada**
+- **1 migración nueva, aplicada a 
+exo-core` y verificada**
   (`20260907151106_revoke_validar_acceso_operativo_public_execute`, rama
   `docs/f1-0-auditoria-rrhh` → `main`):
   - Revoca `EXECUTE` de `anon` y `authenticated` sobre
@@ -518,7 +545,8 @@ sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
     ambas quedan marcadas explícitamente como deprecadas vía
     `comment on function`, pendientes de una migración de limpieza
     posterior y separada (junto con `rrhh.seguridad_accesos` y las
-    columnas `nombre_usuario`/`user_id`/`pin_bloqueado`/`intentos_fallidos`
+    columnas 
+ombre_usuario`/`user_id`/`pin_bloqueado`/`intentos_fallidos`
     de `rrhh.empleados`, que F1.1–F1.3 van a reemplazar).
   - Verificado post-aplicación con `has_function_privilege`: `anon` y
     `authenticated` → `false`; `service_role`/`postgres` → `true` (sin
@@ -555,7 +583,8 @@ sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
   y verificadas** (rama `docs/f1-1-expediente-general-laboral` → `main`):
   1. `20260907152301_f1_1_separar_expediente_general_laboral`: columnas
      laborales/credenciales de `rrhh.empleados` (`puesto`, `departamento`,
-     `fecha_ingreso`, `fecha_baja`, `estado`, `pin_hash`, `nombre_usuario`,
+     `fecha_ingreso`, `fecha_baja`, `estado`, `pin_hash`, 
+ombre_usuario`,
      `pin_bloqueado`, `intentos_fallidos`, `user_id`) quedan nullable donde
      aplicaba y marcadas `DEPRECADAS` vía `comment on column` — no se
      eliminan todavía. `estado` recibe nuevo default `'sin_contrato'`.
@@ -569,7 +598,8 @@ sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
      terminado, sin dejar ninguna fila real inválida.
   - Verificado: inserción de prueba (borrada en la misma sesión) confirma
     que un alta con solo datos generales queda con las columnas
-    deprecadas en `null`/default; `rrhh.fn_registrar_marca_kiosko`
+    deprecadas en 
+ull`/default; `rrhh.fn_registrar_marca_kiosko`
     (kiosko en producción) verificado intacto — sigue exigiendo
     `estado = 'activo' and pin_hash is not null` hasta que F1.3 lo
     reemplace por la validación contractual.
@@ -602,7 +632,8 @@ sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
   - Frontend nuevo: `/rrhh/expedientes/[id]` (ficha del empleado +
     Expediente Laboral), listado enlaza a cada ficha y muestra contrato
     activo real. **No verificado en navegador** — mismo `EPERM` de
-    entorno ya documentado (2026-09-05), reconfirmado con `next dev` y
+    entorno ya documentado (2026-09-05), reconfirmado con 
+ext dev` y
     `tsc --noEmit` hoy; sustituido por revisión estática cuidadosa.
 - **3 migraciones más, F1.3 (PIN exclusivamente contractual) + 2
   correcciones, aplicadas y verificadas END-TO-END** (no solo esquema —
@@ -649,7 +680,8 @@ verificar el kiosco en producción. Detalle completo, matrices de
 prueba y evidencia paso a paso en
 [SECURITY_VALIDATION_HANDOFF.md](SECURITY_VALIDATION_HANDOFF.md).
 
-- **5 migraciones nuevas, aplicadas a `nexo-core` y verificadas**
+- **5 migraciones nuevas, aplicadas a 
+exo-core` y verificadas**
   (`20260905000001` a `20260905000005`, rama
   `security/rrhh-audit-hardening`, mergeada a `main` en el commit
   `ac9a487`):
@@ -677,7 +709,8 @@ prueba y evidencia paso a paso en
   sesión no tenía WSL2/Docker operativo pese a instalarlo y reiniciar —
   se confirmó que la sesión corre en un entorno distinto a la máquina
   física del usuario). El usuario autorizó explícitamente aplicar
-  directo a `nexo-core`, dado que `20260905000004` ya corregía un
+  directo a 
+exo-core`, dado que `20260905000004` ya corregía un
   fallo real ya confirmado por una validación local anterior. Se
   verificó en su lugar, contra producción: privilegios (`has_function_privilege`
   antes/después para las 4 funciones internas + 2 wrappers públicos),
@@ -735,7 +768,8 @@ referencia de producto, no como fuente de esquema a migrar 1:1.
   `core.has_permission()`. Extendido el mismo día
   ([`20260902000008`](../supabase/migrations/20260902000008_rrhh_nicaragua_and_contracts.sql))
   con parámetros de ley nicaragüense (INSS/INATEC, versionados), modalidad
-  de contrato, y credenciales operativas (`nombre_usuario` + PIN
+  de contrato, y credenciales operativas (
+ombre_usuario` + PIN
   compartido con el kiosko) para un futuro módulo móvil de choferes.
   Detalle completo de tablas y funciones en [DATABASE.md](DATABASE.md).
 - **Kiosco de marcación** (`/rrhh/kiosco`): numpad de PIN, sin sesión de
@@ -745,7 +779,8 @@ referencia de producto, no como fuente de esquema a migrar 1:1.
   además del bloqueo a 3 fallos consecutivos dentro de la función SQL.
 - **UI de expedientes** (`/rrhh/expedientes`, `/rrhh/expedientes/nuevo`):
   listado y alta de empleados vía `rrhh.fn_crear_empleado`, que
-  autogenera `nombre_usuario` y PIN si no se proveen y los devuelve en
+  autogenera 
+ombre_usuario` y PIN si no se proveen y los devuelve en
   texto plano una única vez (gateado además por
   `rrhh.expedientes.compensacion.ver` para mostrar el PIN).
 - **Habilitado en el panel**: `core.company_apps` con `rrhh` en
@@ -759,11 +794,14 @@ referencia de producto, no como fuente de esquema a migrar 1:1.
      descartaba en build y el rewrite caía a `localhost`. Corregido
      agregándola al allowlist (`769bb87`).
   2. 500 genérico en `/rrhh/dashboard` ("Falta NEXO_COMPANY_ID") — la
-     variable existía en el proyecto Vercel `nexocore` pero **no en
-     `nexo-rrhh`** (cada proyecto Vercel tiene sus propias Environment
+     variable existía en el proyecto Vercel 
+exocore` pero **no en
+     
+exo-rrhh`** (cada proyecto Vercel tiene sus propias Environment
      Variables, no se comparten). Se perdió tiempo real porque el
      usuario editó la variable en el proyecto equivocado dos veces antes
-     de confirmarlo mirando directamente el dashboard de `nexo-rrhh`.
+     de confirmarlo mirando directamente el dashboard de 
+exo-rrhh`.
   3. 500 en `/rrhh/dashboard` con mensaje vacío tras resolver (2) —
      `42501 permission denied for schema rrhh`. RLS estaba correcto pero
      la migración que creó el schema nunca hizo el `GRANT USAGE`/`SELECT`
@@ -777,7 +815,8 @@ referencia de producto, no como fuente de esquema a migrar 1:1.
 - **Provisión operativa post-fix (2026-09-04)**: creado el primer
   `rrhh.kiosko_dispositivos` real (`901098a8-dac4-4185-aa1c-530ab69b768b`,
   "Kiosko principal", sucursal Materiales JCastillo) para poder configurar
-  `NEXO_KIOSKO_ID` en el proyecto `nexo-rrhh` y habilitar la marcación
+  `NEXO_KIOSKO_ID` en el proyecto 
+exo-rrhh` y habilitar la marcación
   física. Pendiente de confirmar en producción tras esa configuración.
 - **Auditoría de seguridad (`get_advisors`, 2026-09-04)**: confirmó que
   `rrhh.fn_crear_empleado` y `rrhh.fn_set_pin_empleado` (las funciones
@@ -805,26 +844,31 @@ referencia de producto, no como fuente de esquema a migrar 1:1.
   y `category-colors.ts` (tokens de color por categoría, no por módulo).
 - `apps/nexo`: shell bar agregado, grilla agrupada por categoría (antes era
   plana), tipografía Inter para el chrome del panel.
-- Nueva función `public.get_visible_apps` corregida: excluía mal a `nexo`
+- Nueva función `public.get_visible_apps` corregida: excluía mal a 
+exo`
   de su propia lista (se listaba a sí mismo, un tile circular apuntando a
   "/") — detectado al escribir el código del home, corregido con una
   migración nueva antes de verificarlo en vivo.
 - **Verificación real, no solo "debería compilar"**:
   - `pnpm install` de nuevo (dependencia nueva `@nexo/ui` en `apps/nexo`).
-  - `next build` de `apps/nexo` y de `apps/crm` — ambos compilan y tipan
+  - 
+ext build` de `apps/nexo` y de `apps/crm` — ambos compilan y tipan
     limpio.
-  - En el camino, `next build` de `apps/crm` encontró un bug real de tipos
+  - En el camino, 
+ext build` de `apps/crm` encontró un bug real de tipos
     en `packages/permissions` (heredado de la Fase 3, no detectado hasta
     ahora porque nunca se había corrido un build real de esa app): el tipo
     `RpcClient.rpc()` pedía un `Promise` estricto pero `supabase.rpc()`
     devuelve un `PostgrestFilterBuilder` (`PromiseLike`, no `Promise`
     completo) — corregido.
   - `turbo run build` de **todo el monorepo** detectó una colisión real:
-    `apps/rrhh` y `apps/web-corporativo` tenían el mismo `name` de paquete
+    `apps/rrhh` y `apps/web-corporativo` tenían el mismo 
+ame` de paquete
     (`"web"`, heredado sin tocar de sus `create-next-app` originales) —
     renombrados a `rrhh` y `web-corporativo`.
   - Resultado final de `turbo run build`: **4 de 5 apps compilan limpio**
-    (`web-corporativo`, `crm`, `nexo`, `transporte-app`/flotilla). `rrhh`
+    (`web-corporativo`, `crm`, 
+exo`, `transporte-app`/flotilla). `rrhh`
     falla por falta de variables de entorno de su propio Supabase original
     (`ofeuzkwjhmfsazqfyutu`) — **esperado**, esa app no se ha tocado desde
     el import crudo, le toca configurarse en su propia fase (6), no antes.
@@ -843,17 +887,21 @@ referencia de producto, no como fuente de esquema a migrar 1:1.
   (contratado) y `core.has_permission` (autorizado). Mismo patrón que
   `has_permission` — wrapper en `public` para no depender de exponer el
   schema `core`.
-- `next.config.ts` de `apps/nexo` implementa el rewrite de Multi-Zones
+- 
+ext.config.ts` de `apps/nexo` implementa el rewrite de Multi-Zones
   hacia `/crm` (el único módulo adaptado hasta ahora).
 - **Se corrió de verdad, no solo se escribió**: `pnpm install` en todo el
-  monorepo (vía `npx pnpm@9`, porque no había pnpm global instalable sin
-  permisos de administrador), y ambas apps (`crm` en :3001, `nexo` en :3000)
+  monorepo (vía 
+px pnpm@9`, porque no había pnpm global instalable sin
+  permisos de administrador), y ambas apps (`crm` en :3001, 
+exo` en :3000)
   levantadas con el Browser pane. Verificado en vivo:
   - `http://localhost:3000/` → redirige a `/login` sin sesión (middleware
     funcionando).
   - Login de Nexo con credenciales falsas → `"Correo o contraseña
     incorrectos."`, confirmando conexión real end-to-end con Supabase Auth
-    de `nexo-core` (no un error de red).
+    de 
+exo-core` (no un error de red).
   - `http://localhost:3000/crm` → la URL se queda en el puerto 3000 (un
     solo dominio) pero el contenido servido es el login real de la app CRM
     (`/crm/login`, con su branding y su propio middleware de auth) — **el
@@ -862,7 +910,8 @@ referencia de producto, no como fuente de esquema a migrar 1:1.
 - Se creó/corrigió `.claude/launch.json` en el directorio de trabajo
   principal (`jcastillo`, no `Nexo` — el Browser pane lee el launch.json
   del working directory principal de la sesión) con configuraciones `crm` y
-  `nexo` que corren `pnpm --filter <app> dev` con `pnpm -C` apuntando al
+  
+exo` que corren `pnpm --filter <app> dev` con `pnpm -C` apuntando al
   monorepo real.
 - **No verificado todavía**: la grilla de módulos con un usuario real
   autenticado (`core.company_memberships` está vacío — hace falta crear un
@@ -875,8 +924,10 @@ referencia de producto, no como fuente de esquema a migrar 1:1.
   usa Supabase. Se documentó ese hecho en su README para que quede
   explícito que "no adaptado" no es lo mismo que "pendiente".
 - **`crm`**: adaptado de punta a punta.
-  - `next.config.ts`: `basePath: "/crm"` + `transpilePackages: ["@nexo/permissions"]`.
-  - Cliente/servidor de Supabase re-apuntados a `nexo-core`
+  - 
+ext.config.ts`: `basePath: "/crm"` + `transpilePackages: ["@nexo/permissions"]`.
+  - Cliente/servidor de Supabase re-apuntados a 
+exo-core`
     (`yrbjlmiqhkyxtlcerowh`), en vez del proyecto original
     `materiales-jcastillo-crm` (`arzadwxsifnaolvfcvqk`).
   - Las 3 acciones de escritura (`createCliente`, `updateCliente`,
@@ -905,22 +956,26 @@ referencia de producto, no como fuente de esquema a migrar 1:1.
   placeholder a completar después.
 - **Pendiente manual, fuera del alcance de las herramientas MCP**: exponer
   el schema `crm` en Settings → API → Data API → Exposed schemas del
-  proyecto `nexo-core`. Sin esto, `apps/crm` no puede conectarse de verdad
+  proyecto 
+exo-core`. Sin esto, `apps/crm` no puede conectarse de verdad
   todavía.
 - **Sin verificar**: no se corrió un dev server real (no existe `apps/nexo`
   todavía para probar Multi-Zones de punta a punta) — el comportamiento de
   `proxy.ts`/`middleware.ts` con `basePath` activo queda pendiente de
   confirmar en la Fase 4.
 
-## 2026-08-30 — Fase 2: proyecto `nexo-core` + schema `core` + norma v3.0
+## 2026-08-30 — Fase 2: proyecto 
+exo-core` + schema `core` + norma v3.0
 
-- Proyecto Supabase `nexo-core` creado (ref `yrbjlmiqhkyxtlcerowh`,
+- Proyecto Supabase 
+exo-core` creado (ref `yrbjlmiqhkyxtlcerowh`,
   org `Grupo CT`, `us-east-1`, plan gratuito).
 - Aplicadas las migraciones `core_schema` y `core_seed_apps`: 7 tablas del
   schema `core`, trigger `trg_seed_module_permission`, RLS habilitado en
   las 7 tablas, `core.apps` sembrada con los 4 módulos actuales.
 - Verificado en vivo: el trigger creó solo los 4 permisos de visibilidad
-  (`nexo.ver_modulo`, `rrhh.ver_modulo`, `flotilla.ver_modulo`,
+  (
+exo.ver_modulo`, `rrhh.ver_modulo`, `flotilla.ver_modulo`,
   `crm.ver_modulo`) sin ningún INSERT manual.
 - `get_advisors` (security): sin alertas más allá de "RLS sin policy" en
   las 5 tablas que se dejaron así a propósito (provisional hasta Fase 3+).
@@ -941,7 +996,8 @@ Se trajo el código de los 4 productos existentes a sus carpetas en `apps/`,
 usando `git subtree` para conservar el historial de commits de cada uno
 (decisión tomada con el usuario ese mismo día). **Solo se importó el
 código** — nada de Multi-Zones (`basePath`/`rewrites`), nada de Supabase
-(`nexo-core` no existe todavía), nada de adaptación de permisos. Eso es la
+(
+exo-core` no existe todavía), nada de adaptación de permisos. Eso es la
 siguiente fase.
 
 | Módulo | Origen | Método | Commits traídos |
@@ -971,7 +1027,8 @@ Notas:
   - No quedó remote para `rrhh` (se clonó a una carpeta temporal ya borrada);
     para traer fixes futuros de Gestor360 hay que re-clonar
     `jcaatillo/marcacion-grupo-ct` y repetir el split de `web/`.
-- Verificado: ningún `node_modules/` ni `.next/` quedó commiteado en ninguno
+- Verificado: ningún 
+ode_modules/` ni `.next/` quedó commiteado en ninguno
   de los 4 imports (los `.gitignore` de origen ya los excluían). Tamaño
   final de `.git`: ~2.4 MB.
 
@@ -982,15 +1039,21 @@ Notas:
 - Se copian los documentos de planeación
   (`PLAN_UNIFICACION_NEXO.md`, `PROPUESTA_MARCA_MODULOS.md`) a
   `docs/planning/`.
-- Ningún módulo migrado todavía. Ningún proyecto Supabase (`nexo-core`)
+- Ningún módulo migrado todavía. Ningún proyecto Supabase (
+exo-core`)
   provisionado todavía.
 - Pendiente: crear el repositorio remoto en GitHub cuando el usuario lo
   indique (aún no solicitado).
 
 ## Próximos pasos pendientes de ejecutar
 
-1. Provisionar el proyecto Supabase `nexo-core` y las tablas de `core.*`.
+1. Provisionar el proyecto Supabase 
+exo-core` y las tablas de `core.*`.
 2. Elegir el módulo piloto (`web-corporativo` recomendado, menor riesgo) y
    migrarlo completo (app + datos) para validar el patrón Multi-Zones de
    punta a punta.
-3. Construir la app `nexo` (panel) real sobre ese primer módulo migrado.
+3. Construir la app 
+exo` (panel) real sobre ese primer módulo migrado.
+
+## RRHH P2 — archivo pendiente de aplicar
+20261016231000_rrhh_p2_pin_unico_empresa.sql. Verificar definiciones sin random() y con advisory lock; probar activación/regeneración y concurrencia P7. Rollback: corregir hacia adelante conservando hashes; no volver al generador inseguro.
