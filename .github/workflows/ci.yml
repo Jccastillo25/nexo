@@ -1,0 +1,99 @@
+name: CI
+
+# Puerta de calidad del monorepo (issue #43).
+#
+# Corre en cada pull request, en cada push a main y a demanda. NO usa secretos
+# y ninguna prueba se conecta a Supabase ni a ninguna base remota: la prueba SQL
+# corre contra PGlite (PostgreSQL en WASM, en memoria) y un guard explícito del
+# job de pruebas falla si el entorno trae credenciales o URLs de base de datos.
+# Detalle de cobertura y límites: docs/CI_CHECKS.md.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Un solo run por rama/PR: si se empuja de nuevo, el anterior se cancela.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CI: "true"
+  NEXT_TELEMETRY_DISABLED: "1"
+  TURBO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  # Checks que bloquean el merge. Cada fila de la matriz aparece como un check
+  # propio en el PR, con el nombre exacto de la columna `name`.
+  checks:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: typecheck
+            cmd: pnpm run typecheck
+          - name: lint
+            cmd: pnpm run lint:gate
+          - name: build
+            cmd: pnpm run build
+          - name: test-db-rrhh
+            cmd: pnpm run test:db
+          - name: test-agencia-access
+            cmd: pnpm run test:agencia:access
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm queda fijado a la versión de `packageManager` (9.15.9) para que el
+      # lockfile se lea con el mismo motor que lo generó.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Instalar dependencias (lockfile congelado)
+        run: pnpm install --frozen-lockfile
+
+      # Guard del criterio "el CI nunca toca una base real": este repo no
+      # configura secretos, así que si alguna vez apareciera una credencial en
+      # el entorno, el job de pruebas falla en vez de conectarse a algo.
+      - name: Verificar entorno efímero sin credenciales de base de datos
+        if: matrix.name == 'test-db-rrhh'
+        run: |
+          if env | grep -E '^(SUPABASE_[A-Z_]*|DATABASE_URL|PGHOST|PGDATABASE|PGUSER|PGPASSWORD)='; then
+            echo "::error::El job de pruebas no debe recibir credenciales ni URLs de base de datos."
+            exit 1
+          fi
+          echo "OK: entorno sin credenciales de Supabase/Postgres."
+
+      - name: ${{ matrix.name }}
+        run: ${{ matrix.cmd }}
+
+  # Deuda pre-existente en main, visible en cada PR pero SIN bloquear (issue
+  # #43: no ocultar fallas viejas ni presentarlas como regresiones nuevas).
+  # Cuando crm y flotilla queden limpios, mover sus filtros a `lint:gate`.
+  lint-deuda:
+    name: lint-deuda (no bloquea)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint:deuda

@@ -16,18 +16,20 @@ conectan solas a un proyecto remoto: el destino lo decide quien las ejecuta.
 
 ## Cómo se ejecuta
 
-Con Postgres embebido (no necesita Postgres instalado; sí red la primera vez):
+Una sola orden, desde la raíz del repo (Postgres embebido: no hace falta tener
+Postgres instalado ni ninguna credencial):
 
 ```bash
-npm i --no-save @electric-sql/pglite   # no toca package.json ni pnpm-lock.yaml
-node supabase/tests/run_rrhh_p1_pin_ambiguo.mjs
+pnpm install --frozen-lockfile
+pnpm test:rrhh:p1
 ```
 
-Sin red, apuntando a una copia local del paquete:
-
-```bash
-PGLITE_DIR=/ruta/a/node_modules/@electric-sql/pglite node supabase/tests/run_rrhh_p1_pin_ambiguo.mjs
-```
+`@electric-sql/pglite` está fijado en la versión exacta `0.5.10` dentro de las
+`devDependencies` de la raíz: no hay instalaciones ad hoc ni versiones
+flotantes. El workflow `.github/workflows/ci.yml` ejecuta exactamente esta
+orden como check obligatorio (`test-db-rrhh`); ver
+[`docs/CI_CHECKS.md`](../../docs/CI_CHECKS.md) para el detalle de cobertura y
+límites.
 
 Contra un PostgreSQL propio (con o sin el esquema real de `nexo-core`):
 
@@ -55,5 +57,7 @@ falla en C4, es decir sí detecta el bug que P1 corrige.
 Estas pruebas corren sobre un esquema mínimo replicado a mano, no sobre
 `nexo-core`. Por lo tanto **no** cubren RLS/policies, particiones, el resto de
 las columnas del esquema real, ni el recorrido completo del kiosco en navegador
-(Server Action → PostgREST → RPC). Que pasen no equivale a validación en
-producción.
+(Server Action → PostgREST → RPC), ni concurrencia real. Que pasen no equivale a
+validación en producción. La matriz completa de límites (PGlite vs
+Postgres/Supabase real, RLS, concurrencia, bcrypt) está en
+[`docs/CI_CHECKS.md`](../../docs/CI_CHECKS.md#límites-de-cobertura-lo-que-estos-checks-no-prueban).

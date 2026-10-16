@@ -2,8 +2,12 @@
 // =============================================================================
 // Runner de la prueba P1 (issue #30) sobre un PostgreSQL embebido (PGlite).
 //
-//   npm i --no-save @electric-sql/pglite     # no toca package.json ni el lockfile
-//   node supabase/tests/run_rrhh_p1_pin_ambiguo.mjs
+//   pnpm test:rrhh:p1          # desde la raíz del repo
+//
+// La dependencia está fijada en package.json (@electric-sql/pglite 0.5.10,
+// versión exacta) e instalada por `pnpm install --frozen-lockfile`: no hay
+// instalaciones ad hoc ni versiones flotantes. El workflow de CI corre esta
+// misma orden (ver docs/CI_CHECKS.md).
 //
 // Qué hace, en un motor en memoria que se descarta al terminar:
 //   1. crea el entorno desechable (rrhh_p1_pin_ambiguo_entorno.sql);
@@ -14,15 +18,16 @@
 //   4. revisa los avisos que emitió el motor: la señal técnica de PIN ambiguo
 //      debe aparecer y NINGÚN aviso puede contener un PIN.
 //
-// No se conecta a Supabase ni a ningún Postgres remoto: si PGLITE_DIR apunta a
-// una copia local del paquete (útil sin red), la usa; si no, importa
-// @electric-sql/pglite del cwd. La extensión pgcrypto se carga desde el propio
+// Este runner NUNCA se conecta a una base remota: PGlite es un PostgreSQL
+// compilado a WASM que corre dentro del proceso, sin sockets ni credenciales.
+// El workflow de CI no recibe secretos de Supabase (ver el guard explícito en
+// .github/workflows/ci.yml). La extensión pgcrypto se carga desde el propio
 // paquete para que la comparación de PINes use bcrypt real.
 // =============================================================================
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const testsDir = here;
@@ -42,17 +47,6 @@ const MIGRACION = path.join(
 const PINES_DE_PRUEBA = ["1111", "2222", "4444", "5555", "6666", "9999"];
 const VERIFICACIONES_ESPERADAS = 28;
 
-const PGLITE_DIR = process.env.PGLITE_DIR;
-
-const cargarModulo = (sub) => {
-  const spec = PGLITE_DIR
-    ? pathToFileURL(path.join(path.resolve(PGLITE_DIR), "dist", `${sub}.js`)).href
-    : sub === "index"
-      ? "@electric-sql/pglite"
-      : `@electric-sql/pglite/contrib/${sub}`;
-  return import(spec);
-};
-
 const leer = (ruta) => readFile(ruta, "utf8");
 
 const fallos = [];
@@ -69,10 +63,11 @@ const avisos = [];
 const anotarAviso = (notice) => avisos.push(`${notice.severity}: ${notice.message}`);
 
 const [{ PGlite }, { pgcrypto }] = await Promise.all([
-  cargarModulo("index"),
-  cargarModulo("contrib/pgcrypto"),
+  import("@electric-sql/pglite"),
+  import("@electric-sql/pglite/contrib/pgcrypto"),
 ]);
 const db = await PGlite.create({ extensions: { pgcrypto } });
+console.log("ok  PGlite en memoria (entorno efímero, sin conexión a ninguna base remota)");
 
 try {
   const [entorno, migracion, prueba] = await Promise.all([

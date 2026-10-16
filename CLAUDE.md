@@ -488,6 +488,34 @@ import { Analytics } from "@vercel/analytics/next";
 Ya está en `apps/nexo`, `apps/crm` y `apps/web-corporativo`. Falta agregarlo
 a `apps/rrhh` y `apps/flotilla` cuando se adapten en sus fases.
 
+## Regla obligatoria: validación local y CI antes de abrir un PR
+
+**Ningún cambio se sube sin pasar la puerta de calidad del repo.** Desde el
+2026-10-16 existe una orden local que reproduce lo mismo que GitHub Actions
+exige en cada pull request:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm verify
+```
+
+Los checks que bloquean el merge, qué cubre cada uno, qué **no** cubre (PGlite
+no es el Postgres de Supabase: no prueba RLS, particiones ni concurrencia) y la
+configuración de GitHub que todavía requiere intervención del owner están en
+[`docs/CI_CHECKS.md`](docs/CI_CHECKS.md). Reglas que se derivan de eso:
+
+- No declarar algo "probado" con un check que en realidad no corre: `turbo`
+  termina en **0 tareas con exit 0** cuando ninguna app declara la tarea — el
+  guard [`scripts/check-app-tasks.mjs`](scripts/check-app-tasks.mjs) falla en ese
+  caso (era el bug real de `pnpm typecheck`, issue #43).
+- Toda app nueva en `apps/*` debe declarar `typecheck`, `lint` y `build`; si
+  falta alguna, el guard rompe el check en vez de perder cobertura en silencio.
+- Las dependencias de pruebas van **fijadas** en `package.json` +
+  `pnpm-lock.yaml` (versión exacta, p. ej. `@electric-sql/pglite` `0.5.10`).
+  Nada de instalaciones ad hoc ni versiones flotantes.
+- Una falla que ya existía en `main` se documenta como deuda pre-existente (ver
+  `docs/CI_CHECKS.md`) y no se presenta como regresión del cambio en curso.
+
 ## Arquitectura (resumen — detalle en `docs/ARCHITECTURE.md`)
 
 - Monorepo Turborepo + pnpm. Un módulo = una app en `apps/*`, desplegable

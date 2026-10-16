@@ -6,11 +6,18 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "turbo run dev",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck"
+    "build": "node scripts/check-app-tasks.mjs build && turbo run build",
+    "lint": "node scripts/check-app-tasks.mjs lint && turbo run lint",
+    "lint:gate": "turbo run lint --filter=nexo-panel --filter=rrhh --filter=nexo-agencia --filter=nexo-atencion --filter=web-corporativo",
+    "lint:deuda": "turbo run lint --filter=materiales-jcastillo-crm --filter=transporte-app --continue",
+    "typecheck": "node scripts/check-app-tasks.mjs typecheck && turbo run typecheck",
+    "test:agencia:access": "node apps/agencia/scripts/check-access.cjs",
+    "test:rrhh:p1": "node supabase/tests/run_rrhh_p1_pin_ambiguo.mjs",
+    "test:db": "pnpm run test:rrhh:p1",
+    "verify": "pnpm run typecheck && pnpm run lint:gate && pnpm run test:db && pnpm run test:agencia:access && pnpm run build"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
     "turbo": "^2.1.0"
   }
 }
