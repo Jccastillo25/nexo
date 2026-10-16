@@ -68,6 +68,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-16 | [RRHH 0-2-runner](status-log/2026-10-16-rrhh-0-2-runner.md) | Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [CI: pruebas automatizadas y checks obligatorios](status-log/2026-10-16-ci-checks-automatizados.md) | Workflow `CI` + orden local `pnpm verify`; `typecheck` real en las 7 apps y prueba SQL P1 con PGlite fijado. Protección de `main` **activa y verificada**: los cinco checks (`typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access`) son obligatorios antes de fusionar, con `strict: false` y `enforce_admins: true`; `lint-deuda (no bloquea)` no bloquea. |
 | 2026-10-15 | [RRHH P1 — PIN ambiguo, fallo cerrado](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md) | La búsqueda del kiosco cuenta coincidencias y no marca si el PIN es ambiguo. Migración `20261015181000` fusionada en `main` (`fc2b309`) y probada en PG embebido; sin aplicar a remoto. |
 | 2026-10-15 | [RRHH/kiosco — especificación de piloto y MVP operativo](status-log/2026-10-15-rrhh-piloto-mvp-especificacion.md) | Corte y tickets P1–P7/M1–M4 aprobados como diseño; sin implementación ni validación con usuarios reales. |
@@ -105,6 +106,8 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 
 # 1. Estado general
 
+Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
 | Área | Estado | Realidad conocida / siguiente paso |
 |---|---|---|
 | Agencia digital | 🟡 Preparada, sin activar | `apps/agencia`, `/agencia`, proyecto `nexo-agencia`; matriz aplicada, código compilado y pruebas técnicas OK. Revisión final de Claude y activación pendientes; cuentas y visualización manuales. |
@@ -136,6 +139,8 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 ---
 
 # 2. Divergencias conocidas: estado actual vs modelo objetivo
+
+Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Confirmadas en remoto durante **F1.0** (2026-09-07, ver [`status-log/2026-09-07-f1-0-auditoria-real.md`](status-log/2026-09-07-f1-0-auditoria-real.md)). Pendientes de corregirse mediante migraciones nuevas en F1.1–F1.3 (la mayoría ya resuelta, ver estado de cada una).
 
@@ -191,6 +196,8 @@ Estado: ℹ️ hallazgo de F1.0, sin urgencia — no contradice el modelo objeti
 
 # 3. Fase 1 — tablero de ejecución RRHH
 
+Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
 | ID | Entregable | Estado | Evidencia / nota |
 |---|---|---|---|
 | F1.0 | Auditoría real `main` + Supabase + Vercel + permisos + datos | ✅ | [Detalle](status-log/2026-09-07-f1-0-auditoria-real.md). Sin código/DB pendiente de revisión. |
@@ -211,6 +218,8 @@ Estado: ℹ️ hallazgo de F1.0, sin urgencia — no contradice el modelo objeti
 ---
 
 # 4. Acceso de Conductores y Kiosko
+
+Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Fuente específica: [`DRIVER_ACCESS_AND_KIOSK.md`](DRIVER_ACCESS_AND_KIOSK.md).
 
@@ -269,6 +278,8 @@ Si ya existe identidad digital, no crear otra.
 
 # 5. Preparación Nexo Mobile
 
+Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
 ## Estado actual
 
 No existe una app móvil Nexo integrada al monorepo.
@@ -326,6 +337,8 @@ No debe incluir por defecto administración de empleados, planillas, permisos, c
 
 # 6. Protocolo de actualización para Claude
 
+Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
 En cada subfase ejecutada, actualizar este archivo en el mismo commit o conjunto de commits que cambia el producto:
 
 1. Crear una entrada nueva en `docs/status-log/YYYY-MM-DD-slug.md` con el detalle completo (qué se auditó/migró/verificó, evidencia, deuda pendiente) — **no** volver a convertir este archivo en un monolito narrativo.
@@ -356,6 +369,8 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 ---
 
 # 7. Próxima acción obligatoria
+
+Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 **RRHH/kiosco:** desarrollar en orden P1–P7 y después M1–M4 según [la especificación aprobada](RRHH_PILOTO_MVP_OPERATIVO.md). P1 (PIN ambiguo) ya está implementado y fusionado; **el siguiente paso es P2** (unicidad del PIN al activar/regenerar), que aún no se inició. P7 es puerta de autorización del piloto, no una formalidad: registra en privado funciones, buzón, dispositivo y pruebas; cualquier prueba crítica fallida pospone el piloto. Esto no sustituye F1.5–F1.10 completos.
 
