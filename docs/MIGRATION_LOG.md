@@ -1060,3 +1060,6 @@ exo` (panel) real sobre ese primer módulo migrado.
 
 ## RRHH P3 — pendiente de aplicar (2026-10-16)
 20261016232000_rrhh_p3_marca_contrato.sql pendiente. Postcheck: columna NOT NULL, FK validada y authenticated sin INSERT/UPDATE/DELETE; verificar tambien particiones. Rollback: conservar vinculos e historia, corregir hacia adelante.
+
+## RRHH P4 — preparado, sin aplicar
+20261016233000_rrhh_p4a_kiosko_solicitudes.sql y 20261016234000_rrhh_p4b_marca_atomica_idempotente.sql pendientes. Verificar cuatro particiones, registro y grants, firma vieja ausente y nueva anon-callable. Rollback: preservar marcas/solicitudes; corregir hacia adelante sin restaurar firma de dos argumentos. Requiere desplegar cliente nuevo tras aplicar P4b.

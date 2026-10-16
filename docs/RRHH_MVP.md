@@ -776,3 +776,6 @@ PIN único por empresa al activar/regenerar implementado y probado en PGlite, si
 
 ## RRHH P3 — pendiente de aplicar (2026-10-16)
 P3 local: nuevas marcas vinculadas al contrato exacto; historia de recontratacion conservada. Sin E2E remoto ni autorizacion del piloto.
+
+## RRHH P4 — preparado, sin aplicar
+P4 local probado: un par diario por contrato, ayer abierto inicia hoy con entrada, tercer envio rechazado, confirmacion sin insercion, reintentos exactos sin duplicar ni sumar fallos. Finalizacion coordinada mediante lock contractual y revalidacion. Falta P5 UI completa y validacion remota de carreras.

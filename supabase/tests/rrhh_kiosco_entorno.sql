@@ -214,3 +214,9 @@ create policy "marcas: ver con permiso" on rrhh.asistencia_marcas for select to 
 create policy "marcas: crear con permiso" on rrhh.asistencia_marcas for insert to authenticated with check(true);
 create policy "marcas: editar con permiso" on rrhh.asistencia_marcas for update to authenticated using(true);
 create policy "marcas: eliminar con permiso" on rrhh.asistencia_marcas for delete to authenticated using(true);
+
+-- Registro real del mecanismo de particionado; sin cron ni conexiones remotas.
+create table core.tablas_particionadas (
+ schema_nombre text not null,tabla_nombre text not null,fn_asegurar_particion text not null,
+ primary key(schema_nombre,tabla_nombre)
+);

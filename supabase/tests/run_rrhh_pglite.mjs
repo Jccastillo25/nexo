@@ -16,8 +16,10 @@ try {
     await db.exec(await readFile(resolved, 'utf8'));
     console.log(`OK ${file}`);
   }
-} catch {
+} catch (error) {
   // Los errores SQL pueden incluir valores de credenciales: nunca imprimirlos.
-  console.error('FALLO SQL local; revisar aserciones sin volcar argumentos ni valores');
+  const diagnostic = /^FALLO P[2-7]: [\p{L} ]+$/u.test(error.message ?? '') || error.code === '42702'
+    ? error.message : `SQLSTATE ${error.code ?? 'desconocido'}`;
+  console.error(`FALLO SQL local: ${diagnostic}; sin argumentos ni valores`);
   process.exitCode = 1;
 } finally { await db.close(); }

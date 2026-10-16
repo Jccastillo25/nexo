@@ -46,8 +46,8 @@ export default function KioskClient({ kioskoNombre }: { kioskoNombre?: string })
   const submit = useCallback(async (value: string) => {
     setStatus({ kind: "loading" });
     try {
-      const result = await marcarAsistencia(value);
-      if (result.ok) {
+      const result = await marcarAsistencia(value, crypto.randomUUID(), false);
+      if (result.estado === "registrada") {
         setStatus({ kind: "success", result });
       } else {
         setStatus({ kind: "error", message: result.message });
