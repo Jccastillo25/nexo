@@ -3,7 +3,7 @@
 ## Cambio de estado
 
 - **Sin puerta de calidad** (0 workflows en `.github/workflows/`, `pnpm typecheck` ejecutaba **0 tareas con exit 0**, prueba P1 dependiente de una instalación manual de PGlite) → **workflow `CI` corriendo en cada PR y orden local única**, con la prueba SQL de P1 conectada y dependencia fijada.
-- Estado del gate: **los checks se ejecutan y se ven en el PR, pero el merge todavía no está bloqueado** por GitHub. Eso requiere branch protection y es una acción manual del owner (pasos en [`CI_CHECKS.md`](../CI_CHECKS.md)).
+- Estado del gate: **cerrado el mismo 2026-10-16.** Al entregar el workflow, la regla de branch protection seguía pendiente de configurar (acción del owner); se aplicó y se verificó el mismo día. `main` exige ahora los **cinco checks obligatorios** (`typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access`, app GitHub Actions `app_id 15368`) antes de fusionar, con `strict: false`, `enforce_admins: true` y **sin force push ni borrado de rama**. El check `lint-deuda (no bloquea)` es informativo: **no** bloquea el merge. Detalle al final de este registro y pasos reproducibles en [`CI_CHECKS.md`](../CI_CHECKS.md).
 - Rama `codex/ci-checks-issue-43` desde `main` `fc2b309`. **No se aplicó ninguna migración, no se desplegó nada y no se avanzó a P2.**
 
 ## Entregado
