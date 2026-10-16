@@ -26,6 +26,7 @@
 | [PERMISSIONS.md](PERMISSIONS.md) | Norma de permisos y roles. |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | Shell compartido, tokens y navegación Web. |
 | [MIGRATION_LOG.md](MIGRATION_LOG.md) | Historial de migraciones y verificaciones. |
+| [CI_CHECKS.md](CI_CHECKS.md) | Puerta de calidad: una orden local (`pnpm verify`), checks de GitHub Actions, qué bloquea el merge (cinco checks obligatorios; `lint-deuda` no bloquea), límites de cobertura y protección de `main` activa y verificada. |
 | [ROADMAP.md](ROADMAP.md) | Orden macro vigente de implementación. |
 | [RRHH_MVP.md](RRHH_MVP.md) | Definition of Done de RRHH: expediente, contrato, PIN de asistencia, jornada, consolidación, planilla y E2E. |
 
