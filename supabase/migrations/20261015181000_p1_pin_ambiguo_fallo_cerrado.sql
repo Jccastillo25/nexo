@@ -111,7 +111,7 @@ begin
     and not cc.pin_bloqueado
     and crypt(p_pin, cc.pin_hash) = cc.pin_hash;
 
-  if v_coincidencias = 1 then
+  if v_coincidencias >= 1 then
     v_empleado_id := v_empleados[1];
   elsif v_coincidencias > 1 then
     -- Señal técnica sin PIN: no incluye el valor probado, ni el hash, ni el
