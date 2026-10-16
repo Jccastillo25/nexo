@@ -76,6 +76,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-16 | [RRHH revisión final](status-log/2026-10-16-rrhh-revision-final.md) | Regresiones: agotamiento al activar y rechazo de PIN ambiguo tras P4; solo PGlite, sin remoto. |
 | 2026-10-16 | [RRHH p7-paquete](status-log/2026-10-16-rrhh-p7-paquete.md) | Paquete unico del Operador preparado: migraciones P1-P6 con postchecks y rollback, SQL de grants/RLS/particiones, arnes remoto de carreras y guion manual P7. Sin ejecucion remota ni autorizacion de piloto. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [RRHH p6-marcas](status-log/2026-10-16-rrhh-p6-marcas.md) | P6 implementado: consulta segura por empresa con marcas.ver, listado de solo lectura, filtros y detalle con numero de contrato, estados calculables y paginacion. Pruebas SQL y validacion de fechas locales. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [RRHH p5-confirmacion](status-log/2026-10-16-rrhh-p5-confirmacion.md) | P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo local; pendiente de aplicar y validar en remoto. |
@@ -122,7 +123,7 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 
 # 1. Estado general
 
-P2–P6 implementados en rama y verificados localmente; remoto y E2E pendientes. Ver el paquete del Operador.
+P2–P6 implementados en rama y verificados localmente, incluidas regresiones de agotamiento y ambigüedad; remoto y E2E pendientes. Ver el paquete del Operador.
 
 
 

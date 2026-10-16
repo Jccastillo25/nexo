@@ -47,5 +47,16 @@ begin
  begin perform rrhh.fn_regenerar_pin_contrato(contrato,empresa); exception when others then fallo:=true; end;
  if not fallo or (select rotacion_numero from rrhh.contrato_credenciales where contrato_id=contrato)<>rotacion
  then raise exception 'FALLO P2: agotamiento debe conservar credencial'; end if;
+ -- Tambien al activar: el UPDATE a activo debe revertirse por completo.
+ cuerpo := pg_get_functiondef('rrhh.fn_activar_contrato(uuid,uuid)'::regprocedure);
+ execute replace(cuerpo,'extensions.gen_random_bytes(2)','core.prueba_bytes()');
+ insert into rrhh.empleados(company_id,nombre,apellido) values(empresa,'PRUEBA','agotamiento') returning id into empleado;
+ insert into rrhh.contratos(company_id,empleado_id) values(empresa,empleado) returning id into contrato;
+ insert into rrhh.contrato_jornadas values(contrato);
+ fallo:=false;
+ begin perform rrhh.fn_activar_contrato(contrato,empresa); exception when others then fallo:=true; end;
+ if not fallo or (select estado from rrhh.contratos where id=contrato)<>'borrador'
+ or exists(select 1 from rrhh.contrato_credenciales where contrato_id=contrato)
+ then raise exception 'FALLO P2: activacion agotada debe revertirse'; end if;
 end $$;
 rollback;

@@ -180,6 +180,17 @@ el modelo real de roles ni concurrencia entre conexiones PostgreSQL.**
 Con migraciones aplicadas y cliente nuevo, siempre desde
 `http://localhost:3000/rrhh` y usando solo datos `PRUEBA`:
 
+Iniciar los servidores desde la copia que tenga esta rama, no desde otra copia
+de main. Si los puertos están ocupados, identificar los servidores anteriores
+antes de reemplazarlos. El `.env.local` de RRHH ya está configurado en la copia
+de trabajo; las variables del panel también deben ser locales y no versionadas.
+
+```powershell
+pnpm --filter nexo-panel dev
+# En otra terminal, desde la misma copia de la rama:
+pnpm --filter rrhh run dev:zone
+```
+
 1. Con un rol real autorizado, crear expediente con datos obligatorios. Verificar
    que no pide ni emite PIN. Comprobar el rechazo de campos faltantes.
 2. Crear contrato borrador con departamento, puesto y plantilla válidos de la

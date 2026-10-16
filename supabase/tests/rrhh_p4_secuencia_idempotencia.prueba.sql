@@ -3,7 +3,7 @@ create function pg_temp.exigir(ok boolean,detalle text) returns void language pl
 begin if ok is not true then raise exception 'FALLO P4: %',detalle; end if; end $$;
 do $$
 declare empresa uuid:=gen_random_uuid(); usuario uuid:=gen_random_uuid(); empleado uuid;
- contrato uuid; otro uuid; kiosco uuid; segundo uuid; valor text; invalido text;
+ contrato uuid; otro uuid; empleado_dos uuid; kiosco uuid; segundo uuid; valor text; invalido text;
  envio uuid:=gen_random_uuid(); salida uuid:=gen_random_uuid(); rechazo uuid:=gen_random_uuid();
  respuesta jsonb; original jsonb; i integer; fallos integer; antes integer; fecha date;
 begin
@@ -16,6 +16,16 @@ begin
  perform set_config('request.jwt.claim.sub',usuario::text,true);
  insert into core.prueba_permisos values(usuario,empresa,'rrhh.expedientes.contratos.activar'),(usuario,empresa,'rrhh.expedientes.contratos.finalizar');
  select pin_kiosko into valor from rrhh.fn_activar_contrato(contrato,empresa);
+ -- La defensa P1 debe sobrevivir al reemplazo de firma y al flujo P4.
+ insert into rrhh.empleados(company_id,nombre,apellido) values(empresa,'PRUEBA','colision') returning id into empleado_dos;
+ insert into rrhh.contratos(company_id,empleado_id,estado) values(empresa,empleado_dos,'activo') returning id into otro;
+ insert into rrhh.contrato_credenciales(company_id,contrato_id,pin_hash)
+ values(empresa,otro,extensions.crypt(valor,extensions.gen_salt('bf')));
+ perform pg_temp.exigir(public.registrar_marca_kiosko(valor,kiosco,gen_random_uuid(),false)='{"estado":"rechazada"}'::jsonb,'ambiguedad falla cerrado');
+ perform pg_temp.exigir((select count(*)=0 from rrhh.asistencia_marcas),'ambiguedad sin marca');
+ update rrhh.contrato_credenciales set activo=false where contrato_id=otro;
+ -- Descartar solo resultado de fixture ambiguo antes de contar casos siguientes.
+ delete from rrhh.kiosko_solicitudes;
  original:=public.registrar_marca_kiosko(valor,kiosco,envio,false);
  perform pg_temp.exigir(original='{"estado":"registrada","tipo":"entrada"}'::jsonb,'entrada');
  perform pg_temp.exigir(public.registrar_marca_kiosko(valor,kiosco,envio,true)=original,'reintento mismo token');
