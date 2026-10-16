@@ -49,7 +49,7 @@ export const RRHH_NAV_ITEMS: NexoNavItem[] = [
     label: "Asistencia",
     icon: "clock",
     children: [
-      { label: "Marcas" },
+      { label: "Marcas", href: "/marcas" },
       { label: "Incidencias" },
       { label: "Justificaciones" },
       { label: "Kioskos", href: "/kiosco" },

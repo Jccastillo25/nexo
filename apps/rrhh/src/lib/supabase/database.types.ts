@@ -80,6 +80,10 @@ export type Database = {
         Args: { p_code: string; p_company_id: string };
         Returns: boolean;
       };
+      consultar_marcas: {
+        Args: { p_company_id: string; p_desde: string; p_hasta: string; p_empleado_id?: string; p_contrato_id?: string; p_estado?: string; p_limit?: number; p_offset?: number };
+        Returns: { marca_id: string; empleado_id: string; empleado_label: string; contrato_id: string; contrato_numero: number; fecha_local: string; tipo: string; marcado_en: string; estado: string }[];
+      };
       registrar_marca_kiosko: {
         Args: { p_kiosko_id: string; p_pin: string; p_solicitud_id: string; p_confirmar_salida: boolean };
         Returns: Json;

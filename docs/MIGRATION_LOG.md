@@ -1063,3 +1063,6 @@ exo` (panel) real sobre ese primer módulo migrado.
 
 ## RRHH P4 — preparado, sin aplicar
 20261016233000_rrhh_p4a_kiosko_solicitudes.sql y 20261016234000_rrhh_p4b_marca_atomica_idempotente.sql pendientes. Verificar cuatro particiones, registro y grants, firma vieja ausente y nueva anon-callable. Rollback: preservar marcas/solicitudes; corregir hacia adelante sin restaurar firma de dos argumentos. Requiere desplegar cliente nuevo tras aplicar P4b.
+
+## RRHH P6 — preparado, sin aplicar
+20261016235000_rrhh_p6_consultar_marcas.sql pendiente. Postcheck: anon sin EXECUTE, authenticated con EXECUTE; interno restringido, autorizado ve solo su empresa y no autorizado denegado. Rollback: retirar pagina/wrapper de lectura sin tocar marcas ni vinculos.

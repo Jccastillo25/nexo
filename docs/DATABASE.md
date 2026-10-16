@@ -507,3 +507,6 @@ P3 preparado: contrato_id NOT NULL con FK (contrato_id,company_id,empleado_id), 
 
 ## RRHH P4 — preparado, sin aplicar
 P4a agrega kiosko_solicitudes particionada por creado_en, indices FK/empresa-fecha/token/JSONB y registro en core.tablas_particionadas. Sin acceso directo ni retencion automatica. P4b reemplaza firma del kiosco por cuatro argumentos y respuesta JSON sin identidad; guarda resultados definitivos y serializa por token y contrato/dia America/Managua.
+
+## RRHH P6 — preparado, sin aplicar
+P6 preparado: rrhh.fn_consultar_marcas y public.consultar_marcas, SECURITY DEFINER con search_path fijo y comprobacion de marcas.ver/empresa. Wrapper solo authenticated; interna no accesible. Devuelve identificadores minimos, etiqueta de empleado, numero de contrato, fecha/tipo/hora/estado. Rango maximo 62 dias, limite 100, offset validado; sin datos de credenciales.

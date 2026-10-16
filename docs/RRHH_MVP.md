@@ -782,3 +782,6 @@ P4 local probado: un par diario por contrato, ayer abierto inicia hoy con entrad
 
 ## RRHH P5 — cliente local
 ConfirmDialog compartido para toda salida, sin identidad; envio unico en memoria, mismo UUID para reintento/confirmacion, cancelar sin RPC y borrado al terminar. Reloj visible America/Managua. Pruebas unitarias del flujo, sin recorrido autenticado ni marcacion remota.
+
+## RRHH P6 — preparado, sin aplicar
+P6 local: /rrhh/marcas lista entradas/salidas, filtra fechas, empleado/contrato ya consultados y estado; detalle y paginacion. No edita ni corrige. Sin filas significa Sin marcas registradas, nunca ausencia. Lectura minima incluye numero de contrato para identificarlo. Pruebas con autorizacion simulada no sustituyen RLS real ni recorrido autenticado.
