@@ -17,6 +17,8 @@ const RRHH_APP_URL = process.env.RRHH_APP_URL ?? "http://localhost:3002";
 const AGENCIA_APP_URL = process.env.AGENCIA_APP_URL;
 // Atención (plan 13): mismo criterio, sin destino no hay rewrite.
 const ATENCION_APP_URL = process.env.ATENCION_APP_URL;
+// Productos (plan 14): mismo criterio, sin destino no hay rewrite.
+const PRODUCTOS_APP_URL = process.env.PRODUCTOS_APP_URL;
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@nexo/permissions", "@nexo/ui"],
@@ -70,6 +72,12 @@ const nextConfig: NextConfig = {
         ? [
             { source: "/atencion", destination: `${ATENCION_APP_URL}/atencion` },
             { source: "/atencion/:path*", destination: `${ATENCION_APP_URL}/atencion/:path*` },
+          ]
+        : []),
+      ...(PRODUCTOS_APP_URL
+        ? [
+            { source: "/productos", destination: `${PRODUCTOS_APP_URL}/productos` },
+            { source: "/productos/:path*", destination: `${PRODUCTOS_APP_URL}/productos/:path*` },
           ]
         : []),
     ];

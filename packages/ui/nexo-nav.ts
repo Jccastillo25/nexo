@@ -12,6 +12,10 @@ export interface NexoNavItem {
   href?: string;
   icon?: NexoIconName;
   children?: NexoNavItem[];
+  /** Encabezado de sección (ej. "Configuración") que NexoSidebar dibuja
+   * antes de este item. Solo en items de primer nivel; se oculta con el
+   * sidebar colapsado. */
+  section?: string;
 }
 
 function flattenNavWithTrail(

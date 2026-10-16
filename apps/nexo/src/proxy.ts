@@ -21,6 +21,8 @@ export const config = {
     //   de este panel) y deja pública /atencion/pantalla, el televisor sin
     //   sesión. Si este proxy corriera ahí, mandaría la pantalla (y sus
     //   /atencion/_next/static/*) al login.
-    "/((?!_next/static|_next/image|favicon.ico|crm|rrhh|agencia(?:/|$)|atencion(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // - /productos/* — apps/productos tiene su propio guard (mismo login de
+    //   este panel); sus /productos/_next/static/* no deben pasar por aquí.
+    "/((?!_next/static|_next/image|favicon.ico|crm|rrhh|agencia(?:/|$)|atencion(?:/|$)|productos(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

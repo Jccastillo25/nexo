@@ -45,6 +45,7 @@ const REGISTRO = {
   rrhh: { estado: "gate" },
   "nexo-agencia": { estado: "gate" },
   "nexo-atencion": { estado: "gate" },
+  "nexo-productos": { estado: "gate" },
   "web-corporativo": { estado: "gate" },
   "materiales-jcastillo-crm": {
     estado: "deuda",

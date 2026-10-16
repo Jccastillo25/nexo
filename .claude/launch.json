@@ -18,6 +18,24 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "pnpm@9", "--filter", "rrhh", "run", "dev:zone"],
       "port": 3002
+    },
+    {
+      "name": "agencia",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "pnpm@9", "--filter", "nexo-agencia", "run", "dev:zone"],
+      "port": 3003
+    },
+    {
+      "name": "atencion",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "pnpm@9", "--filter", "nexo-atencion", "run", "dev:zone"],
+      "port": 3004
+    },
+    {
+      "name": "productos",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "pnpm@9", "--filter", "nexo-productos", "run", "dev:zone"],
+      "port": 3005
     }
   ]
 }

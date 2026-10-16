@@ -74,7 +74,7 @@ monorepo, incluida `apps/flotilla`, antes de eliminarlos — nada fuera de
 | Nuevo | Reemplaza a | Rol |
 |---|---|---|
 | `NexoShell` | `AppShell` + `ShellBar` + `Sidebar` + el `Header`/`AppSidebar` que cada módulo duplicaba | Orquestador: breadcrumb automático, collapse/Drawer compartido, monta `ToastProvider` una vez |
-| `NexoSidebar` | `Sidebar` | Sidebar azul con grupos anidados de un nivel, ítems sin `href` se ven deshabilitados ("Próximamente") |
+| `NexoSidebar` | `Sidebar` | Sidebar azul con grupos anidados de un nivel, ítems sin `href` se ven deshabilitados ("Próximamente"). Desde 2026-10-16 un ítem de primer nivel puede llevar `section` (encabezado en mayúsculas, ej. "Configuración", oculto con el sidebar colapsado); iconos nuevos `box`, `upload`, `tree`, `tag`, `ruler`, `book`, `price` (primer uso: Productos) |
 | `NexoTopbar` | `ShellBar` | Breadcrumb + buscador + notificaciones + avatar |
 | `MetricCard` | `StatCard` | Tile de KPI, tema claro |
 | `Breadcrumb`, `PageHeader`, `DashboardHero`, `ActivityFeed`, `QuickActions`, `DataTable`, `FilterBar`, `StatusBadge`, `FormTabs`, `FormSection`, `EmptyState`, `ConfirmDialog`, `Toast`/`useToast` | — (100% nuevos) | Ver el componente para su rol puntual |
