@@ -29,7 +29,7 @@ Workflow `CI`. En la lista de checks del PR cada fila aparece como
 
 | Check | Comando | Qué cubre | ¿Bloquea el merge? |
 |---|---|---|---|
-| `typecheck` | `pnpm typecheck` | Cobertura de la tarea + `tsc --noEmit` en las **7 apps** (`apps/*/package.json` → `typecheck`). Cubre el código de las apps y, por imports, el de `packages/*`. | **Sí** |
+| `typecheck` | `pnpm typecheck` | Cobertura de la tarea + `next typegen && tsc --noEmit` en las **7 apps** (`apps/*/package.json` → `typecheck`). Cubre el código de las apps y, por imports, el de `packages/*`. El `next typegen` es obligatorio: sin él, los tipos generados por Next (`LayoutProps`, `PageProps`, `.next/types/*`) no existen en un clon limpio. | **Sí** |
 | `lint` | `pnpm lint:gate` | ESLint en las 5 apps que están limpias en `main`: `nexo-panel`, `rrhh`, `nexo-agencia`, `nexo-atencion`, `web-corporativo`. | **Sí** |
 | `build` | `pnpm build` | `next build` real de las 7 apps, sin variables de entorno ni secretos. | **Sí** |
 | `test-db-rrhh` | `pnpm test:db` | Prueba SQL de P1 (`supabase/tests/`) sobre la **migración real** del repo, en un PostgreSQL en memoria (PGlite) con `pgcrypto` real. Misma orden que `pnpm test:rrhh:p1`. | **Sí** |
@@ -74,6 +74,7 @@ Medido sobre `main` `fc2b309` antes de tocar nada:
 | Hallazgo | Detalle | Qué se hizo |
 |---|---|---|
 | `typecheck` no revisaba nada | Ninguna app declaraba `typecheck`; `turbo run typecheck` terminaba en **0 tareas con exit 0** (éxito silencioso). | Se agregó `typecheck: tsc --noEmit` a las 7 apps y un guard (`scripts/check-app-tasks.mjs`) que falla si la tarea no existe en ninguna app o falta en alguna. Verificado: con las 7 apps, `tsc --noEmit` pasa **sin errores previos** (`main` estaba limpio de tipos). |
+| `typecheck` no era reproducible en un clon limpio | Descubierto por el **primer run real del workflow**, no por inspección: en el clon de CI falló `web-corporativo` con `src/app/layout.tsx(33,50): error TS2304: Cannot find name 'LayoutProps'`, porque `next-env.d.ts` está **gitignoreado** (`next-env.d.ts` en el `.gitignore` raíz y en `apps/web-corporativo/.gitignore`) y los tipos generados por Next viven en `.next/`, que no existe en un checkout nuevo. En local pasaba porque los archivos generados ya estaban ahí. | Se cambió la tarea de cada app a **`next typegen && tsc --noEmit`** (el comando oficial de Next 16 para generar esos tipos sin build completo). Reproducido localmente borrando `.next` y `next-env.d.ts` (mismo TS2304, exit 2) y verificado después del cambio: **7/7 tareas OK en clon limpio simulado**. |
 | `lint` fallaba en 2 apps | `materiales-jcastillo-crm`: `src/components/DeleteClienteButton.tsx` (error `react-hooks` *setState sincrónico dentro de un efecto*) + warning de variable sin usar en `clientes/actions.ts`. `transporte-app`: `lib/offline/useOfflineSync.ts` (mismo error `react-hooks`). Archivos sin tocar desde commits antiguos (`a6abb2e`), con `eslint-config-next` 16.3.0. | **No se tocaron** (sería un refactor funcional fuera de alcance). Se dejan visibles en el check informativo `lint-deuda` y se propone ticket aparte. |
 | Sin workflows | No existía `.github/workflows/`. | Se agregó `ci.yml`. |
 | Supabase Preview | El check de Supabase Preview puede quedar omitido y **no** valida migraciones. | Se documenta como no confiable; la validación de migraciones es `test-db-rrhh`. |

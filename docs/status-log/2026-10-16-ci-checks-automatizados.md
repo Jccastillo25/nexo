@@ -10,7 +10,7 @@
 
 - **`.github/workflows/ci.yml`** (workflow `CI`): corre en `pull_request`, en push a `main` y a demanda. Node 24 + pnpm 9.15.9 (la versión de `packageManager`) + `pnpm install --frozen-lockfile`. Checks: `typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access` (bloqueantes) y `lint-deuda (no bloquea)`.
 - **Orden local única**: `pnpm install --frozen-lockfile && pnpm verify` — `verify` = `typecheck` → `lint:gate` → `test:db` → `test:agencia:access` → `build`.
-- **`typecheck` real**: `"typecheck": "tsc --noEmit"` en las 7 apps (`apps/*/package.json`) + guard [`scripts/check-app-tasks.mjs`](../../scripts/check-app-tasks.mjs) que **falla** si la tarea no existe en ninguna app o falta en alguna; evita el éxito silencioso de turbo con 0 tareas.
+- **`typecheck` real**: `"typecheck": "next typegen && tsc --noEmit"` en las 7 apps (`apps/*/package.json`) + guard [`scripts/check-app-tasks.mjs`](../../scripts/check-app-tasks.mjs) que **falla** si la tarea no existe en ninguna app o falta en alguna; evita el éxito silencioso de turbo con 0 tareas.
 - **Prueba P1 conectada y fijada**: `"test:rrhh:p1": "node supabase/tests/run_rrhh_p1_pin_ambiguo.mjs"` y `"test:db"`; `@electric-sql/pglite` **`0.5.10` exacto** en `devDependencies` + `pnpm-lock.yaml`. Se eliminó el override `PGLITE_DIR` que permitía apuntar a copias ad hoc.
 - **Entorno efímero garantizado**: la prueba corre en PGlite **en memoria** (WASM, dentro del proceso, sin sockets) y aplica **el archivo real** `supabase/migrations/20261015181000_p1_pin_ambiguo_fallo_cerrado.sql`. El job de pruebas tiene un guard que **falla** si el entorno trae `SUPABASE_*`, `DATABASE_URL` o `PG*`. El workflow no usa `secrets.` en ningún punto.
 - **Lint con deuda separada**: `lint:gate` (5 apps limpias) bloquea; `lint:deuda` (`crm`, `flotilla`) publica la deuda en cada PR sin bloquear.
@@ -28,6 +28,12 @@
 - Lockfile: `pnpm install --lockfile-only --frozen-lockfile` con pnpm 9.15.9 → **exitoso** (el lockfile coincide con los `package.json`), sin tocar `node_modules`.
 - Prueba P1 con el runner ya conectado a la dependencia fijada: 28 aserciones en verde (detalle en el status-log de P1).
 - **Control negativo en el propio workflow** (criterio de aceptación del issue): se empujó primero una migración P1 que vuelve a resolver con `limit 1` → el check `test-db-rrhh` **falló en C4**; al restaurar la migración correcta, el mismo check volvió a verde. Enlaces a los dos runs: ver el PR de esta rama.
+
+## Hallazgo del primer run real del workflow
+
+El primer run del workflow en el PR (run `38851449971`) dio: `lint` ✅, `build` ✅ (7 apps, 1m35s), `test-db-rrhh` ✅, `test-agencia-access` ✅, `lint-deuda` ❌ (deuda pre-existente, informativa) y **`typecheck` ❌**. Causa real, leída del log: `apps/web-corporativo` → `src/app/layout.tsx(33,50): error TS2304: Cannot find name 'LayoutProps'`.
+
+`LayoutProps` es un tipo **generado por Next 16** que vive en `.next/types` + `next-env.d.ts`, y ese archivo está **gitignoreado** (no hay ningún `next-env.d.ts` versionado salvo `apps/flotilla`). En local `tsc --noEmit` pasaba porque los archivos generados ya existían de builds previos; en un clon limpio no. Se reprodujo localmente (borrar `.next` y `next-env.d.ts` → mismo TS2304, exit 2) y se corrigió cambiando la tarea a **`next typegen && tsc --noEmit`**: verificado después en clon limpio simulado, 7/7 tareas OK. No es una regresión de este PR: es una brecha que **solo se podía descubrir** ahora que la tarea `typecheck` existe y corre de verdad.
 
 ## Pendiente / acción manual
 
