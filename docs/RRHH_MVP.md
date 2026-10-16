@@ -70,6 +70,7 @@ El PIN:
 - se muestra una sola vez;
 - se guarda solo como hash (`rrhh.contrato_credenciales`, sin `GRANT` de `SELECT` a nadie);
 - se usa exclusivamente para asistencia en kiosko (`rrhh.fn_registrar_marca_kiosko`, reescrita para validar contra la credencial contractual);
+- la búsqueda del kiosco cuenta las coincidencias y **falla cerrado** si el PIN es ambiguo en la empresa del dispositivo: sin marca, sin identidad y con señal técnica sin PIN (**P1, issue #30**, migración `20261015181000`, probada y todavía sin fusionar/aplicar). La unicidad real del PIN al activar/regenerar es P2 y sigue pendiente;
 - se revoca al finalizar contrato (`rrhh.fn_finalizar_contrato`);
 - se regenera solo sobre un contrato activo (`rrhh.fn_regenerar_pin_contrato`);
 - no es contraseña Web/Mobile;
