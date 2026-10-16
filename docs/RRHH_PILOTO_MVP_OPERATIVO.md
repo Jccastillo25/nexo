@@ -1,6 +1,6 @@
 # RRHH y kiosco — piloto supervisado y MVP operativo
 
-**Decisión aprobada el 2026-10-15. Estado: especificación, no implementación ni validación con usuarios reales.** Este corte incremental no sustituye el objetivo completo de F1.5–F1.10 ni incluye nómina, cálculos salariales, descansos marcados o turnos que crucen medianoche. [RRHH_MVP.md](RRHH_MVP.md) conserva el alcance completo futuro.
+**Decisión aprobada el 2026-10-15. Estado: especificación. De sus tickets, P1 (PIN ambiguo) ya está implementado y fusionado; el resto no está implementado ni validado con usuarios reales.** Este corte incremental no sustituye el objetivo completo de F1.5–F1.10 ni incluye nómina, cálculos salariales, descansos marcados o turnos que crucen medianoche. [RRHH_MVP.md](RRHH_MVP.md) conserva el alcance completo futuro.
 
 ## 1. Base comprobada y límites
 
@@ -69,7 +69,7 @@ El owner administra la delegación inicial, no las operaciones diarias obligator
 
 | ID | Ticket y dependencia | Criterios de aceptación observables |
 |---|---|---|
-| **P1** | PIN ambiguo: fallo cerrado. Sin dependencia. | Si dos credenciales vigentes de la empresa coinciden, ninguna marca se inserta ni se identifica al empleado; error genérico y señal técnica sin PIN. Búsqueda limitada a empresa del kiosco y prueba con dos coincidencias. |
+| **P1** | PIN ambiguo: fallo cerrado. Sin dependencia. **Implementado y fusionado en `main` `fc2b309` (migración `20261015181000`, todavía no aplicada a `nexo-core`).** | Si dos credenciales vigentes de la empresa coinciden, ninguna marca se inserta ni se identifica al empleado; error genérico y señal técnica sin PIN. Búsqueda limitada a empresa del kiosco y prueba con dos coincidencias. |
 | **P2** | PIN único al activar/regenerar. Depende de P1. | Unicidad para todas las credenciales que puede hallar un kiosco de esa empresa; dos activaciones/regeneraciones simultáneas no producen PIN vigente repetido. Entrega una sola vez y sin exposición en logs. Agotamiento del espacio falla cerrado. |
 | **P3** | Vínculo contractual de marca. Depende de P2. | Toda marca nueva guarda `contrato_id` de la credencial validada; FK/tenant consistentes; recontratación conserva historia en el contrato anterior. Marcas históricas sin vínculo no se atribuyen por conjetura; plan de migración/revisión explícito. |
 | **P4** | Secuencia diaria atómica e idempotencia. Depende de P3. | Un par por contrato/día `America/Managua`; token del envío repetido devuelve mismo resultado; envíos simultáneos no duplican ni invierten orden; ayer abierto = Falta salida, hoy empieza entrada nueva; tercer envío nuevo se rechaza; sin cierre ficticio ni bloqueo fijo de 60 s. Probar rate limit vigente (8 intentos inválidos/minuto → bloqueo 5 min) y permisos del RPC. |

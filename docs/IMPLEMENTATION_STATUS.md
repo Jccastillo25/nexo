@@ -1,6 +1,8 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
-**2026-10-15 — RRHH/kiosco:** aprobado solo el [diseño de piloto supervisado y MVP operativo](RRHH_PILOTO_MVP_OPERATIVO.md) y el correo corporativo de RRHH con registro restringido como canal de reportes. P1–P7/M1–M4 pendientes; sin código, DB, usuarios, despliegue ni prueba con usuarios reales. La designación privada de funciones, buzón y dispositivo se exige en P7, no antes de crear tickets. [Detalle](status-log/2026-10-15-rrhh-piloto-mvp-especificacion.md).
+**Última actualización documental: 2026-10-15 — RRHH P1 (issue #30):** `rrhh.fn_registrar_marca_kiosko` deja de resolver la credencial con `limit 1`: cuenta las credenciales vigentes de la empresa del kiosco que aceptan el PIN y, con más de una coincidencia, **falla cerrado** (ninguna marca, ninguna identidad, señal técnica sin PIN). Migración `20261015181000`, ya **fusionada en `main` (`fc2b309`)** y probada en un PostgreSQL embebido con bcrypt real (13 casos/28 aserciones + control negativo); **la migración todavía no se aplicó a `nexo-core`**. No se avanzó a P2. [Detalle](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md).
+
+**2026-10-15 — RRHH/kiosco:** aprobado el [diseño de piloto supervisado y MVP operativo](RRHH_PILOTO_MVP_OPERATIVO.md) y el correo corporativo de RRHH con registro restringido como canal de reportes. De sus tickets, **P1 (PIN ambiguo) ya está implementado y fusionado**; **P2–P7 y M1–M4 siguen pendientes**, sin usuarios reales ni piloto autorizado. La designación privada de funciones, buzón y dispositivo se exige en P7, no antes de crear tickets. [Detalle](status-log/2026-10-15-rrhh-piloto-mvp-especificacion.md).
 
 **2026-10-15 — Atención (2):** la pantalla de TV ya no pasa por el login de Nexo (`/atencion` excluido del proxy del panel) y cada pantalla elige en Configuración qué datos del turno muestra y anuncia; la base filtra lo apagado (`20261015155035`). En producción (PR #23, `main` `6db1a54`): pantalla verificada sin sesión en el dominio público; falta probar en el TV. [Detalle](status-log/2026-10-15-atencion-pantalla-configurable.md).
 
@@ -64,6 +66,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-15 | [RRHH P1 — PIN ambiguo, fallo cerrado](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md) | La búsqueda del kiosco cuenta coincidencias y no marca si el PIN es ambiguo. Migración `20261015181000` fusionada en `main` (`fc2b309`) y probada en PG embebido; sin aplicar a remoto. |
 | 2026-10-14 | [Agencia digital independiente](status-log/2026-10-14-agencia-independiente.md) | Matriz mínima aplicada e inactiva; app/proyecto propio y compilación local preparados. Previews preparados; revisión final de Claude, merge, activación y pruebas manuales pendientes. |
 | 2026-10-15 | [RRHH/kiosco — especificación de piloto y MVP operativo](status-log/2026-10-15-rrhh-piloto-mvp-especificacion.md) | Corte y tickets P1–P7/M1–M4 aprobados como diseño; sin implementación ni validación con usuarios reales. |
 | 2026-09-07 | [F1.0 — Auditoría real](status-log/2026-09-07-f1-0-auditoria-real.md) | Comparación Plan vs `main` vs migraciones vs remoto vs Vercel; detectó `main` local 13 commits atrás (reconciliado) y el hallazgo de seguridad D-06. |
@@ -115,8 +118,8 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 | RRHH jornadas | ✅ F1.4 completada (modelo mínimo) | `rrhh.jornadas`/`jornada_dias`/`contrato_jornadas`/`feriados` existen, con RLS, RPC de asignación e interfaz de lectura para F1.5 (2026-09-07). Jornada obligatoria para activar contrato. Falta el motor de consolidación (F1.5) y las decisiones de negocio (hora extra, feriado pagado, etc.), explícitamente no implementadas. |
 | RRHH consolidación de asistencia | ⏳ Pendiente | No existe marcas → horas consolidadas. |
 | RRHH planillas | ⏳ Pendiente | Ruta actual es placeholder; falta motor/reporte. |
-| Kiosko RRHH | ✅ Migrado a PIN contractual | `rrhh.fn_registrar_marca_kiosko` valida contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. Misma UI/rate-limit de antes. |
-| RRHH piloto supervisado / MVP operativo (corte 2026-10-15) | ⏳ Diseño aprobado, ejecución pendiente | Un par por contrato/día `America/Managua`, PIN sin ambigüedad, marcas con contrato, idempotencia, Marcas de solo lectura, reportes por correo corporativo y corrección auditada posterior. P1–P7/M1–M4 sin implementar; no autorizado ni probado con usuarios reales. [Especificación](RRHH_PILOTO_MVP_OPERATIVO.md). |
+| Kiosko RRHH | ✅ Migrado a PIN contractual | `rrhh.fn_registrar_marca_kiosko` valida contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. Misma UI/rate-limit de antes. **2026-10-15 (P1, issue #30, en `main` `fc2b309`):** además cuenta coincidencias y no marca si el PIN es ambiguo en la empresa del kiosco — misma UI; la migración `20261015181000` sigue sin aplicarse a `nexo-core`. [Detalle](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md). |
+| RRHH piloto supervisado / MVP operativo (corte 2026-10-15) | 🟡 P1 implementado y fusionado; P2–P7 y M1–M4 pendientes | Un par por contrato/día `America/Managua`, PIN sin ambigüedad, marcas con contrato, idempotencia, Marcas de solo lectura, reportes por correo corporativo y corrección auditada posterior. Implementado y fusionado: P1 (PIN ambiguo, issue #30, `main` `fc2b309`, migración `20261015181000` sin aplicar a remoto). No autorizado ni probado con usuarios reales. [Especificación](RRHH_PILOTO_MVP_OPERATIVO.md). |
 | Identidad digital de empleados | ⚠️ Refactor de PIN cerrado, identidad digital sigue pendiente | `nombre_usuario + PIN` para acceso operativo ya no existe como diseño vigente (D-06 cerrado F1.3). Falta construir usuario+contraseña vía Supabase Auth (Fase 2, `core.identidad`) — diseño objetivo documentado, sin implementar. |
 | Panel de Conductor Web | 🟡 Código legacy aprovechable | Ruta360 tiene flujo de conductor, pero falta adaptación a identidad Nexo, contrato RRHH y permisos unificados. |
 | CRM | 🟡 MVP muy básico | Cliente CRUD y dashboard; faltan leads, oportunidades, actividades, cotizaciones/pedido. |
@@ -198,7 +201,7 @@ Estado: ℹ️ hallazgo de F1.0, sin urgencia — no contradice el modelo objeti
 | F1.8 | UI administración de kioscos | ⏳ | Eliminar SQL manual como operación normal. |
 | F1.9 | Seguridad/RBAC/E2E | ⏳ | Roles + RPC directa + RLS + advisors + contrato finalizado + PIN revocado. Incluye las pruebas por rol real pendientes de F1.3/F1.4 (ver esas entradas del log). |
 | F1.10 | Recorrido completo validado | ⏳ | Criterio para declarar RRHH MVP listo. |
-| P1–P7 | Piloto supervisado de kiosco/marcas | ⏳ | [Corte aprobado](RRHH_PILOTO_MVP_OPERATIVO.md) como especificación; P7 debe comprobar pruebas críticas y designaciones privadas antes de autorizar. No iniciado. |
+| P1–P7 | Piloto supervisado de kiosco/marcas | 🟡 P1 fusionado; P2–P7 pendientes | [Corte aprobado](RRHH_PILOTO_MVP_OPERATIVO.md) como especificación; **P1 (PIN ambiguo) ya implementado y fusionado en `main` (`fc2b309`)**. P7 debe comprobar pruebas críticas y designaciones privadas antes de autorizar. P2–P7 no iniciados. |
 | M1–M4 | Corrección auditada y validación de MVP operativo | ⏳ | Posterior a P1–P7; permiso específico y original conservado. Sin implementación. No incluye nómina. |
 
 ---
@@ -223,7 +226,7 @@ conductor            = habilitación/rol operacional
 - determina entrada/salida por secuencia cuando sea inequívoco;
 - no crea sesión Auth.
 
-Para el **piloto propuesto** rige [el corte 2026-10-15](RRHH_PILOTO_MVP_OPERATIVO.md): un par por contrato/día local, confirmación de toda salida, reintentos idempotentes y protección ante PIN ambiguo. Aún no está implementado ni autorizado.
+Para el **piloto propuesto** rige [el corte 2026-10-15](RRHH_PILOTO_MVP_OPERATIVO.md): un par por contrato/día local, confirmación de toda salida, reintentos idempotentes y protección ante PIN ambiguo —esta última ya implementada y fusionada en `main` (`fc2b309`), con la migración `20261015181000` aún sin aplicar a `nexo-core`—. El resto del corte sigue sin implementar y el piloto no está autorizado.
 
 ### Panel de Conductor Web
 
@@ -350,7 +353,9 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 
 # 7. Próxima acción obligatoria
 
-**RRHH/kiosco:** desarrollar en orden P1–P7 y después M1–M4 según [la especificación aprobada](RRHH_PILOTO_MVP_OPERATIVO.md). P7 es puerta de autorización del piloto, no una formalidad: registra en privado funciones, buzón, dispositivo y pruebas; cualquier prueba crítica fallida pospone el piloto. Esto no sustituye F1.5–F1.10 completos.
+**RRHH/kiosco:** desarrollar en orden P1–P7 y después M1–M4 según [la especificación aprobada](RRHH_PILOTO_MVP_OPERATIVO.md). P1 (PIN ambiguo) ya está implementado y fusionado; **el siguiente paso es P2** (unicidad del PIN al activar/regenerar), que aún no se inició. P7 es puerta de autorización del piloto, no una formalidad: registra en privado funciones, buzón, dispositivo y pruebas; cualquier prueba crítica fallida pospone el piloto. Esto no sustituye F1.5–F1.10 completos.
+
+**RRHH P1 (issue #30): código fusionado, migración sin aplicar.** El código y su prueba están en `main` (`fc2b309`); falta —paso aparte y explícitamente autorizado— aplicar `20261015181000` en `nexo-core`. Aplicar P1 sin P2 protege la atribución de la marca, no la usabilidad de un PIN colisionado.
 
 **Bloque complementario #18:** revisar Claude/Previews y obtener aprobación humana antes de publicar Agencia, fusionar su integración y habilitar la tarjeta. El orden de RRHH de abajo no cambia. Las pruebas de navegador son manuales por decisión del usuario.
 

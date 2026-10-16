@@ -2,7 +2,7 @@
 
 > Decisión funcional vigente desde **2026-09-06**. Este documento define la separación entre marcación de asistencia, identidad digital del empleado y acceso al panel de conductores en Web y Nexo Mobile. Prevalece sobre diseños anteriores que reutilizaban el PIN del kiosko como contraseña de acceso operativo.
 
-> **Corte de piloto aprobado 2026-10-15:** [RRHH y kiosco — piloto supervisado/MVP operativo](RRHH_PILOTO_MVP_OPERATIVO.md). Un par por contrato/día `America/Managua`, confirmación genérica de toda salida, reintentos idempotentes y ninguna salida ficticia; la búsqueda del PIN queda acotada a la empresa del kiosco, por lo que la unicidad debe cubrir esa empresa. Son requisitos pendientes de implementar/probar, no capacidades validadas hoy.
+> **Corte de piloto aprobado 2026-10-15:** [RRHH y kiosco — piloto supervisado/MVP operativo](RRHH_PILOTO_MVP_OPERATIVO.md). Un par por contrato/día `America/Managua`, confirmación genérica de toda salida, reintentos idempotentes y ninguna salida ficticia; la búsqueda del PIN queda acotada a la empresa del kiosco, por lo que la unicidad debe cubrir esa empresa. El rechazo del PIN ambiguo (P1) ya está implementado y fusionado en `main`; el resto son requisitos pendientes de implementar/probar, no capacidades validadas hoy.
 
 ---
 

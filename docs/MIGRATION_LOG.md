@@ -7,6 +7,28 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-15 — RRHH P1: PIN ambiguo, fallo cerrado (NO APLICADA)
+
+- `20261015181000_p1_pin_ambiguo_fallo_cerrado` (fusionada en `main`
+  `fc2b309`, vía PR #42) — **todavía no aplicada a `nexo-core`, por pedido
+  explícito del usuario**: no se tocó el remoto. Reemplaza
+  `rrhh.fn_registrar_marca_kiosko` para CONTAR las
+  credenciales vigentes de la empresa del kiosco que aceptan el PIN; con más
+  de una coincidencia no inserta marca, no identifica a nadie y emite una
+  señal técnica sin PIN (señal en el log del servidor). Misma firma, mismo
+  tipo de retorno, mismo rate-limit y mismos `GRANT`/`REVOKE`; ninguna
+  migración histórica modificada.
+- Verificado antes de escribirla (solo lectura sobre `nexo-core`): la función
+  desplegada seguía resolviendo con `limit 1` y con el mismo tipo de retorno;
+  `anon` sin `EXECUTE` sobre la función interna y con `EXECUTE` sobre
+  `public.registrar_marca_kiosko`.
+- Probada en PostgreSQL embebido (PGlite 0.5.10 + `contrib/pgcrypto` real) en
+  memoria: 13 casos / 28 aserciones en verde, migración reaplicable sin error,
+  y control negativo contra la definición F1.3 (la prueba falla en C4 con la
+  versión vieja). [Detalle](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md).
+- Rollback: reaplicar la definición de
+  `20260907154715_f1_3_pin_exclusivamente_contractual`.
+
 ## 2026-10-15 — Atención: métricas (APLICADA)
 
 - `20261015173729_atencion_metricas`: nuevas `public.atencion_metricas` y

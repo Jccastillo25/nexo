@@ -6,6 +6,8 @@ Se aprobó el **diseño** de [piloto supervisado y MVP operativo](../RRHH_PILOTO
 
 No se implementó código, no se configuraron usuarios, no se creó ni cambió ninguna marca/contrato/dato, no se aplicó migración y no se publicó despliegue. Los tickets P1–P7/M1–M4 son trabajo pendiente. No se hizo recorrido con usuarios reales ni se autorizó el piloto.
 
+> **Actualización posterior el mismo día (2026-10-15):** P1 (rechazo del PIN ambiguo, [issue #30](https://github.com/Jccastillo25/nexo/issues/30)) quedó implementado y fusionado en `main` (`fc2b309`, PR #42), con la migración `20261015181000` todavía **sin aplicar** a `nexo-core`. El resto de P2–P7/M1–M4 sigue como trabajo pendiente y sin autorización.
+
 ## Alcance y evidencia de preparación
 
 - Base local: pantallas/rutas de administración de usuarios y roles, Expedientes, Contratos, Jornadas y Kiosco existentes en código. La existencia de ruta no valida el flujo real.
