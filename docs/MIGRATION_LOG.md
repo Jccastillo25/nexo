@@ -1057,3 +1057,6 @@ exo` (panel) real sobre ese primer módulo migrado.
 
 ## RRHH P2 — archivo pendiente de aplicar
 20261016231000_rrhh_p2_pin_unico_empresa.sql. Verificar definiciones sin random() y con advisory lock; probar activación/regeneración y concurrencia P7. Rollback: corregir hacia adelante conservando hashes; no volver al generador inseguro.
+
+## RRHH P3 — pendiente de aplicar (2026-10-16)
+20261016232000_rrhh_p3_marca_contrato.sql pendiente. Postcheck: columna NOT NULL, FK validada y authenticated sin INSERT/UPDATE/DELETE; verificar tambien particiones. Rollback: conservar vinculos e historia, corregir hacia adelante.

@@ -501,3 +501,6 @@ antes.
 
 ## RRHH P2 — preparado, no aplicado (2026-10-16)
 Migración 20261016231000: conserva firmas y retorno de activar/regenerar, usa gen_random_bytes y lock transaccional por empresa. Comparación bcrypt con credenciales vigentes; 128 intentos y rollback ante agotamiento. Costo lineal en credenciales por candidato; pendiente validación concurrente remota.
+
+## RRHH P3 — pendiente de aplicar (2026-10-16)
+P3 preparado: contrato_id NOT NULL con FK (contrato_id,company_id,empleado_id), UNIQUE destino e indices en FKs y empresa/fecha; guardia aborta si existen marcas.

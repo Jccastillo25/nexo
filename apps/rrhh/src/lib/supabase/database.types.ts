@@ -791,6 +791,7 @@ export type Database = {
       asistencia_marcas: {
         Row: {
           id: string;
+          contrato_id: string;
           company_id: string;
           empleado_id: string;
           kiosko_id: string | null;
@@ -800,27 +801,8 @@ export type Database = {
           marcado_en: string;
           created_at: string;
         };
-        Insert: {
-          id?: string;
-          company_id: string;
-          empleado_id: string;
-          kiosko_id?: string | null;
-          tipo: "entrada" | "salida";
-          origen?: "kiosko" | "manual";
-          creado_por?: string | null;
-          marcado_en?: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          company_id?: string;
-          empleado_id?: string;
-          kiosko_id?: string | null;
-          tipo?: "entrada" | "salida";
-          origen?: "kiosko" | "manual";
-          creado_por?: string | null;
-          marcado_en?: string;
-        };
+        Insert: never; // Solo RPC del kiosco
+        Update: never;
         Relationships: [];
       };
       // NO particionada (volumen acotado: una fila por corrida de

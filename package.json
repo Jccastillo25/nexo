@@ -15,10 +15,11 @@
     "typecheck": "node scripts/check-app-tasks.mjs typecheck && turbo run typecheck",
     "test:agencia:access": "node apps/agencia/scripts/check-access.cjs",
     "test:rrhh:p1": "node supabase/tests/run_rrhh_p1_pin_ambiguo.mjs",
-    "test:db": "pnpm run test:rrhh:p1 && pnpm run test:rrhh:compartido && pnpm run test:rrhh:p2",
+    "test:db": "pnpm run test:rrhh:p1 && pnpm run test:rrhh:compartido && pnpm run test:rrhh:p2 && pnpm run test:rrhh:p3",
     "verify": "pnpm run typecheck && pnpm run lint:gate && pnpm run lint:self-test && pnpm run test:db && pnpm run test:agencia:access && pnpm run build",
     "test:rrhh:compartido": "node supabase/tests/run_rrhh_pglite.mjs supabase/tests/rrhh_kiosco_entorno.sql supabase/migrations/20261015181000_p1_pin_ambiguo_fallo_cerrado.sql supabase/tests/rrhh_p1_pin_ambiguo.prueba.sql",
-    "test:rrhh:p2": "node supabase/tests/run_rrhh_pglite.mjs supabase/tests/rrhh_kiosco_entorno.sql supabase/migrations/20261015181000_p1_pin_ambiguo_fallo_cerrado.sql supabase/migrations/20261016231000_rrhh_p2_pin_unico_empresa.sql supabase/tests/rrhh_p2_pin_unico.prueba.sql"
+    "test:rrhh:p2": "node supabase/tests/run_rrhh_pglite.mjs supabase/tests/rrhh_kiosco_entorno.sql supabase/migrations/20261015181000_p1_pin_ambiguo_fallo_cerrado.sql supabase/migrations/20261016231000_rrhh_p2_pin_unico_empresa.sql supabase/tests/rrhh_p2_pin_unico.prueba.sql",
+    "test:rrhh:p3": "node supabase/tests/run_rrhh_pglite.mjs supabase/tests/rrhh_kiosco_entorno.sql supabase/migrations/20261015181000_p1_pin_ambiguo_fallo_cerrado.sql supabase/migrations/20261016231000_rrhh_p2_pin_unico_empresa.sql supabase/migrations/20261016232000_rrhh_p3_marca_contrato.sql supabase/tests/rrhh_p3_contrato.prueba.sql"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10",

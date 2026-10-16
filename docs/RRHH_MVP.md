@@ -773,3 +773,6 @@ credenciales de prueba en este entorno).
 
 ## Corte local P2 (2026-10-16)
 PIN único por empresa al activar/regenerar implementado y probado en PGlite, sin aplicar a nexo-core. No equivale a piloto autorizado ni a E2E remoto.
+
+## RRHH P3 — pendiente de aplicar (2026-10-16)
+P3 local: nuevas marcas vinculadas al contrato exacto; historia de recontratacion conservada. Sin E2E remoto ni autorizacion del piloto.

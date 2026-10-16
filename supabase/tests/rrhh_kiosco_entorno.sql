@@ -116,15 +116,17 @@ create table rrhh.contrato_credenciales (
 -- En el esquema real esta tabla está particionada por mes; aquí es plana (a la
 -- función le da igual: solo inserta y ordena por marcado_en).
 create table rrhh.asistencia_marcas (
-  id uuid primary key default gen_random_uuid(),
+  id uuid not null default gen_random_uuid(),
   company_id uuid not null references core.companies(id),
   empleado_id uuid not null references rrhh.empleados(id),
   kiosko_id uuid references rrhh.kiosko_dispositivos(id),
   tipo text not null check (tipo in ('entrada', 'salida')),
   origen text not null default 'kiosko' check (origen in ('kiosko', 'manual')),
   marcado_en timestamptz not null default now(),
-  created_at timestamptz not null default now()
-);
+  creado_por uuid,
+  created_at timestamptz not null default now(),
+  primary key(id,marcado_en)
+) partition by range(marcado_en);
 
 -- Copia literal del wrapper público vigente
 -- (supabase/migrations/20260905000005_rrhh_public_auth_hardening.sql). El único
@@ -196,3 +198,19 @@ begin
   where contrato_id = p_contrato_id and activo = true;
 end;
 $$;
+
+do $$ declare i integer; mes date; begin
+ for i in -2..3 loop
+  mes := (date_trunc('month',now()) + make_interval(months=>i))::date;
+  execute format('create table rrhh.%I partition of rrhh.asistencia_marcas for values from (%L) to (%L)',
+   'asistencia_marcas_'||to_char(mes,'YYYY_MM'),mes,(mes+interval '1 month')::date);
+ end loop;
+end $$;
+alter table rrhh.asistencia_marcas enable row level security;
+grant usage on schema rrhh to authenticated,anon;
+grant select,insert,update,delete on rrhh.asistencia_marcas to authenticated;
+create policy "marcas: ver con permiso" on rrhh.asistencia_marcas for select to authenticated
+ using(core.has_permission(auth.uid(),company_id,'rrhh.asistencia.marcas.ver'));
+create policy "marcas: crear con permiso" on rrhh.asistencia_marcas for insert to authenticated with check(true);
+create policy "marcas: editar con permiso" on rrhh.asistencia_marcas for update to authenticated using(true);
+create policy "marcas: eliminar con permiso" on rrhh.asistencia_marcas for delete to authenticated using(true);
