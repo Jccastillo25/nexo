@@ -15,8 +15,9 @@
     "typecheck": "node scripts/check-app-tasks.mjs typecheck && turbo run typecheck",
     "test:agencia:access": "node apps/agencia/scripts/check-access.cjs",
     "test:rrhh:p1": "node supabase/tests/run_rrhh_p1_pin_ambiguo.mjs",
-    "test:db": "pnpm run test:rrhh:p1",
-    "verify": "pnpm run typecheck && pnpm run lint:gate && pnpm run lint:self-test && pnpm run test:db && pnpm run test:agencia:access && pnpm run build"
+    "test:db": "pnpm run test:rrhh:p1 && pnpm run test:rrhh:compartido",
+    "verify": "pnpm run typecheck && pnpm run lint:gate && pnpm run lint:self-test && pnpm run test:db && pnpm run test:agencia:access && pnpm run build",
+    "test:rrhh:compartido": "node supabase/tests/run_rrhh_pglite.mjs supabase/tests/rrhh_kiosco_entorno.sql supabase/migrations/20261015181000_p1_pin_ambiguo_fallo_cerrado.sql supabase/tests/rrhh_p1_pin_ambiguo.prueba.sql"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10",
