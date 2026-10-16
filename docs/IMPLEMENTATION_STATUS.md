@@ -68,6 +68,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-16 | [RRHH 0-4-0-5-preparacion](status-log/2026-10-16-rrhh-0-4-0-5-preparacion.md) | Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [RRHH 0-3-entorno](status-log/2026-10-16-rrhh-0-3-entorno.md) | Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [RRHH 0-2-runner](status-log/2026-10-16-rrhh-0-2-runner.md) | Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [CI: pruebas automatizadas y checks obligatorios](status-log/2026-10-16-ci-checks-automatizados.md) | Workflow `CI` + orden local `pnpm verify`; `typecheck` real en las 7 apps y prueba SQL P1 con PGlite fijado. Protección de `main` **activa y verificada**: los cinco checks (`typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access`) son obligatorios antes de fusionar, con `strict: false` y `enforce_admins: true`; `lint-deuda (no bloquea)` no bloquea. |
@@ -107,6 +108,8 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 
 # 1. Estado general
 
+Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
 Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
@@ -142,6 +145,8 @@ Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia 
 ---
 
 # 2. Divergencias conocidas: estado actual vs modelo objetivo
+
+Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
@@ -201,6 +206,8 @@ Estado: ℹ️ hallazgo de F1.0, sin urgencia — no contradice el modelo objeti
 
 # 3. Fase 1 — tablero de ejecución RRHH
 
+Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
 Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
@@ -225,6 +232,8 @@ Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia 
 ---
 
 # 4. Acceso de Conductores y Kiosko
+
+Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
@@ -287,6 +296,8 @@ Si ya existe identidad digital, no crear otra.
 
 # 5. Preparación Nexo Mobile
 
+Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
 Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
@@ -348,6 +359,8 @@ No debe incluir por defecto administración de empleados, planillas, permisos, c
 
 # 6. Protocolo de actualización para Claude
 
+Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
 Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
@@ -382,6 +395,8 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 ---
 
 # 7. Próxima acción obligatoria
+
+Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
 Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
