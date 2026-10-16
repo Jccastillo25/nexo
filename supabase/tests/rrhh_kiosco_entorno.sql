@@ -1,3 +1,6 @@
+-- ENTORNO COMPARTIDO P1-P7: solo motor efimero. Base P1 ampliada con
+-- columnas contractuales, autorizacion simulada, particiones y grants minimos.
+-- No reproduce el modelo real de membresias/roles ni todas las reglas/triggers.
 -- =============================================================================
 -- Entorno DESECHABLE para la prueba P1 (issue #30).
 --
@@ -20,7 +23,7 @@
 --   * el wrapper público public.registrar_marca_kiosko (copia literal del
 --     vigente en 20260905000005_rrhh_public_auth_hardening.sql) porque la
 --     prueba comprueba también el camino anónimo real.
--- Lo que NO replica: particiones de rrhh.asistencia_marcas (aquí tabla plana),
+-- Limites del fixture: no reproduce el esquema completo ni todos sus triggers,
 -- RLS/policies, triggers, el resto de columnas del esquema, ni bcrypt real si
 -- la plataforma no trae pgcrypto (ver el bloque de `crypt` más abajo).
 -- =============================================================================
@@ -157,7 +160,7 @@ create function auth.uid() returns uuid language sql stable as $$
  select nullif(current_setting('request.jwt.claim.sub', true),'')::uuid
 $$;
 create table core.prueba_permisos(usuario uuid, empresa uuid, codigo text, primary key(usuario, empresa, codigo));
-create function core.has_permission(u uuid, e uuid, c text) returns boolean language sql stable as $$
+create function core.has_permission(u uuid, e uuid, c text) returns boolean language sql stable security definer set search_path=core,pg_temp as $$
  select exists(select 1 from core.prueba_permisos p where p.usuario=u and p.empresa=e and p.codigo=c)
 $$;
 alter table rrhh.contratos add column activado_at timestamptz, add column activado_by uuid,
@@ -204,6 +207,7 @@ do $$ declare i integer; mes date; begin
   mes := (date_trunc('month',now()) + make_interval(months=>i))::date;
   execute format('create table rrhh.%I partition of rrhh.asistencia_marcas for values from (%L) to (%L)',
    'asistencia_marcas_'||to_char(mes,'YYYY_MM'),mes,(mes+interval '1 month')::date);
+  execute format('alter table rrhh.%I enable row level security','asistencia_marcas_'||to_char(mes,'YYYY_MM'));
  end loop;
 end $$;
 alter table rrhh.asistencia_marcas enable row level security;
@@ -220,3 +224,5 @@ create table core.tablas_particionadas (
  schema_nombre text not null,tabla_nombre text not null,fn_asegurar_particion text not null,
  primary key(schema_nombre,tabla_nombre)
 );
+
+grant usage on schema core,auth to authenticated,anon;

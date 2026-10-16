@@ -35,7 +35,7 @@ agrupados bajo el workflow `CI`. Verificado por API sobre el commit `b3edfb9`
 | `typecheck` | `pnpm typecheck` | Cobertura de la tarea + `next typegen && tsc --noEmit` en las **7 apps** (`apps/*/package.json` → `typecheck`). Cubre el código de las apps y, por imports, el de `packages/*`. El `next typegen` es obligatorio: sin él, los tipos generados por Next (`LayoutProps`, `PageProps`, `.next/types/*`) no existen en un clon limpio. | **Sí** |
 | `lint` | `pnpm lint:gate` | ESLint en **todas las apps de `apps/*` excepto las de la lista de deuda documentada** (`materiales-jcastillo-crm`, `transporte-app`). El conjunto se **deriva del sistema de archivos**, no de una lista escrita a mano: si una app no está clasificada, el check **falla** (`lint:plan`) y además corre la autocomprobación `lint:self-test`. | **Sí** |
 | `build` | `pnpm build` | `next build` real de las 7 apps, sin variables de entorno ni secretos. | **Sí** |
-| `test-db-rrhh` | `pnpm test:db` | Prueba SQL de P1 (`supabase/tests/`) sobre la **migración real** del repo, en un PostgreSQL en memoria (PGlite) con `pgcrypto` real. Misma orden que `pnpm test:rrhh:p1`. | **Sí** |
+| `test-db-rrhh` | `pnpm test:db` | P1 aislado/compartido, SQL real P2/P3/P4/P6 con bcrypt en PGlite, controlador P5, filtros P6 y catálogo P7 sobre modelo local. Sin Supabase ni concurrencia real. | **Sí** |
 | `test-agencia-access` | `pnpm test:agencia:access` | Arnés offline existente de acceso denegado/otorgado en `apps/agencia` (sin red, sin cuentas). | **Sí** |
 | `lint-deuda (no bloquea)` | `pnpm lint:deuda` | ESLint de `materiales-jcastillo-crm` y `transporte-app`, donde `main` **ya falla** hoy. Se publica en cada PR para no ocultar la deuda, pero no bloquea. | No |
 
@@ -218,3 +218,6 @@ Notas operativas:
   ya no alcanza: hace falta un Postgres desechable dentro del job
   (contenedor) o una base de *staging* explícitamente descartable. Nunca
   `nexo-core` de producción.
+
+## Ampliación RRHH local (2026-10-16)
+El entorno compartido replica las columnas mínimas, particiones y grants usados por los tickets. Esto prueba un modelo, no el esquema remoto, las membresías reales, JWT de Auth ni carreras entre conexiones. El arnés remoto P7 no se encadena a verify y rechaza CI; requiere al Operador. Ver [paquete](RRHH_PAQUETE_OPERADOR.md).

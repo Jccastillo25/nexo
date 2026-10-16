@@ -1066,3 +1066,7 @@ exo` (panel) real sobre ese primer módulo migrado.
 
 ## RRHH P6 — preparado, sin aplicar
 20261016235000_rrhh_p6_consultar_marcas.sql pendiente. Postcheck: anon sin EXECUTE, authenticated con EXECUTE; interno restringido, autorizado ve solo su empresa y no autorizado denegado. Rollback: retirar pagina/wrapper de lectura sin tocar marcas ni vinculos.
+
+## RRHH — entrega local 2026-10-16
+Entrega solo de archivos: ninguna migración aplicada en esta sesión. Confirmar versiones remotas antes de aplicar. Orden, postchecks y rollback en el paquete.
+[Paquete único](RRHH_PAQUETE_OPERADOR.md).

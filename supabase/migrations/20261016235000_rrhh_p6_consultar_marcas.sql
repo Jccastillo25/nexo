@@ -61,3 +61,4 @@ $$;
 revoke execute on function rrhh.fn_consultar_marcas(uuid,date,date,uuid,uuid,text,integer,integer) from public,anon,authenticated;
 revoke execute on function public.consultar_marcas(uuid,date,date,uuid,uuid,text,integer,integer) from public,anon;
 grant execute on function public.consultar_marcas(uuid,date,date,uuid,uuid,text,integer,integer) to authenticated;
+notify pgrst, 'reload schema';

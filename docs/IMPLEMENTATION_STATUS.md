@@ -1,6 +1,14 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
-**Última actualización documental: 2026-10-16 — CI y validación (issue #43):** primera puerta de calidad del repo: workflow `CI` en `.github/workflows/ci.yml` (checks `typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access` + `lint-deuda` informativo), orden local única `pnpm install --frozen-lockfile && pnpm verify`, `typecheck` real en las 7 apps (antes ejecutaba **0 tareas con exit 0**) y prueba SQL de P1 conectada con `@electric-sql/pglite` fijado en `0.5.10`. **El gate de merge está ACTIVO y verificado** en `main`: los cinco checks obligatorios (app GitHub Actions), `strict: false`, `enforce_admins: true`, sin force push ni borrado de rama — `lint-deuda` no bloquea ([detalle y comandos](CI_CHECKS.md)). Sin migraciones aplicadas ni despliegues. [Detalle](status-log/2026-10-16-ci-checks-automatizados.md).
+**Última actualización documental: 2026-10-16 — RRHH, entrega local P2–P6.**
+Rama codex/rrhh-piloto-mvp: 0.2–0.3 rehechos, decisiones 0.4 registradas y
+kiosco configurado en 0.5 sin marcaciones. P2–P6 implementados y probados
+localmente; paquete P7 preparado. **Sin migraciones aplicadas, sin cambios en
+Vercel ni piloto autorizado.** Siguiente: aprobación, Operador y P7 remoto/manual.
+[Paquete único](RRHH_PAQUETE_OPERADOR.md).
+
+
+**2026-10-16 — CI y validación (issue #43):** primera puerta de calidad del repo: workflow `CI` en `.github/workflows/ci.yml` (checks `typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access` + `lint-deuda` informativo), orden local única `pnpm install --frozen-lockfile && pnpm verify`, `typecheck` real en las 7 apps (antes ejecutaba **0 tareas con exit 0**) y prueba SQL de P1 conectada con `@electric-sql/pglite` fijado en `0.5.10`. **El gate de merge está ACTIVO y verificado** en `main`: los cinco checks obligatorios (app GitHub Actions), `strict: false`, `enforce_admins: true`, sin force push ni borrado de rama — `lint-deuda` no bloquea ([detalle y comandos](CI_CHECKS.md)). Sin migraciones aplicadas ni despliegues. [Detalle](status-log/2026-10-16-ci-checks-automatizados.md).
 
 **2026-10-15 — RRHH P1 (issue #30):** `rrhh.fn_registrar_marca_kiosko` deja de resolver la credencial con `limit 1`: cuenta las credenciales vigentes de la empresa del kiosco que aceptan el PIN y, con más de una coincidencia, **falla cerrado** (ninguna marca, ninguna identidad, señal técnica sin PIN). Migración `20261015181000`, ya **fusionada en `main` (`fc2b309`)** y probada en un PostgreSQL embebido con bcrypt real (13 casos/28 aserciones + control negativo); **la migración todavía no se aplicó a `nexo-core`**. No se avanzó a P2. [Detalle](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md).
 
@@ -68,6 +76,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-16 | [RRHH p7-paquete](status-log/2026-10-16-rrhh-p7-paquete.md) | Paquete unico del Operador preparado: migraciones P1-P6 con postchecks y rollback, SQL de grants/RLS/particiones, arnes remoto de carreras y guion manual P7. Sin ejecucion remota ni autorizacion de piloto. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [RRHH p6-marcas](status-log/2026-10-16-rrhh-p6-marcas.md) | P6 implementado: consulta segura por empresa con marcas.ver, listado de solo lectura, filtros y detalle con numero de contrato, estados calculables y paginacion. Pruebas SQL y validacion de fechas locales. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [RRHH p5-confirmacion](status-log/2026-10-16-rrhh-p5-confirmacion.md) | P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [RRHH p4-secuencia](status-log/2026-10-16-rrhh-p4-secuencia.md) | P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo local; pendiente de aplicar y validar en remoto. |
@@ -113,21 +122,16 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 
 # 1. Estado general
 
-Actualización RRHH (p6-marcas): P6 implementado: consulta segura por empresa con marcas.ver, listado de solo lectura, filtros y detalle con numero de contrato, estados calculables y paginacion. Pruebas SQL y validacion de fechas locales. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+P2–P6 implementados en rama y verificados localmente; remoto y E2E pendientes. Ver el paquete del Operador.
 
-Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p3-contrato): P3 implementado: contrato obligatorio con FK compuesta, indices y cierre de escrituras directas en padre y particiones. PGlite comprueba vinculo, recontratacion y revocacion. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p2-pin-unico): P2 implementado: generacion criptografica y lock por empresa; firmas y autorizacion conservadas. Pruebas de unicidad, regeneracion, empresa ajena y agotamiento en PGlite. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
+
 
 | Área | Estado | Realidad conocida / siguiente paso |
 |---|---|---|
@@ -147,7 +151,7 @@ Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia 
 | RRHH consolidación de asistencia | ⏳ Pendiente | No existe marcas → horas consolidadas. |
 | RRHH planillas | ⏳ Pendiente | Ruta actual es placeholder; falta motor/reporte. |
 | Kiosko RRHH | ✅ Migrado a PIN contractual | `rrhh.fn_registrar_marca_kiosko` valida contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. Misma UI/rate-limit de antes. **2026-10-15 (P1, issue #30, en `main` `fc2b309`):** además cuenta coincidencias y no marca si el PIN es ambiguo en la empresa del kiosco — misma UI; la migración `20261015181000` sigue sin aplicarse a `nexo-core`. [Detalle](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md). |
-| RRHH piloto supervisado / MVP operativo (corte 2026-10-15) | 🟡 P1 implementado y fusionado; P2–P7 y M1–M4 pendientes | Un par por contrato/día `America/Managua`, PIN sin ambigüedad, marcas con contrato, idempotencia, Marcas de solo lectura, reportes por correo corporativo y corrección auditada posterior. Implementado y fusionado: P1 (PIN ambiguo, issue #30, `main` `fc2b309`, migración `20261015181000` sin aplicar a remoto). No autorizado ni probado con usuarios reales. [Especificación](RRHH_PILOTO_MVP_OPERATIVO.md). |
+| RRHH piloto supervisado / MVP operativo (corte 2026-10-15) | 🟡 P2–P6 locales; piloto sin autorizar | PIN único, contrato, secuencia/idempotencia, confirmación y Marcas en rama. Sin aplicación remota ni E2E; M1–M4 fuera de alcance. [Paquete](RRHH_PAQUETE_OPERADOR.md). |
 | Identidad digital de empleados | ⚠️ Refactor de PIN cerrado, identidad digital sigue pendiente | `nombre_usuario + PIN` para acceso operativo ya no existe como diseño vigente (D-06 cerrado F1.3). Falta construir usuario+contraseña vía Supabase Auth (Fase 2, `core.identidad`) — diseño objetivo documentado, sin implementar. |
 | Panel de Conductor Web | 🟡 Código legacy aprovechable | Ruta360 tiene flujo de conductor, pero falta adaptación a identidad Nexo, contrato RRHH y permisos unificados. |
 | CRM | 🟡 MVP muy básico | Cliente CRUD y dashboard; faltan leads, oportunidades, actividades, cotizaciones/pedido. |
@@ -161,21 +165,16 @@ Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia 
 
 # 2. Divergencias conocidas: estado actual vs modelo objetivo
 
-Actualización RRHH (p6-marcas): P6 implementado: consulta segura por empresa con marcas.ver, listado de solo lectura, filtros y detalle con numero de contrato, estados calculables y paginacion. Pruebas SQL y validacion de fechas locales. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+D-04 resuelto en el SQL P3 de esta rama; pendiente de aplicación. El resto fuera del piloto conserva su estado.
 
-Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p3-contrato): P3 implementado: contrato obligatorio con FK compuesta, indices y cierre de escrituras directas en padre y particiones. PGlite comprueba vinculo, recontratacion y revocacion. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p2-pin-unico): P2 implementado: generacion criptografica y lock por empresa; firmas y autorizacion conservadas. Pruebas de unicidad, regeneracion, empresa ajena y agotamiento en PGlite. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
+
 
 Confirmadas en remoto durante **F1.0** (2026-09-07, ver [`status-log/2026-09-07-f1-0-auditoria-real.md`](status-log/2026-09-07-f1-0-auditoria-real.md)). Pendientes de corregirse mediante migraciones nuevas en F1.1–F1.3 (la mayoría ya resuelta, ver estado de cada una).
 
@@ -201,7 +200,7 @@ Objetivo: `rrhh.empleados` = Expediente General. Puesto, departamento, fechas la
 
 Objetivo: cada marca válida debe quedar contextualizada con el contrato laboral vigente.
 
-**Estado: ⏳ sigue pendiente, ahora desbloqueado** — `rrhh.contratos` (F1.2) y `rrhh.contrato_jornadas`/`rrhh.fn_jornada_vigente_contrato` (F1.4) ya existen, pero `rrhh.asistencia_marcas.contrato_id` todavía no se agregó. Corresponde a F1.5 (consolidación de asistencia).
+**Estado: implementado en rama (P3), pendiente de aplicar y verificar en remoto** — `rrhh.contratos` (F1.2) y `rrhh.contrato_jornadas`/`rrhh.fn_jornada_vigente_contrato` (F1.4) ya existen, pero el vínculo aún está pendiente en main/remoto según la última evidencia. P3 lo implementa en esta rama; consolidación F1.5 sigue pendiente.
 
 ## D-05 — planilla sin motor
 
@@ -231,21 +230,16 @@ Estado: ℹ️ hallazgo de F1.0, sin urgencia — no contradice el modelo objeti
 
 # 3. Fase 1 — tablero de ejecución RRHH
 
-Actualización RRHH (p6-marcas): P6 implementado: consulta segura por empresa con marcas.ver, listado de solo lectura, filtros y detalle con numero de contrato, estados calculables y paginacion. Pruebas SQL y validacion de fechas locales. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+P1–P6 preparados en rama; P7 remoto/manual y autorización pendientes. F1.5–F1.10 completos y M1–M4 no se dan por cerrados.
 
-Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p3-contrato): P3 implementado: contrato obligatorio con FK compuesta, indices y cierre de escrituras directas en padre y particiones. PGlite comprueba vinculo, recontratacion y revocacion. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p2-pin-unico): P2 implementado: generacion criptografica y lock por empresa; firmas y autorizacion conservadas. Pruebas de unicidad, regeneracion, empresa ajena y agotamiento en PGlite. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
+
 
 | ID | Entregable | Estado | Evidencia / nota |
 |---|---|---|---|
@@ -261,28 +255,23 @@ Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia 
 | F1.8 | UI administración de kioscos | ⏳ | Eliminar SQL manual como operación normal. |
 | F1.9 | Seguridad/RBAC/E2E | ⏳ | Roles + RPC directa + RLS + advisors + contrato finalizado + PIN revocado. Incluye las pruebas por rol real pendientes de F1.3/F1.4 (ver esas entradas del log). |
 | F1.10 | Recorrido completo validado | ⏳ | Criterio para declarar RRHH MVP listo. |
-| P1–P7 | Piloto supervisado de kiosco/marcas | 🟡 P1 fusionado; P2–P7 pendientes | [Corte aprobado](RRHH_PILOTO_MVP_OPERATIVO.md) como especificación; **P1 (PIN ambiguo) ya implementado y fusionado en `main` (`fc2b309`)**. P7 debe comprobar pruebas críticas y designaciones privadas antes de autorizar. P2–P7 no iniciados. |
+| P1–P7 | Piloto supervisado de kiosco/marcas | 🟡 P2–P6 implementados y verificados localmente | Rama `codex/rrhh-piloto-mvp`; migraciones pendientes. P7 remoto/manual y autorización sin ejecutar. [Paquete](RRHH_PAQUETE_OPERADOR.md). |
 | M1–M4 | Corrección auditada y validación de MVP operativo | ⏳ | Posterior a P1–P7; permiso específico y original conservado. Sin implementación. No incluye nómina. |
 
 ---
 
 # 4. Acceso de Conductores y Kiosko
 
-Actualización RRHH (p6-marcas): P6 implementado: consulta segura por empresa con marcas.ver, listado de solo lectura, filtros y detalle con numero de contrato, estados calculables y paginacion. Pruebas SQL y validacion de fechas locales. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+Cliente de kiosco con confirmación genérica e idempotencia preparado; no autentica usuarios ni modifica la identidad digital.
 
-Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p3-contrato): P3 implementado: contrato obligatorio con FK compuesta, indices y cierre de escrituras directas en padre y particiones. PGlite comprueba vinculo, recontratacion y revocacion. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p2-pin-unico): P2 implementado: generacion criptografica y lock por empresa; firmas y autorizacion conservadas. Pruebas de unicidad, regeneracion, empresa ajena y agotamiento en PGlite. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
+
 
 Fuente específica: [`DRIVER_ACCESS_AND_KIOSK.md`](DRIVER_ACCESS_AND_KIOSK.md).
 
@@ -341,21 +330,16 @@ Si ya existe identidad digital, no crear otra.
 
 # 5. Preparación Nexo Mobile
 
-Actualización RRHH (p6-marcas): P6 implementado: consulta segura por empresa con marcas.ver, listado de solo lectura, filtros y detalle con numero de contrato, estados calculables y paginacion. Pruebas SQL y validacion de fechas locales. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+La lógica nueva reside en RPC autorizadas reutilizables. No se implementó app móvil.
 
-Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p3-contrato): P3 implementado: contrato obligatorio con FK compuesta, indices y cierre de escrituras directas en padre y particiones. PGlite comprueba vinculo, recontratacion y revocacion. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p2-pin-unico): P2 implementado: generacion criptografica y lock por empresa; firmas y autorizacion conservadas. Pruebas de unicidad, regeneracion, empresa ajena y agotamiento en PGlite. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
+
 
 ## Estado actual
 
@@ -414,21 +398,16 @@ No debe incluir por defecto administración de empleados, planillas, permisos, c
 
 # 6. Protocolo de actualización para Claude
 
-Actualización RRHH (p6-marcas): P6 implementado: consulta segura por empresa con marcas.ver, listado de solo lectura, filtros y detalle con numero de contrato, estados calculables y paginacion. Pruebas SQL y validacion de fechas locales. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+Cada entrega conserva registro y commit. Pruebas locales no sustituyen validación remota; sin UUID del dispositivo ni PIN versionados.
 
-Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p3-contrato): P3 implementado: contrato obligatorio con FK compuesta, indices y cierre de escrituras directas en padre y particiones. PGlite comprueba vinculo, recontratacion y revocacion. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p2-pin-unico): P2 implementado: generacion criptografica y lock por empresa; firmas y autorizacion conservadas. Pruebas de unicidad, regeneracion, empresa ajena y agotamiento en PGlite. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+
+
 
 En cada subfase ejecutada, actualizar este archivo en el mismo commit o conjunto de commits que cambia el producto:
 
@@ -461,23 +440,18 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 
 # 7. Próxima acción obligatoria
 
-Actualización RRHH (p6-marcas): P6 implementado: consulta segura por empresa con marcas.ver, listado de solo lectura, filtros y detalle con numero de contrato, estados calculables y paginacion. Pruebas SQL y validacion de fechas locales. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
+Siguiente: aprobar el paquete, aplicar P1 → P2 → P3 → P4a → P4b → P6 y ejecutar P7. No iniciar marcaciones antes.
 
-Actualización RRHH (p5-confirmacion): P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p4-secuencia): P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p3-contrato): P3 implementado: contrato obligatorio con FK compuesta, indices y cierre de escrituras directas en padre y particiones. PGlite comprueba vinculo, recontratacion y revocacion. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (p2-pin-unico): P2 implementado: generacion criptografica y lock por empresa; firmas y autorizacion conservadas. Pruebas de unicidad, regeneracion, empresa ajena y agotamiento en PGlite. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-4-0-5-preparacion): Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-3-entorno): Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-Actualización RRHH (0-2-runner): Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo en la rama de trabajo; no cambia el estado remoto ni autoriza el piloto.
 
-**RRHH/kiosco:** desarrollar en orden P1–P7 y después M1–M4 según [la especificación aprobada](RRHH_PILOTO_MVP_OPERATIVO.md). P1 (PIN ambiguo) ya está implementado y fusionado; **el siguiente paso es P2** (unicidad del PIN al activar/regenerar), que aún no se inició. P7 es puerta de autorización del piloto, no una formalidad: registra en privado funciones, buzón, dispositivo y pruebas; cualquier prueba crítica fallida pospone el piloto. Esto no sustituye F1.5–F1.10 completos.
+
+
+**RRHH/kiosco:** P2–P6 implementados en `codex/rrhh-piloto-mvp`. Siguiente: aprobar y ejecutar [el paquete del Operador](RRHH_PAQUETE_OPERADOR.md), no iniciar P2 nuevamente. P7 requiere remoto, usuarios reales y decisión de autorizar o posponer. No se sustituyen F1.5–F1.10 ni se inicia M1–M4.
 
 **RRHH P1 (issue #30): código fusionado, migración sin aplicar.** El código y su prueba están en `main` (`fc2b309`); falta —paso aparte y explícitamente autorizado— aplicar `20261015181000` en `nexo-core`. Aplicar P1 sin P2 protege la atribución de la marca, no la usabilidad de un PIN colisionado.
 

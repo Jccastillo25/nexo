@@ -510,3 +510,7 @@ P4a agrega kiosko_solicitudes particionada por creado_en, indices FK/empresa-fec
 
 ## RRHH P6 — preparado, sin aplicar
 P6 preparado: rrhh.fn_consultar_marcas y public.consultar_marcas, SECURITY DEFINER con search_path fijo y comprobacion de marcas.ver/empresa. Wrapper solo authenticated; interna no accesible. Devuelve identificadores minimos, etiqueta de empleado, numero de contrato, fecha/tipo/hora/estado. Rango maximo 62 dias, limite 100, offset validado; sin datos de credenciales.
+
+## RRHH — entrega local 2026-10-16
+P1, P2, P3, P4a, P4b y P6 ordenados en el paquete con postchecks y rollback. No aplicados en esta sesión. P4b/P6 notifican recarga de caché PostgREST.
+[Paquete único](RRHH_PAQUETE_OPERADOR.md).

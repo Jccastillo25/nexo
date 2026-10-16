@@ -181,3 +181,7 @@ Debe completar:
 4. integración con fuentes de verdad;
 5. pruebas E2E;
 6. documentación actualizada.
+
+## RRHH — entrega local 2026-10-16
+RRHH: P2–P6 implementados y verificados localmente en codex/rrhh-piloto-mvp. Sin migraciones aplicadas, despliegue ni piloto autorizado. El MVP completo sigue pendiente.
+[Paquete único](RRHH_PAQUETE_OPERADOR.md).

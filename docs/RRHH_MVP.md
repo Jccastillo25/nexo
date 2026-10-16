@@ -785,3 +785,7 @@ ConfirmDialog compartido para toda salida, sin identidad; envio unico en memoria
 
 ## RRHH P6 — preparado, sin aplicar
 P6 local: /rrhh/marcas lista entradas/salidas, filtra fechas, empleado/contrato ya consultados y estado; detalle y paginacion. No edita ni corrige. Sin filas significa Sin marcas registradas, nunca ausencia. Lectura minima incluye numero de contrato para identificarlo. Pruebas con autorizacion simulada no sustituyen RLS real ni recorrido autenticado.
+
+## RRHH — entrega local 2026-10-16
+P2–P6 implementados y probados en rama; P7 preparado. Sin aplicación ni E2E remoto, no se declara piloto ni MVP autorizado. M1–M4 y nómina siguen pendientes.
+[Paquete único](RRHH_PAQUETE_OPERADOR.md).

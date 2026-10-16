@@ -101,3 +101,4 @@ $$;
 revoke execute on function rrhh.fn_registrar_marca_kiosko(text,uuid,uuid,boolean) from public,anon,authenticated;
 revoke execute on function public.registrar_marca_kiosko(text,uuid,uuid,boolean) from public;
 grant execute on function public.registrar_marca_kiosko(text,uuid,uuid,boolean) to anon,authenticated;
+notify pgrst, 'reload schema';
