@@ -43,3 +43,26 @@ El primer run del workflow en el PR (run `38851449971`) dio: `lint` ✅, `build`
 - Los **previews de Vercel** de la rama quedaron en `Deployment rate limited — retry in 24 hours`: cada push dispara 5 builds (una por app) y varios pushes seguidos agotan el límite de la cuenta. No es un fallo del código y por eso los checks de Vercel **no** se marcan como obligatorios (el `build` de este workflow sí cubre la compilación, sin depender de Vercel).
 - La cobertura de RLS, particiones y concurrencia **no** existe en PGlite: si un caso las necesita, hace falta un Postgres desechable en el job o una base de staging descartable — nunca `nexo-core` de producción.
 - `main` sigue sin la migración `20261015181000` aplicada: este issue no la aplica (fuera de alcance).
+
+## Corrección tras la revisión del PR #44 (gate de lint)
+
+La revisión señaló, con razón, que `lint:gate` era una lista de `--filter=`
+escrita a mano: una app futura en `apps/*` podía declarar `lint`, pasar todos
+los checks obligatorios y **nunca** ser linteada por el gate (el guard de tareas
+está conectado a `pnpm lint`, no a `lint:gate`, que es lo que corren `pnpm
+verify` y el CI). Se reemplazó por [`scripts/lint-apps.mjs`](../../scripts/lint-apps.mjs):
+
+- El conjunto del gate se **deriva de `apps/*`**; cada app debe estar
+  clasificada como `gate` o `deuda` en un registro explícito. La única exclusión
+  es la deuda actual y documentada de `materiales-jcastillo-crm` y
+  `transporte-app`, con el motivo y el archivo concreto al lado.
+- Falla si hay una app **sin clasificar**, si el registro menciona una app
+  inexistente, si el gate queda vacío o si una app del gate no declara `lint`.
+- `pnpm lint:self-test` demuestra el mecanismo con un fixture temporal fuera del
+  repo: app nueva sin clasificar → `plan` falla y la nombra; todo clasificado →
+  pasa; entrada obsoleta → falla. Corre en `pnpm verify` y como paso del job
+  `lint` del workflow.
+
+Verificado en local: `lint:plan` OK (gate 5 / deuda 2), `lint:self-test` con sus
+tres casos OK, `lint:gate` 5/5 tareas OK y `lint:deuda` fallando como se espera
+(deuda pre-existente).

@@ -33,11 +33,35 @@ agrupados bajo el workflow `CI`. Verificado por API sobre el commit `b3edfb9`
 | Check | Comando | Qué cubre | ¿Bloquea el merge? |
 |---|---|---|---|
 | `typecheck` | `pnpm typecheck` | Cobertura de la tarea + `next typegen && tsc --noEmit` en las **7 apps** (`apps/*/package.json` → `typecheck`). Cubre el código de las apps y, por imports, el de `packages/*`. El `next typegen` es obligatorio: sin él, los tipos generados por Next (`LayoutProps`, `PageProps`, `.next/types/*`) no existen en un clon limpio. | **Sí** |
-| `lint` | `pnpm lint:gate` | ESLint en las 5 apps que están limpias en `main`: `nexo-panel`, `rrhh`, `nexo-agencia`, `nexo-atencion`, `web-corporativo`. | **Sí** |
+| `lint` | `pnpm lint:gate` | ESLint en **todas las apps de `apps/*` excepto las de la lista de deuda documentada** (`materiales-jcastillo-crm`, `transporte-app`). El conjunto se **deriva del sistema de archivos**, no de una lista escrita a mano: si una app no está clasificada, el check **falla** (`lint:plan`) y además corre la autocomprobación `lint:self-test`. | **Sí** |
 | `build` | `pnpm build` | `next build` real de las 7 apps, sin variables de entorno ni secretos. | **Sí** |
 | `test-db-rrhh` | `pnpm test:db` | Prueba SQL de P1 (`supabase/tests/`) sobre la **migración real** del repo, en un PostgreSQL en memoria (PGlite) con `pgcrypto` real. Misma orden que `pnpm test:rrhh:p1`. | **Sí** |
 | `test-agencia-access` | `pnpm test:agencia:access` | Arnés offline existente de acceso denegado/otorgado en `apps/agencia` (sin red, sin cuentas). | **Sí** |
 | `lint-deuda (no bloquea)` | `pnpm lint:deuda` | ESLint de `materiales-jcastillo-crm` y `transporte-app`, donde `main` **ya falla** hoy. Se publica en cada PR para no ocultar la deuda, pero no bloquea. | No |
+
+### Clasificación de apps para el gate de lint (observación de revisión del PR #44)
+
+Antes, `lint:gate` era una lista de `--filter=` escrita a mano: una app nueva en
+`apps/*` podía declarar `lint`, pasar **todos** los checks obligatorios y nunca
+ser linteada por el gate. Ahora `scripts/lint-apps.mjs` enumera `apps/*` y exige
+que **cada** app esté clasificada en su `REGISTRO`:
+
+- `gate` → entra en `pnpm lint:gate` (check bloqueante).
+- `deuda` → excluida del bloqueo **a propósito**, con el motivo escrito al lado
+  (`materiales-jcastillo-crm` y `transporte-app`, ver la tabla de deuda de
+  abajo). Sigue visible por `pnpm lint:deuda` en cada PR.
+
+El script falla —y por lo tanto el check `lint` falla— si: hay una app **sin
+clasificar**; el registro menciona una app que **ya no existe** (registro
+podrido); el gate queda **vacío**; o una app del gate **no declara** la tarea
+`lint`. Para corregir el lint de `crm`/`flotilla`, basta mover su entrada de
+`deuda` a `gate` y borrar el motivo.
+
+Comprobación de que esto no se rompe en silencio: `pnpm lint:self-test` crea un
+`apps/*` temporal **fuera del repo** con todas las apps del registro ya
+clasificadas más una app nueva sin clasificar, y verifica que `plan` (a) falla y
+la nombra, (b) pasa cuando está clasificada y (c) falla si el registro apunta a
+una app inexistente. Corre en `pnpm verify` y como paso propio del job `lint`.
 
 El job de pruebas no recibe secretos y además tiene un guard explícito: si el
 entorno trae `SUPABASE_*`, `DATABASE_URL` o `PG*`, el job **falla** en vez de

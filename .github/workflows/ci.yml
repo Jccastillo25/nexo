@@ -76,6 +76,19 @@ jobs:
           fi
           echo "OK: entorno sin credenciales de Supabase/Postgres."
 
+      # El gate de lint se deriva de apps/*, no de una lista escrita a mano:
+      # una app nueva sin clasificar rompe estos dos pasos (observación de
+      # revisión del PR #44). El primero valida la clasificación real; el
+      # segundo demuestra que el mecanismo falla si aparece una app sin
+      # clasificar, con un fixture temporal fuera del repo.
+      - name: Clasificación de apps del gate de lint
+        if: matrix.name == 'lint'
+        run: pnpm run lint:plan
+
+      - name: Autocomprobación del gate de lint (app nueva sin clasificar)
+        if: matrix.name == 'lint'
+        run: pnpm run lint:self-test
+
       - name: ${{ matrix.name }}
         run: ${{ matrix.cmd }}
 
