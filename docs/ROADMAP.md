@@ -74,7 +74,8 @@ Fuente: [`DRIVER_ACCESS_AND_KIOSK.md`](DRIVER_ACCESS_AND_KIOSK.md).
 | 2 | **Kernel compartido + identidad operacional**: `@nexo/auth`, `@nexo/supabase`, relación empleado↔Auth, provisión/restablecimiento de cuentas y APIs reutilizables | ⏳ |
 | 3 | **CRM MVP real**: leads, oportunidades, pipeline, actividades, cotizaciones y pedido | ⏳ |
 | 4 | **Transporte/Flotilla**: adaptar Ruta360, Panel Conductor Web, identidad Nexo y primera vertical Mobile | ⏳ |
-| — | **Productos (catálogo maestro) → Listas de precios**: adelantado por decisión del usuario 2026-10-16, en paralelo a RRHH ([plan 14](plan/14-productos.md)) | 🟡 Productos: esquema aplicado, app en local |
+| — | **Productos (catálogo maestro) → Listas de precios**: adelantado por decisión del usuario 2026-10-16, en paralelo a RRHH ([plan 14](plan/14-productos.md)) | 🟡 Productos: en producción (PR #45, 2026-10-17), sin datos importados ni recorrido con sesión real |
+| — | **Nexo multiplataforma** ([plan 15](plan/15-nexo-multiplataforma.md), aprobado 2026-10-17): M1 PC como PWA → M2 spike Expo → M3 shell → M4 Productos móvil → M5 Atención → M6 tiendas; RRHH y Transporte después | ⏸️ Aprobado, en pausa por decisión del usuario (2026-10-17) |
 | 5 | **Inventario mínimo**: almacenes, existencias, movimientos y reservas (el catálogo de productos ya viene de la app Productos) | ⏳ |
 | 6 | **Fabricación**: BOM, órdenes, reserva, producción, merma, calidad y terminado | ⏳ |
 | 7 | **Nexo Mobile Android/iOS**: consolidar shell y verticales operativas para distribución | ⏳ |

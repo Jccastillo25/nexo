@@ -1,6 +1,11 @@
 # Plan Maestro — Estrategia móvil Android + iOS
 
 > Parte de [`PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`](../PLAN_MAESTRO_IMPLEMENTACION_NEXO.md) (índice). Misma vigencia y jerarquía que el documento madre.
+>
+> **Actualización 2026-10-17 (aprobada por el usuario):** el orden de entrega,
+> la PC (PWA primero) y la primera vertical móvil (**Productos**, ya no
+> Transporte) están en [15 — Nexo multiplataforma](15-nexo-multiplataforma.md).
+> El resto de este documento sigue vigente.
 
 ---
 

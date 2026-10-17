@@ -114,11 +114,25 @@ iconos [y] está ordenado". Cambios:
   permitido.
 - `pnpm verify` completo sin errores (8 apps).
 
+## Producción (2026-10-17)
+
+- Commit `65d6663` en `feat/productos-catalogo` → [PR #45](https://github.com/Jccastillo25/nexo/pull/45):
+  los 5 checks obligatorios en verde (`lint-deuda`, no bloqueante, falla por
+  la deuda previa de CRM/Flotilla) y los 6 previews de Vercel correctos.
+  Merge del usuario: `6a7ddc3`.
+- Proyecto Vercel `nexo-productos` (`prj_n7LDOxtjb5VZZyWVcQmqG7EE0JeR`, Root
+  Directory `apps/productos`) con `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `NEXO_COMPANY_ID`; `PRODUCTOS_APP_URL =
+  https://nexo-productos.vercel.app` en `nexocore` (producción).
+- Despliegues de producción `nexo-productos` y `nexocore` en READY, sin
+  errores de runtime en la primera hora. Sin sesión,
+  `https://nexo.materialesjcastillo.com/productos/dashboard` responde 307 a
+  `/login?next=%2Fproductos%2Fdashboard` (login único correcto).
+- No verificado: pantallas con sesión real en producción.
+
 ## Pendiente
 
-- Recorrido en local con sesión real (lo hace el usuario).
+- Recorrido con sesión real (local o producción; lo hace el usuario).
 - Importación real de los 699 productos (datos reales, no `PRUEBA`).
-- Commit + PR, proyecto Vercel `nexo-productos`, `PRODUCTOS_APP_URL` en
-  `nexocore`, merge y prueba en producción.
 - Mostrar las acciones `productos.*` en la pantalla de Auditoría del panel.
 - La unidad `VARIILA` viene escrita así del ERP; se importa tal cual.
