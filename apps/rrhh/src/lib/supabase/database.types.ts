@@ -80,15 +80,13 @@ export type Database = {
         Args: { p_code: string; p_company_id: string };
         Returns: boolean;
       };
+      consultar_marcas: {
+        Args: { p_company_id: string; p_desde: string; p_hasta: string; p_empleado_id?: string; p_contrato_id?: string; p_estado?: string; p_limit?: number; p_offset?: number };
+        Returns: { marca_id: string; empleado_id: string; empleado_label: string; contrato_id: string; contrato_numero: number; fecha_local: string; tipo: string; marcado_en: string; estado: string }[];
+      };
       registrar_marca_kiosko: {
-        Args: { p_kiosko_id: string; p_pin: string };
-        // Sin empleado_nombre a proposito desde 2026-09-05 (regla
-        // obligatoria del kiosko anonimo: no revelar datos personales) —
-        // ver supabase/migrations/20260905000002_kiosko_minimize_exposure_and_bloqueo_check.sql
-        Returns: {
-          marcado_en: string;
-          tipo: string;
-        }[];
+        Args: { p_kiosko_id: string; p_pin: string; p_solicitud_id: string; p_confirmar_salida: boolean };
+        Returns: Json;
       };
       set_pin_empleado: {
         Args: { p_company_id: string; p_empleado_id: string; p_pin: string };
@@ -788,9 +786,16 @@ export type Database = {
       // Particionada por rango mensual desde el dia 1 — no cambia la
       // forma de Row/Insert/Update. Las marcas de origen "kiosko" se
       // insertan via el RPC registrar_marca_kiosko (security definer).
+      kiosko_solicitudes: {
+        Row: { id: string; solicitud_id: string; company_id: string; kiosko_id: string; fecha_local: string; resultado: 'registrada' | 'rechazada'; respuesta: Json; creado_en: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       asistencia_marcas: {
         Row: {
           id: string;
+          contrato_id: string;
           company_id: string;
           empleado_id: string;
           kiosko_id: string | null;
@@ -800,27 +805,8 @@ export type Database = {
           marcado_en: string;
           created_at: string;
         };
-        Insert: {
-          id?: string;
-          company_id: string;
-          empleado_id: string;
-          kiosko_id?: string | null;
-          tipo: "entrada" | "salida";
-          origen?: "kiosko" | "manual";
-          creado_por?: string | null;
-          marcado_en?: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          company_id?: string;
-          empleado_id?: string;
-          kiosko_id?: string | null;
-          tipo?: "entrada" | "salida";
-          origen?: "kiosko" | "manual";
-          creado_por?: string | null;
-          marcado_en?: string;
-        };
+        Insert: never; // Solo RPC del kiosco
+        Update: never;
         Relationships: [];
       };
       // NO particionada (volumen acotado: una fila por corrida de

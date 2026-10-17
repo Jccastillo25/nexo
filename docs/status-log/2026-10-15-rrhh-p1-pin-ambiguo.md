@@ -26,7 +26,7 @@ de ejecución, sin ninguna señal.
 
 ## Entregado
 
-- Migración nueva `20261015181000_p1_pin_ambiguo_fallo_cerrado` (ninguna
+- Migración nueva `20261017131004_p1_pin_ambiguo_fallo_cerrado` (ninguna
   migración histórica fue modificada). Reemplaza la definición de
   `rrhh.fn_registrar_marca_kiosko`: misma firma, mismo tipo de retorno, mismo
   rate-limit, mismos `GRANT`/`REVOKE`, mismo retorno sin datos personales.

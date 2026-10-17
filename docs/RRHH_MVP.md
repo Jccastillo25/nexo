@@ -751,7 +751,8 @@ Resumen funcional:
   el breadcrumb y el contenido. `/configuracion/marca`, favicon y login
   no se tocaron.
 
-**Estado de cierre**: verificado con `tsc`/`next build`/`eslint` en
+**Estado de cierre**: verificado con `tsc`/
+ext build`/`eslint` en
 `apps/rrhh`, `apps/nexo` y `apps/crm`; código commiteado y pusheado a
 `main` (`392f676`, 2026-09-17); migración
 `20260918043955_rrhh_contratos_reglas_y_endurecimiento` **aplicada a
@@ -764,3 +765,22 @@ renombró a `20260918043955` (versión remota real que quedó registrada al
 aplicarlo) sin tocar su contenido SQL. Sigue pendiente, sin relación con
 la migración: un recorrido autenticado real en navegador (sin
 credenciales de prueba en este entorno).
+
+## Corte local P2 (2026-10-16)
+PIN único por empresa al activar/regenerar implementado y probado en PGlite, sin aplicar a nexo-core. No equivale a piloto autorizado ni a E2E remoto.
+
+## RRHH P3 — pendiente de aplicar (2026-10-16)
+P3 local: nuevas marcas vinculadas al contrato exacto; historia de recontratacion conservada. Sin E2E remoto ni autorizacion del piloto.
+
+## RRHH P4 — preparado, sin aplicar
+P4 local probado: un par diario por contrato, ayer abierto inicia hoy con entrada, tercer envio rechazado, confirmacion sin insercion, reintentos exactos sin duplicar ni sumar fallos. Finalizacion coordinada mediante lock contractual y revalidacion. Falta P5 UI completa y validacion remota de carreras.
+
+## RRHH P5 — cliente local
+ConfirmDialog compartido para toda salida, sin identidad; envio unico en memoria, mismo UUID para reintento/confirmacion, cancelar sin RPC y borrado al terminar. Reloj visible America/Managua. Pruebas unitarias del flujo, sin recorrido autenticado ni marcacion remota.
+
+## RRHH P6 — preparado, sin aplicar
+P6 local: /rrhh/marcas lista entradas/salidas, filtra fechas, empleado/contrato ya consultados y estado; detalle y paginacion. No edita ni corrige. Sin filas significa Sin marcas registradas, nunca ausencia. Lectura minima incluye numero de contrato para identificarlo. Pruebas con autorizacion simulada no sustituyen RLS real ni recorrido autenticado.
+
+## RRHH — entrega local 2026-10-16
+P2–P6 implementados y probados en rama; P7 preparado. Sin aplicación ni E2E remoto, no se declara piloto ni MVP autorizado. M1–M4 y nómina siguen pendientes.
+[Paquete único](RRHH_PAQUETE_OPERADOR.md).
