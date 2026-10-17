@@ -2,6 +2,9 @@
 
 > **Estado: aprobado por el usuario (2026-10-17)** — "Apruebo el plan: PC como
 > PWA primero y Productos como primera vertical móvil".
+> **En pausa, sin fecha (2026-10-17):** "La app y pc instalable aun no se
+> hara". Ninguna fase (M0–M8) está en curso; no se empieza hasta que el
+> usuario lo pida.
 > Pedido original: "Necesitamos un plan para poder hacerla nativa en iPhone y
 > Android y Pc" (2026-10-16).
 > Amplía [02 — Estrategia móvil](02-estrategia-movil.md) y
