@@ -242,6 +242,13 @@ Nexo Mobile no es una WebView ni un espejo de la suite Web.
 
 Es una superficie operacional que muestra únicamente los módulos y acciones aprobados para cada rol.
 
+Decisión aprobada 2026-10-17 ([plan 15](plan/15-nexo-multiplataforma.md)):
+la PC usa la suite Web instalada como PWA (sin código aparte; Tauri solo si
+aparece un caso de hardware), y la primera vertical de Nexo Mobile es
+Productos, cuyo backend ya es 100 % RPC. Tipos de RPC y códigos de permiso
+irán a un paquete compartido `packages/dominio` para Web y Mobile; la UI no se
+comparte, solo los tokens visuales.
+
 Primera vertical productiva: **Transporte / conductor**.
 
 Capacidades nativas esperadas:

@@ -1,6 +1,10 @@
 # Plan Maestro — FASE 7: Nexo Mobile consolidado Android/iOS
 
 > Parte de [`PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`](../PLAN_MAESTRO_IMPLEMENTACION_NEXO.md) (índice). Misma vigencia y jerarquía que el documento madre.
+>
+> **Actualización 2026-10-17:** el orden y las fases concretas (M0–M8, PC como
+> PWA) están en [15 — Nexo multiplataforma](15-nexo-multiplataforma.md). NM-03
+> (Transporte) pasa detrás de una vertical nueva de Productos (M4).
 
 ---
 
