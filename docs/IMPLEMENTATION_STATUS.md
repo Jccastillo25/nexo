@@ -1,10 +1,21 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
+**Última actualización documental: 2026-10-17 — RRHH P1–P6 aplicadas en `nexo-core`.**
+Con aprobación del usuario, P1 → P2 → P3 → P4a → P4b → P6 aplicadas
+(`20261017131004` … `20261017131221`), postchecks del paquete y P7 sección A
+en verde en remoto; advisors solo con hallazgos esperados. El código (kiosco
+con confirmación/reintento y pantalla Marcas) está en el [PR #47](https://github.com/Jccastillo25/nexo/pull/47),
+**sin fusionar**: hasta entonces el kiosco desplegado falla cerrado (0 marcas).
+Pendiente: fusionar, P7 con concurrencia y sesiones reales, recorrido P7.2.
+Sin piloto autorizado. [Detalle](status-log/2026-10-17-rrhh-p1-p6-aplicadas.md) · [Paquete](RRHH_PAQUETE_OPERADOR.md).
+
+**2026-10-16 — RRHH, entrega local P2–P6:** rama `codex/rrhh-piloto-mvp`: 0.2–0.3 rehechos, decisiones 0.4 registradas, kiosco configurado en 0.5 sin marcaciones; P2–P6 implementados y probados localmente; paquete P7 preparado.
+
 **2026-10-16 — Productos (esquema + app):** schema `productos` (12 tablas, 12 RPC `public.productos_*`) aplicado en `nexo-core` (`20261016214634`) tras 17 pruebas en transacción revertida (+11 después de aplicar). `apps/productos` (zona `/productos`, puerto 3005) implementada: dashboard, listado, ficha con ID inmutable y código `CCTTKK-NNN` editable, clasificación, catálogos e importación/exportación del Excel del ERP; typecheck/lint/build OK y lector probado con los 699 productos reales. Sin datos, sin commit ni proyecto Vercel (el usuario quiere probar en local primero). **Activada** para la empresa el mismo día (`20261016220935`) para probar en local: la tarjeta ya aparece en el Launcher de producción pero no abre hasta el deploy. [Detalle](status-log/2026-10-16-productos-esquema-app.md).
 
 **2026-10-16 — Productos (Paso Cero):** nuevo módulo `productos` (catálogo maestro de productos, base de Listas de precios). Diseño a partir de las plantillas de importación del ERP actual; matriz aprobada por el usuario y aplicada a `nexo-core` (`20261016203638`): app **inactiva**, 16 permisos + `productos.ver_modulo`, plantillas Consulta/Editor/Contabilidad/Administrador. Nexo será el maestro de productos. Sin tablas, sin `apps/productos` ni proyecto Vercel. [Detalle](status-log/2026-10-16-productos-paso-cero.md) · [Plan](plan/14-productos.md).
 
-**Última actualización documental: 2026-10-16 — CI y validación (issue #43):** primera puerta de calidad del repo: workflow `CI` en `.github/workflows/ci.yml` (checks `typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access` + `lint-deuda` informativo), orden local única `pnpm install --frozen-lockfile && pnpm verify`, `typecheck` real en las 7 apps (antes ejecutaba **0 tareas con exit 0**) y prueba SQL de P1 conectada con `@electric-sql/pglite` fijado en `0.5.10`. **El gate de merge está ACTIVO y verificado** en `main`: los cinco checks obligatorios (app GitHub Actions), `strict: false`, `enforce_admins: true`, sin force push ni borrado de rama — `lint-deuda` no bloquea ([detalle y comandos](CI_CHECKS.md)). Sin migraciones aplicadas ni despliegues. [Detalle](status-log/2026-10-16-ci-checks-automatizados.md).
+**2026-10-16 — CI y validación (issue #43):** primera puerta de calidad del repo: workflow `CI` en `.github/workflows/ci.yml` (checks `typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access` + `lint-deuda` informativo), orden local única `pnpm install --frozen-lockfile && pnpm verify`, `typecheck` real en las 7 apps (antes ejecutaba **0 tareas con exit 0**) y prueba SQL de P1 conectada con `@electric-sql/pglite` fijado en `0.5.10`. **El gate de merge está ACTIVO y verificado** en `main`: los cinco checks obligatorios (app GitHub Actions), `strict: false`, `enforce_admins: true`, sin force push ni borrado de rama — `lint-deuda` no bloquea ([detalle y comandos](CI_CHECKS.md)). Sin migraciones aplicadas ni despliegues. [Detalle](status-log/2026-10-16-ci-checks-automatizados.md).
 
 **2026-10-15 — RRHH P1 (issue #30):** `rrhh.fn_registrar_marca_kiosko` deja de resolver la credencial con `limit 1`: cuenta las credenciales vigentes de la empresa del kiosco que aceptan el PIN y, con más de una coincidencia, **falla cerrado** (ninguna marca, ninguna identidad, señal técnica sin PIN). Migración `20261015181000`, ya **fusionada en `main` (`fc2b309`)** y probada en un PostgreSQL embebido con bcrypt real (13 casos/28 aserciones + control negativo); **la migración todavía no se aplicó a `nexo-core`**. No se avanzó a P2. [Detalle](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md).
 
@@ -72,6 +83,18 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-17 | [RRHH P1–P6 aplicadas en `nexo-core`](status-log/2026-10-17-rrhh-p1-p6-aplicadas.md) | Seis migraciones aplicadas con aprobación del usuario; postchecks y P7 sección A en verde en remoto; advisors sin sorpresas. Código en PR #47 sin fusionar (kiosco desplegado falla cerrado hasta entonces). |
+| 2026-10-16 | [RRHH publicación pendiente](status-log/2026-10-16-rrhh-publicacion-pendiente.md) | Implementación local verificada; push sin credencial de escritura. PR y CI pendientes, sin cambios remotos. |
+| 2026-10-16 | [RRHH revisión final](status-log/2026-10-16-rrhh-revision-final.md) | Regresiones: agotamiento al activar y rechazo de PIN ambiguo tras P4; solo PGlite, sin remoto. |
+| 2026-10-16 | [RRHH p7-paquete](status-log/2026-10-16-rrhh-p7-paquete.md) | Paquete unico del Operador preparado: migraciones P1-P6 con postchecks y rollback, SQL de grants/RLS/particiones, arnes remoto de carreras y guion manual P7. Sin ejecucion remota ni autorizacion de piloto. Solo local; pendiente de aplicar y validar en remoto. |
+| 2026-10-16 | [RRHH p6-marcas](status-log/2026-10-16-rrhh-p6-marcas.md) | P6 implementado: consulta segura por empresa con marcas.ver, listado de solo lectura, filtros y detalle con numero de contrato, estados calculables y paginacion. Pruebas SQL y validacion de fechas locales. Solo local; pendiente de aplicar y validar en remoto. |
+| 2026-10-16 | [RRHH p5-confirmacion](status-log/2026-10-16-rrhh-p5-confirmacion.md) | P5 implementado: confirmacion generica de toda salida, cancelar sin RPC, reintento con mismo UUID y borrado del PIN en memoria al terminar. Tres pruebas del controlador local aprobadas. Solo local; pendiente de aplicar y validar en remoto. |
+| 2026-10-16 | [RRHH p4-secuencia](status-log/2026-10-16-rrhh-p4-secuencia.md) | P4a y P4b implementados: resultados particionados, locks de envio y contrato/dia, reintentos sin duplicar, confirmacion de salida y limite de intentos conservado. Cliente y tipos adaptados; concurrencia real pendiente de P7. Solo local; pendiente de aplicar y validar en remoto. |
+| 2026-10-16 | [RRHH p3-contrato](status-log/2026-10-16-rrhh-p3-contrato.md) | P3 implementado: contrato obligatorio con FK compuesta, indices y cierre de escrituras directas en padre y particiones. PGlite comprueba vinculo, recontratacion y revocacion. Solo local; pendiente de aplicar y validar en remoto. |
+| 2026-10-16 | [RRHH p2-pin-unico](status-log/2026-10-16-rrhh-p2-pin-unico.md) | P2 implementado: generacion criptografica y lock por empresa; firmas y autorizacion conservadas. Pruebas de unicidad, regeneracion, empresa ajena y agotamiento en PGlite. Solo local; pendiente de aplicar y validar en remoto. |
+| 2026-10-16 | [RRHH 0-4-0-5-preparacion](status-log/2026-10-16-rrhh-0-4-0-5-preparacion.md) | Decisiones aprobadas: cierre de escritura directa en P3, kiosco PRUEBA separado ya creado por el Operador y limpieza final completa. Variable local configurada sin versionar su valor; sin marcaciones ni conexion remota. Solo local; pendiente de aplicar y validar en remoto. |
+| 2026-10-16 | [RRHH 0-3-entorno](status-log/2026-10-16-rrhh-0-3-entorno.md) | Entorno desechable compartido conectado a test:db; P1 conserva su prueba aislada y se prueba tambien en el compartido. Solo local; pendiente de aplicar y validar en remoto. |
+| 2026-10-16 | [RRHH 0-2-runner](status-log/2026-10-16-rrhh-0-2-runner.md) | Runner genérico PGlite añadido; dependencia fijada, sin PGLITE_DIR ni conexión remota. Solo local; pendiente de aplicar y validar en remoto. |
 | 2026-10-16 | [Productos — esquema, RPC y `apps/productos`](status-log/2026-10-16-productos-esquema-app.md) | Schema `productos` + 12 RPC (`20261016214634`, 28 pruebas en transacciones revertidas); app con dashboard, listado, ficha, clasificación, catálogos e importación del ERP; build OK y lector probado con 699 productos reales. Inactiva, sin datos, sin commit. |
 | 2026-10-16 | [Paso Cero — módulo Productos](status-log/2026-10-16-productos-paso-cero.md) | Catálogo maestro de productos diseñado sobre las plantillas del ERP; app `productos` registrada inactiva, 16 permisos + `ver_modulo`, 4 plantillas (`20261016203638`). Modelo de datos, pantallas y Listas de precios pendientes. |
 | 2026-10-16 | [CI: pruebas automatizadas y checks obligatorios](status-log/2026-10-16-ci-checks-automatizados.md) | Workflow `CI` + orden local `pnpm verify`; `typecheck` real en las 7 apps y prueba SQL P1 con PGlite fijado. Protección de `main` **activa y verificada**: los cinco checks (`typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access`) son obligatorios antes de fusionar, con `strict: false` y `enforce_admins: true`; `lint-deuda (no bloquea)` no bloquea. |
@@ -111,6 +134,17 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 
 # 1. Estado general
 
+P2–P6 implementados en rama y verificados localmente, incluidas regresiones de agotamiento y ambigüedad; remoto y E2E pendientes. Ver el paquete del Operador.
+
+
+
+
+
+
+
+
+
+
 | Área | Estado | Realidad conocida / siguiente paso |
 |---|---|---|
 | Agencia digital | 🟡 Preparada, sin activar | `apps/agencia`, `/agencia`, proyecto `nexo-agencia`; matriz aplicada, código compilado y pruebas técnicas OK. Revisión final de Claude y activación pendientes; cuentas y visualización manuales. |
@@ -129,7 +163,7 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 | RRHH consolidación de asistencia | ⏳ Pendiente | No existe marcas → horas consolidadas. |
 | RRHH planillas | ⏳ Pendiente | Ruta actual es placeholder; falta motor/reporte. |
 | Kiosko RRHH | ✅ Migrado a PIN contractual | `rrhh.fn_registrar_marca_kiosko` valida contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. Misma UI/rate-limit de antes. **2026-10-15 (P1, issue #30, en `main` `fc2b309`):** además cuenta coincidencias y no marca si el PIN es ambiguo en la empresa del kiosco — misma UI; la migración `20261015181000` sigue sin aplicarse a `nexo-core`. [Detalle](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md). |
-| RRHH piloto supervisado / MVP operativo (corte 2026-10-15) | 🟡 P1 implementado y fusionado; P2–P7 y M1–M4 pendientes | Un par por contrato/día `America/Managua`, PIN sin ambigüedad, marcas con contrato, idempotencia, Marcas de solo lectura, reportes por correo corporativo y corrección auditada posterior. Implementado y fusionado: P1 (PIN ambiguo, issue #30, `main` `fc2b309`, migración `20261015181000` sin aplicar a remoto). No autorizado ni probado con usuarios reales. [Especificación](RRHH_PILOTO_MVP_OPERATIVO.md). |
+| RRHH piloto supervisado / MVP operativo (corte 2026-10-15) | 🟡 P2–P6 locales; piloto sin autorizar | PIN único, contrato, secuencia/idempotencia, confirmación y Marcas en rama. Sin aplicación remota ni E2E; M1–M4 fuera de alcance. [Paquete](RRHH_PAQUETE_OPERADOR.md). |
 | Identidad digital de empleados | ⚠️ Refactor de PIN cerrado, identidad digital sigue pendiente | `nombre_usuario + PIN` para acceso operativo ya no existe como diseño vigente (D-06 cerrado F1.3). Falta construir usuario+contraseña vía Supabase Auth (Fase 2, `core.identidad`) — diseño objetivo documentado, sin implementar. |
 | Panel de Conductor Web | 🟡 Código legacy aprovechable | Ruta360 tiene flujo de conductor, pero falta adaptación a identidad Nexo, contrato RRHH y permisos unificados. |
 | CRM | 🟡 MVP muy básico | Cliente CRUD y dashboard; faltan leads, oportunidades, actividades, cotizaciones/pedido. |
@@ -144,6 +178,17 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 ---
 
 # 2. Divergencias conocidas: estado actual vs modelo objetivo
+
+D-04 resuelto en el SQL P3 de esta rama; pendiente de aplicación. El resto fuera del piloto conserva su estado.
+
+
+
+
+
+
+
+
+
 
 Confirmadas en remoto durante **F1.0** (2026-09-07, ver [`status-log/2026-09-07-f1-0-auditoria-real.md`](status-log/2026-09-07-f1-0-auditoria-real.md)). Pendientes de corregirse mediante migraciones nuevas en F1.1–F1.3 (la mayoría ya resuelta, ver estado de cada una).
 
@@ -169,7 +214,7 @@ Objetivo: `rrhh.empleados` = Expediente General. Puesto, departamento, fechas la
 
 Objetivo: cada marca válida debe quedar contextualizada con el contrato laboral vigente.
 
-**Estado: ⏳ sigue pendiente, ahora desbloqueado** — `rrhh.contratos` (F1.2) y `rrhh.contrato_jornadas`/`rrhh.fn_jornada_vigente_contrato` (F1.4) ya existen, pero `rrhh.asistencia_marcas.contrato_id` todavía no se agregó. Corresponde a F1.5 (consolidación de asistencia).
+**Estado: implementado en rama (P3), pendiente de aplicar y verificar en remoto** — `rrhh.contratos` (F1.2) y `rrhh.contrato_jornadas`/`rrhh.fn_jornada_vigente_contrato` (F1.4) ya existen, pero el vínculo aún está pendiente en main/remoto según la última evidencia. P3 lo implementa en esta rama; consolidación F1.5 sigue pendiente.
 
 ## D-05 — planilla sin motor
 
@@ -199,6 +244,17 @@ Estado: ℹ️ hallazgo de F1.0, sin urgencia — no contradice el modelo objeti
 
 # 3. Fase 1 — tablero de ejecución RRHH
 
+P1–P6 preparados en rama; P7 remoto/manual y autorización pendientes. F1.5–F1.10 completos y M1–M4 no se dan por cerrados.
+
+
+
+
+
+
+
+
+
+
 | ID | Entregable | Estado | Evidencia / nota |
 |---|---|---|---|
 | F1.0 | Auditoría real `main` + Supabase + Vercel + permisos + datos | ✅ | [Detalle](status-log/2026-09-07-f1-0-auditoria-real.md). Sin código/DB pendiente de revisión. |
@@ -213,12 +269,23 @@ Estado: ℹ️ hallazgo de F1.0, sin urgencia — no contradice el modelo objeti
 | F1.8 | UI administración de kioscos | ⏳ | Eliminar SQL manual como operación normal. |
 | F1.9 | Seguridad/RBAC/E2E | ⏳ | Roles + RPC directa + RLS + advisors + contrato finalizado + PIN revocado. Incluye las pruebas por rol real pendientes de F1.3/F1.4 (ver esas entradas del log). |
 | F1.10 | Recorrido completo validado | ⏳ | Criterio para declarar RRHH MVP listo. |
-| P1–P7 | Piloto supervisado de kiosco/marcas | 🟡 P1 fusionado; P2–P7 pendientes | [Corte aprobado](RRHH_PILOTO_MVP_OPERATIVO.md) como especificación; **P1 (PIN ambiguo) ya implementado y fusionado en `main` (`fc2b309`)**. P7 debe comprobar pruebas críticas y designaciones privadas antes de autorizar. P2–P7 no iniciados. |
+| P1–P7 | Piloto supervisado de kiosco/marcas | 🟡 P2–P6 implementados y verificados localmente | Rama `codex/rrhh-piloto-mvp`; migraciones pendientes. P7 remoto/manual y autorización sin ejecutar. [Paquete](RRHH_PAQUETE_OPERADOR.md). |
 | M1–M4 | Corrección auditada y validación de MVP operativo | ⏳ | Posterior a P1–P7; permiso específico y original conservado. Sin implementación. No incluye nómina. |
 
 ---
 
 # 4. Acceso de Conductores y Kiosko
+
+Cliente de kiosco con confirmación genérica e idempotencia preparado; no autentica usuarios ni modifica la identidad digital.
+
+
+
+
+
+
+
+
+
 
 Fuente específica: [`DRIVER_ACCESS_AND_KIOSK.md`](DRIVER_ACCESS_AND_KIOSK.md).
 
@@ -277,6 +344,17 @@ Si ya existe identidad digital, no crear otra.
 
 # 5. Preparación Nexo Mobile
 
+La lógica nueva reside en RPC autorizadas reutilizables. No se implementó app móvil.
+
+
+
+
+
+
+
+
+
+
 ## Estado actual
 
 No existe una app móvil Nexo integrada al monorepo.
@@ -334,6 +412,17 @@ No debe incluir por defecto administración de empleados, planillas, permisos, c
 
 # 6. Protocolo de actualización para Claude
 
+Cada entrega conserva registro y commit. Pruebas locales no sustituyen validación remota; sin UUID del dispositivo ni PIN versionados.
+
+
+
+
+
+
+
+
+
+
 En cada subfase ejecutada, actualizar este archivo en el mismo commit o conjunto de commits que cambia el producto:
 
 1. Crear una entrada nueva en `docs/status-log/YYYY-MM-DD-slug.md` con el detalle completo (qué se auditó/migró/verificó, evidencia, deuda pendiente) — **no** volver a convertir este archivo en un monolito narrativo.
@@ -365,9 +454,9 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 
 # 7. Próxima acción obligatoria
 
-**Productos (pedido del usuario 2026-10-16):** esquema y app listos y activados; app corriendo en `localhost:3005`. Siguiente: el usuario hace el recorrido con su sesión; después, importación real de los 699 productos, commit + PR, proyecto Vercel `nexo-productos` con `PRODUCTOS_APP_URL` y prueba en producción. Luego, Paso Cero de Listas de precios (app aparte o sección: sin decidir).
+**RRHH/kiosco:** P1–P6 **aplicadas** en `nexo-core` (2026-10-17). Siguiente: fusionar el [PR #47](https://github.com/Jccastillo25/nexo/pull/47) para publicar el cliente compatible (hasta entonces el kiosco desplegado falla cerrado) y después P7 según [el paquete del Operador](RRHH_PAQUETE_OPERADOR.md). No iniciar marcaciones reales antes. P7 requiere remoto, usuarios reales y decisión de autorizar o posponer. No se sustituyen F1.5–F1.10 ni se inicia M1–M4.
 
-**RRHH/kiosco:** desarrollar en orden P1–P7 y después M1–M4 según [la especificación aprobada](RRHH_PILOTO_MVP_OPERATIVO.md). P1 (PIN ambiguo) ya está implementado y fusionado; **el siguiente paso es P2** (unicidad del PIN al activar/regenerar), que aún no se inició. P7 es puerta de autorización del piloto, no una formalidad: registra en privado funciones, buzón, dispositivo y pruebas; cualquier prueba crítica fallida pospone el piloto. Esto no sustituye F1.5–F1.10 completos.
+**Productos (pedido del usuario 2026-10-16):** esquema y app listos y activados; app corriendo en `localhost:3005`. Siguiente: el usuario hace el recorrido con su sesión; después, importación real de los 699 productos, commit + PR, proyecto Vercel `nexo-productos` con `PRODUCTOS_APP_URL` y prueba en producción. Luego, Paso Cero de Listas de precios (app aparte o sección: sin decidir).
 
 **RRHH P1 (issue #30): código fusionado, migración sin aplicar.** El código y su prueba están en `main` (`fc2b309`); falta —paso aparte y explícitamente autorizado— aplicar `20261015181000` en `nexo-core`. Aplicar P1 sin P2 protege la atribución de la marca, no la usabilidad de un PIN colisionado.
 

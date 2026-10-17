@@ -1,5 +1,7 @@
 # RRHH y kiosco — piloto supervisado y MVP operativo
 
+**Ejecución 2026-10-16:** P2–P6 implementados y verificados localmente en `codex/rrhh-piloto-mvp`; P7 preparado, sin aplicación ni autorización remota. [Paquete](RRHH_PAQUETE_OPERADOR.md). El estado histórico siguiente describe main/remoto previo a aplicar.
+
 **Decisión aprobada el 2026-10-15. Estado: especificación. De sus tickets, P1 (PIN ambiguo) ya está implementado y fusionado; el resto no está implementado ni validado con usuarios reales.** Este corte incremental no sustituye el objetivo completo de F1.5–F1.10 ni incluye nómina, cálculos salariales, descansos marcados o turnos que crucen medianoche. [RRHH_MVP.md](RRHH_MVP.md) conserva el alcance completo futuro.
 
 ## 1. Base comprobada y límites

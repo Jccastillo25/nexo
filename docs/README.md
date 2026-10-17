@@ -28,6 +28,7 @@
 | [MIGRATION_LOG.md](MIGRATION_LOG.md) | Historial de migraciones y verificaciones. |
 | [CI_CHECKS.md](CI_CHECKS.md) | Puerta de calidad: una orden local (`pnpm verify`), checks de GitHub Actions, qué bloquea el merge (cinco checks obligatorios; `lint-deuda` no bloquea), límites de cobertura y protección de `main` activa y verificada. |
 | [ROADMAP.md](ROADMAP.md) | Orden macro vigente de implementación. |
+| [RRHH_PAQUETE_OPERADOR.md](RRHH_PAQUETE_OPERADOR.md) | Entrega P2–P6: migraciones, postchecks, rollback, pruebas y recorrido P7. Migraciones P1–P6 aplicadas el 2026-10-17; piloto no autorizado. |
 | [RRHH_MVP.md](RRHH_MVP.md) | Definition of Done de RRHH: expediente, contrato, PIN de asistencia, jornada, consolidación, planilla y E2E. |
 | [RRHH_PILOTO_MVP_OPERATIVO.md](RRHH_PILOTO_MVP_OPERATIVO.md) | Corte aprobado 2026-10-15: piloto supervisado de un par/día y MVP operativo con corrección auditada; reglas, funciones, pantallas y tickets P1–P7/M1–M4. No es implementación validada. |
 

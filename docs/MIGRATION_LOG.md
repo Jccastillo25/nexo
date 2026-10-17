@@ -7,6 +7,10 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-17 — RRHH P1–P6 del piloto de kiosco (APLICADAS)
+
+Aprobación explícita del usuario. Aplicadas en `nexo-core` en el orden del [paquete del Operador](RRHH_PAQUETE_OPERADOR.md): `20261017131004_p1_pin_ambiguo_fallo_cerrado`, `20261017131040_rrhh_p2_pin_unico_empresa`, `20261017131113_rrhh_p3_marca_contrato`, `20261017131132_rrhh_p4a_kiosko_solicitudes`, `20261017131202_rrhh_p4b_marca_atomica_idempotente`, `20261017131221_rrhh_p6_consultar_marcas` (archivos renombrados a la versión remota sin tocar su SQL; P1 se llamaba `20261015181000_…`). Precondiciones: 0 marcas, 0 credenciales vigentes. Postchecks del paquete en verde, P7 sección A en verde en remoto, advisors solo con los hallazgos esperados. Efecto: el kiosco desplegado desde `main` falla cerrado hasta fusionar el PR #47. Rollback: el de cada paso en el paquete (corregir hacia adelante; no restaurar la firma de 2 parámetros). [Detalle](status-log/2026-10-17-rrhh-p1-p6-aplicadas.md).
+
 ## 2026-10-16 — Activación del módulo Productos (APLICADA)
 
 `20261016220935_productos_activar`, por pedido del usuario ("levántalo en local"): `core.apps.active = true` para `productos` y `core.company_apps.enabled = true` para Materiales J Castillo. Necesaria para entrar desde local, porque las apps locales usan `nexo-core`. Efecto conocido y aceptado: el owner ve la tarjeta "Productos" en el Launcher de producción, que no abre hasta el deploy (sin `PRODUCTOS_APP_URL` en `nexocore`). Verificado: `active = true`, `enabled = true`. Rollback: `update core.apps set active = false where slug = 'productos'`.
@@ -19,9 +23,9 @@ Orden de bitácora: más reciente arriba.
 
 `20261016203638_productos_paso_cero`, aplicada en `nexo-core` con aprobación explícita del usuario. Registra `core.apps` `productos` **inactiva** (el trigger crea `productos.ver_modulo`), 16 permisos (`dashboard`, `catalogo`, `configuracion`) y 4 plantillas en `core.app_roles` (consulta 3, editor 7, contabilidad 8, administrador 17 permisos). Precheck que aborta si algo de `productos` ya existía. Sin tablas, schema, políticas ni funciones; ninguna empresa habilitada en `core.company_apps`. Rollback: borrar las filas `module_slug = 'productos'` de `core.app_role_permissions`/`core.app_roles`/`core.permissions_catalog` y la app. [Detalle](status-log/2026-10-16-productos-paso-cero.md).
 
-## 2026-10-15 — RRHH P1: PIN ambiguo, fallo cerrado (NO APLICADA)
+## 2026-10-15 — RRHH P1: PIN ambiguo, fallo cerrado (APLICADA el 2026-10-17, ver arriba)
 
-- `20261015181000_p1_pin_ambiguo_fallo_cerrado` (fusionada en `main`
+- `20261017131004_p1_pin_ambiguo_fallo_cerrado` (fusionada en `main`
   `fc2b309`, vía PR #42) — **todavía no aplicada a `nexo-core`, por pedido
   explícito del usuario**: no se tocó el remoto. Reemplaza
   `rrhh.fn_registrar_marca_kiosko` para CONTAR las
@@ -232,8 +236,7 @@ valida permiso adentro).
 Detalle en
 [`status-log/2026-10-14-paso-cero-administracion-usuarios-roles.md`](status-log/2026-10-14-paso-cero-administracion-usuarios-roles.md);
 diseño en [`plan/12-administracion-usuarios-roles.md`](plan/12-administracion-usuarios-roles.md).
-**1 migración, aprobada explícitamente por el usuario y aplicada a
-`nexo-core` el 2026-10-14** con `apply_migration`. Precheck de solo lectura:
+**1 migración, aprobada explícitamente por el usuario y aplicada a `nexo-core` el 2026-10-14** con `apply_migration`. Precheck de solo lectura:
 0 códigos `nexo.administracion.%`, `core.apps` con `nexo` registrada.
 Postcheck: 9 códigos nuevos (`nexo` pasa de 2 a 11 en el catálogo),
 `core.user_permissions` y `core.user_app_roles` siguen en 0 filas (nadie
@@ -260,8 +263,7 @@ migración incluido.
 
 Contexto completo, causa raíz del bug de UI auditado y deuda en
 [`status-log/2026-09-17-contratos-reglas-y-endurecimiento.md`](status-log/2026-09-17-contratos-reglas-y-endurecimiento.md).
-**1 migración, escrita y revisada manualmente el 2026-09-17, aplicada a
-`nexo-core` (remoto) el 2026-09-18** con `apply_migration` — prechecks de
+**1 migración, escrita y revisada manualmente el 2026-09-17, aplicada a `nexo-core` (remoto) el 2026-09-18** con `apply_migration` — prechecks de
 solo lectura antes de aplicar (migración no registrada, `rrhh.contratos`
 en 0 filas, sin puestos sin departamento, sin puestos activos sin
 plantilla activa, firmas remotas de los 4 RPC todavía con la firma
@@ -614,7 +616,8 @@ sección 0 y en la sección "F1.0.1" agregada en esta misma fecha.
   - Frontend nuevo: `/rrhh/expedientes/[id]` (ficha del empleado +
     Expediente Laboral), listado enlaza a cada ficha y muestra contrato
     activo real. **No verificado en navegador** — mismo `EPERM` de
-    entorno ya documentado (2026-09-05), reconfirmado con `next dev` y
+    entorno ya documentado (2026-09-05), reconfirmado con 
+ext dev` y
     `tsc --noEmit` hoy; sustituido por revisión estática cuidadosa.
 - **3 migraciones más, F1.3 (PIN exclusivamente contractual) + 2
   correcciones, aplicadas y verificadas END-TO-END** (no solo esquema —
@@ -823,9 +826,11 @@ referencia de producto, no como fuente de esquema a migrar 1:1.
   migración nueva antes de verificarlo en vivo.
 - **Verificación real, no solo "debería compilar"**:
   - `pnpm install` de nuevo (dependencia nueva `@nexo/ui` en `apps/nexo`).
-  - `next build` de `apps/nexo` y de `apps/crm` — ambos compilan y tipan
+  - 
+ext build` de `apps/nexo` y de `apps/crm` — ambos compilan y tipan
     limpio.
-  - En el camino, `next build` de `apps/crm` encontró un bug real de tipos
+  - En el camino, 
+ext build` de `apps/crm` encontró un bug real de tipos
     en `packages/permissions` (heredado de la Fase 3, no detectado hasta
     ahora porque nunca se había corrido un build real de esa app): el tipo
     `RpcClient.rpc()` pedía un `Promise` estricto pero `supabase.rpc()`
@@ -858,7 +863,8 @@ referencia de producto, no como fuente de esquema a migrar 1:1.
 - `next.config.ts` de `apps/nexo` implementa el rewrite de Multi-Zones
   hacia `/crm` (el único módulo adaptado hasta ahora).
 - **Se corrió de verdad, no solo se escribió**: `pnpm install` en todo el
-  monorepo (vía `npx pnpm@9`, porque no había pnpm global instalable sin
+  monorepo (vía 
+px pnpm@9`, porque no había pnpm global instalable sin
   permisos de administrador), y ambas apps (`crm` en :3001, `nexo` en :3000)
   levantadas con el Browser pane. Verificado en vivo:
   - `http://localhost:3000/` → redirige a `/login` sin sesión (middleware
@@ -1006,3 +1012,19 @@ Notas:
    migrarlo completo (app + datos) para validar el patrón Multi-Zones de
    punta a punta.
 3. Construir la app `nexo` (panel) real sobre ese primer módulo migrado.
+
+## RRHH P2 — archivo pendiente de aplicar
+20261017131040_rrhh_p2_pin_unico_empresa.sql. Verificar definiciones sin random() y con advisory lock; probar activación/regeneración y concurrencia P7. Rollback: corregir hacia adelante conservando hashes; no volver al generador inseguro.
+
+## RRHH P3 — pendiente de aplicar (2026-10-16)
+20261017131113_rrhh_p3_marca_contrato.sql pendiente. Postcheck: columna NOT NULL, FK validada y authenticated sin INSERT/UPDATE/DELETE; verificar tambien particiones. Rollback: conservar vinculos e historia, corregir hacia adelante.
+
+## RRHH P4 — preparado, sin aplicar
+20261017131132_rrhh_p4a_kiosko_solicitudes.sql y 20261017131202_rrhh_p4b_marca_atomica_idempotente.sql pendientes. Verificar cuatro particiones, registro y grants, firma vieja ausente y nueva anon-callable. Rollback: preservar marcas/solicitudes; corregir hacia adelante sin restaurar firma de dos argumentos. Requiere desplegar cliente nuevo tras aplicar P4b.
+
+## RRHH P6 — preparado, sin aplicar
+20261017131221_rrhh_p6_consultar_marcas.sql pendiente. Postcheck: anon sin EXECUTE, authenticated con EXECUTE; interno restringido, autorizado ve solo su empresa y no autorizado denegado. Rollback: retirar pagina/wrapper de lectura sin tocar marcas ni vinculos.
+
+## RRHH — entrega local 2026-10-16
+Entrega solo de archivos: ninguna migración aplicada en esta sesión. Confirmar versiones remotas antes de aplicar. Orden, postchecks y rollback en el paquete.
+[Paquete único](RRHH_PAQUETE_OPERADOR.md).

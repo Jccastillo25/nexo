@@ -206,3 +206,6 @@ App `agencia`: permiso reservado `agencia.ver_modulo` generado por el trigger y 
 > incluya "Agencia digital" (`agencia.ver_modulo` + `agencia.dashboard.resumen.ver`),
 > asignado desde Configuración → Roles. Mientras `core.apps.active = false`
 > o la empresa no la tenga en `core.company_apps`, nadie la ve (tampoco el owner).
+
+## RRHH P3 — pendiente de aplicar (2026-10-16)
+P3 preparado (no aplicado): escritura directa de marcas retirada a authenticated en padre y particiones. SELECT y marcas.ver se conservan. Codigos crear/editar/eliminar siguen registrados sin via directa; correccion auditada queda fuera del piloto.

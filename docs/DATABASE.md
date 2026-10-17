@@ -510,3 +510,19 @@ transacción (puerto `6543`); migraciones y `pg_cron` usan conexión
 directa/sesión (`5432`). Read replicas se aprovisionan recién cuando
 aparezca el primer reporte cross-módulo pesado (Torre de Control) — no
 antes.
+
+## RRHH P2 — preparado, no aplicado (2026-10-16)
+Migración 20261016231000: conserva firmas y retorno de activar/regenerar, usa gen_random_bytes y lock transaccional por empresa. Comparación bcrypt con credenciales vigentes; 128 intentos y rollback ante agotamiento. Costo lineal en credenciales por candidato; pendiente validación concurrente remota.
+
+## RRHH P3 — pendiente de aplicar (2026-10-16)
+P3 preparado: contrato_id NOT NULL con FK (contrato_id,company_id,empleado_id), UNIQUE destino e indices en FKs y empresa/fecha; guardia aborta si existen marcas.
+
+## RRHH P4 — preparado, sin aplicar
+P4a agrega kiosko_solicitudes particionada por creado_en, indices FK/empresa-fecha/token/JSONB y registro en core.tablas_particionadas. Sin acceso directo ni retencion automatica. P4b reemplaza firma del kiosco por cuatro argumentos y respuesta JSON sin identidad; guarda resultados definitivos y serializa por token y contrato/dia America/Managua.
+
+## RRHH P6 — preparado, sin aplicar
+P6 preparado: rrhh.fn_consultar_marcas y public.consultar_marcas, SECURITY DEFINER con search_path fijo y comprobacion de marcas.ver/empresa. Wrapper solo authenticated; interna no accesible. Devuelve identificadores minimos, etiqueta de empleado, numero de contrato, fecha/tipo/hora/estado. Rango maximo 62 dias, limite 100, offset validado; sin datos de credenciales.
+
+## RRHH — entrega local 2026-10-16
+P1, P2, P3, P4a, P4b y P6 ordenados en el paquete con postchecks y rollback. No aplicados en esta sesión. P4b/P6 notifican recarga de caché PostgREST.
+[Paquete único](RRHH_PAQUETE_OPERADOR.md).

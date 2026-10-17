@@ -184,3 +184,7 @@ Persona
 ```
 
 Solo después continuar con jornada, consolidación y planilla.
+
+## RRHH — entrega local 2026-10-16
+RRHH: corte P2–P6 preparado en rama con pruebas locales; aplicación y P7 pendientes. No cambia orden de fases ni cierra consolidación, planillas o corrección auditada.
+[Paquete único](RRHH_PAQUETE_OPERADOR.md).

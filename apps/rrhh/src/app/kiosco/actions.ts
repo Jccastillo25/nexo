@@ -15,8 +15,7 @@ const MIN_INTERVAL_MS = 600; // debounce estricto entre intentos consecutivos
  * rrhh.kiosko_rate_limits (8 PINes invalidos por kiosko en 1 minuto ->
  * bloqueo de 5 minutos), aplicado dentro de rrhh.fn_registrar_marca_kiosko
  * (security definer, supabase/migrations/20260905000005_rrhh_public_auth_hardening.sql)
- * junto con el bloqueo a 3 fallos consecutivos por empleado + comparacion
- * bcrypt. Esta Map vive en memoria de UNA instancia de funcion
+ * con comparación bcrypt. Esta Map vive en memoria de UNA instancia de funcion
  * serverless: se resetea en cada cold start, no se comparte entre
  * instancias, y no protege una llamada RPC directa que se salte esta
  * Server Action por completo — por eso el limite real vive en la base de
@@ -51,66 +50,29 @@ function checkRateLimit(key: string): { ok: true } | { ok: false; message: strin
 }
 
 export interface MarcarResult {
-  ok: boolean;
+  estado: "registrada" | "confirmacion_requerida" | "rechazada" | "error";
   message: string;
   tipo?: "entrada" | "salida";
 }
 
-/**
- * Recibe el PIN del NumPad, inyecta el kiosko_id (NUNCA lo manda el
- * cliente — sale de la variable de entorno de este deployment, ver
- * .env.local.example) y llama al RPC anon-callable
- * public.registrar_marca_kiosko. Sin sesion de Supabase Auth a proposito
- * (createAnonClient) — ver el comentario en lib/supabase/server.ts.
- */
-export async function marcarAsistencia(pin: string): Promise<MarcarResult> {
+export async function marcarAsistencia(pin: string, solicitudId: string, confirmarSalida: boolean): Promise<MarcarResult> {
   const kioskoId = process.env.NEXO_KIOSKO_ID;
-  if (!kioskoId) {
-    return {
-      ok: false,
-      message: "Kiosko no configurado (falta NEXO_KIOSKO_ID en este deployment).",
-    };
-  }
-
-  if (!/^[0-9]{4}$/.test(pin)) {
-    return { ok: false, message: "PIN inválido." };
-  }
-
+  const rechazado: MarcarResult = { estado: "rechazada", message: "No fue posible registrar la marcación." };
+  if (!kioskoId || typeof pin !== "string" || !/^[0-9]{4}$/.test(pin) ||
+      typeof solicitudId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(solicitudId) ||
+      typeof confirmarSalida !== "boolean") return rechazado;
   const h = await headers();
-  const ip =
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    h.get("x-real-ip") ??
-    "unknown";
-  const rl = checkRateLimit(`${kioskoId}:${ip}`);
-  if (!rl.ok) {
-    return { ok: false, message: rl.message };
-  }
-
-  const supabase = createAnonClient();
-  const { data, error } = await supabase.rpc("registrar_marca_kiosko", {
-    p_pin: pin,
-    p_kiosko_id: kioskoId,
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? "unknown";
+  const rl = checkRateLimit(kioskoId + ":" + ip);
+  if (!rl.ok) return { estado: "error", message: rl.message };
+  const { data, error } = await createAnonClient().rpc("registrar_marca_kiosko", {
+    p_pin: pin, p_kiosko_id: kioskoId, p_solicitud_id: solicitudId, p_confirmar_salida: confirmarSalida,
   });
-
-  if (error) {
-    // Mensaje generico a proposito — mismo criterio anti-enumeracion que
-    // rrhh.fn_validar_acceso_operativo: no revelar si el PIN es
-    // incorrecto, el empleado no existe, o el kiosko esta inactivo.
-    return { ok: false, message: "PIN incorrecto o kiosko inactivo." };
+  if (error) return { estado: "error", message: "No se pudo confirmar el resultado. Reintenta el mismo envío." };
+  if (!data || typeof data !== "object" || Array.isArray(data)) return rechazado;
+  if (data.estado === "confirmacion_requerida") return { estado: "confirmacion_requerida", message: "¿Registrar salida?" };
+  if (data.estado === "registrada" && (data.tipo === "entrada" || data.tipo === "salida")) {
+    return { estado: "registrada", message: data.tipo === "entrada" ? "Entrada registrada" : "Salida registrada", tipo: data.tipo };
   }
-
-  const row = data?.[0];
-  if (!row) {
-    return { ok: false, message: "No se pudo registrar la marca." };
-  }
-
-  return {
-    ok: true,
-    // A proposito: sin empleadoNombre. rrhh.fn_registrar_marca_kiosko ya
-    // no devuelve datos personales del empleado (2026-09-05, regla
-    // obligatoria del kiosko anonimo) — el feedback en pantalla es solo
-    // el tipo de marca, nunca la identidad de quien marco.
-    message: row.tipo === "entrada" ? "Entrada registrada" : "Salida registrada",
-    tipo: row.tipo as "entrada" | "salida",
-  };
+  return rechazado;
 }
