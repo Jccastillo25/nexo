@@ -11,7 +11,7 @@
 //
 // Qué hace, en un motor en memoria que se descarta al terminar:
 //   1. crea el entorno desechable (rrhh_p1_pin_ambiguo_entorno.sql);
-//   2. aplica la migración real (supabase/migrations/20261015181000_...sql) —
+//   2. aplica la migración real (supabase/migrations/20261017131004_p1_pin_ambiguo_fallo_cerrado.sql) —
 //      nunca una copia, para que la prueba no pueda desincronizarse del
 //      archivo que se va a aplicar en nexo-core;
 //   3. ejecuta las comprobaciones (rrhh_p1_pin_ambiguo.prueba.sql);
@@ -39,7 +39,7 @@ const MIGRACION = path.join(
   repoRoot,
   "supabase",
   "migrations",
-  "20261015181000_p1_pin_ambiguo_fallo_cerrado.sql",
+  "20261017131004_p1_pin_ambiguo_fallo_cerrado.sql",
 );
 
 // PINes de la prueba. Ninguno puede aparecer en un aviso del motor: los
@@ -80,7 +80,7 @@ try {
   console.log("ok  entorno desechable creado");
 
   await db.exec(migracion, { onNotice: anotarAviso });
-  console.log("ok  migración 20261015181000_p1_pin_ambiguo_fallo_cerrado aplicada");
+  console.log("ok  migración 20261017131004_p1_pin_ambiguo_fallo_cerrado aplicada");
 
   // Reaplicarla no debe fallar ni cambiar el comportamiento (create or replace
   // + revoke idempotente): es el caso de un re-deploy de la migración.

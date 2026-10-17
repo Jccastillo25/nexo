@@ -3,7 +3,11 @@
 Fecha: 2026-10-16. Rama: `codex/rrhh-piloto-mvp`, base `e5a3eec`.
 
 P2–P6 están implementados en esta rama y probados localmente con PGlite y la
-puerta `pnpm verify`. **Ninguna de estas migraciones se aplicó en esta sesión.**
+puerta `pnpm verify`. **Actualización 2026-10-17:** P1–P6 aplicadas en
+`nexo-core` con aprobación del usuario; postchecks de §2 y P7 sección A en
+verde ([registro](status-log/2026-10-17-rrhh-p1-p6-aplicadas.md)). Los nombres
+de archivo de esta guía ya son las versiones remotas. Pendiente: §3 pasos 2–6
+y §4. El texto siguiente describe el estado de preparación original.
 P1 también estaba pendiente según la última verificación disponible. No se
 consultó Supabase ni Vercel. No hay piloto autorizado ni E2E remoto aprobado.
 M1–M4, nómina, horas, descansos marcados y turnos nocturnos siguen fuera.
@@ -31,7 +35,7 @@ No volver a aplicar una migración ya registrada para obtener otro timestamp.
 
 ### 1 — P1 (si todavía falta)
 
-Archivo: `supabase/migrations/20261015181000_p1_pin_ambiguo_fallo_cerrado.sql`.
+Archivo: `supabase/migrations/20261017131004_p1_pin_ambiguo_fallo_cerrado.sql`.
 
 ```sql
 select position('ambiguo' in pg_get_functiondef(
@@ -43,7 +47,7 @@ conservar fallo cerrado; no restaurar selección arbitraria de una credencial.
 
 ### 2 — P2
 
-Archivo: `supabase/migrations/20261016231000_rrhh_p2_pin_unico_empresa.sql`.
+Archivo: `supabase/migrations/20261017131040_rrhh_p2_pin_unico_empresa.sql`.
 
 ```sql
 select p.proname,
@@ -62,7 +66,7 @@ compara bcrypt con el conjunto vigente; con muchos empleados puede ser lento.
 
 ### 3 — P3
 
-Archivo: `supabase/migrations/20261016232000_rrhh_p3_marca_contrato.sql`.
+Archivo: `supabase/migrations/20261017131113_rrhh_p3_marca_contrato.sql`.
 
 ```sql
 select is_nullable='NO' as contrato_obligatorio from information_schema.columns
@@ -81,7 +85,7 @@ disponibles; no se registraron permisos nuevos ni se reasignaron roles.
 
 ### 4 — P4a
 
-Archivo: `supabase/migrations/20261016233000_rrhh_p4a_kiosko_solicitudes.sql`.
+Archivo: `supabase/migrations/20261017131132_rrhh_p4a_kiosko_solicitudes.sql`.
 
 ```sql
 select exists(select 1 from core.tablas_particionadas
@@ -100,7 +104,7 @@ con revisión; con resultados guardados conservarlos para mantener idempotencia.
 
 ### 5 — P4b
 
-Archivo: `supabase/migrations/20261016234000_rrhh_p4b_marca_atomica_idempotente.sql`.
+Archivo: `supabase/migrations/20261017131202_rrhh_p4b_marca_atomica_idempotente.sql`.
 
 ```sql
 select to_regprocedure('public.registrar_marca_kiosko(text,uuid)') is null as firma_antigua_cerrada,
@@ -117,7 +121,7 @@ confirman en la misma transacción; la vista previa no guarda resultado.
 
 ### 6 — P6
 
-Archivo: `supabase/migrations/20261016235000_rrhh_p6_consultar_marcas.sql`.
+Archivo: `supabase/migrations/20261017131221_rrhh_p6_consultar_marcas.sql`.
 
 ```sql
 select has_function_privilege('authenticated','public.consultar_marcas(uuid,date,date,uuid,uuid,text,integer,integer)','EXECUTE') as autenticado,

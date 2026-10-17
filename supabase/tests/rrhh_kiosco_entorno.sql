@@ -12,7 +12,7 @@
 --
 -- Orden de ejecución (ver supabase/tests/README.md):
 --   1. este archivo
---   2. supabase/migrations/20261015181000_p1_pin_ambiguo_fallo_cerrado.sql
+--   2. supabase/migrations/20261017131004_p1_pin_ambiguo_fallo_cerrado.sql
 --   3. rrhh_p1_pin_ambiguo.prueba.sql
 --
 -- Lo que SÍ replica del esquema real (importa para que la prueba sea válida):

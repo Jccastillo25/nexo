@@ -185,5 +185,5 @@ Debe completar:
 6. documentación actualizada.
 
 ## RRHH — entrega local 2026-10-16
-RRHH: P2–P6 implementados y verificados localmente en codex/rrhh-piloto-mvp. Sin migraciones aplicadas, despliegue ni piloto autorizado. El MVP completo sigue pendiente.
+RRHH: P1–P6 aplicadas en `nexo-core` el 2026-10-17 (postchecks y P7 sección A en verde); código en PR #47 sin fusionar ni desplegar — el kiosco desplegado falla cerrado hasta el merge. Sin piloto autorizado. El MVP completo sigue pendiente.
 [Paquete único](RRHH_PAQUETE_OPERADOR.md).

@@ -1,11 +1,15 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
-**Última actualización documental: 2026-10-16 — RRHH, entrega local P2–P6.**
-Rama codex/rrhh-piloto-mvp: 0.2–0.3 rehechos, decisiones 0.4 registradas y
-kiosco configurado en 0.5 sin marcaciones. P2–P6 implementados y probados
-localmente; paquete P7 preparado. **Sin migraciones aplicadas, sin cambios en
-Vercel ni piloto autorizado.** Siguiente: aprobación, Operador y P7 remoto/manual.
-[Paquete único](RRHH_PAQUETE_OPERADOR.md). Rama publicada y PR en borrador el 2026-10-17; **no fusionar antes de aplicar P1–P6 en `nexo-core`**: el kiosco nuevo llama la firma de 4 parámetros que solo existe después de P4b.
+**Última actualización documental: 2026-10-17 — RRHH P1–P6 aplicadas en `nexo-core`.**
+Con aprobación del usuario, P1 → P2 → P3 → P4a → P4b → P6 aplicadas
+(`20261017131004` … `20261017131221`), postchecks del paquete y P7 sección A
+en verde en remoto; advisors solo con hallazgos esperados. El código (kiosco
+con confirmación/reintento y pantalla Marcas) está en el [PR #47](https://github.com/Jccastillo25/nexo/pull/47),
+**sin fusionar**: hasta entonces el kiosco desplegado falla cerrado (0 marcas).
+Pendiente: fusionar, P7 con concurrencia y sesiones reales, recorrido P7.2.
+Sin piloto autorizado. [Detalle](status-log/2026-10-17-rrhh-p1-p6-aplicadas.md) · [Paquete](RRHH_PAQUETE_OPERADOR.md).
+
+**2026-10-16 — RRHH, entrega local P2–P6:** rama `codex/rrhh-piloto-mvp`: 0.2–0.3 rehechos, decisiones 0.4 registradas, kiosco configurado en 0.5 sin marcaciones; P2–P6 implementados y probados localmente; paquete P7 preparado.
 
 **2026-10-16 — Productos (esquema + app):** schema `productos` (12 tablas, 12 RPC `public.productos_*`) aplicado en `nexo-core` (`20261016214634`) tras 17 pruebas en transacción revertida (+11 después de aplicar). `apps/productos` (zona `/productos`, puerto 3005) implementada: dashboard, listado, ficha con ID inmutable y código `CCTTKK-NNN` editable, clasificación, catálogos e importación/exportación del Excel del ERP; typecheck/lint/build OK y lector probado con los 699 productos reales. Sin datos, sin commit ni proyecto Vercel (el usuario quiere probar en local primero). **Activada** para la empresa el mismo día (`20261016220935`) para probar en local: la tarjeta ya aparece en el Launcher de producción pero no abre hasta el deploy. [Detalle](status-log/2026-10-16-productos-esquema-app.md).
 
@@ -79,6 +83,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-17 | [RRHH P1–P6 aplicadas en `nexo-core`](status-log/2026-10-17-rrhh-p1-p6-aplicadas.md) | Seis migraciones aplicadas con aprobación del usuario; postchecks y P7 sección A en verde en remoto; advisors sin sorpresas. Código en PR #47 sin fusionar (kiosco desplegado falla cerrado hasta entonces). |
 | 2026-10-16 | [RRHH publicación pendiente](status-log/2026-10-16-rrhh-publicacion-pendiente.md) | Implementación local verificada; push sin credencial de escritura. PR y CI pendientes, sin cambios remotos. |
 | 2026-10-16 | [RRHH revisión final](status-log/2026-10-16-rrhh-revision-final.md) | Regresiones: agotamiento al activar y rechazo de PIN ambiguo tras P4; solo PGlite, sin remoto. |
 | 2026-10-16 | [RRHH p7-paquete](status-log/2026-10-16-rrhh-p7-paquete.md) | Paquete unico del Operador preparado: migraciones P1-P6 con postchecks y rollback, SQL de grants/RLS/particiones, arnes remoto de carreras y guion manual P7. Sin ejecucion remota ni autorizacion de piloto. Solo local; pendiente de aplicar y validar en remoto. |
@@ -449,7 +454,7 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 
 # 7. Próxima acción obligatoria
 
-**RRHH/kiosco:** P2–P6 implementados en `codex/rrhh-piloto-mvp`. Siguiente: aprobar y ejecutar [el paquete del Operador](RRHH_PAQUETE_OPERADOR.md) — aplicar P1 → P2 → P3 → P4a → P4b → P6 en `nexo-core` **antes** de fusionar la rama — y después P7. No iniciar marcaciones antes. P7 requiere remoto, usuarios reales y decisión de autorizar o posponer. No se sustituyen F1.5–F1.10 ni se inicia M1–M4.
+**RRHH/kiosco:** P1–P6 **aplicadas** en `nexo-core` (2026-10-17). Siguiente: fusionar el [PR #47](https://github.com/Jccastillo25/nexo/pull/47) para publicar el cliente compatible (hasta entonces el kiosco desplegado falla cerrado) y después P7 según [el paquete del Operador](RRHH_PAQUETE_OPERADOR.md). No iniciar marcaciones reales antes. P7 requiere remoto, usuarios reales y decisión de autorizar o posponer. No se sustituyen F1.5–F1.10 ni se inicia M1–M4.
 
 **Productos (pedido del usuario 2026-10-16):** esquema y app listos y activados; app corriendo en `localhost:3005`. Siguiente: el usuario hace el recorrido con su sesión; después, importación real de los 699 productos, commit + PR, proyecto Vercel `nexo-productos` con `PRODUCTOS_APP_URL` y prueba en producción. Luego, Paso Cero de Listas de precios (app aparte o sección: sin decidir).
 

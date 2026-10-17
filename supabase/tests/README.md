@@ -32,7 +32,7 @@ El runner genérico no imprime SQL, argumentos ni respuestas de error completas.
 Ejemplo del runner genérico:
 
 ```powershell
-node supabase/tests/run_rrhh_pglite.mjs supabase/tests/rrhh_kiosco_entorno.sql supabase/migrations/20261015181000_p1_pin_ambiguo_fallo_cerrado.sql supabase/tests/rrhh_p1_pin_ambiguo.prueba.sql
+node supabase/tests/run_rrhh_pglite.mjs supabase/tests/rrhh_kiosco_entorno.sql supabase/migrations/20261017131004_p1_pin_ambiguo_fallo_cerrado.sql supabase/tests/rrhh_p1_pin_ambiguo.prueba.sql
 ```
 
 Límites: no hay recorrido de navegador, JWT reales ni concurrencia entre
