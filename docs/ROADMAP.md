@@ -74,7 +74,8 @@ Fuente: [`DRIVER_ACCESS_AND_KIOSK.md`](DRIVER_ACCESS_AND_KIOSK.md).
 | 2 | **Kernel compartido + identidad operacional**: `@nexo/auth`, `@nexo/supabase`, relación empleado↔Auth, provisión/restablecimiento de cuentas y APIs reutilizables | ⏳ |
 | 3 | **CRM MVP real**: leads, oportunidades, pipeline, actividades, cotizaciones y pedido | ⏳ |
 | 4 | **Transporte/Flotilla**: adaptar Ruta360, Panel Conductor Web, identidad Nexo y primera vertical Mobile | ⏳ |
-| 5 | **Inventario mínimo**: productos, almacenes, existencias, movimientos y reservas | ⏳ |
+| — | **Productos (catálogo maestro) → Listas de precios**: adelantado por decisión del usuario 2026-10-16, en paralelo a RRHH ([plan 14](plan/14-productos.md)) | 🟡 Productos: esquema aplicado, app en local |
+| 5 | **Inventario mínimo**: almacenes, existencias, movimientos y reservas (el catálogo de productos ya viene de la app Productos) | ⏳ |
 | 6 | **Fabricación**: BOM, órdenes, reserva, producción, merma, calidad y terminado | ⏳ |
 | 7 | **Nexo Mobile Android/iOS**: consolidar shell y verticales operativas para distribución | ⏳ |
 | 8 | **Integración E2E Nexo**: CRM→Inventario→Fabricación→Transporte→Entrega | ⏳ |
@@ -130,6 +131,8 @@ No editar migraciones aplicadas; usar migraciones nuevas.
 | CRM cliente CRUD | ✅ Validado como capacidad actual; no equivale al CRM completo objetivo |
 | RRHH | ❌ No validado E2E |
 | Transporte/Flotilla Nexo | ⏳ Sin adaptar |
+| Productos (catálogo maestro) | 🟡 Esquema aplicado y app implementada en local 2026-10-16; sin validar ni desplegar |
+| Listas de precios | ⏳ No existe (siguiente después de Productos) |
 | Inventario | ⏳ No existe |
 | Fabricación | ⏳ No existe |
 | Nexo Mobile | ⏳ No existe app integrada |

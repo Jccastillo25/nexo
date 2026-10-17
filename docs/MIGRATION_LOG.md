@@ -8,6 +8,18 @@ exo-core` con aprobación explícita del usuario. Añade el módulo `agencia` in
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-16 — Activación del módulo Productos (APLICADA)
+
+`20261016220935_productos_activar`, por pedido del usuario ("levántalo en local"): `core.apps.active = true` para `productos` y `core.company_apps.enabled = true` para Materiales J Castillo. Necesaria para entrar desde local, porque las apps locales usan `nexo-core`. Efecto conocido y aceptado: el owner ve la tarjeta "Productos" en el Launcher de producción, que no abre hasta el deploy (sin `PRODUCTOS_APP_URL` en `nexocore`). Verificado: `active = true`, `enabled = true`. Rollback: `update core.apps set active = false where slug = 'productos'`.
+
+## 2026-10-16 — Productos: esquema + RPC (APLICADA)
+
+`20261016214634_productos_esquema` (archivo escrito como `20261016230000_…` y renombrado a la versión remota sin tocar su SQL), aplicada en `nexo-core` con aprobación del usuario del modelo de datos (plan 14 §4). Crea el schema `productos` cerrado a la API (12 tablas de catálogo, RLS sin políticas, `revoke all`), triggers de integridad (ID inmutable, sin `delete`, coherencia de clasificación, marca por clase, tipo de cuenta, regla de servicios) y 12 RPC `public.productos_*` con `EXECUTE` solo para `authenticated`. Precheck: aborta si el schema existe o falta el Paso Cero. **Antes de aplicar**, la misma migración se ejecutó en una transacción revertida con 17 pruebas (código `010102-001/-002`, código editable sin duplicados, número de clasificación fijo, vista previa sin efectos, IDs del ERP 1465/800 y nuevos desde 1466, costo oculto y alta denegada para un rol de consulta, ID inmutable, sin borrado); **después**, 11 pruebas más en otra transacción revertida (marca por clase, servicios, tipo de cuenta, descontinuar, contador con código manual `-005` → sugiere `-006`, importación de proveedor/centro de costo, exportación, catálogos). Advisors: solo los avisos esperados del patrón RPC (`rls_enabled_no_policy` INFO ×12, `authenticated_security_definer_function_executable` WARN ×12), sin exposición a `anon`. Sin datos. Rollback: `drop schema productos cascade` + `drop function public.productos_*`. [Detalle](status-log/2026-10-16-productos-esquema-app.md).
+
+## 2026-10-16 — Paso Cero del módulo Productos (APLICADA)
+
+`20261016203638_productos_paso_cero`, aplicada en `nexo-core` con aprobación explícita del usuario. Registra `core.apps` `productos` **inactiva** (el trigger crea `productos.ver_modulo`), 16 permisos (`dashboard`, `catalogo`, `configuracion`) y 4 plantillas en `core.app_roles` (consulta 3, editor 7, contabilidad 8, administrador 17 permisos). Precheck que aborta si algo de `productos` ya existía. Sin tablas, schema, políticas ni funciones; ninguna empresa habilitada en `core.company_apps`. Rollback: borrar las filas `module_slug = 'productos'` de `core.app_role_permissions`/`core.app_roles`/`core.permissions_catalog` y la app. [Detalle](status-log/2026-10-16-productos-paso-cero.md).
+
 ## 2026-10-15 — RRHH P1: PIN ambiguo, fallo cerrado (NO APLICADA)
 
 - `20261015181000_p1_pin_ambiguo_fallo_cerrado` (fusionada en `main`

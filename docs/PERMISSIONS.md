@@ -102,6 +102,7 @@ propios dominios según su negocio:
 | Flotilla | Viajes, Conductores, Flota, Reportes |
 | CRM | Clientes, Oportunidades |
 | Atención | `recepcion`, `puesto`, `cola`, `cliente`, `configuracion`, `reportes` (Paso Cero 2026-10-14; ampliado 2026-10-15 con `reportes.mis_metricas.ver` y `cola.turno.reactivar`; plantillas Recepción/Agente/Supervisor; ver [plan/13-atencion-turnos.md](plan/13-atencion-turnos.md)) |
+| Productos | `dashboard`, `catalogo` (producto, costo, fiscal), `configuracion` (clasificación, marca, unidad, proveedor, característica, contable) (Paso Cero 2026-10-16, `20261016203638`; plantillas Consulta/Editor/Contabilidad/Administrador; costo y datos fiscales con permisos aparte; ver [plan/14-productos.md](plan/14-productos.md)) |
 | Nexo (panel) | `administracion` — usuarios, roles, auditoría y sucursales (`nexo.administracion.sucursales.ver/gestionar`, 2026-10-14) (Paso Cero aplicado 2026-10-14, 9 códigos `nexo.administracion.*`; ver [plan/12-administracion-usuarios-roles.md](plan/12-administracion-usuarios-roles.md), ; roles de empresa y RPC de administración aplicados 2026-10-14, ver "Modelo vigente" abajo — pantallas **sin implementar**) |
 | Todos (incluye `nexo`) | `acceso` — dominio reservado para el permiso `<slug>.ver_modulo` que crea el trigger |
 

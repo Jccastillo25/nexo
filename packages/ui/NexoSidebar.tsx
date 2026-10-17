@@ -128,15 +128,25 @@ export function NexoSidebar({
         </div>
 
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-3">
-          {items.map((item) => (
-            <NavNode
-              key={item.label}
-              item={item}
-              collapsed={collapsed}
-              pathname={pathname}
-              expanded={expanded}
-              onToggleGroup={toggleGroup}
-            />
+          {items.map((item, i) => (
+            <div key={item.label} className="flex flex-col">
+              {item.section && (
+                <p
+                  className={`px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-white/45 ${
+                    i === 0 ? "pt-1" : "pt-4"
+                  } ${collapsed ? "md:hidden" : ""}`}
+                >
+                  {item.section}
+                </p>
+              )}
+              <NavNode
+                item={item}
+                collapsed={collapsed}
+                pathname={pathname}
+                expanded={expanded}
+                onToggleGroup={toggleGroup}
+              />
+            </div>
           ))}
         </nav>
       </aside>

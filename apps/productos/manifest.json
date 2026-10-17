@@ -1,0 +1,9 @@
+{
+  "slug": "productos",
+  "nombre": "Productos",
+  "categoria": "Cadena de suministro",
+  "icono": "package",
+  "color": "purple",
+  "ruta": "/productos",
+  "depends": []
+}

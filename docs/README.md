@@ -12,7 +12,7 @@
 
 | Carpeta | Contenido |
 |---|---|
-| [plan/](plan/) | 13 archivos que desagregan `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md` por objetivo/arquitectura, estrategia móvil, dominio RRHH, cada fase (1 a 8), la administración de usuarios y roles (`12-…`) y el módulo Atención (`13-…`). Ver la tabla del índice para saber cuál leer. |
+| [plan/](plan/) | 14 archivos que desagregan `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md` por objetivo/arquitectura, estrategia móvil, dominio RRHH, cada fase (1 a 8), la administración de usuarios y roles (`12-…`), el módulo Atención (`13-…`) y el módulo Productos (`14-…`). Ver la tabla del índice para saber cuál leer. |
 | [status-log/](status-log/) | Una entrada por subfase/bloque ya cerrado, con el detalle completo de auditoría, migraciones y verificación. Ver la tabla de la sección 0 de `IMPLEMENTATION_STATUS.md` para saber cuál leer. |
 
 ## Arquitectura y documentación viva
