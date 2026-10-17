@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { permisosDe, type Permiso } from "@/lib/permisos";
 import type { Catalogos } from "@/lib/tipos";
-import PanelesCatalogos, { CATALOGOS_RUTA, type CatalogoRuta } from "../paneles";
+import { CATALOGOS_RUTA, type CatalogoRuta } from "@/lib/catalogos-ruta";
+import PanelesCatalogos from "../paneles";
 
 export const dynamic = "force-dynamic";
 
@@ -38,13 +39,15 @@ export default async function CatalogoConfigPage({ params }: PageProps<"/configu
   if (!permisos[pagina.permiso]) redirect("/catalogo");
 
   const { data, error } = await supabase.rpc("productos_catalogos", { p_company_id: companyId });
+  // El detalle técnico queda en el log del servidor, nunca en pantalla.
+  if (error) console.error("productos_catalogos", error);
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">
       <PageHeader title={pagina.titulo} description={`${pagina.descripcion} Nada se borra: se desactiva.`} />
       {error ? (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudo cargar el catálogo: {error.message}
+          No se pudo cargar el catálogo. Intenta recargar la página.
         </p>
       ) : (
         <PanelesCatalogos catalogos={data as Catalogos} permisos={permisos} solo={catalogo} />

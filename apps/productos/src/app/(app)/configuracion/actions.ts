@@ -34,7 +34,16 @@ export async function guardarCatalogo(catalogo: TipoCatalogo, id: string | null,
     p_id: id,
     p_datos: datos,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    // P0001: mensajes propios de la RPC, ya en español y pensados para el
+    // usuario. 42501: el texto de la base expone el código del permiso, y
+    // también puede ser un GRANT faltante, así que se registra igual.
+    // Cualquier otro (uuid inválido, red…) es técnico: se registra aquí.
+    if (error.code === "P0001") return { ok: false, message: error.message };
+    console.error("productos_guardar_catalogo", error);
+    if (error.code === "42501") return { ok: false, message: "Tu rol no permite gestionar este catálogo." };
+    return { ok: false, message: "No se pudo guardar. Intenta de nuevo." };
+  }
   revalidatePath("/configuracion/[catalogo]", "page");
   return { ok: true };
 }

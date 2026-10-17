@@ -16,6 +16,9 @@ import Link from "next/link";
 import { NexoIcon } from "./nexo-icons";
 import { isNavItemActive, type NexoNavItem } from "./nexo-nav";
 
+// Anillo de foco visible sobre el fondo azul marino del sidebar (teclado).
+const FOCUS_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70";
+
 export interface NexoSidebarProps {
   items: NexoNavItem[];
   pathname: string;
@@ -112,7 +115,7 @@ export function NexoSidebar({
             <a
               href={logoHref}
               aria-label="Volver al inicio de Nexo"
-              className="truncate text-sm font-semibold tracking-tight text-white transition-opacity hover:opacity-80"
+              className={`truncate rounded-sm text-sm font-semibold tracking-tight text-white transition-opacity hover:opacity-80 ${FOCUS_RING}`}
             >
               Nexo
             </a>
@@ -121,32 +124,22 @@ export function NexoSidebar({
             type="button"
             onClick={onToggleCollapsed}
             aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
-            className="hidden rounded-md p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white md:inline-flex"
+            className={`hidden rounded-md p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white md:inline-flex ${FOCUS_RING}`}
           >
             <ChevronIcon className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
           </button>
         </div>
 
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-3">
-          {items.map((item, i) => (
-            <div key={item.label} className="flex flex-col">
-              {item.section && (
-                <p
-                  className={`px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-white/45 ${
-                    i === 0 ? "pt-1" : "pt-4"
-                  } ${collapsed ? "md:hidden" : ""}`}
-                >
-                  {item.section}
-                </p>
-              )}
-              <NavNode
-                item={item}
-                collapsed={collapsed}
-                pathname={pathname}
-                expanded={expanded}
-                onToggleGroup={toggleGroup}
-              />
-            </div>
+          {items.map((item) => (
+            <NavNode
+              key={item.label}
+              item={item}
+              collapsed={collapsed}
+              pathname={pathname}
+              expanded={expanded}
+              onToggleGroup={toggleGroup}
+            />
           ))}
         </nav>
       </aside>
@@ -167,7 +160,12 @@ function NavNode({
   expanded: Set<string>;
   onToggleGroup: (label: string) => void;
 }) {
-  const hasChildren = (item.children?.length ?? 0) > 0;
+  // `children` definido pero vacio: grupo cuyos hijos se filtraron todos
+  // por permisos — no se lista (regla del menu de la suite), a cualquier
+  // nivel y en cascada (un grupo que solo contiene grupos vacios tambien
+  // se oculta). Distinto de un item sin `children`, que es "Pronto".
+  if (isEmptyGroup(item)) return null;
+  const hasChildren = (item.children ?? []).some((child) => !isEmptyGroup(child));
   const active = isNavItemActive(item, pathname);
   const isLeafActive = item.href ? pathname === item.href || pathname.startsWith(`${item.href}/`) : false;
   const isExpanded = expanded.has(item.label);
@@ -183,7 +181,8 @@ function NavNode({
           type="button"
           onClick={() => onToggleGroup(item.label)}
           title={collapsed ? item.label : undefined}
-          className={`group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+          aria-expanded={isExpanded}
+          className={`group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${FOCUS_RING} ${
             active ? "text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
           } ${collapsed ? "md:justify-center" : ""}`}
         >
@@ -234,7 +233,7 @@ function NavNode({
     <Link
       href={item.href!}
       title={collapsed ? item.label : undefined}
-      className={`flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+      className={`flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${FOCUS_RING} ${
         isLeafActive
           ? "bg-[var(--nexo-enterprise-sidebar-active)] text-white"
           : "text-white/70 hover:bg-white/10 hover:text-white"
@@ -244,6 +243,10 @@ function NavNode({
       <span className={`truncate ${collapsed ? "md:hidden" : ""}`}>{item.label}</span>
     </Link>
   );
+}
+
+function isEmptyGroup(item: NexoNavItem): boolean {
+  return item.children !== undefined && item.children.every(isEmptyGroup);
 }
 
 function ChevronIcon({ className }: { className?: string }) {

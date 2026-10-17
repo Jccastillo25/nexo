@@ -23,8 +23,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
+      {/* La region viva la provee sonner: su <section> contenedora queda
+          siempre montada con aria-live="polite" (sonner 2.0.8). No envolver
+          en otro role="status"/aria-live o los toasts se anunciarian dos
+          veces; aca solo se traduce su nombre accesible. */}
       <SonnerToaster
         position="top-right"
+        containerAriaLabel="Notificaciones"
         toastOptions={{
           style: {
             background: "#171717",

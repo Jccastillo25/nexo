@@ -74,7 +74,7 @@ monorepo, incluida `apps/flotilla`, antes de eliminarlos — nada fuera de
 | Nuevo | Reemplaza a | Rol |
 |---|---|---|
 | `NexoShell` | `AppShell` + `ShellBar` + `Sidebar` + el `Header`/`AppSidebar` que cada módulo duplicaba | Orquestador: breadcrumb automático, collapse/Drawer compartido, monta `ToastProvider` una vez |
-| `NexoSidebar` | `Sidebar` | Sidebar azul con grupos anidados de un nivel, ítems sin `href` se ven deshabilitados ("Próximamente"). Desde 2026-10-16 un ítem de primer nivel puede llevar `section` (encabezado en mayúsculas, ej. "Configuración", oculto con el sidebar colapsado); iconos nuevos `box`, `upload`, `tree`, `tag`, `ruler`, `book`, `price` (primer uso: Productos) |
+| `NexoSidebar` | `Sidebar` | Sidebar azul con grupos anidados de un nivel, ítems sin `href` se ven deshabilitados ("Próximamente"). Iconos nuevos 2026-10-16/17: `box`, `upload`, `tree`, `tag`, `ruler`, `book`, `price`, `chart`, `target`, `monitor`. El `section` (encabezados) del 2026-10-16 se retiró el 2026-10-17 a favor de un único patrón: grupos desplegables (ver "Menú lateral desplegable") |
 | `NexoTopbar` | `ShellBar` | Breadcrumb + buscador + notificaciones + avatar |
 | `MetricCard` | `StatCard` | Tile de KPI, tema claro |
 | `Breadcrumb`, `PageHeader`, `DashboardHero`, `ActivityFeed`, `QuickActions`, `DataTable`, `FilterBar`, `StatusBadge`, `FormTabs`, `FormSection`, `EmptyState`, `ConfirmDialog`, `Toast`/`useToast` | — (100% nuevos) | Ver el componente para su rol puntual |
@@ -219,6 +219,18 @@ alcanza con redirigir a la primera sección de contenido (ej. una tabla):
 tiene que ser una vista de métricas, con al menos 2-3 tarjetas de KPI
 reales del módulo (`MetricCard`).
 
+**Grilla del Launcher (2026-10-17, pedido del usuario con captura de la
+pantalla de inicio de Odoo):** una sola grilla plana, sin secciones por
+categoría; cada app es un mosaico blanco redondeado (76 px, sombra suave)
+con un icono a color propio de la app y el nombre debajo, sobre un fondo
+degradado claro (violeta → gris → celeste). Los iconos viven en
+[`packages/ui/app-icons.tsx`](../packages/ui/app-icons.tsx) (`AppTileIcon`),
+indexados por `core.apps.icon` (`ticket`, `handshake`, `truck`, `package`,
+`users-round`, `sun`, más `settings` para Configuración) con respaldo por
+categoría y uno genérico. Son el único lugar donde una app tiene colores
+propios, y solo de la escala de Tailwind. Configuración aparece como un
+mosaico más al final de la grilla.
+
 **Excepción explícita: `apps/nexo` en `/` (el App Launcher) NO es un
 módulo y no sigue esta regla.** Reconciliación de navegación 2026-09-14
 (decisión vigente del usuario): el Launcher es exclusivamente un selector
@@ -260,6 +272,42 @@ Al crear o adaptar un módulo nuevo:
    con `tone="pending"` en `MetricCard`, nunca un número inventado.
 3. Un gráfico simple (barras de distribución, como en el CRM) es
    suficiente para el MVP de cada módulo.
+
+## Regla obligatoria: menú lateral desplegable (2026-10-17)
+
+Pedido del usuario, con capturas de RRHH (grupos desplegables) frente a
+Atención (lista plana): "me gustaría agregarlo así a todo el menú en todas
+las apps, sin que pierdan los iconos [...] que fuera una regla al momento de
+crear una app, un nuevo submenú". Resumen en `CLAUDE.md`. Reglas del árbol
+`NexoNavItem[]` (`apps/<módulo>/src/lib/nav.ts`):
+
+- Primer nivel: `Dashboard`/`Inicio` suelto (icono `grid`) + grupos con
+  `children`. Nada más suelto, aunque el grupo tenga un solo hijo.
+- Todo ítem lleva `icon`, también los hijos (NexoSidebar pinta `grid` si
+  falta, lo que da un menú de cuadrículas repetidas).
+- Orden: grupos operativos del dominio → `Análisis` → `Configuración`.
+- Futuro: hijo sin `href` y sin `children` = "Pronto". Permisos: hijo sin
+  permiso no se lista; grupo vacío tampoco. `NexoSidebar` oculta todo
+  ítem con `children: []` (también en cascada: un grupo cuyos hijos son
+  grupos vacíos), así que el `nav.ts` puede dejar el arreglo filtrado vacío;
+  para "Pronto" se omite `children`, nunca se pasa `[]`.
+- Accesibilidad (2026-10-17): el botón de grupo lleva `aria-expanded` y todo
+  control del sidebar tiene anillo `focus-visible` (`ring-white/70`).
+- `NexoSidebar` abre solo el grupo que contiene la ruta activa; los demás
+  quedan plegados.
+- Excepción: una app con un único ítem (su Dashboard), p. ej. Agencia hoy.
+
+Estado aplicado el 2026-10-17:
+
+| App | Árbol |
+|---|---|
+| Nexo (panel) | Inicio · Configuración (Marca, Usuarios, Roles, Sucursales, Auditoría) |
+| RRHH | Dashboard · Expedientes · Contratación (con Catálogos anidado) · Asistencia · Nómina (Planillas) |
+| Atención | Inicio · Atención (Atender) · Análisis (Mis métricas, Reportes) · Configuración (Puestos y pantallas) |
+| CRM | Dashboard · Ventas (Clientes; Leads, Oportunidades, Actividades y Cotizaciones con "Pronto") |
+| Productos | Dashboard · Catálogo (Productos, Importar y exportar) · Precios (Listas de precios, "Pronto") · Configuración (Clasificación, Marcas, Unidades, Proveedores, Características, Cuentas contables) |
+| Agencia | Dashboard (excepción) |
+| Flotilla | Sin adaptar a `NexoShell` todavía (Fase 4): aplica la regla al adaptarla |
 
 ## Regla obligatoria: navegación dentro del módulo usa `next/link`, nunca `<a>` plano
 
