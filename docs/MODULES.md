@@ -28,7 +28,9 @@ estabilización RRHH — ver `IMPLEMENTATION_STATUS.md`).
 | Flotilla / Transporte admin | `/flotilla` | ⏳ Código importado | Ruta360 está en el monorepo pero sin adaptar a `nexo-core`, Multi-Zones ni permisos Nexo. |
 | Panel de Conductor Web | ruta final por definir dentro de `/flotilla` | ⏳ Pendiente de adaptación | Superficie operacional distinta del panel administrativo. Login con usuario+contraseña; misma identidad que Mobile. |
 | Nexo Mobile | Android/iOS (`apps/mobile` futuro) | ⏳ Planeado | App operacional por rol; no replica toda la Web. Primera vertical: conductor/Transporte. |
-| Inventario | `/inventario` | ⏳ Planeado | Requisito previo a Fabricación. |
+| Productos (catálogo maestro) | `/productos` | 🟡 Esquema aplicado y app implementada en local (2026-10-16), activada para probar; la tarjeta de producción no abre hasta el deploy | `apps/productos`: dashboard, listado, ficha (ID inmutable, código `CCTTKK-NNN` editable), clasificación, catálogos, importación/exportación del Excel del ERP. Schema `productos` + RPC en `nexo-core`, sin datos. Sin commit, sin proyecto Vercel, sin recorrido con sesión real. Ver [plan 14](plan/14-productos.md). |
+| Listas de precios | por definir | ⏳ Planeado | Siguiente después de Productos: precio base/mínimo, multiprecios, niveles por clasificación de cliente, comparativa y listas oficiales. |
+| Inventario | `/inventario` | ⏳ Planeado | Requisito previo a Fabricación. Leerá el catálogo de Productos. |
 | Fabricación | `/fabricacion` | ⏳ Planeado | BOM, órdenes, producción, merma, calidad y producto terminado. |
 | Web Corporativo | dominio aparte | ✅ Operativo | No forma parte del panel Nexo. |
 

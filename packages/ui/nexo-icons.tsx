@@ -111,6 +111,41 @@ const ICONS = {
       <path d="M6.3 5.5h1M9.7 5.5h1M6.3 8.5h1M9.7 8.5h1M6.3 11.5h1M9.7 11.5h1" strokeLinecap="round" />
     </>
   ),
+  // Productos (2026-10-16): catálogo, importación y catálogos de configuración.
+  box: (
+    <>
+      <path d="M17 6.5 10 2.8 3 6.5v7l7 3.7 7-3.7v-7Z" />
+      <path d="m3 6.5 7 3.7 7-3.7M10 10.2v7" />
+    </>
+  ),
+  upload: <path d="M10 12.5V3m0 0L6 7m4-4 4 4M3.5 12.5v2.7A1.8 1.8 0 0 0 5.3 17h9.4a1.8 1.8 0 0 0 1.8-1.8v-2.7" />,
+  tree: (
+    <>
+      <rect x="2.8" y="2.8" width="5" height="5" rx="1" />
+      <rect x="12.2" y="7.5" width="5" height="4.5" rx="1" />
+      <rect x="12.2" y="14" width="5" height="3.2" rx="0.8" />
+      <path d="M5.3 7.8v7.6a1.6 1.6 0 0 0 1.6 1.6h5.3M5.3 9.8h6.9" />
+    </>
+  ),
+  tag: (
+    <>
+      <path d="M16.9 11.1 11.1 16.9a1.6 1.6 0 0 1-2.3 0L2.8 10.9V2.8h8.1l6 6a1.6 1.6 0 0 1 0 2.3Z" />
+      <circle cx="6.6" cy="6.6" r="1.2" />
+    </>
+  ),
+  ruler: (
+    <>
+      <path d="M2.8 14.2 14.2 2.8l3 3L5.8 17.2l-3-3Z" />
+      <path d="m6.2 10.8 1.6 1.6M9 8l1.6 1.6M11.8 5.2l1.6 1.6" />
+    </>
+  ),
+  book: (
+    <>
+      <path d="M3.5 3.5h9.3a3.2 3.2 0 0 1 3.2 3.2v9.8H6.7a3.2 3.2 0 0 1-3.2-3.2V3.5Z" />
+      <path d="M6.8 7h6M6.8 10.2h4.6" />
+    </>
+  ),
+  price: <path d="M10 2.5v15M14 5.3H8.3a2.7 2.7 0 0 0 0 5.4h3.4a2.7 2.7 0 0 1 0 5.4H5.6" />,
 } as const;
 
 export type NexoIconName = keyof typeof ICONS;

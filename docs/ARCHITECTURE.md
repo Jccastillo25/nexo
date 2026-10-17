@@ -1,5 +1,20 @@
 # Arquitectura de Nexo
 
+## Productos — zona `/productos` (2026-10-16)
+
+App independiente `apps/productos` (`basePath: "/productos"`, puerto local
+3005), **sin proyecto Vercel todavía**. Nexo la cose con `PRODUCTOS_APP_URL`
+(rewrite solo si la variable existe; agregada al allowlist de `turbo.json`) y
+su proxy excluye `/productos`, igual que `/atencion`. Login único y `NexoShell`
+compartidos. Schema `productos` cerrado a la API: todo pasa por RPC
+`public.productos_*` (security definer + `core.fn_exigir_permiso`), reutilizable
+por Listas de precios, Inventario y Nexo Mobile. Los demás módulos referencian
+el producto por su `id`/`numero_id` (inmutables), nunca por el código
+(editable). La importación lee los Excel del ERP en el navegador
+(`read-excel-file`) y manda JSON a `productos_importar`; la exportación arma el
+Excel del ERP en el navegador (`write-excel-file`). Diseño:
+[plan 14](plan/14-productos.md).
+
 ## Atención — zona `/atencion` (2026-10-14)
 
 App independiente `apps/atencion` (`basePath: "/atencion"`, puerto local 3004),

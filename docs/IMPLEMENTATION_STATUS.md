@@ -1,5 +1,9 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
+**2026-10-16 — Productos (esquema + app):** schema `productos` (12 tablas, 12 RPC `public.productos_*`) aplicado en `nexo-core` (`20261016214634`) tras 17 pruebas en transacción revertida (+11 después de aplicar). `apps/productos` (zona `/productos`, puerto 3005) implementada: dashboard, listado, ficha con ID inmutable y código `CCTTKK-NNN` editable, clasificación, catálogos e importación/exportación del Excel del ERP; typecheck/lint/build OK y lector probado con los 699 productos reales. Sin datos, sin commit ni proyecto Vercel (el usuario quiere probar en local primero). **Activada** para la empresa el mismo día (`20261016220935`) para probar en local: la tarjeta ya aparece en el Launcher de producción pero no abre hasta el deploy. [Detalle](status-log/2026-10-16-productos-esquema-app.md).
+
+**2026-10-16 — Productos (Paso Cero):** nuevo módulo `productos` (catálogo maestro de productos, base de Listas de precios). Diseño a partir de las plantillas de importación del ERP actual; matriz aprobada por el usuario y aplicada a `nexo-core` (`20261016203638`): app **inactiva**, 16 permisos + `productos.ver_modulo`, plantillas Consulta/Editor/Contabilidad/Administrador. Nexo será el maestro de productos. Sin tablas, sin `apps/productos` ni proyecto Vercel. [Detalle](status-log/2026-10-16-productos-paso-cero.md) · [Plan](plan/14-productos.md).
+
 **Última actualización documental: 2026-10-16 — CI y validación (issue #43):** primera puerta de calidad del repo: workflow `CI` en `.github/workflows/ci.yml` (checks `typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access` + `lint-deuda` informativo), orden local única `pnpm install --frozen-lockfile && pnpm verify`, `typecheck` real en las 7 apps (antes ejecutaba **0 tareas con exit 0**) y prueba SQL de P1 conectada con `@electric-sql/pglite` fijado en `0.5.10`. **El gate de merge está ACTIVO y verificado** en `main`: los cinco checks obligatorios (app GitHub Actions), `strict: false`, `enforce_admins: true`, sin force push ni borrado de rama — `lint-deuda` no bloquea ([detalle y comandos](CI_CHECKS.md)). Sin migraciones aplicadas ni despliegues. [Detalle](status-log/2026-10-16-ci-checks-automatizados.md).
 
 **2026-10-15 — RRHH P1 (issue #30):** `rrhh.fn_registrar_marca_kiosko` deja de resolver la credencial con `limit 1`: cuenta las credenciales vigentes de la empresa del kiosco que aceptan el PIN y, con más de una coincidencia, **falla cerrado** (ninguna marca, ninguna identidad, señal técnica sin PIN). Migración `20261015181000`, ya **fusionada en `main` (`fc2b309`)** y probada en un PostgreSQL embebido con bcrypt real (13 casos/28 aserciones + control negativo); **la migración todavía no se aplicó a `nexo-core`**. No se avanzó a P2. [Detalle](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md).
@@ -68,6 +72,8 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-16 | [Productos — esquema, RPC y `apps/productos`](status-log/2026-10-16-productos-esquema-app.md) | Schema `productos` + 12 RPC (`20261016214634`, 28 pruebas en transacciones revertidas); app con dashboard, listado, ficha, clasificación, catálogos e importación del ERP; build OK y lector probado con 699 productos reales. Inactiva, sin datos, sin commit. |
+| 2026-10-16 | [Paso Cero — módulo Productos](status-log/2026-10-16-productos-paso-cero.md) | Catálogo maestro de productos diseñado sobre las plantillas del ERP; app `productos` registrada inactiva, 16 permisos + `ver_modulo`, 4 plantillas (`20261016203638`). Modelo de datos, pantallas y Listas de precios pendientes. |
 | 2026-10-16 | [CI: pruebas automatizadas y checks obligatorios](status-log/2026-10-16-ci-checks-automatizados.md) | Workflow `CI` + orden local `pnpm verify`; `typecheck` real en las 7 apps y prueba SQL P1 con PGlite fijado. Protección de `main` **activa y verificada**: los cinco checks (`typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access`) son obligatorios antes de fusionar, con `strict: false` y `enforce_admins: true`; `lint-deuda (no bloquea)` no bloquea. |
 | 2026-10-15 | [RRHH P1 — PIN ambiguo, fallo cerrado](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md) | La búsqueda del kiosco cuenta coincidencias y no marca si el PIN es ambiguo. Migración `20261015181000` fusionada en `main` (`fc2b309`) y probada en PG embebido; sin aplicar a remoto. |
 | 2026-10-15 | [RRHH/kiosco — especificación de piloto y MVP operativo](status-log/2026-10-15-rrhh-piloto-mvp-especificacion.md) | Corte y tickets P1–P7/M1–M4 aprobados como diseño; sin implementación ni validación con usuarios reales. |
@@ -128,7 +134,9 @@ Deuda general no bloqueante detectada de paso (rendimiento pre-existente fuera d
 | Panel de Conductor Web | 🟡 Código legacy aprovechable | Ruta360 tiene flujo de conductor, pero falta adaptación a identidad Nexo, contrato RRHH y permisos unificados. |
 | CRM | 🟡 MVP muy básico | Cliente CRUD y dashboard; faltan leads, oportunidades, actividades, cotizaciones/pedido. |
 | Transporte / Flotilla | 🟡 Código aprovechable, sin adaptar | Ruta360 importado; falta migración al modelo Nexo y eliminar identidad duplicada de conductores. |
-| Inventario mínimo | ⏳ Pendiente | Necesario antes de Fabricación. |
+| Productos (catálogo maestro) | 🟡 Esquema aplicado + app implementada en local (2026-10-16), sin validar con sesión real | Paso Cero (`20261016203638`) + esquema/RPC (`20261016214634`) en `nexo-core`, probados en transacciones revertidas. `apps/productos` compila (typecheck/lint/build). App **activa** para la empresa desde 2026-10-16 (`20261016220935`, para probar en local); sin datos, sin commit ni proyecto Vercel: la tarjeta del Launcher de producción no abre hasta el deploy. Nexo es el maestro; el ERP se alimenta por exportación. Ver [plan 14](plan/14-productos.md). |
+| Listas de precios | ⏳ Pendiente | Siguiente después de Productos: precio base/mínimo, multiprecios, niveles por clasificación de cliente, comparativa y listas oficiales. App aparte o sección de Productos sin decidir. |
+| Inventario mínimo | ⏳ Pendiente | Necesario antes de Fabricación. Leerá el catálogo de Productos (no lo duplica). |
 | Fabricación | ⏳ Pendiente | No existe app/schema. |
 | Nexo Mobile Android/iOS | ⏳ Preparación arquitectónica | No existe `apps/mobile`. La app será operacional y no replicará toda la Web. Primera vertical productiva prevista: conductor/Transporte. |
 | Kernel compartido `@nexo/supabase/@nexo/auth` | ⚠️ Deuda | Existe estructura, pero la arquitectura documenta duplicación de clientes/middleware entre apps. |
@@ -356,6 +364,8 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 ---
 
 # 7. Próxima acción obligatoria
+
+**Productos (pedido del usuario 2026-10-16):** esquema y app listos y activados; app corriendo en `localhost:3005`. Siguiente: el usuario hace el recorrido con su sesión; después, importación real de los 699 productos, commit + PR, proyecto Vercel `nexo-productos` con `PRODUCTOS_APP_URL` y prueba en producción. Luego, Paso Cero de Listas de precios (app aparte o sección: sin decidir).
 
 **RRHH/kiosco:** desarrollar en orden P1–P7 y después M1–M4 según [la especificación aprobada](RRHH_PILOTO_MVP_OPERATIVO.md). P1 (PIN ambiguo) ya está implementado y fusionado; **el siguiente paso es P2** (unicidad del PIN al activar/regenerar), que aún no se inició. P7 es puerta de autorización del piloto, no una formalidad: registra en privado funciones, buzón, dispositivo y pruebas; cualquier prueba crítica fallida pospone el piloto. Esto no sustituye F1.5–F1.10 completos.
 

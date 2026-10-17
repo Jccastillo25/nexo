@@ -41,6 +41,8 @@ jornadas mínimas) completados (2026-09-07)**. `flotilla` todavía no existe.
 | `crm` | `clientes` | Migrado de materiales-jcastillo | ✅ Completo (2026-08-30), en producción |
 | `rrhh` | Empleados, contratos, compensación, credenciales, jornadas/feriados (F1.4), kioscos, asistencia, seguridad de accesos, parámetros de ley, planillas, rate-limit de kiosko — 16 tablas base (22 con particiones) | Diseño nuevo para Nexo (no migración 1:1 de Gestor360) | ✅ Aplicado (2026-09-02 a 2026-09-04); auditoría de seguridad cerrada y verificada en producción (2026-09-05); F1.1-F1.4 (contratos/PIN contractual/jornadas) aplicados 2026-09-07. **MVP operativo sin validar** (motor de consolidación/planillas no construido) — ver [RRHH_MVP.md](RRHH_MVP.md) |
 | `flotilla` | Flota, viajes, conductores, evidencias | Migrado de Ruta360 | ⏳ Pendiente |
+| `atencion` | Turnos de sala de espera | Nuevo | ✅ Aplicado 2026-10-14 (ver sección propia) |
+| `productos` | Catálogo maestro de productos y sus catálogos (clasificación, marcas, unidades, proveedores, características, cuentas, centros de costo) | Nuevo, modelado sobre las plantillas del ERP | ✅ Aplicado 2026-10-16 (`20261016214634`); sin datos |
 
 ## Exponer schemas en la API (paso manual)
 
@@ -198,6 +200,33 @@ No guarda datos del cliente; el trigger `trg_atencion_turnos_avisar` sube la
 versión en cada alta/cambio de turno, está en `supabase_realtime` y su RLS
 (solo `select`) usa `public.atencion_puede_escuchar(sucursal_id)`. Los
 navegadores la escuchan y vuelven a pedir la fila por `atencion_cola`.
+## Schema `productos` (2026-10-16, `20261016214634`)
+
+Catálogo maestro ([plan 14](plan/14-productos.md)). Schema cerrado a la API
+(`revoke all`, RLS sin políticas): todo por RPC `public.productos_*`. Todas son
+catálogos (no se particionan); cada escritura deja su fila en `core.audit_log`
+(`productos.*`). FK compuestas `(x_id, company_id)` en todas las relaciones.
+
+| Tabla | Contenido |
+|---|---|
+| `productos.clasificaciones` | Clase › Tipo › Categoría (árbol estricto, `padre_id`); `numero` de 2 dígitos único dentro del padre (fijo cuando un producto lo usa); `codigo_erp` solo referencia |
+| `productos.marcas` + `marca_clases` | Marcas y clases permitidas (sin filas = todas) |
+| `productos.unidades`, `proveedores`, `caracteristicas`, `cuentas_contables` (tipo ingreso/inventario/costo), `centros_costo` | Catálogos de la ficha |
+| `productos.productos` | `numero_id` (ID inmutable; importados = ID del ERP, nuevos = más alto + 1), `codigo` (editable, único sin distinguir mayúsculas), clasificación, unidad, datos fiscales, costo, parámetros de inventario, descontinuado; sin precios |
+| `productos.producto_caracteristicas` | Valor de cada característica por producto |
+| `productos.id_contadores`, `codigo_contadores` | Último ID por empresa y último consecutivo de código por categoría (con bloqueo de fila) |
+
+Triggers: `trg_producto` (ID/empresa inmutables, ID del ERP fijable una sola
+vez, coherencia clase/tipo/categoría, marca permitida en la clase, tipo de
+cuenta, regla de servicios), `trg_producto_no_borrar` (no hay `delete`),
+`trg_clasificacion` (nivel/padre fijos, número fijo si hay productos).
+RPC: `productos_resumen`, `_listar`, `_obtener`, `_catalogos`,
+`_sugerir_codigo`, `_guardar` (permisos por grupo de campos: general /
+costo / fiscal), `_descontinuar`, `_siguiente_numero`,
+`_guardar_clasificacion`, `_guardar_catalogo`, `_importar` (todo o nada,
+vista previa revertida con `confirmar = false`), `_exportar`. El costo no sale
+sin `productos.catalogo.costo.ver`.
+
 - `core.platform_settings` — singleton de marca de la plataforma
 - `core.geografia_ni_departamentos` / `core.geografia_ni_municipios` —
   **bloque pre-F1.5 (2026-09-16)**: geografía nacional de Nicaragua, sin
@@ -269,6 +298,9 @@ completo de cada una:
 20261014222454_atencion_paso_cero
 20261014224341_atencion_esquema
 20261014230022_atencion_activar
+20261016203638_productos_paso_cero
+20261016214634_productos_esquema
+20261016220935_productos_activar
 ```
 
 Nota: esta lista no reflejaba `20260914090000` hasta esta actualización
