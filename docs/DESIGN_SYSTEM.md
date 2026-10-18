@@ -197,12 +197,20 @@ RRHH
 │       ├── Puestos         bajo "Configuración"; ahora con pantalla real)
 │       ├── Departamentos
 │       └── Plantillas de contrato
-├── Asistencia
-│   ├── Marcas          (sin href — F1.5)
-│   ├── Incidencias     (sin href — F1.6)
-│   ├── Justificaciones (sin href — F1.6)
-│   └── Kioskos
 └── Planillas          (placeholder histórico conservado)
+
+ASISTENCIA (app propia desde 2026-10-17, /rrhh/asistencia, mismo deploy que RRHH)
+├── Dashboard          (marcas de hoy, dispositivos activos, envíos pendiente de integración)
+├── Marcaciones
+│   ├── Marcas          (antes /rrhh/marcas, que redirige aquí)
+│   ├── Incidencias     (Pronto — F1.6)
+│   └── Justificaciones (Pronto — F1.6)
+├── Análisis
+│   ├── Resumen diario  (Pronto — F1.5)
+│   └── Envíos del kiosco (Pronto — falta RPC)
+└── Configuración
+    └── Dispositivos   (registrar, editar, desactivar, reactivar)
+(La terminal pública /rrhh/kiosco no va en ningún menú.)
 
 CRM
 ├── Dashboard
@@ -220,8 +228,37 @@ tiene que ser una vista de métricas, con al menos 2-3 tarjetas de KPI
 reales del módulo (`MetricCard`).
 
 **Grilla del Launcher (2026-10-17, pedido del usuario con captura de la
-pantalla de inicio de Odoo):** una sola grilla plana, sin secciones por
-categoría; cada app es un mosaico blanco redondeado (76 px, sombra suave)
+pantalla de inicio de Odoo):** las apps se agrupan en **secciones por
+categoría** (`core.apps.category`, en el orden en que llegan de
+`get_visible_apps`; sin categoría → "General"), cada una con un título
+pequeño en mayúsculas y subrayado, y sus mosaicos debajo.
+
+**Cuadrícula fija:** la página tiene columnas de 104 px (3 en celular, 5 en
+tablet, 8 en escritorio), y cada sección usa `subgrid` sobre esas mismas
+columnas, de modo que todos los mosaicos quedan alineados al agregar apps.
+Una sección ocupa tantas columnas como apps tenga (mínimo 2, para el título);
+si tiene más apps que columnas, sus mosaicos bajan de fila. El orden de las
+secciones está fijo en `ORDEN_CATEGORIAS` (Ventas, Cadena de suministro,
+Finanzas, RRHH, Servicios; las demás después). **Ventas va siempre arriba y
+ocupa la fila entera** (`SECCIONES_ANCHO_COMPLETO`). Administración va al
+final.
+
+**Apps "Próximamente":** la lista `APPS_PROXIMAMENTE` de
+`apps/nexo/src/app/page.tsx` pone en su categoría las apps planificadas como
+mosaicos sin enlace: borde punteado, icono en gris, nombre atenuado y la
+etiqueta "Próximamente". Son Punto de venta, Facturación, Inventario,
+Compras, Flotilla, Contabilidad, Bancos y Agencia digital. **No se agrega
+como app lo que ya es parte de un módulo**: Cotizaciones va en el menú del
+CRM y Nómina en RRHH. (Listas de precios salió de Productos y Asistencia de
+RRHH el 2026-10-17: las dos pasan a ser apps propias.) El gris se
+logra con el color de relleno (`[&_[class*=fill-]:not(.fill-white)]:fill-neutral-300!`),
+nunca con `filter`/`opacity`, porque rasterizan el SVG y lo desenfocan. Por el
+mismo motivo, el hover del mosaico solo cambia la sombra y no usa `translate`. Es el mismo criterio que los ítems "Pronto" del menú lateral:
+no hay página placeholder. Si llega por `get_visible_apps` una app con el
+mismo `slug`, se muestra la real. Al lanzar una app nueva se quita de esa
+lista. Sus iconos (`register`, `receipt`, `warehouse`, `cart`, `calculator`,
+`bank`) viven en `packages/ui/app-icons.tsx`. Configuración va
+en su propia sección, "Administración", al final. Cada app es un mosaico blanco redondeado (76 px, sombra suave)
 con un icono a color propio de la app y el nombre debajo, sobre un fondo
 degradado claro (violeta → gris → celeste). Los iconos viven en
 [`packages/ui/app-icons.tsx`](../packages/ui/app-icons.tsx) (`AppTileIcon`),
@@ -261,7 +298,8 @@ interna de "la app Nexo") — ver la sección siguiente.
 Referencia (módulos reales): [`apps/crm/src/app/(app)/dashboard/page.tsx`](../apps/crm/src/app/(app)/dashboard/page.tsx)
 (total de clientes, nuevos este mes, distribución por tipo) y
 [`apps/rrhh/src/app/(app)/dashboard/page.tsx`](../apps/rrhh/src/app/(app)/dashboard/page.tsx)
-(expedientes, contratos activos, marcas del día, planillas pendientes).
+(expedientes, contratos activos, planillas pendientes; "marcas del día" pasó
+al dashboard de Asistencia el 2026-10-17, contadas con el día de Managua).
 
 Al crear o adaptar un módulo nuevo:
 
@@ -302,7 +340,8 @@ Estado aplicado el 2026-10-17:
 | App | Árbol |
 |---|---|
 | Nexo (panel) | Inicio · Configuración (Marca, Usuarios, Roles, Sucursales, Auditoría) |
-| RRHH | Dashboard · Expedientes · Contratación (con Catálogos anidado) · Asistencia · Nómina (Planillas) |
+| RRHH | Dashboard · Expedientes · Contratación (con Catálogos anidado) · Nómina (Planillas) |
+| Asistencia | Dashboard · Marcaciones (Marcas; Incidencias y Justificaciones "Pronto") · Análisis ("Pronto") · Configuración (Dispositivos); filtrado por permiso |
 | Atención | Inicio · Atención (Atender) · Análisis (Mis métricas, Reportes) · Configuración (Puestos y pantallas) |
 | CRM | Dashboard · Ventas (Clientes; Leads, Oportunidades, Actividades y Cotizaciones con "Pronto") |
 | Productos | Dashboard · Catálogo (Productos, Importar y exportar) · Precios (Listas de precios, "Pronto") · Configuración (Clasificación, Marcas, Unidades, Proveedores, Características, Cuentas contables) |

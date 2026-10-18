@@ -141,10 +141,11 @@ export default function MarcaForm({ initial }: { initial: PlatformSettings }) {
       else if (res.success) show("Configuración de marca guardada correctamente.", "success");
       return res;
     } catch (err) {
+      // El texto del rechazo (p. ej. límite de tamaño del body) no se
+      // muestra: va a la consola y la pantalla recibe un mensaje propio.
+      console.error("MarcaForm: updateSettings", err);
       const message =
-        err instanceof Error && err.message
-          ? err.message
-          : "No se pudo guardar la configuración. Intentá de nuevo.";
+        "No se pudo guardar la configuración. Revisá el tamaño de las imágenes e intentá de nuevo.";
       show(message, "error");
       return { error: message, success: false };
     }

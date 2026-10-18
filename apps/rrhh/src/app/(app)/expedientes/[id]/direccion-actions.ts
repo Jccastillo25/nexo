@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
@@ -30,7 +30,7 @@ export async function guardarDireccion(empleadoId: string, input: DireccionInput
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.direccion.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "guardarDireccion") };
     throw err;
   }
 
@@ -51,7 +51,9 @@ export async function guardarDireccion(empleadoId: string, input: DireccionInput
       { onConflict: "empleado_id" }
     );
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "guardarDireccion", "No se pudo guardar la dirección. Intenta de nuevo.") };
+  }
 
   revalidatePath(`/expedientes/${empleadoId}`);
   return { ok: true };

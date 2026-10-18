@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
@@ -39,7 +39,7 @@ export async function editarEmpleado(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.empleados.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "editarEmpleado") };
     throw err;
   }
 
@@ -58,7 +58,9 @@ export async function editarEmpleado(
     p_telefono: input.telefono?.trim() || undefined,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "editarEmpleado", "No se pudo guardar el expediente. Intenta de nuevo.") };
+  }
 
   revalidatePath(`/expedientes/${empleadoId}`);
   revalidatePath(`/expedientes/${empleadoId}/editar`);

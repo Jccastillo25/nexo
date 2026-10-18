@@ -12,9 +12,13 @@ export const metadata: Metadata = {
  * este Dashboard de KPIs — nunca una lista de contenido ni una pantalla
  * en blanco. Nexo Enterprise UI (2026-09-07): MetricCard claro reemplaza
  * a StatCard (dark/glass, retirado). "Contratos activos" es nuevo (real,
- * ya consultable via rrhh.contratos); "Marcas del día" y "Planillas
- * pendientes" ya eran reales antes del rediseño y se conservan tal cual —
- * regla obligatoria "cero datos mock": ningun KPI se inventa.
+ * ya consultable via rrhh.contratos); "Planillas pendientes" ya era real
+ * antes del rediseño y se conserva tal cual — regla obligatoria "cero
+ * datos mock": ningun KPI se inventa.
+ *
+ * 2026-10-17: "Marcas del día" sale de aqui (Asistencia es una app propia
+ * con su dashboard en /asistencia/dashboard, que ademas cuenta el dia de
+ * America/Managua; esta tarjeta usaba la medianoche del servidor, UTC).
  *
  * Requiere que "rrhh" este expuesto en Data API (Settings > API > Data
  * API > Exposed schemas) — ver .env.local.example.
@@ -23,10 +27,7 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const companyId = getCompanyId();
 
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const [expedientes, contratosActivos, marcasHoy, planillasPendientes] = await Promise.all([
+  const [expedientes, contratosActivos, planillasPendientes] = await Promise.all([
     supabase
       .schema("rrhh")
       .from("empleados")
@@ -40,12 +41,6 @@ export default async function DashboardPage() {
       .eq("estado", "activo"),
     supabase
       .schema("rrhh")
-      .from("asistencia_marcas")
-      .select("id", { count: "exact", head: true })
-      .eq("company_id", companyId)
-      .gte("marcado_en", startOfDay.toISOString()),
-    supabase
-      .schema("rrhh")
       .from("planillas")
       .select("id", { count: "exact", head: true })
       .eq("company_id", companyId)
@@ -53,7 +48,7 @@ export default async function DashboardPage() {
   ]);
 
   const firstError =
-    expedientes.error ?? contratosActivos.error ?? marcasHoy.error ?? planillasPendientes.error;
+    expedientes.error ?? contratosActivos.error ?? planillasPendientes.error;
   if (firstError) {
     // 2026-09-08: se detectaron 3 ocurrencias reales en produccion (logs de
     // Vercel) de este error con `.message` VACIO ("No se pudo cargar el
@@ -75,10 +70,9 @@ export default async function DashboardPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Dashboard" description="Resumen operativo de RRHH." />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard label="Expedientes" value={expedientes.count ?? 0} />
         <MetricCard label="Contratos activos" value={contratosActivos.count ?? 0} tone="positive" />
-        <MetricCard label="Marcas del día" value={marcasHoy.count ?? 0} />
         <MetricCard
           label="Planillas pendientes"
           value={planillasPendientes.count ?? 0}
@@ -90,7 +84,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ActivityFeed
           items={[]}
-          emptyLabel="Pendiente de consolidación — la línea de tiempo de asistencia llega con F1.5."
+          emptyLabel="Pendiente de integración"
         />
         <QuickActions
           actions={[

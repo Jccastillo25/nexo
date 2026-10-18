@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import type { ClienteInsert, ClienteUpdate, Json } from "@/lib/supabase/database.types";
@@ -91,7 +91,7 @@ export async function createCliente(
     .single();
 
   if (error) {
-    return { error: `No se pudo crear el cliente: ${error.message}` };
+    return { error: mensajeDeError(error, "crm.clientes insert", "No se pudo crear el cliente. Intenta de nuevo.") };
   }
 
   revalidatePath("/clientes");
@@ -128,7 +128,7 @@ export async function updateCliente(
   const { error } = await supabase.schema("crm").from("clientes").update(update).eq("id", id);
 
   if (error) {
-    return { error: `No se pudo guardar el cliente: ${error.message}` };
+    return { error: mensajeDeError(error, "crm.clientes update", "No se pudo guardar el cliente. Intenta de nuevo.") };
   }
 
   revalidatePath("/clientes");
@@ -163,7 +163,7 @@ export async function deleteCliente(
   const { error } = await supabase.schema("crm").from("clientes").delete().eq("id", id);
 
   if (error) {
-    return { error: `No se pudo eliminar el cliente: ${error.message}` };
+    return { error: mensajeDeError(error, "crm.clientes delete", "No se pudo eliminar el cliente. Intenta de nuevo.") };
   }
 
   revalidatePath("/clientes");

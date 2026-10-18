@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
@@ -31,7 +31,7 @@ export async function crearCuentaBancaria(empleadoId: string, input: CuentaBanca
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.cuentas_bancarias.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "crearCuentaBancaria") };
     throw err;
   }
 
@@ -49,7 +49,7 @@ export async function crearCuentaBancaria(empleadoId: string, input: CuentaBanca
     if (error.message.includes("duplicate key") && error.message.includes("principal")) {
       return { ok: false, message: "Ya existe una cuenta principal activa para este empleado." };
     }
-    return { ok: false, message: error.message };
+    return { ok: false, message: mensajeDeError(error, "crearCuentaBancaria", "No se pudo crear la cuenta. Intenta de nuevo.") };
   }
 
   revalidatePath(`/expedientes/${empleadoId}`);
@@ -67,7 +67,7 @@ export async function editarCuentaBancaria(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.cuentas_bancarias.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "editarCuentaBancaria") };
     throw err;
   }
 
@@ -90,7 +90,7 @@ export async function editarCuentaBancaria(
     if (error.message.includes("duplicate key") && error.message.includes("principal")) {
       return { ok: false, message: "Ya existe una cuenta principal activa para este empleado." };
     }
-    return { ok: false, message: error.message };
+    return { ok: false, message: mensajeDeError(error, "editarCuentaBancaria", "No se pudo guardar la cuenta. Intenta de nuevo.") };
   }
 
   revalidatePath(`/expedientes/${empleadoId}`);

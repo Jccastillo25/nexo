@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
@@ -29,7 +29,7 @@ export async function crearDepartamento(input: DepartamentoInput): Promise<Actio
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.departamentos.crear");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "crearDepartamento") };
     throw err;
   }
 
@@ -43,7 +43,7 @@ export async function crearDepartamento(input: DepartamentoInput): Promise<Actio
     if (error.message.includes("duplicate key")) {
       return { ok: false, message: "Ya existe un departamento con ese nombre en esta empresa." };
     }
-    return { ok: false, message: error.message };
+    return { ok: false, message: mensajeDeError(error, "crearDepartamento", "No se pudo crear el departamento. Intenta de nuevo.") };
   }
 
   revalidatePath("/contratacion/catalogos/departamentos");
@@ -60,7 +60,7 @@ export async function editarDepartamento(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.departamentos.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "editarDepartamento") };
     throw err;
   }
 
@@ -79,7 +79,7 @@ export async function editarDepartamento(
     if (error.message.includes("duplicate key")) {
       return { ok: false, message: "Ya existe un departamento con ese nombre en esta empresa." };
     }
-    return { ok: false, message: error.message };
+    return { ok: false, message: mensajeDeError(error, "editarDepartamento", "No se pudo guardar el departamento. Intenta de nuevo.") };
   }
 
   revalidatePath("/contratacion/catalogos/departamentos");

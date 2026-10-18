@@ -5,6 +5,7 @@ import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAdministracion } from "../errores";
 import type { EmpleadoBusqueda } from "@/lib/supabase/database.types";
 
 export interface ActionResult {
@@ -28,6 +29,9 @@ export interface CrearUsuarioInput extends DatosUsuarioInput {
 }
 
 const MIN_PASSWORD = 8;
+// Supabase Auth "weak_password" (muy corta, débil o filtrada): texto propio,
+// nunca el de Auth (revisión de seguridad 2026-10-17).
+const CONTRASENA_DEBIL = "La contraseña no cumple la política de seguridad (es débil o aparece en filtraciones conocidas). Elige otra.";
 // Bloqueo de inicio de sesión en Supabase Auth para usuarios desactivados
 // (~100 años). Reactivar lo quita con "none".
 const BAN_DESACTIVADO = "876000h";
@@ -79,7 +83,8 @@ export async function crearUsuario(input: CrearUsuarioInput): Promise<ActionResu
   try {
     admin = createAdminClient();
   } catch (err) {
-    return { ok: false, message: (err as Error).message };
+    console.error("crearUsuario: cliente admin", err);
+    return { ok: false, message: "No se pudo crear la cuenta. Intenta de nuevo." };
   }
 
   const { data: creado, error: authError } = await admin.auth.admin.createUser({
@@ -89,12 +94,16 @@ export async function crearUsuario(input: CrearUsuarioInput): Promise<ActionResu
     user_metadata: { nombre_completo: input.nombreCompleto.trim() },
   });
   if (authError || !creado.user) {
-    const yaExiste = authError?.message?.toLowerCase().includes("already");
+    const yaExiste = authError?.code === "email_exists" || authError?.message?.toLowerCase().includes("already");
+    if (authError?.code === "weak_password") {
+      console.error("crearUsuario: auth.createUser", authError);
+      return { ok: false, message: CONTRASENA_DEBIL };
+    }
     return {
       ok: false,
       message: yaExiste
         ? "Ya existe una cuenta con ese correo."
-        : `No se pudo crear la cuenta: ${authError?.message ?? "error desconocido"}.`,
+        : mensajeAdministracion(authError, "crearUsuario: auth.createUser", "No se pudo crear la cuenta. Intenta de nuevo."),
     };
   }
 
@@ -109,7 +118,10 @@ export async function crearUsuario(input: CrearUsuarioInput): Promise<ActionResu
   });
   if (error) {
     await admin.auth.admin.deleteUser(creado.user.id);
-    return { ok: false, message: error.message };
+    return {
+      ok: false,
+      message: mensajeAdministracion(error, "crearUsuario: admin_completar_alta", "No se pudo crear el usuario. Intenta de nuevo."),
+    };
   }
 
   if (input.sucursalIds && input.sucursalIds.length > 0) {
@@ -120,7 +132,7 @@ export async function crearUsuario(input: CrearUsuarioInput): Promise<ActionResu
     });
     if (sucError) {
       revalidatePath("/configuracion/usuarios");
-      return { ok: false, message: `Usuario creado, pero no se pudieron asignar las sucursales: ${sucError.message}` };
+      return { ok: false, message: `Usuario creado, pero no se pudieron asignar las sucursales: ${mensajeAdministracion(sucError, "crearUsuario: admin_asignar_sucursales", "intenta de nuevo desde su ficha.")}` };
     }
   }
 
@@ -145,7 +157,12 @@ export async function editarUsuario(userId: string, input: DatosUsuarioInput): P
     p_rol_id: input.rolId,
     p_empleado_id: input.empleadoId,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return {
+      ok: false,
+      message: mensajeAdministracion(error, "editarUsuario: admin_editar_usuario", "No se pudo guardar el usuario. Intenta de nuevo."),
+    };
+  }
 
   if (input.sucursalIds) {
     const { error: sucError } = await ctx.supabase.rpc("admin_asignar_sucursales", {
@@ -153,7 +170,7 @@ export async function editarUsuario(userId: string, input: DatosUsuarioInput): P
       p_user_id: userId,
       p_sucursales: input.sucursalIds,
     });
-    if (sucError) return { ok: false, message: `Datos guardados, pero no las sucursales: ${sucError.message}` };
+    if (sucError) return { ok: false, message: `Datos guardados, pero no las sucursales: ${mensajeAdministracion(sucError, "editarUsuario: admin_asignar_sucursales", "intenta de nuevo.")}` };
   }
 
   revalidatePath("/configuracion/usuarios");
@@ -176,7 +193,12 @@ export async function cambiarEstadoUsuario(userId: string, activo: boolean): Pro
     p_user_id: userId,
     p_activo: activo,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return {
+      ok: false,
+      message: mensajeAdministracion(error, "cambiarEstadoUsuario: admin_cambiar_estado_usuario", "No se pudo cambiar el estado. Intenta de nuevo."),
+    };
+  }
 
   revalidatePath("/configuracion/usuarios");
   revalidatePath(`/configuracion/usuarios/${userId}`);
@@ -188,9 +210,10 @@ export async function cambiarEstadoUsuario(userId: string, activo: boolean): Pro
     });
     if (banError) throw banError;
   } catch (err) {
+    console.error("cambiarEstadoUsuario: auth ban", err);
     return {
       ok: false,
-      message: `El estado quedó guardado (sin permisos), pero no se pudo ${activo ? "desbloquear" : "bloquear"} el inicio de sesión: ${(err as Error).message}`,
+      message: `El estado quedó guardado (sin permisos), pero no se pudo ${activo ? "desbloquear" : "bloquear"} el inicio de sesión. Intenta de nuevo.`,
     };
   }
   return { ok: true };
@@ -211,14 +234,21 @@ export async function restablecerPassword(userId: string, password: string): Pro
     p_company_id: ctx.companyId,
     p_user_id: userId,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return {
+      ok: false,
+      message: mensajeAdministracion(error, "restablecerPassword: admin_marcar_password_temporal", "No se pudo restablecer la contraseña. Intenta de nuevo."),
+    };
+  }
 
   try {
     const admin = createAdminClient();
     const { error: authError } = await admin.auth.admin.updateUserById(userId, { password });
     if (authError) throw authError;
   } catch (err) {
-    return { ok: false, message: `No se pudo cambiar la contraseña: ${(err as Error).message}` };
+    console.error("restablecerPassword: auth.updateUserById", err);
+    if ((err as { code?: unknown } | null)?.code === "weak_password") return { ok: false, message: CONTRASENA_DEBIL };
+    return { ok: false, message: "No se pudo cambiar la contraseña. Intenta de nuevo." };
   }
 
   revalidatePath(`/configuracion/usuarios/${userId}`);
@@ -231,6 +261,12 @@ export async function buscarEmpleados(texto: string): Promise<{ ok: boolean; mes
     p_company_id: getCompanyId(),
     p_texto: texto.slice(0, 80),
   });
-  if (error) return { ok: false, message: error.message, empleados: [] };
+  if (error) {
+    return {
+      ok: false,
+      message: mensajeAdministracion(error, "buscarEmpleados: admin_buscar_empleados", "No se pudo buscar empleados. Intenta de nuevo."),
+      empleados: [],
+    };
+  }
   return { ok: true, empleados: data ?? [] };
 }

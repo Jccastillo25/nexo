@@ -7,6 +7,8 @@
 // wrapper delgado sobre esa RPC — no duplica la logica en TypeScript, para
 // que nunca se desincronice de lo que de verdad hacen las policies de RLS.
 
+export { mensajeDeError, MENSAJE_SIN_PERMISO, MENSAJE_GENERICO } from "./errores";
+
 export class PermissionDeniedError extends Error {
   constructor(public readonly code: string) {
     super(`Permiso denegado: "${code}".`);

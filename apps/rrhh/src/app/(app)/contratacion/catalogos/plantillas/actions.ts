@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
@@ -28,7 +28,7 @@ export async function crearPlantilla(input: PlantillaInput): Promise<ActionResul
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.plantillas.crear");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "crearPlantilla") };
     throw err;
   }
 
@@ -42,7 +42,7 @@ export async function crearPlantilla(input: PlantillaInput): Promise<ActionResul
     if (error.message.includes("duplicate key")) {
       return { ok: false, message: "Ya existe una plantilla con ese nombre en esta empresa." };
     }
-    return { ok: false, message: error.message };
+    return { ok: false, message: mensajeDeError(error, "crearPlantilla", "No se pudo crear la plantilla. Intenta de nuevo.") };
   }
 
   revalidatePath("/contratacion/catalogos/plantillas");
@@ -59,7 +59,7 @@ export async function editarPlantilla(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.plantillas.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "editarPlantilla") };
     throw err;
   }
 
@@ -78,7 +78,7 @@ export async function editarPlantilla(
     if (error.message.includes("duplicate key")) {
       return { ok: false, message: "Ya existe una plantilla con ese nombre en esta empresa." };
     }
-    return { ok: false, message: error.message };
+    return { ok: false, message: mensajeDeError(error, "editarPlantilla", "No se pudo guardar la plantilla. Intenta de nuevo.") };
   }
 
   revalidatePath("/contratacion/catalogos/plantillas");

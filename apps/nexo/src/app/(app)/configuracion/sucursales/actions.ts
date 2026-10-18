@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAdministracion } from "../errores";
 
 export interface ActionResult {
   ok: boolean;
@@ -44,7 +45,12 @@ export async function guardarSucursal(input: GuardarSucursalInput): Promise<Acti
     p_zona_horaria: null,
     p_activa: input.activa,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return {
+      ok: false,
+      message: mensajeAdministracion(error, "guardarSucursal: admin_guardar_sucursal", "No se pudo guardar la sucursal. Intenta de nuevo."),
+    };
+  }
 
   revalidatePath("/configuracion/sucursales");
   revalidatePath("/configuracion/usuarios");

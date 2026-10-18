@@ -3,6 +3,7 @@ import { hasPermission } from "@nexo/permissions";
 import { EmptyState, PageHeader } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAdministracion } from "../errores";
 import SucursalesPanel from "./sucursales-panel";
 
 export const metadata: Metadata = {
@@ -46,7 +47,7 @@ export default async function SucursalesPage() {
       />
       {error ? (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudieron cargar las sucursales: {error.message}
+          {mensajeAdministracion(error, "sucursales: admin_listar_sucursales", "No se pudieron cargar las sucursales. Intenta de nuevo.")}
         </p>
       ) : (
         <SucursalesPanel sucursales={sucursales ?? []} puedeGestionar={canManage} />

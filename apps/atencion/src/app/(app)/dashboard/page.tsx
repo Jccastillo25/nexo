@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { MetricCard, PageHeader } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAtencion } from "@/lib/errores";
 import type { MiEstado, PuestoEstado, TurnoCola } from "@/lib/supabase/database.types";
 import InicioAtencion from "./inicio-atencion";
 
@@ -53,7 +54,7 @@ export default async function DashboardPage() {
 
       {error ? (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudo cargar tu estado: {error.message}
+          {mensajeAtencion(error, "atencion_mi_estado (dashboard)", "No se pudo cargar tu estado. Intenta de nuevo.")}
         </p>
       ) : (
         estado && <InicioAtencion estado={estado} />

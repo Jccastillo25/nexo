@@ -4,6 +4,7 @@ import { hasPermission } from "@nexo/permissions";
 import { DataTable, EmptyState, PageHeader, StatusBadge } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAdministracion } from "../errores";
 import type { AdminUsuario } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = {
@@ -64,7 +65,7 @@ export default async function UsuariosPage() {
 
       {error && (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudieron cargar los usuarios: {error.message}
+          {mensajeAdministracion(error, "usuarios: admin_listar_usuarios", "No se pudieron cargar los usuarios. Intenta de nuevo.")}
         </p>
       )}
 

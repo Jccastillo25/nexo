@@ -7,6 +7,126 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-17 — P4d: freno de PIN sin salto (APLICADA)
+
+`20261018002033_rrhh_p4d_freno_pin`. Se escribió como `20261017240000_…`, el usuario la aprobó, se aplicó con sus prechecks y postchecks y se renombró a la versión remota; advisors de seguridad sin cambios (62 / 6 / 75 / 1). Corrige el hallazgo Alto #2 de la revisión de P4c: un PIN válido reiniciaba `intentos_en_ventana`, así que quien conociera su propio PIN podía intercalarlo con PINes ajenos sin bloquearse nunca. Las confirmaciones rechazadas tampoco contaban en ningún límite. Solo reemplaza `rrhh.fn_registrar_marca_kiosko`, con la misma firma:
+
+- un PIN válido ya no reinicia los inválidos;
+- `previas_en_ventana` cuenta todo envío con PIN válido que no registra una marca (vista previa o confirmación con motivo); 30 por minuto bloquean 5 minutos;
+- `search_path = ''`, con `extensions.crypt` (hallazgo #7).
+
+Ensayo en `nexo-core` dentro de un bloque revertido:
+
+| Caso | Resultado |
+|---|---|
+| 7 inválidos + PIN propio | acciones, y el contador sigue en 7 |
+| 1 inválido más | bloqueo; el PIN propio recibe rechazo genérico |
+| 3 confirmaciones de salida en S0 | `accion_no_disponible`, contador en 3 |
+| Flujo normal | vista previa `["entrada"]` y entrada registrada |
+
+Después se comprobó que la base no cambió. En Vercel, `nexo-rrhh` (Production) no tiene `NEXO_KIOSKO_ID`, así que el camino heredado no está activo en producción.
+
+## 2026-10-17 — P4c: descanso en las marcas del kiosco (APLICADA)
+
+`20261017233458_rrhh_p4c_marcas_descanso`. Se escribió como `20261017220000_…`, el usuario la revisó y la aprobó, se aplicó con sus prechecks y postchecks y se renombró a la versión remota. Advisors de seguridad sin cambios en los conteos (62 / 6 / 75 / 1); solo cambiaron las firmas de las dos RPC del kiosco. Hasta que salga el cliente nuevo, el kiosco anterior falla cerrado. Contenido:
+
+- **Check de `tipo`:** acepta `entrada`, `inicio_descanso`, `fin_descanso` y `salida`. Está en la tabla padre y las particiones lo heredan.
+- **Columna nueva:** `kiosko_rate_limits.previas_en_ventana`, para D7.
+- **Funciones de marcado:** se reemplaza `p_confirmar_salida boolean` por `p_accion text` en `rrhh.fn_registrar_marca_kiosko`, `rrhh.fn_registrar_marca_terminal`, `public.registrar_marca_kiosko` y `public.registrar_marca_terminal`. Las firmas viejas se eliminan, así que el cliente anterior falla cerrado.
+- **`fn_consultar_marcas`:** suma los estados `en_descanso_hoy`, `descanso_sin_cerrar` y `sin_descanso_marcado`.
+
+**Ensayo 1:** la migración completa, con prechecks y postchecks, corrió en `nexo-core` dentro de un bloque revertido. Se detuvo en la prueba posterior por un error de la propia prueba: contaba una tabla interna con el rol `anon`.
+
+**Ensayo 2:** misma lógica, con la prueba corregida y también revertido:
+
+| Caso | Resultado |
+|---|---|
+| Vista previa en S0 | `["entrada"]`, sin dejar rastro en `kiosko_solicitudes` |
+| Salida en S0 | `accion_no_disponible` |
+| Entrada | registrada |
+| Reintento con el mismo id | misma respuesta |
+| Vista previa en S1 | `["inicio_descanso","salida"]` |
+| Vista previa en S2 | `["fin_descanso"]` |
+| Salida durante el descanso | `accion_no_disponible` |
+| Vista previa en S3 | `["salida"]` |
+| Vista previa en S4 | `sin_acciones` |
+| Acción inválida | rechazada genérica |
+| PIN incorrecto | rechazada genérica |
+
+Otros resultados del ensayo 2:
+- Secuencia guardada: `entrada>inicio_descanso>fin_descanso>salida`.
+- Vistas previas contadas: 6.
+- `consultar_marcas`: los 4 tipos aparecen como `registrada`, y un día sin descanso queda como `salida=sin_descanso_marcado`.
+
+Después se comprobó que el remoto sigue igual: firma vieja presente, firma nueva y columna ausentes, y 1 marca.
+
+## 2026-10-17 — M3: límite de canjes de terminal más alto y bloqueos auditados (APLICADA)
+
+`20261017183023_asistencia_canje_limite_m3`. Se escribió como `20261017210000_…`, el usuario la revisó y la aprobó, se aplicó con sus prechecks y postchecks y se renombró a la versión remota. Advisors de seguridad después de aplicar: sin cambios (62 / 6 / 75 / 1). Reemplaza solo `rrhh.fn_canjear_codigo_terminal`:
+
+- el umbral sube de 20 a 300 fallos en 10 min (el bloqueo sigue siendo de 15 min);
+- al activarse un bloqueo se registra una sola vez `asistencia.terminal.canje_bloqueado` en `core.audit_log`, sin código ni IP;
+- el encabezado trae el SQL de desbloqueo y el rollback.
+
+Ensayo en `nexo-core` dentro de un bloque revertido. Después se comprobó que la función sigue como antes, con 0 bloqueos auditados y 0 fallos.
+
+| Caso | Resultado |
+|---|---|
+| Canje válido | asignada |
+| 299 fallos | 299 rechazados, ningún bloqueo auditado |
+| Fallo 300 | rechazado, con 1 bloqueo auditado (metadata: fallos, inicio de la ventana, fin del bloqueo) |
+| Intento 301 | limitado |
+
+## 2026-10-17 — Enrolamiento de terminales de kiosco (APLICADA)
+
+**Aplicadas con aprobación explícita del usuario.** Los archivos se escribieron como `20261017200000_…` y `20261017200100_…` y se renombraron a las versiones remotas `20261017180753` y `20261017180853`, sin tocar su SQL. Los prechecks y postchecks van dentro de las migraciones y pasaron. Advisors de seguridad después de aplicar:
+
+| Aviso | Antes | Después | Diferencia |
+|---|---|---|---|
+| `rls_enabled_no_policy` | 60 | 62 | las 2 tablas nuevas, sin acceso por la API a propósito |
+| `anon_security_definer_function_executable` | 3 | 6 | canjear, estado y marcar de la terminal |
+| `authenticated_security_definer_function_executable` | 69 | 75 | las 6 RPC nuevas, que validan su permiso adentro |
+| `auth_leaked_password_protection` | 1 | 1 | sin cambio (H6) |
+
+Todos los cambios son esperados. Rollback en el encabezado de cada archivo.
+
+Contenido de las dos migraciones:
+
+- `20261017180753_asistencia_enrolamiento_paso_cero`: permisos `rrhh.asistencia.kioskos.asignar` y `.revocar`, en la plantilla de Administrador de RRHH.
+- `20261017180853_asistencia_enrolamiento_terminales`: tablas `rrhh.kiosko_credenciales` y `rrhh.kiosko_canje_limites`, con RLS y sin grants; 6 funciones internas `rrhh.fn_*` con `search_path=''`, y sus wrappers en `public`.
+
+**Ensayo en `nexo-core`:** se ejecutaron las dos migraciones y una batería de 12 comprobaciones, todo dentro de un único bloque que terminó en excepción a propósito, así que se revirtió. Después se comprobó que no quedó ninguna tabla, permiso ni RPC. Resultados:
+
+| Comprobación | Resultado |
+|---|---|
+| Generar código | 10 dígitos |
+| Canjear con espacio | asignada, con el nombre del dispositivo y un token de 47 caracteres |
+| Reusar el código | rechazado |
+| Código inexistente | rechazado |
+| Estado de la terminal | asignada |
+| PIN inválido | rechazada |
+| `anon` lee la tabla | denegado |
+| `anon` genera un código | denegado |
+| Estado de los equipos | asignada |
+| Revocar | revocada |
+| Estado con el token revocado | sin_asignar |
+| Marcar con el token revocado | terminal_no_autorizada |
+| Usuario sin permiso | denegado |
+
+La migración de cierre (revocar `public.registrar_marca_kiosko` a `anon`, H5) se escribirá cuando se retire `NEXO_KIOSKO_ID`.
+
+## 2026-10-17 — Registro de la app Asistencia (APLICADA)
+
+`20261017173701_asistencia_registrar_app`, aplicada con aprobación explícita del usuario ("aplicar la migración ... en nexo-core"). Se escribió como `20261017190000_…` y se renombró a la versión remota sin tocar su SQL. Prechecks (dentro de la migración): no existía el slug `asistencia`, no había permisos `asistencia.%` y `rrhh` estaba activo. Cambios: `core.apps` `asistencia` (Asistencia, categoría RRHH, icono `clock`, ruta `/rrhh/asistencia`, `depends {rrhh}`, activa) y `company_apps.enabled` para Materiales J Castillo. El trigger creó `asistencia.ver_modulo`. Postchecks: ese permiso existe y es el único del módulo. Sin roles ni usuarios: hoy solo el owner la ve (tampoco hay roles de empresa con `rrhh.ver_modulo`). Efecto: el mosaico aparece en el Launcher de producción y `/rrhh/asistencia` da 404 hasta el deploy de `nexo-rrhh` con el push único; no necesita rewrite nuevo. Nota: el comentario del archivo enumera los permisos de contenido sin `feriados`; es solo texto. Rollback en el encabezado. [Detalle](status-log/2026-10-17-asistencia-app.md).
+
+## 2026-10-17 — Activación del módulo Agencia digital (APLICADA)
+
+`20261017171359_agencia_activar`, aplicada con aprobación explícita del usuario ("activa agencia digital"). El archivo se escribió como `20261017180000_…` y se renombró a la versión remota sin tocar su SQL. Precheck: `core.apps.agencia` con `active = false`, sin filas en `company_apps` y con los 2 permisos del Paso Cero. Cambios: `active = true` y `company_apps.enabled = true` para Materiales J Castillo; sin roles ni usuarios. Postcheck: `active = true`, `enabled = true`. Efecto: la tarjeta aparece en el Launcher de producción. El mismo día se creó en `nexocore` `AGENCIA_APP_URL` de Production (`https://nexo-agencia.vercel.app`, que responde 307 al login), así que `/agencia` abre en producción a partir del próximo deploy de `nexocore`. En local responde por el rewrite del panel (puerto 3003). Rollback en el encabezado del archivo.
+
+## 2026-10-17 — Seguridad: `update_platform_settings` sin `anon` (APLICADA)
+
+`20261017164447_seguridad_update_platform_settings_sin_anon` (antes `20261017170000_…`, renombrada a la versión remota sin tocar el SQL; hallazgo H4 de la [revisión de seguridad](status-log/2026-10-17-revision-seguridad.md)). Regresión de `20260830000012`, que revocó `anon` sobre la firma de 7 argumentos: al recrearse la función con `p_favicon_url` (8 argumentos, `20260907223910`) se revocó `PUBLIC` pero no `anon`, que recuperó EXECUTE por los default privileges (`proacl` remoto verificado: sin `PUBLIC`, con `anon`). La migración hace `revoke … from public, anon` (para `public` no hace nada), conserva `authenticated` y deja `get_platform_settings` intacta, con precheck de firma y postchecks de privilegios. **Probada en `nexo-core` dentro de una transacción revertida**: `anon` sin EXECUTE, `authenticated` con EXECUTE, `get_platform_settings` sigue abierta a `anon`; tras el rollback el remoto quedó igual. **Aplicada el 2026-10-17 con aprobación explícita del usuario** (versión remota `20261017164447`). Precheck: `proacl` = `postgres, anon, authenticated, service_role`. Los postchecks de la migración pasaron. Después de aplicarla, `proacl` = `postgres, authenticated, service_role`, y `get_platform_settings` sigue ejecutable por `anon`. Advisors de seguridad: `anon_security_definer_function_executable` bajó de 4 a 3 (quedan `atencion_pantalla_estado`, `get_platform_settings` y `registrar_marca_kiosko`, que son intencionales). El resto de los avisos sigue igual: `rls_enabled_no_policy` 60, `authenticated_…` 69 y `auth_leaked_password_protection` 1. Rollback: `grant execute … to anon`.
+
 ## 2026-10-17 — RRHH P1–P6 del piloto de kiosco (APLICADAS)
 
 Aprobación explícita del usuario. Aplicadas en `nexo-core` en el orden del [paquete del Operador](RRHH_PAQUETE_OPERADOR.md): `20261017131004_p1_pin_ambiguo_fallo_cerrado`, `20261017131040_rrhh_p2_pin_unico_empresa`, `20261017131113_rrhh_p3_marca_contrato`, `20261017131132_rrhh_p4a_kiosko_solicitudes`, `20261017131202_rrhh_p4b_marca_atomica_idempotente`, `20261017131221_rrhh_p6_consultar_marcas` (archivos renombrados a la versión remota sin tocar su SQL; P1 se llamaba `20261015181000_…`). Precondiciones: 0 marcas, 0 credenciales vigentes. Postchecks del paquete en verde, P7 sección A en verde en remoto, advisors solo con los hallazgos esperados. Efecto: el kiosco desplegado desde `main` falla cerrado hasta fusionar el PR #47. Rollback: el de cada paso en el paquete (corregir hacia adelante; no restaurar la firma de 2 parámetros). [Detalle](status-log/2026-10-17-rrhh-p1-p6-aplicadas.md).

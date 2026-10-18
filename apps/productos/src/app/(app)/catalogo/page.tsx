@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { hasPermission } from "@nexo/permissions";
+import { hasPermission, mensajeDeError } from "@nexo/permissions";
 import { PageHeader, StatusBadge } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
@@ -97,7 +97,7 @@ export default async function CatalogoPage({ searchParams }: PageProps<"/catalog
 
         {listado.error ? (
           <p role="alert" className="m-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            No se pudo cargar el listado: {listado.error.message}
+            {mensajeDeError(listado.error, "productos_listar", "No se pudo cargar el listado. Intenta de nuevo.")}
           </p>
         ) : (
           <div className="overflow-x-auto">

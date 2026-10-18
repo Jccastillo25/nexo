@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
@@ -41,7 +41,7 @@ export async function guardarInfoComplementaria(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.info_complementaria.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "guardarInfoComplementaria") };
     throw err;
   }
 
@@ -63,7 +63,12 @@ export async function guardarInfoComplementaria(
       { onConflict: "empleado_id" }
     );
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return {
+      ok: false,
+      message: mensajeDeError(error, "guardarInfoComplementaria", "No se pudo guardar la información complementaria. Intenta de nuevo."),
+    };
+  }
 
   revalidatePath(`/expedientes/${empleadoId}`);
   return { ok: true };

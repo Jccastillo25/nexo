@@ -24,10 +24,9 @@ export function productosNav(p: Permisos): NexoNavItem[] {
   return [
     ...(p.dashboard ? [{ label: "Dashboard", href: "/dashboard", icon: "grid" as const }] : []),
     { label: "Catálogo", icon: "box", children: catalogo },
-    // Siguiente módulo: sin href, NexoSidebar lo muestra con "Pronto". Va
-    // antes de Configuración (orden de la suite: operativos → Análisis →
-    // Configuración al final).
-    { label: "Precios", icon: "price", children: [{ label: "Listas de precios", icon: "receipt" }] },
+    // Listas de precios sale de este menú: será una app aparte (decisión del
+    // usuario 2026-10-17); mientras tanto figura como "Próximamente" en el
+    // Launcher de Nexo.
     { label: "Configuración", icon: "settings", children: configuracion },
   ];
 }

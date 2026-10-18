@@ -10,7 +10,7 @@ de archivo de esta guía ya son las versiones remotas. Pendiente: §3 pasos 2–
 y §4. El texto siguiente describe el estado de preparación original.
 P1 también estaba pendiente según la última verificación disponible. No se
 consultó Supabase ni Vercel. No hay piloto autorizado ni E2E remoto aprobado.
-M1–M4, nómina, horas, descansos marcados y turnos nocturnos siguen fuera.
+M1–M4, nómina, horas y turnos nocturnos siguen fuera. Desde el 2026-10-17 el descanso marcado (uno por día) **sí** forma parte del piloto (P4c/P5b/P6b).
 
 ## 1. Antes de aplicar
 
@@ -203,14 +203,25 @@ pnpm --filter rrhh run dev:zone
    real; si no, crear una jornada de prueba. Probar que sin jornada no activa.
 4. Activar con permiso específico; mostrar PIN una vez y entregarlo en privado.
    No fotografiarlo, grabarlo ni guardarlo en archivo/log. Recargar: no reaparece.
-5. En kiosco PRUEBA: digitar PIN; entrada registrada, sin identidad.
-6. Digitarlo otra vez: «¿Registrar salida?»; cancelar. No cambia el conteo de
-   marcas ni se guarda una solicitud definitiva por la vista previa.
-7. Nuevo envío y confirmar: salida inmediata, sin espera fija. Si se pierde la
-   respuesta, usar Reintentar: conserva el UUID y no duplica la salida.
-8. Tercer envío lógico del día: rechazo genérico, sin nueva marca.
-9. En Marcas: consultar hoy, filtrar empleado/contrato/estado, detalle y páginas.
-   Deben verse entrada y salida reales; vacío dice «Sin marcas registradas».
+*(Pasos 5–9 actualizados el 2026-10-17 por el descanso marcado, P4c/P5b/P6b.)*
+
+5. En kiosco PRUEBA: digitar PIN; aparece solo «Registrar entrada». Tocarlo:
+   «Entrada registrada · HH:MM», sin identidad. Probar también con el teclado
+   numérico de la PC.
+6. Digitarlo otra vez: aparecen «Iniciar descanso» y «Registrar salida».
+   Cancelar (o esperar 20 s): no cambia el conteo de marcas ni se guarda una
+   solicitud definitiva por la vista previa. Digitar de nuevo y tocar
+   «Iniciar descanso».
+7. Digitar: solo aparece «Terminar descanso» (no se ofrece salida). Tocarlo.
+8. Digitar: solo aparece «Registrar salida». Tocarla. Si se pierde la
+   respuesta, usar Reintentar: conserva el UUID y no duplica la marca.
+9. Quinta digitación del día: «Ya registraste todas tus marcas de hoy», sin
+   nueva marca. Con OTRO contrato PRUEBA: entrada y salida sin descanso.
+9b. Con varias personas PRUEBA marcando entrada en el mismo minuto, nadie recibe
+   «Demasiados intentos».
+9c. En Marcas: consultar hoy, filtrar empleado/contrato/estado, detalle y páginas.
+   Deben verse los cuatro tipos con sus estados («En jornada», «En descanso»,
+   «Sin descanso marcado»…); vacío dice «Sin marcas registradas».
 10. Para **ayer abierto**, usar OTRO contrato PRUEBA sin marcas hoy o un día
     posterior: el Operador prepara una entrada de ayer con aprobación. Marcas
     muestra «Falta salida», y el primer envío de hoy crea entrada nueva. No usar

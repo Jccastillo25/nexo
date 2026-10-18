@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAtencion } from "@/lib/errores";
 import type { CampoPantalla, CamposPantalla } from "@/lib/supabase/database.types";
 
 export interface Resultado {
@@ -40,7 +41,7 @@ export async function guardarPuesto(input: {
     p_orden: Number.isFinite(input.orden) ? Math.trunc(input.orden) : 1,
     p_activo: input.activo,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: mensajeAtencion(error, "atencion_guardar_puesto", "No se pudo guardar el puesto. Intenta de nuevo.") };
   revalidatePath("/configuracion");
   return { ok: true };
 }
@@ -72,7 +73,7 @@ export async function guardarPantalla(input: {
       anunciar: soloCampos(input.anunciar),
     },
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: mensajeAtencion(error, "atencion_guardar_pantalla", "No se pudo guardar la pantalla. Intenta de nuevo.") };
   revalidatePath("/configuracion");
   return { ok: true };
 }

@@ -4,6 +4,7 @@ import { hasPermission } from "@nexo/permissions";
 import { DataTable, EmptyState, PageHeader, StatusBadge } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAdministracion } from "../errores";
 import { appsDelRol } from "@/lib/permisos-catalogo";
 import type { AdminRol } from "@/lib/supabase/database.types";
 import EliminarRolButton from "./eliminar-rol-button";
@@ -65,7 +66,7 @@ export default async function RolesPage() {
 
       {error && (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudieron cargar los roles: {error.message}
+          {mensajeAdministracion(error, "roles: admin_listar_roles", "No se pudieron cargar los roles. Intenta de nuevo.")}
         </p>
       )}
 

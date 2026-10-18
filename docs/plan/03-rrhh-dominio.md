@@ -132,7 +132,7 @@ Ejemplo:
 17:08 SALIDA
 ```
 
-**Corte de piloto aprobado el 2026-10-15:** el ejemplo de dos pares describe una capacidad futura, **no** el piloto supervisado. En el piloto rige un solo par por contrato y día `America/Managua`, sin descanso marcado ni turno que cruce medianoche; toda salida se confirma en el kiosco. Entrada de ayer sin salida permanece como «Falta salida» y hoy comienza con entrada nueva, sin salida ficticia. Detalle y tickets: [RRHH y kiosco — piloto y MVP operativo](../RRHH_PILOTO_MVP_OPERATIVO.md).
+**Corte de piloto aprobado el 2026-10-15, ampliado el 2026-10-17:** el ejemplo de dos pares describe una capacidad futura, **no** el piloto supervisado. En el piloto rige, por contrato y día `America/Managua`, la secuencia `entrada → [inicio_descanso → fin_descanso] → salida`: un descanso opcional, **elegido explícitamente** por el empleado con botones después del PIN (no se infiere por conteo), sin turno que cruce medianoche. Un descanso no marcado se descontará como el programado de la jornada cuando exista el cálculo de horas (F1.5). Entrada de ayer sin salida permanece como «Falta salida» y hoy comienza con entrada nueva, sin salida ficticia. Detalle y tickets: [RRHH y kiosco — piloto y MVP operativo](../RRHH_PILOTO_MVP_OPERATIVO.md).
 
 Si el estado es anómalo o ambiguo, crear incidencia; no inventar el resultado.
 

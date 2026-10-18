@@ -209,3 +209,11 @@ App `agencia`: permiso reservado `agencia.ver_modulo` generado por el trigger y 
 
 ## RRHH P3 — pendiente de aplicar (2026-10-16)
 P3 preparado (no aplicado): escritura directa de marcas retirada a authenticated en padre y particiones. SELECT y marcas.ver se conservan. Codigos crear/editar/eliminar siguen registrados sin via directa; correccion auditada queda fuera del piloto.
+
+## Asistencia — app con visibilidad propia y permisos de RRHH (2026-10-17)
+
+Primer caso de una app del Launcher cuyo permiso de visibilidad y cuyos permisos de contenido pertenecen a módulos distintos. `asistencia.ver_modulo` (módulo `asistencia`, generado por el trigger con `20261017173701`) decide si se ve el mosaico y si se entra a `/rrhh/asistencia`. Lo que se puede hacer dentro lo deciden los permisos que ya existían, `rrhh.asistencia.{marcas,kioskos,justificaciones,turnos,feriados}.*`, que siguen en el módulo `rrhh` y caen si RRHH se desactiva. Las Server Actions validan solo el permiso de contenido, igual que RLS: la visibilidad es una barrera de interfaz, no de datos. Hoy solo el owner tiene `asistencia.ver_modulo`; asignarlo a roles requiere aprobación (Paso Cero). En el editor de roles, Asistencia aparece solo con "Acceso" y sus permisos funcionales bajo RRHH. [Detalle](status-log/2026-10-17-asistencia-app.md).
+
+### Enrolamiento de terminales: `kioskos.asignar` y `kioskos.revocar` (2026-10-17)
+
+Paso Cero aprobado por el usuario y aplicado (`20261017180753`): `rrhh.asistencia.kioskos.asignar` (generar el código que vincula un equipo a un dispositivo) y `rrhh.asistencia.kioskos.revocar` (quitar el equipo o cancelar un código), solo en la plantilla Administrador de RRHH; el Supervisor de Asistencia no los recibe. Se separan de `kioskos.editar` porque emitir o retirar una credencial de máquina pesa más que renombrar un dispositivo. Las Server Actions de Dispositivos llaman a `requirePermission` y las RPC vuelven a validar con `core.has_permission`.

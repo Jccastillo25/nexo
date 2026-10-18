@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { P } from "@/lib/permisos";
@@ -37,7 +37,9 @@ export async function importarProductos(
     p_filas: filas,
     p_confirmar: confirmar,
   });
-  if (error) return { ok: false, message: error.message };
+  // La vista previa no llega aquí como error: la RPC captura su propio
+  // P0099 'vista_previa' y devuelve el resultado con los errores por fila.
+  if (error) return { ok: false, message: mensajeDeError(error, "productos_importar", "No se pudo procesar la importación. Intenta de nuevo.") };
   if (confirmar) {
     revalidatePath("/catalogo");
     revalidatePath("/dashboard");
@@ -50,6 +52,6 @@ export async function exportarProductos(): Promise<Resultado<FilaExportada[]>> {
   const ctx = await contexto([P.exportar]);
   if ("error" in ctx) return { ok: false, message: ctx.error };
   const { data, error } = await ctx.supabase.rpc("productos_exportar", { p_company_id: ctx.companyId });
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: mensajeDeError(error, "productos_exportar", "No se pudo exportar. Intenta de nuevo.") };
   return { ok: true, data: data as FilaExportada[] };
 }

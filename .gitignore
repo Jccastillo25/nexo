@@ -19,6 +19,9 @@ dist/
 supabase/.branches/
 supabase/.temp/
 
+# Worktree local del piloto RRHH (git worktree dentro del repo; tiene .env.local)
+/.rrhh-piloto-worktree/
+
 # Editor / OS
 .vscode/
 .idea/

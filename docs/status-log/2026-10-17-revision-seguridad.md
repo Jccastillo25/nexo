@@ -106,6 +106,47 @@ Sobre gravedad: la skill clasifica la fuga de `error.message` *pre-existente* co
 
 Ninguna prueba automatizada: no hubo cambios de código. Solo consultas SQL de lectura en `nexo-core` y lectura del diff y del código.
 
+## Correcciones (2026-10-17, segunda parte — flujo coordinador + subagentes)
+
+Pedido del usuario: "revisa una por una con las orientaciones que te di para lanzar agentes". Rama `feat/launcher-iconos`, sin commit ni push.
+
+| Hallazgo | Estado | Quién | Qué se hizo |
+|---|---|---|---|
+| H1 | ✅ resuelto | coordinador | PR #47 fusionado (`6619646`) y `main` integrado en la rama. |
+| H2 | 🟡 corregido en código | coordinador + 3 ejecutores `ui-frontend` + `reviewer` | Helper `mensajeDeError` en `packages/permissions/errores.ts` (exportado por `@nexo/permissions`): P0001 propio → su texto; denegación (PermissionDeniedError, 42501, "Permiso denegado/Sin permiso/No autorizado") → "Tu rol no permite realizar esta acción."; resto → genérico + `console.error`. Aplicado en las Server Actions, el JSX y los componentes cliente de RRHH (14 archivos), Productos, CRM, Atención y Nexo (Launcher + Configuración + cambiar contraseña). Atención y Configuración de Nexo agregan una lista cerrada de 42501 escritos para el usuario. RRHH conserva un mensaje propio para la denegación de salario (`compensacion.editar`). Fuera de alcance: los `throw` de Server Components (en producción solo viaja el `digest`). |
+| H3 | ⏳ sin cambio, a propósito | — | No se justifica una migración solo para esto (hoy no se puede explotar): pasar a `search_path = ''` cuando se toque cada función. |
+| H4 | ✅ aplicada | coordinador | `20261017164447_seguridad_update_platform_settings_sin_anon.sql` (versión remota; antes `20261017170000_…`). Primero se probó en una transacción revertida y después se **aplicó con aprobación del usuario**. `anon` ya no tiene EXECUTE y el advisor de funciones ejecutables por `anon` bajó de 4 a 3, todas intencionales. Ver `MIGRATION_LOG.md`. |
+| H5 | ⏳ propuesta | — | Secreto de dispositivo con hash para el kiosco (o quitar `anon`) dentro de P7 del piloto. Necesita decisión y diseño; no se toca el kiosco ahora. |
+| H6 | ⏳ acción del usuario | usuario | Activar la protección contra contraseñas filtradas en el dashboard de Supabase (Auth; requiere plan Pro). |
+| H7 | ✅ corregido | coordinador | `/.rrhh-piloto-worktree/` en `.gitignore`. |
+| H8 | ✅ corregido | coordinador | El Launcher solo muestra rutas internas (`/…`, no `//` ni `/\`), registra con `console.warn` las que descarta, ya no muestra `error.message` y su aviso de error tiene `role="alert"`. |
+| H9 | ✅ corregido | coordinador | Proxy del panel: `path === p \|\| path.startsWith(\`${p}/\`)`. |
+
+**Revisión independiente (`reviewer`, con la skill `nexo-security` invocada):** sin hallazgos críticos ni altos. Sus observaciones y cómo se resolvieron:
+
+- (Media) H2 incompleto en la Configuración de `apps/nexo` → se encargó a un tercer ejecutor.
+- (Baja) Se perdía el contexto en la denegación de salario → mensaje propio.
+- (Baja) Faltaba la documentación → este registro + `MIGRATION_LOG` + dashboard.
+- (Baja) El rollback de la migración era incompleto → ahora es `to public, anon`, con una nota sobre los default privileges.
+- (Notas) El comentario del helper no era exacto, el Launcher descartaba apps sin rastro y su aviso de error no tenía `role="alert"` → corregidos.
+
+El revisor probó 12 casos de `mensajeDeError`, confirmó que no hay regresión en la vista previa de importación, en `crear_turno` reactivable ni en los mensajes por "duplicate key"/"foreign key", y que middleware y Launcher no rompen rutas válidas.
+
+**Segunda revisión (`reviewer`, acotada a Configuración de Nexo y a los ajustes del coordinador):** sin hallazgos críticos, altos ni medios. Se comprobó que los 13 textos 42501 de la lista cerrada coinciden carácter por carácter con la migración. Observaciones resueltas:
+
+- Rechazos de Auth: `weak_password` muestra un mensaje propio en cambiar contraseña, alta y restablecimiento; también se usan los códigos `same_password` y `email_exists` además del texto.
+- El comentario y el rollback de H4 afirmaban que `PUBLIC` había recuperado EXECUTE. El `proacl` remoto lo desmiente (solo `anon`): el rollback ahora es `to anon` y el comentario y `MIGRATION_LOG` quedaron corregidos. La primera comprobación del coordinador estaba mal hecha, porque `like '%=X/%'` también coincidía con `anon=X/`.
+- `esDenegacionSalario` ahora exige además P0001 y el prefijo "Permiso denegado".
+- Se actualizó el dashboard.
+
+**Pruebas:** `pnpm install --frozen-lockfile` + `pnpm verify` en verde dos veces (antes y después de la ronda de Configuración de Nexo). Tras los últimos ajustes, typecheck + lint de `nexo-panel` y `rrhh` también en verde, y un `pnpm verify` completo final. Sin recorrido visual con sesión real, sin comprobar en ejecución qué SQLSTATE devuelven PostgREST y Storage en remoto, y sin aplicar la migración.
+
+**Dudas de los ejecutores que quedan como deuda (no bloquean):**
+
+- `productos_importar` devuelve `sqlerrm` crudo por fila en `data.errores[].mensaje` (`20261016214634…:1209`); requiere migración.
+- Textos P0001 toscos o con vocabulario interno en RRHH ("Transicion de contrato invalida: borrador -> activo", mensajes con "--").
+- Mezcla de voseo y tuteo entre los mensajes.
+
 ## Deuda / próximos pasos propuestos
 
 1. H1: decidir con el usuario cómo integrar `codex/rrhh-piloto-mvp` antes del despliegue.

@@ -12,13 +12,120 @@ export const metadata: Metadata = {
   title: "Nexo",
 };
 
-// Grilla plana de iconos al estilo de la pantalla de inicio de Odoo (pedido
-// del usuario 2026-10-17, con captura): sin secciones por categoría, un
-// mosaico blanco con el icono a color de la app y el nombre debajo.
+// Mosaicos blancos con el icono a color de la app y el nombre debajo, al
+// estilo de la pantalla de inicio de Odoo (pedido del usuario 2026-10-17),
+// agrupados en secciones por categoría (core.apps.category) con un título
+// arriba de cada grupo (pedido del usuario 2026-10-17, segunda parte).
+//
+// Cuadrícula fija (pedido del usuario 2026-10-17: "tener cuadrículas para que
+// se vayan agregando aplicaciones y se vea siempre con la misma similitud
+// visual, con Ventas arriba ocupando todo el espacio"): la página tiene
+// columnas de 104 px (3 en celular, 5 en tablet, 8 en escritorio) y cada
+// sección usa subgrid sobre esas mismas columnas, así todos los mosaicos
+// quedan alineados sin importar cuántas apps tenga cada categoría. Una
+// sección ocupa tantas columnas como apps (mínimo 2, para que quepa el
+// título); si tiene más que columnas, sus mosaicos bajan de fila. Las
+// secciones de SECCIONES_ANCHO_COMPLETO ocupan siempre la fila entera.
+const seccionesClass =
+  "grid grid-cols-[repeat(3,104px)] justify-center gap-x-3 gap-y-10 sm:grid-cols-[repeat(5,104px)] sm:gap-x-6 lg:grid-cols-[repeat(8,104px)]";
+const seccionClass = "grid grid-cols-subgrid content-start gap-y-5";
+const tituloClass =
+  "col-span-full border-b border-neutral-300/70 px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-neutral-500";
+
+// Orden de las secciones: estas categorías primero y en este orden; las demás
+// después, en el orden en que llegan. Administración (Configuración) siempre
+// al final.
+const ORDEN_CATEGORIAS = ["Ventas", "Cadena de suministro", "Finanzas", "RRHH", "Servicios"];
+const SECCIONES_ANCHO_COMPLETO = new Set(["Ventas"]);
+
+// Clases literales (Tailwind solo genera las que ve escritas en el código).
+const SPAN_BASE = ["col-span-2", "col-span-2", "col-span-2", "col-span-3"];
+const SPAN_SM = ["sm:col-span-2", "sm:col-span-2", "sm:col-span-2", "sm:col-span-3", "sm:col-span-4", "sm:col-span-5"];
+const SPAN_LG = [
+  "lg:col-span-2",
+  "lg:col-span-2",
+  "lg:col-span-2",
+  "lg:col-span-3",
+  "lg:col-span-4",
+  "lg:col-span-5",
+  "lg:col-span-6",
+  "lg:col-span-7",
+  "lg:col-span-8",
+];
+
+function spanDeSeccion(categoria: string, cantidad: number): string {
+  if (SECCIONES_ANCHO_COMPLETO.has(categoria)) return "col-span-full";
+  const n = (max: number) => Math.min(Math.max(cantidad, 2), max);
+  return `${SPAN_BASE[n(3)]} ${SPAN_SM[n(5)]} ${SPAN_LG[n(8)]}`;
+}
 const tileClass =
-  "flex h-[76px] w-[76px] items-center justify-center rounded-2xl bg-white shadow-[0_1px_3px_rgba(15,23,42,0.08),0_6px_16px_-6px_rgba(15,23,42,0.18)] ring-1 ring-black/5 transition duration-150 group-hover:-translate-y-0.5 group-hover:shadow-[0_2px_6px_rgba(15,23,42,0.1),0_14px_24px_-8px_rgba(15,23,42,0.25)]";
+  "flex h-[76px] w-[76px] items-center justify-center rounded-2xl bg-white shadow-[0_1px_3px_rgba(15,23,42,0.08),0_6px_16px_-6px_rgba(15,23,42,0.18)] ring-1 ring-black/5 transition-shadow duration-150 group-hover:shadow-[0_2px_6px_rgba(15,23,42,0.1),0_14px_24px_-8px_rgba(15,23,42,0.25)] group-hover:ring-black/10";
+// Sin translate en el hover: un transform animado hace que Chrome dibuje el
+// mosaico como capa rasterizada y, con escalado de pantalla de Windows (125 %,
+// 150 %), los iconos se ven borrosos.
 const itemClass =
   "group flex w-[104px] flex-col items-center gap-2 rounded-xl p-1 text-center outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
+
+// Apps planificadas que se muestran como "Próximamente" (pedido del usuario
+// 2026-10-17: "para tener una mejor orientación visual"). Mosaico sin enlace,
+// igual que los ítems "Pronto" del menú lateral: no hay página placeholder.
+// Si una de estas apps llega en get_visible_apps (mismo slug), se muestra la
+// real y no el aviso. Flotilla y Agencia ya existen en core.apps, pero hoy no
+// están habilitadas para la empresa; si se habilitan y un usuario no tiene
+// permiso, verá "Próximamente" en vez de nada (aceptado: es solo orientación).
+// No van aquí las funciones que ya viven dentro de un módulo: Nómina (RRHH)
+// y Cotizaciones (CRM). Asistencia tampoco: desde 2026-10-17 es una app
+// propia en core.apps (slug `asistencia`, mismo deploy que RRHH bajo
+// /rrhh/asistencia) y llega por get_visible_apps. Listas de precios sí: el
+// usuario decidió (2026-10-17) que sea una app aparte, fuera de Productos.
+interface AppProxima {
+  slug: string;
+  name: string;
+  category: string;
+  icon: string;
+}
+
+const APPS_PROXIMAMENTE: AppProxima[] = [
+  { slug: "punto-de-venta", name: "Punto de venta", category: "Ventas", icon: "register" },
+  { slug: "facturacion", name: "Facturación", category: "Ventas", icon: "receipt" },
+  { slug: "precios", name: "Listas de precios", category: "Cadena de suministro", icon: "tag" },
+  { slug: "inventario", name: "Inventario", category: "Cadena de suministro", icon: "warehouse" },
+  { slug: "compras", name: "Compras", category: "Cadena de suministro", icon: "cart" },
+  { slug: "flotilla", name: "Flotilla", category: "Cadena de suministro", icon: "truck" },
+  { slug: "contabilidad", name: "Contabilidad", category: "Finanzas", icon: "calculator" },
+  { slug: "bancos", name: "Bancos", category: "Finanzas", icon: "bank" },
+  { slug: "agencia", name: "Agencia digital", category: "Servicios", icon: "sun" },
+];
+
+type ItemLauncher = { tipo: "app"; app: VisibleApp } | { tipo: "proxima"; app: AppProxima };
+
+// Agrupa por categoría: primero las apps reales (en el orden de
+// get_visible_apps) y después las "Próximamente" de esa categoría. Una app
+// sin categoría cae en "General".
+function agruparPorCategoria(apps: VisibleApp[]): [string, ItemLauncher[]][] {
+  const grupos = new Map<string, ItemLauncher[]>();
+  const agregar = (clave: string, item: ItemLauncher) => {
+    const grupo = grupos.get(clave);
+    if (grupo) grupo.push(item);
+    else grupos.set(clave, [item]);
+  };
+  for (const app of apps) agregar(app.category ?? "General", { tipo: "app", app });
+  const visibles = new Set(apps.map((a) => a.slug));
+  for (const app of APPS_PROXIMAMENTE) {
+    if (!visibles.has(app.slug)) agregar(app.category, { tipo: "proxima", app });
+  }
+  const posicion = (categoria: string) => {
+    const i = ORDEN_CATEGORIAS.indexOf(categoria);
+    return i === -1 ? ORDEN_CATEGORIAS.length : i;
+  };
+  // sort es estable: las categorías fuera de ORDEN_CATEGORIAS conservan el
+  // orden de llegada entre sí.
+  return Array.from(grupos.entries()).sort(([a], [b]) => posicion(a) - posicion(b));
+}
+
+function esRutaInterna(route: string | null | undefined): route is string {
+  return typeof route === "string" && route.startsWith("/") && !route.startsWith("//") && !route.startsWith("/\\");
+}
 
 function AppTile({ app }: { app: VisibleApp }) {
   // Cambio de zona: <a> plano para cargar la aplicación completa, sin prefetch
@@ -30,6 +137,25 @@ function AppTile({ app }: { app: VisibleApp }) {
       </span>
       <span className="text-[13px] leading-tight text-neutral-700">{app.name}</span>
     </a>
+  );
+}
+
+function ProximaTile({ app }: { app: AppProxima }) {
+  return (
+    <div className="flex w-[104px] flex-col items-center gap-2 p-1 text-center">
+      <span className="flex h-[76px] w-[76px] items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white/50">
+        {/* Gris por color de relleno, no con filter (grayscale/opacity rasterizan el SVG y lo desenfocan). */}
+        <AppTileIcon
+          icon={app.icon}
+          category={app.category}
+          className="h-12 w-12 [&_[class*=fill-]:not(.fill-white)]:fill-neutral-300!"
+        />
+      </span>
+      <span className="text-[13px] leading-tight text-neutral-400">{app.name}</span>
+      <span className="-mt-1 rounded-full bg-neutral-200/70 px-2 py-0.5 text-[10px] font-medium text-neutral-500">
+        Próximamente
+      </span>
+    </div>
   );
 }
 
@@ -73,7 +199,16 @@ export default async function PanelPage() {
     Promise.all(DESTINOS_CONFIGURACION.map((d) => hasPermission({ supabase, companyId }, d.code))),
   ]);
 
-  const lista = apps ?? [];
+  // El detalle técnico queda en el log del servidor, nunca en pantalla.
+  if (error) console.error("get_visible_apps", error);
+  // Solo rutas internas del dominio (Multi-Zones + SSO): una URL absoluta o
+  // "//host" en core.apps.route sacaría al usuario del dominio de la sesión.
+  const lista = (apps ?? []).filter((app) => {
+    if (esRutaInterna(app.route)) return true;
+    console.warn("core.apps.route no interna; la app no se muestra", app.slug);
+    return false;
+  });
+  const secciones = agruparPorCategoria(lista);
   const configuracionHref = DESTINOS_CONFIGURACION.find((_, i) => permisosConfig[i])?.href;
 
   return (
@@ -90,12 +225,12 @@ export default async function PanelPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14">
         <h1 className="sr-only">Aplicaciones</h1>
 
         {error && (
-          <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-            No se pudo cargar la lista de módulos: {error.message}
+          <p role="alert" className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+            No se pudo cargar la lista de aplicaciones. Intenta recargar la página.
           </p>
         )}
 
@@ -107,18 +242,42 @@ export default async function PanelPage() {
           </p>
         )}
 
-        {(lista.length > 0 || configuracionHref) && (
-          <div className="grid grid-cols-[repeat(auto-fill,104px)] justify-center gap-x-4 gap-y-7 sm:gap-x-8">
-            {lista.map((app) => (
-              <AppTile key={app.slug} app={app} />
+        {(secciones.length > 0 || configuracionHref) && (
+          <div className={seccionesClass}>
+            {secciones.map(([categoria, items], i) => (
+              <section
+                key={categoria}
+                aria-labelledby={`seccion-${i}`}
+                className={`${seccionClass} ${spanDeSeccion(categoria, items.length)}`}
+              >
+                <h2 id={`seccion-${i}`} className={tituloClass}>
+                  {categoria}
+                </h2>
+                {items.map((item) =>
+                  item.tipo === "app" ? (
+                    <AppTile key={item.app.slug} app={item.app} />
+                  ) : (
+                    <ProximaTile key={item.app.slug} app={item.app} />
+                  ),
+                )}
+              </section>
             ))}
+
             {configuracionHref && (
-              <Link href={configuracionHref} className={itemClass}>
-                <span className={tileClass}>
-                  <AppTileIcon icon="settings" className="h-12 w-12" />
-                </span>
-                <span className="text-[13px] leading-tight text-neutral-700">Configuración</span>
-              </Link>
+              <section
+                aria-labelledby="seccion-administracion"
+                className={`${seccionClass} ${spanDeSeccion("Administración", 1)}`}
+              >
+                <h2 id="seccion-administracion" className={tituloClass}>
+                  Administración
+                </h2>
+                <Link href={configuracionHref} className={itemClass}>
+                  <span className={tileClass}>
+                    <AppTileIcon icon="settings" className="h-12 w-12" />
+                  </span>
+                  <span className="text-[13px] leading-tight text-neutral-700">Configuración</span>
+                </Link>
+              </section>
             )}
           </div>
         )}
