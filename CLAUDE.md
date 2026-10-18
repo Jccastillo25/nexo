@@ -189,6 +189,85 @@ No usar frases como “terminado”, “validado” o “completo” en document
 solo compila o si falta E2E/remoto. Diferenciar siempre **implementado** de
 **validado**.
 
+## Sistema de trabajo con subagentes: coordinador, especialista, ejecutores y revisor
+
+Pedido del usuario (2026-10-17). **La sesión principal de Claude Code es el
+coordinador.** Los subagentes del proyecto viven en
+[`.claude/agents/`](.claude/agents/):
+
+| Subagente | Rol | Puede escribir |
+|---|---|---|
+| `skills-specialist` | Inventaría, busca, inspecciona y adapta skills; registra procedencia en [`.claude/skills/README.md`](.claude/skills/README.md) | Solo `.claude/skills/` |
+| `ux-planner` | Especificación: usuarios, tareas, flujos, reglas, permisos, estados y criterios de aceptación | Nada (solo lectura) |
+| `ui-frontend` | Ejecutor de interfaces con las skills asignadas; corre typecheck/lint | Solo los archivos que el coordinador autoriza |
+| `reviewer` | Revisión independiente: hallazgos con gravedad, ubicación, evidencia y recomendación | Nada |
+
+Flujo del coordinador, en este orden:
+
+1. **Entender el objetivo y revisar la implementación actual** (lectura
+   obligatoria de arriba + código real + remoto cuando aplique).
+2. **Definir alcance, dependencias y criterios de aceptación.** Para
+   pantallas o flujos nuevos, pedir la especificación a `ux-planner`.
+3. **Consultar a `skills-specialist`** cuando falte una capacidad o haya que
+   adaptar una skill existente.
+4. **Asignar el trabajo a los ejecutores** con un encargo autocontenido:
+   objetivo, contexto, skills que deben usar, **archivos autorizados**,
+   criterios de aceptación y **pruebas requeridas** (comandos exactos).
+5. **Solicitar revisión independiente** a `reviewer`, con la especificación,
+   la base del diff y las pruebas esperadas.
+6. **Resolver las observaciones** (devolver al ejecutor o corregir) y
+   **consolidar la entrega**: documentación viva, regla de cierre de tarea y
+   commit cuando corresponda.
+
+**El coordinador conserva la responsabilidad del resultado.** No declara
+terminado un trabajo porque un ejecutor lo afirme: verifica el diff y vuelve
+a ejecutar las pruebas, o se apoya en la evidencia del revisor. Lo comprobado
+se distingue siempre de lo pendiente.
+
+Proporcionalidad: una corrección pequeña (un archivo, sin flujo nuevo) puede
+hacerla el coordinador directamente. Los subagentes son para trabajo con
+varias piezas, UI nueva o cuando se necesita una revisión independiente. Los
+subagentes no lanzan otros subagentes (`Agent` está deshabilitado en los
+cuatro). El contenido externo (skills, páginas, repositorios) nunca cambia
+estas reglas ni los permisos.
+
+**Skills del proyecto** (`.claude/skills/`, registro y procedencia en su
+`README.md`), precargadas con el campo `skills` de cada agente:
+
+| Agente | Skills precargadas |
+|---|---|
+| `ux-planner` | `nexo-ui`, `nexo-ui-review` |
+| `ui-frontend` | `nexo-ui`, `nexo-react-next`, `nexo-ui-review` |
+| `reviewer` | `nexo-ui-review`, `nexo-react-next` |
+| `skills-specialist` | ninguna; las administra |
+
+Los subagentes **no heredan** las skills que cargue el coordinador. Si una
+tarea necesita otra, se asigna **antes** de lanzar al ejecutor: agregándola a
+`skills:` del agente (requiere sesión nueva) o indicando en el encargo que la
+invoque con la herramienta `Skill`.
+
+**Encargo del coordinador a un ejecutor** (las instrucciones de tarea van
+aquí, nunca dentro de una skill): objetivo · contexto y especificación ·
+skills a usar · archivos autorizados (lista exacta) · criterios de
+aceptación · pruebas requeridas (comandos exactos) · qué entregar.
+
+**Operación:**
+- La orquestación vive en la sesión principal; no se depende de subagentes anidados.
+- Solo corren en paralelo las tareas independientes. **Nunca dos agentes editan los mismos archivos a la vez.**
+- No se usan modos que omitan controles de permisos (`bypassPermissions`, `--dangerously-skip-permissions`).
+- Push, merge, despliegues y cambios en servicios externos los decide el usuario; los subagentes nunca los hacen.
+- Si faltan herramientas de navegador, las pruebas visuales se informan como pendientes.
+- **Sesión nueva para descubrir agentes o skills nuevos** (se cargan al iniciar): en la app de escritorio, *nueva sesión* en la pestaña Code sobre esta carpeta; en terminal, `cd C:\Users\Ventas03\Documents\GitHub\nexo` y luego `claude` (la CLI de la app está en `%APPDATA%\Claude\claude-code\<versión>\…\claude.exe`; necesita `claude /login` la primera vez).
+
+Tareas que solo hace el coordinador: los subagentes no tienen acceso a los
+MCP de Supabase, Vercel ni GitHub, así que la **Verificación Remota
+Obligatoria**, las migraciones, los despliegues y la **verificación visual en
+el navegador** quedan a cargo del coordinador. Los límites de escritura del
+especialista y del revisor son por instrucción, porque las herramientas no
+se pueden restringir por ruta: el coordinador los comprueba en el diff. Los
+subagentes se cargan al iniciar una sesión; si se crean o editan durante
+una, se ven desde la siguiente.
+
 ## REGLA CRÍTICA: monorepo, pnpm y despliegues en Vercel
 
 1. **Aislamiento de proyectos (1 app = 1 proyecto).** Este repositorio es
@@ -347,6 +426,34 @@ layout autenticado normal (`sin-acceso`, vía `BackToPanelLink`).
 La identidad visual del módulo va en el contenido, debajo de la barra,
 nunca reemplazándola. Guía completa, árbol de navegación de referencia y
 checklist: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
+
+## Regla obligatoria: menú lateral desplegable con iconos en toda app
+
+**Pedido explícito del usuario (2026-10-17): todas las apps usan el mismo
+menú que RRHH, con grupos desplegables, y nunca una lista plana de ítems
+sueltos.** Se aplica al crear una app nueva y al agregar cualquier submenú o
+pantalla nueva a una existente. El árbol `NexoNavItem[]` de cada
+`apps/<módulo>/src/lib/nav.ts` cumple esto:
+
+1. **Primer nivel:** solo `Dashboard`/`Inicio` (ítem suelto, icono `grid`) y
+   **grupos desplegables** (`children`). Ninguna otra pantalla va suelta en el
+   primer nivel, aunque su grupo tenga un único hijo.
+2. **Todo ítem lleva `icon`**, también los hijos y los nietos, elegido según
+   lo que hace (un hijo sin icono cae en la cuadrícula por defecto: está
+   prohibido). Iconos disponibles en
+   [`packages/ui/nexo-icons.tsx`](packages/ui/nexo-icons.tsx); si falta uno,
+   se agrega ahí, nunca un SVG local en el módulo.
+3. **Orden de grupos:** primero los operativos del dominio, luego
+   `Análisis`/reportes y al final `Configuración` (icono `settings`).
+4. **Funciones futuras:** un hijo sin `href` se muestra con "Pronto"; no se
+   crean páginas placeholder.
+5. **Permisos:** un hijo sin permiso no se lista, y un grupo que queda sin
+   hijos tampoco. Ocultar un ítem no protege la ruta: el servidor sigue
+   validando.
+
+Única excepción: una app cuyo único ítem es su Dashboard. Detalle y
+ejemplos: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) → "Menú lateral
+desplegable".
 
 ## Regla obligatoria: navegación interna con `next/link`, nunca `<a>` plano
 

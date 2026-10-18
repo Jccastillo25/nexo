@@ -4,6 +4,7 @@ import { hasPermission } from "@nexo/permissions";
 import { PageHeader } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAtencion } from "@/lib/errores";
 import { rangoDe, type Metricas } from "@/lib/metricas";
 import FiltrosMetricas from "@/components/metricas/filtros";
 import ResumenKpis from "@/components/metricas/resumen";
@@ -49,7 +50,9 @@ export default async function MisMetricasPage({ searchParams }: PageProps<"/metr
       <FiltrosMetricas ruta="/metricas" periodo={periodo} />
       {error || !metricas ? (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudieron cargar tus métricas{error ? `: ${error.message}` : "."}
+          {error
+            ? mensajeAtencion(error, "atencion_metricas (mis métricas)", "No se pudieron cargar tus métricas. Intenta de nuevo.")
+            : "No se pudieron cargar tus métricas."}
         </p>
       ) : (
         <>

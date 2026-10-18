@@ -5,10 +5,14 @@ import { useRouter } from "next/navigation";
 import { FormSection, StatusBadge, useToast } from "@nexo/ui";
 import type { Permisos } from "@/lib/permisos";
 import type { Catalogos } from "@/lib/tipos";
+import type { CatalogoRuta } from "@/lib/catalogos-ruta";
 import { guardarCatalogo, type TipoCatalogo } from "./actions";
 
 const inputClass =
   "rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+
+// Foco visible de teclado en los botones del panel.
+const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2";
 
 interface Fila {
   id: string;
@@ -86,7 +90,7 @@ function Panel({
                   setError(null);
                   setBorrador({ id: f.id, datos: { ...f.datos, activo: f.activo } });
                 }}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                className={`rounded-sm text-xs font-semibold text-blue-600 hover:text-blue-700 ${focusRing}`}
               >
                 Editar
               </button>
@@ -134,19 +138,19 @@ function Panel({
               )}
             </div>
             {extra?.(borrador.datos, (d) => setBorrador({ ...borrador, datos: d }))}
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
             <div className="flex gap-2">
-              <button type="button" onClick={() => setBorrador(null)} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
+              <button type="button" onClick={() => setBorrador(null)} className={`rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 ${focusRing}`}>
                 Cancelar
               </button>
-              <button type="button" onClick={guardar} disabled={isPending} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
+              <button type="button" onClick={guardar} disabled={isPending} className={`rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 ${focusRing}`}>
                 {isPending ? "Guardando…" : "Guardar"}
               </button>
             </div>
           </div>
         ) : (
           <div>
-            <button type="button" onClick={nuevoBorrador} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
+            <button type="button" onClick={nuevoBorrador} className={`rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 ${focusRing}`}>
               Agregar
             </button>
           </div>
@@ -160,9 +164,6 @@ const TIPO_CUENTA = [
   { valor: "inventario", etiqueta: "Inventario" },
   { valor: "costo", etiqueta: "Costos" },
 ];
-
-export const CATALOGOS_RUTA = ["marcas", "unidades", "proveedores", "caracteristicas", "cuentas"] as const;
-export type CatalogoRuta = (typeof CATALOGOS_RUTA)[number];
 
 /** Un catálogo por ruta (/configuracion/<solo>), como en el menú lateral. */
 export default function PanelesCatalogos({ catalogos, permisos, solo }: { catalogos: Catalogos; permisos: Permisos; solo: CatalogoRuta }) {

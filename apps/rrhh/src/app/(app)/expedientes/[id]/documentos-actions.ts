@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCompanyId } from "@/lib/company";
@@ -16,6 +16,10 @@ const ALLOWED_MIME = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 const TIPOS = ["cedula", "curriculum", "titulo", "contrato_firmado", "otro"] as const;
+// El detalle de un fallo de Storage o del cliente admin (variables de
+// entorno, bucket, red) queda en el log del servidor, nunca en la UI
+// (revision de seguridad 2026-10-17, H2).
+const MENSAJE_STORAGE = "No se pudo acceder al almacenamiento de documentos. Intenta de nuevo.";
 export type TipoDocumento = (typeof TIPOS)[number];
 
 export interface ActionResult {
@@ -66,7 +70,7 @@ export async function pedirUrlSubidaDocumento(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.documentos.subir");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "pedirUrlSubidaDocumento") };
     throw err;
   }
 
@@ -97,15 +101,13 @@ export async function pedirUrlSubidaDocumento(
   try {
     admin = createAdminClient();
   } catch (err) {
-    return {
-      ok: false,
-      message: `No se pudo inicializar el cliente de Storage: ${(err as Error).message}.`,
-    };
+    return { ok: false, message: mensajeDeError(err, "pedirUrlSubidaDocumento: cliente admin", MENSAJE_STORAGE) };
   }
 
   const { data, error } = await admin.storage.from(BUCKET).createSignedUploadUrl(path);
   if (error || !data) {
-    return { ok: false, message: error?.message ?? "No se pudo generar la URL de subida." };
+    if (error) console.error("pedirUrlSubidaDocumento: createSignedUploadUrl", error);
+    return { ok: false, message: "No se pudo generar la URL de subida. Intenta de nuevo." };
   }
 
   return { ok: true, signedUrl: data.signedUrl, token: data.token, path: data.path };
@@ -141,7 +143,7 @@ export async function confirmarDocumentoSubido(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.documentos.subir");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "confirmarDocumentoSubido") };
     throw err;
   }
 
@@ -154,10 +156,7 @@ export async function confirmarDocumentoSubido(
   try {
     admin = createAdminClient();
   } catch (err) {
-    return {
-      ok: false,
-      message: `No se pudo inicializar el cliente de Storage: ${(err as Error).message}.`,
-    };
+    return { ok: false, message: mensajeDeError(err, "confirmarDocumentoSubido: cliente admin", MENSAJE_STORAGE) };
   }
 
   const folder = input.path.slice(0, input.path.lastIndexOf("/"));
@@ -165,7 +164,12 @@ export async function confirmarDocumentoSubido(
   const { data: listado, error: listError } = await admin.storage
     .from(BUCKET)
     .list(folder, { search: filename });
-  if (listError) return { ok: false, message: `No se pudo verificar la subida: ${listError.message}` };
+  if (listError) {
+    return {
+      ok: false,
+      message: mensajeDeError(listError, "confirmarDocumentoSubido: list", "No se pudo verificar la subida. Intenta de nuevo."),
+    };
+  }
 
   const objetoReal = listado?.find((f) => f.name === filename);
   if (!objetoReal || !objetoReal.metadata) {
@@ -198,7 +202,12 @@ export async function confirmarDocumentoSubido(
     tamano_bytes: tamanoReal,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return {
+      ok: false,
+      message: mensajeDeError(error, "confirmarDocumentoSubido", "El archivo se subió pero no se pudo registrar. Intenta de nuevo."),
+    };
+  }
 
   revalidatePath(`/expedientes/${empleadoId}`);
   return { ok: true };
@@ -220,7 +229,7 @@ export async function pedirUrlDescargaDocumento(documentoId: string): Promise<Pe
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.documentos.descargar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "pedirUrlDescargaDocumento") };
     throw err;
   }
 
@@ -233,18 +242,26 @@ export async function pedirUrlDescargaDocumento(documentoId: string): Promise<Pe
     .is("eliminado_at", null)
     .maybeSingle();
 
-  if (docError) return { ok: false, message: docError.message };
+  if (docError) {
+    return {
+      ok: false,
+      message: mensajeDeError(docError, "pedirUrlDescargaDocumento", "No se pudo generar la descarga. Intenta de nuevo."),
+    };
+  }
   if (!doc) return { ok: false, message: "Documento no encontrado." };
 
   let admin: ReturnType<typeof createAdminClient>;
   try {
     admin = createAdminClient();
   } catch (err) {
-    return { ok: false, message: `No se pudo inicializar el cliente de Storage: ${(err as Error).message}.` };
+    return { ok: false, message: mensajeDeError(err, "pedirUrlDescargaDocumento: cliente admin", MENSAJE_STORAGE) };
   }
 
   const { data, error } = await admin.storage.from(BUCKET).createSignedUrl(doc.storage_path, 60);
-  if (error || !data) return { ok: false, message: error?.message ?? "No se pudo generar la URL de descarga." };
+  if (error || !data) {
+    if (error) console.error("pedirUrlDescargaDocumento: createSignedUrl", error);
+    return { ok: false, message: "No se pudo generar la URL de descarga. Intenta de nuevo." };
+  }
 
   return { ok: true, signedUrl: data.signedUrl };
 }
@@ -262,7 +279,7 @@ export async function eliminarDocumento(empleadoId: string, documentoId: string)
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.documentos.eliminar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "eliminarDocumento") };
     throw err;
   }
 
@@ -275,7 +292,9 @@ export async function eliminarDocumento(empleadoId: string, documentoId: string)
     .eq("id", documentoId)
     .eq("company_id", companyId);
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "eliminarDocumento", "No se pudo eliminar el documento. Intenta de nuevo.") };
+  }
 
   revalidatePath(`/expedientes/${empleadoId}`);
   return { ok: true };

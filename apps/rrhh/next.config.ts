@@ -19,6 +19,13 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // 2026-10-17: Marcas se movió a la app Asistencia (mismo deploy). El
+  // basePath /rrhh se aplica solo: /rrhh/marcas → /rrhh/asistencia/marcas.
+  // Temporal (no permanente) para no fijar la ruta en cachés del navegador.
+  async redirects() {
+    return [{ source: "/marcas", destination: "/asistencia/marcas", permanent: false }];
+  },
+
   async headers() {
     return [
       {

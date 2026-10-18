@@ -20,6 +20,8 @@ export default async function ClasificacionPage() {
     supabase.rpc("productos_catalogos", { p_company_id: companyId }),
     hasPermission({ supabase, companyId }, P.clasificacion),
   ]);
+  // El detalle técnico queda en el log del servidor, nunca en pantalla.
+  if (catalogos.error) console.error("productos_catalogos", catalogos.error);
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">
@@ -29,7 +31,7 @@ export default async function ClasificacionPage() {
       />
       {catalogos.error ? (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudo cargar la clasificación: {catalogos.error.message}
+          No se pudo cargar la clasificación. Intenta recargar la página.
         </p>
       ) : (
         <ArbolClasificacion clasificaciones={(catalogos.data as Catalogos).clasificaciones} puedeGestionar={puedeGestionar} />

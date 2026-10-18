@@ -2,7 +2,9 @@
 // automatico). Un item sin `href` y sin `children` se muestra como
 // "Próximamente" en el sidebar (ver ajuste obligatorio del rediseño
 // 2026-09-07: no crear una pagina placeholder por cada funcionalidad
-// futura, solo deshabilitar el item de navegacion).
+// futura, solo deshabilitar el item de navegacion). Un item con
+// `children: []` (grupo cuyos hijos se filtraron todos por permisos) no se
+// muestra.
 import type { NexoIconName } from "./nexo-icons";
 
 export interface NexoNavItem {
@@ -11,11 +13,10 @@ export interface NexoNavItem {
    * ("Próximamente") — ver NexoSidebar.tsx. */
   href?: string;
   icon?: NexoIconName;
+  /** Grupo desplegable. Si es un arreglo vacío (todos los hijos filtrados
+   * por permisos), NexoSidebar no renderiza el item, a cualquier nivel;
+   * omitir la propiedad (no `[]`) para un item "Próximamente". */
   children?: NexoNavItem[];
-  /** Encabezado de sección (ej. "Configuración") que NexoSidebar dibuja
-   * antes de este item. Solo en items de primer nivel; se oculta con el
-   * sidebar colapsado. */
-  section?: string;
 }
 
 function flattenNavWithTrail(

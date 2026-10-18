@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { P } from "@/lib/permisos";
@@ -33,7 +33,7 @@ export async function guardarClasificacion(input: {
     p_nombre: input.nombre.trim(),
     p_activa: input.activa,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: mensajeDeError(error, "productos_guardar_clasificacion", "No se pudo guardar. Intenta de nuevo.") };
   revalidatePath("/clasificacion");
   return { ok: true };
 }

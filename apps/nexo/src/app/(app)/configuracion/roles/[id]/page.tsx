@@ -4,6 +4,7 @@ import { hasPermission } from "@nexo/permissions";
 import { EmptyState, PageHeader } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAdministracion } from "../../errores";
 import { agruparCatalogo } from "@/lib/permisos-catalogo";
 import RolForm from "../rol-form";
 
@@ -38,7 +39,7 @@ export default async function EditarRolPage({ params }: PageProps<"/configuracio
   if (error) {
     return (
       <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-        No se pudo cargar el rol: {error.message}
+        {mensajeAdministracion(error, "roles/[id]: carga del rol", "No se pudo cargar el rol. Intenta de nuevo.")}
       </p>
     );
   }

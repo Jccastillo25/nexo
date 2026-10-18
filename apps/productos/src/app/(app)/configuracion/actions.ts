@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError, MENSAJE_SIN_PERMISO } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { P } from "@/lib/permisos";
 import type { Resultado } from "@/lib/tipos";
+
+const SIN_PERMISO_CATALOGO = "Tu rol no permite gestionar este catálogo.";
 
 export type TipoCatalogo = "marca" | "unidad" | "proveedor" | "caracteristica" | "cuenta" | "centro_costo";
 
@@ -25,7 +27,7 @@ export async function guardarCatalogo(catalogo: TipoCatalogo, id: string | null,
   try {
     await requirePermission({ supabase, companyId }, PERMISO[catalogo]);
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: "Tu rol no permite gestionar este catálogo." };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: SIN_PERMISO_CATALOGO };
     throw err;
   }
   const { error } = await supabase.rpc("productos_guardar_catalogo", {
@@ -34,7 +36,13 @@ export async function guardarCatalogo(catalogo: TipoCatalogo, id: string | null,
     p_id: id,
     p_datos: datos,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    // mensajeDeError: P0001 (mensaje propio de la RPC) tal cual; denegación
+    // (42501, que además puede ser un GRANT faltante) y lo técnico se
+    // registran. Se conserva el texto específico de este catálogo.
+    const message = mensajeDeError(error, "productos_guardar_catalogo", "No se pudo guardar. Intenta de nuevo.");
+    return { ok: false, message: message === MENSAJE_SIN_PERMISO ? SIN_PERMISO_CATALOGO : message };
+  }
   revalidatePath("/configuracion/[catalogo]", "page");
   return { ok: true };
 }

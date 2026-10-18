@@ -1,9 +1,11 @@
 import type { MarcarResult } from "./actions";
+import type { Accion } from "./acciones";
 
-type Sender = (pin: string, id: string, confirmar: boolean) => Promise<MarcarResult>;
-type Request = { pin: string; id: string; confirmar: boolean };
+type Sender = (pin: string, id: string, accion: Accion | null) => Promise<MarcarResult>;
+type Request = { pin: string; id: string; accion: Accion | null };
 
-/** Una digitacion = un UUID. Reintentar/confirmar conserva el envio en memoria.
+/** Una digitacion = un UUID. La vista previa (`accion = null`), el boton
+ * elegido y cada reintento comparten ese UUID y el PIN, solo en memoria.
  * Cancelar y todo resultado definitivo descartan la credencial. Nunca persiste.
  */
 export class KioskFlow {
@@ -22,17 +24,18 @@ export class KioskFlow {
 
   submit(pin: string): Promise<MarcarResult> {
     if (this.flight) return this.flight;
-    if (this.request) return Promise.resolve({ estado: "error", message: "Confirma o cancela el envío pendiente." });
-    this.request = { pin, id: this.makeId(), confirmar: false };
+    if (this.request) return Promise.resolve({ estado: "error", message: "Elige una marca o cancela el envío pendiente." });
+    this.request = { pin, id: this.makeId(), accion: null };
     return this.run();
   }
-  confirm(): Promise<MarcarResult> {
+  /** Registra la accion elegida. Solo envia si la ultima respuesta la ofrecio. */
+  choose(accion: Accion): Promise<MarcarResult> {
     if (this.flight) return this.flight;
-    if (this.request && this.last?.estado === "confirmacion_requerida") {
-      this.request.confirmar = true;
+    if (this.request && this.last?.estado === "acciones" && this.last.acciones?.includes(accion)) {
+      this.request.accion = accion;
       return this.run();
     }
-    return Promise.resolve({ estado: "rechazada", message: "No hay una salida pendiente." });
+    return Promise.resolve({ estado: "rechazada", message: "No hay una marca pendiente." });
   }
   retry(): Promise<MarcarResult> {
     if (this.flight) return this.flight;
@@ -47,7 +50,7 @@ export class KioskFlow {
   clear() { this.request = null; this.last = null; }
   private run(): Promise<MarcarResult> {
     const request = this.request!;
-    this.flight = Promise.resolve().then(() => this.send(request.pin, request.id, request.confirmar))
+    this.flight = Promise.resolve().then(() => this.send(request.pin, request.id, request.accion))
       .catch((): MarcarResult => ({ estado: "error", message: "Error de conexión. Reintenta el mismo envío." }))
       .then(result => {
         this.last = result;

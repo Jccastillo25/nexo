@@ -74,7 +74,7 @@ monorepo, incluida `apps/flotilla`, antes de eliminarlos — nada fuera de
 | Nuevo | Reemplaza a | Rol |
 |---|---|---|
 | `NexoShell` | `AppShell` + `ShellBar` + `Sidebar` + el `Header`/`AppSidebar` que cada módulo duplicaba | Orquestador: breadcrumb automático, collapse/Drawer compartido, monta `ToastProvider` una vez |
-| `NexoSidebar` | `Sidebar` | Sidebar azul con grupos anidados de un nivel, ítems sin `href` se ven deshabilitados ("Próximamente"). Desde 2026-10-16 un ítem de primer nivel puede llevar `section` (encabezado en mayúsculas, ej. "Configuración", oculto con el sidebar colapsado); iconos nuevos `box`, `upload`, `tree`, `tag`, `ruler`, `book`, `price` (primer uso: Productos) |
+| `NexoSidebar` | `Sidebar` | Sidebar azul con grupos anidados de un nivel, ítems sin `href` se ven deshabilitados ("Próximamente"). Iconos nuevos 2026-10-16/17: `box`, `upload`, `tree`, `tag`, `ruler`, `book`, `price`, `chart`, `target`, `monitor`. El `section` (encabezados) del 2026-10-16 se retiró el 2026-10-17 a favor de un único patrón: grupos desplegables (ver "Menú lateral desplegable") |
 | `NexoTopbar` | `ShellBar` | Breadcrumb + buscador + notificaciones + avatar |
 | `MetricCard` | `StatCard` | Tile de KPI, tema claro |
 | `Breadcrumb`, `PageHeader`, `DashboardHero`, `ActivityFeed`, `QuickActions`, `DataTable`, `FilterBar`, `StatusBadge`, `FormTabs`, `FormSection`, `EmptyState`, `ConfirmDialog`, `Toast`/`useToast` | — (100% nuevos) | Ver el componente para su rol puntual |
@@ -197,12 +197,20 @@ RRHH
 │       ├── Puestos         bajo "Configuración"; ahora con pantalla real)
 │       ├── Departamentos
 │       └── Plantillas de contrato
-├── Asistencia
-│   ├── Marcas          (sin href — F1.5)
-│   ├── Incidencias     (sin href — F1.6)
-│   ├── Justificaciones (sin href — F1.6)
-│   └── Kioskos
 └── Planillas          (placeholder histórico conservado)
+
+ASISTENCIA (app propia desde 2026-10-17, /rrhh/asistencia, mismo deploy que RRHH)
+├── Dashboard          (marcas de hoy, dispositivos activos, envíos pendiente de integración)
+├── Marcaciones
+│   ├── Marcas          (antes /rrhh/marcas, que redirige aquí)
+│   ├── Incidencias     (Pronto — F1.6)
+│   └── Justificaciones (Pronto — F1.6)
+├── Análisis
+│   ├── Resumen diario  (Pronto — F1.5)
+│   └── Envíos del kiosco (Pronto — falta RPC)
+└── Configuración
+    └── Dispositivos   (registrar, editar, desactivar, reactivar)
+(La terminal pública /rrhh/kiosco no va en ningún menú.)
 
 CRM
 ├── Dashboard
@@ -218,6 +226,47 @@ página en blanco esperando que el usuario haga clic en el sidebar.** No
 alcanza con redirigir a la primera sección de contenido (ej. una tabla):
 tiene que ser una vista de métricas, con al menos 2-3 tarjetas de KPI
 reales del módulo (`MetricCard`).
+
+**Grilla del Launcher (2026-10-17, pedido del usuario con captura de la
+pantalla de inicio de Odoo):** las apps se agrupan en **secciones por
+categoría** (`core.apps.category`, en el orden en que llegan de
+`get_visible_apps`; sin categoría → "General"), cada una con un título
+pequeño en mayúsculas y subrayado, y sus mosaicos debajo.
+
+**Cuadrícula fija:** la página tiene columnas de 104 px (3 en celular, 5 en
+tablet, 8 en escritorio), y cada sección usa `subgrid` sobre esas mismas
+columnas, de modo que todos los mosaicos quedan alineados al agregar apps.
+Una sección ocupa tantas columnas como apps tenga (mínimo 2, para el título);
+si tiene más apps que columnas, sus mosaicos bajan de fila. El orden de las
+secciones está fijo en `ORDEN_CATEGORIAS` (Ventas, Cadena de suministro,
+Finanzas, RRHH, Servicios; las demás después). **Ventas va siempre arriba y
+ocupa la fila entera** (`SECCIONES_ANCHO_COMPLETO`). Administración va al
+final.
+
+**Apps "Próximamente":** la lista `APPS_PROXIMAMENTE` de
+`apps/nexo/src/app/page.tsx` pone en su categoría las apps planificadas como
+mosaicos sin enlace: borde punteado, icono en gris, nombre atenuado y la
+etiqueta "Próximamente". Son Punto de venta, Facturación, Inventario,
+Compras, Flotilla, Contabilidad, Bancos y Agencia digital. **No se agrega
+como app lo que ya es parte de un módulo**: Cotizaciones va en el menú del
+CRM y Nómina en RRHH. (Listas de precios salió de Productos y Asistencia de
+RRHH el 2026-10-17: las dos pasan a ser apps propias.) El gris se
+logra con el color de relleno (`[&_[class*=fill-]:not(.fill-white)]:fill-neutral-300!`),
+nunca con `filter`/`opacity`, porque rasterizan el SVG y lo desenfocan. Por el
+mismo motivo, el hover del mosaico solo cambia la sombra y no usa `translate`. Es el mismo criterio que los ítems "Pronto" del menú lateral:
+no hay página placeholder. Si llega por `get_visible_apps` una app con el
+mismo `slug`, se muestra la real. Al lanzar una app nueva se quita de esa
+lista. Sus iconos (`register`, `receipt`, `warehouse`, `cart`, `calculator`,
+`bank`) viven en `packages/ui/app-icons.tsx`. Configuración va
+en su propia sección, "Administración", al final. Cada app es un mosaico blanco redondeado (76 px, sombra suave)
+con un icono a color propio de la app y el nombre debajo, sobre un fondo
+degradado claro (violeta → gris → celeste). Los iconos viven en
+[`packages/ui/app-icons.tsx`](../packages/ui/app-icons.tsx) (`AppTileIcon`),
+indexados por `core.apps.icon` (`ticket`, `handshake`, `truck`, `package`,
+`users-round`, `sun`, más `settings` para Configuración) con respaldo por
+categoría y uno genérico. Son el único lugar donde una app tiene colores
+propios, y solo de la escala de Tailwind. Configuración aparece como un
+mosaico más al final de la grilla.
 
 **Excepción explícita: `apps/nexo` en `/` (el App Launcher) NO es un
 módulo y no sigue esta regla.** Reconciliación de navegación 2026-09-14
@@ -249,7 +298,8 @@ interna de "la app Nexo") — ver la sección siguiente.
 Referencia (módulos reales): [`apps/crm/src/app/(app)/dashboard/page.tsx`](../apps/crm/src/app/(app)/dashboard/page.tsx)
 (total de clientes, nuevos este mes, distribución por tipo) y
 [`apps/rrhh/src/app/(app)/dashboard/page.tsx`](../apps/rrhh/src/app/(app)/dashboard/page.tsx)
-(expedientes, contratos activos, marcas del día, planillas pendientes).
+(expedientes, contratos activos, planillas pendientes; "marcas del día" pasó
+al dashboard de Asistencia el 2026-10-17, contadas con el día de Managua).
 
 Al crear o adaptar un módulo nuevo:
 
@@ -260,6 +310,43 @@ Al crear o adaptar un módulo nuevo:
    con `tone="pending"` en `MetricCard`, nunca un número inventado.
 3. Un gráfico simple (barras de distribución, como en el CRM) es
    suficiente para el MVP de cada módulo.
+
+## Regla obligatoria: menú lateral desplegable (2026-10-17)
+
+Pedido del usuario, con capturas de RRHH (grupos desplegables) frente a
+Atención (lista plana): "me gustaría agregarlo así a todo el menú en todas
+las apps, sin que pierdan los iconos [...] que fuera una regla al momento de
+crear una app, un nuevo submenú". Resumen en `CLAUDE.md`. Reglas del árbol
+`NexoNavItem[]` (`apps/<módulo>/src/lib/nav.ts`):
+
+- Primer nivel: `Dashboard`/`Inicio` suelto (icono `grid`) + grupos con
+  `children`. Nada más suelto, aunque el grupo tenga un solo hijo.
+- Todo ítem lleva `icon`, también los hijos (NexoSidebar pinta `grid` si
+  falta, lo que da un menú de cuadrículas repetidas).
+- Orden: grupos operativos del dominio → `Análisis` → `Configuración`.
+- Futuro: hijo sin `href` y sin `children` = "Pronto". Permisos: hijo sin
+  permiso no se lista; grupo vacío tampoco. `NexoSidebar` oculta todo
+  ítem con `children: []` (también en cascada: un grupo cuyos hijos son
+  grupos vacíos), así que el `nav.ts` puede dejar el arreglo filtrado vacío;
+  para "Pronto" se omite `children`, nunca se pasa `[]`.
+- Accesibilidad (2026-10-17): el botón de grupo lleva `aria-expanded` y todo
+  control del sidebar tiene anillo `focus-visible` (`ring-white/70`).
+- `NexoSidebar` abre solo el grupo que contiene la ruta activa; los demás
+  quedan plegados.
+- Excepción: una app con un único ítem (su Dashboard), p. ej. Agencia hoy.
+
+Estado aplicado el 2026-10-17:
+
+| App | Árbol |
+|---|---|
+| Nexo (panel) | Inicio · Configuración (Marca, Usuarios, Roles, Sucursales, Auditoría) |
+| RRHH | Dashboard · Expedientes · Contratación (con Catálogos anidado) · Nómina (Planillas) |
+| Asistencia | Dashboard · Marcaciones (Marcas; Incidencias y Justificaciones "Pronto") · Análisis ("Pronto") · Configuración (Dispositivos); filtrado por permiso |
+| Atención | Inicio · Atención (Atender) · Análisis (Mis métricas, Reportes) · Configuración (Puestos y pantallas) |
+| CRM | Dashboard · Ventas (Clientes; Leads, Oportunidades, Actividades y Cotizaciones con "Pronto") |
+| Productos | Dashboard · Catálogo (Productos, Importar y exportar) · Precios (Listas de precios, "Pronto") · Configuración (Clasificación, Marcas, Unidades, Proveedores, Características, Cuentas contables) |
+| Agencia | Dashboard (excepción) |
+| Flotilla | Sin adaptar a `NexoShell` todavía (Fase 4): aplica la regla al adaptarla |
 
 ## Regla obligatoria: navegación dentro del módulo usa `next/link`, nunca `<a>` plano
 

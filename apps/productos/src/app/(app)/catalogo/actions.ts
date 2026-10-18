@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import { P } from "@/lib/permisos";
@@ -35,7 +35,7 @@ export async function guardarProducto(
     p_producto_id: productoId,
     p_datos: datos,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: mensajeDeError(error, "productos_guardar", "No se pudo guardar el producto. Intenta de nuevo.") };
   revalidatePath("/catalogo");
   revalidatePath("/dashboard");
   return { ok: true, data: data as { id: string; numero_id: number; codigo: string } };
@@ -50,7 +50,7 @@ export async function descontinuarProducto(productoId: string, ventas: boolean, 
     p_ventas: ventas,
     p_compras: compras,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: mensajeDeError(error, "productos_descontinuar", "No se pudo cambiar el estado del producto. Intenta de nuevo.") };
   revalidatePath("/catalogo");
   return { ok: true };
 }

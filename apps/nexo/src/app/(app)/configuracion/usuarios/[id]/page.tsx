@@ -4,6 +4,7 @@ import { hasPermission } from "@nexo/permissions";
 import { EmptyState, PageHeader, StatusBadge } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAdministracion } from "../../errores";
 import UsuarioForm from "../usuario-form";
 import CuentaAcciones from "./cuenta-acciones";
 
@@ -47,7 +48,7 @@ export default async function EditarUsuarioPage({ params }: PageProps<"/configur
   if (error) {
     return (
       <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-        No se pudo cargar el usuario: {error.message}
+        {mensajeAdministracion(error, "usuarios/[id]: admin_listar_usuarios", "No se pudo cargar el usuario. Intenta de nuevo.")}
       </p>
     );
   }

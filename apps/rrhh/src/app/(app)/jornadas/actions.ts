@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
@@ -42,7 +42,7 @@ export async function crearJornada(input: JornadaInput): Promise<ActionResult> {
   try {
     await requirePermission({ supabase, companyId }, "rrhh.asistencia.turnos.crear");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "crearJornada") };
     throw err;
   }
 
@@ -52,7 +52,9 @@ export async function crearJornada(input: JornadaInput): Promise<ActionResult> {
     descripcion: input.descripcion?.trim() || null,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "crearJornada", "No se pudo crear la jornada. Intenta de nuevo.") };
+  }
 
   revalidatePath("/jornadas");
   return { ok: true };
@@ -68,7 +70,7 @@ export async function editarJornada(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.asistencia.turnos.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "editarJornada") };
     throw err;
   }
 
@@ -83,7 +85,9 @@ export async function editarJornada(
     .eq("id", jornadaId)
     .eq("company_id", companyId);
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "editarJornada", "No se pudo guardar la jornada. Intenta de nuevo.") };
+  }
 
   revalidatePath("/jornadas");
   return { ok: true };
@@ -96,14 +100,14 @@ export async function eliminarJornada(jornadaId: string): Promise<ActionResult> 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.asistencia.turnos.eliminar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "eliminarJornada") };
     throw err;
   }
 
   // Una jornada con historico real (rrhh.contrato_jornadas) queda
-  // protegida por la FK (on delete restrict) -- el error de Postgres se
-  // devuelve tal cual, mas entendible que un 500 crudo pero sin ocultar
-  // la causa real.
+  // protegida por la FK (on delete restrict) -- ese caso tiene su propio
+  // mensaje; cualquier otro error de Postgres va al log del servidor y la
+  // UI recibe un mensaje generico (revision de seguridad 2026-10-17, H2).
   const { error } = await supabase
     .schema("rrhh")
     .from("jornadas")
@@ -118,7 +122,7 @@ export async function eliminarJornada(jornadaId: string): Promise<ActionResult> 
         message: "No se puede eliminar: esta jornada ya fue asignada a un contrato. Desactívala en vez de eliminarla.",
       };
     }
-    return { ok: false, message: error.message };
+    return { ok: false, message: mensajeDeError(error, "eliminarJornada", "No se pudo eliminar la jornada. Intenta de nuevo.") };
   }
 
   revalidatePath("/jornadas");
@@ -138,7 +142,7 @@ export async function guardarDiasJornada(jornadaId: string, dias: DiaInput[]): P
   try {
     await requirePermission({ supabase, companyId }, "rrhh.asistencia.turnos.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "guardarDiasJornada") };
     throw err;
   }
 
@@ -159,7 +163,12 @@ export async function guardarDiasJornada(jornadaId: string, dias: DiaInput[]): P
     .from("jornada_dias")
     .upsert(rows, { onConflict: "jornada_id,dia_semana" });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return {
+      ok: false,
+      message: mensajeDeError(error, "guardarDiasJornada", "No se pudieron guardar los días. Revisa los horarios e intenta de nuevo."),
+    };
+  }
 
   revalidatePath("/jornadas");
   return { ok: true };
@@ -177,7 +186,7 @@ export async function crearFeriado(input: FeriadoInput): Promise<ActionResult> {
   try {
     await requirePermission({ supabase, companyId }, "rrhh.asistencia.feriados.crear");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "crearFeriado") };
     throw err;
   }
 
@@ -191,7 +200,7 @@ export async function crearFeriado(input: FeriadoInput): Promise<ActionResult> {
     if (error.message.includes("duplicate key")) {
       return { ok: false, message: "Ya existe un feriado registrado en esa fecha." };
     }
-    return { ok: false, message: error.message };
+    return { ok: false, message: mensajeDeError(error, "crearFeriado", "No se pudo crear el feriado. Intenta de nuevo.") };
   }
 
   revalidatePath("/jornadas");
@@ -205,7 +214,7 @@ export async function eliminarFeriado(feriadoId: string): Promise<ActionResult> 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.asistencia.feriados.eliminar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "eliminarFeriado") };
     throw err;
   }
 
@@ -216,7 +225,9 @@ export async function eliminarFeriado(feriadoId: string): Promise<ActionResult> 
     .eq("id", feriadoId)
     .eq("company_id", companyId);
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "eliminarFeriado", "No se pudo eliminar el feriado. Intenta de nuevo.") };
+  }
 
   revalidatePath("/jornadas");
   return { ok: true };

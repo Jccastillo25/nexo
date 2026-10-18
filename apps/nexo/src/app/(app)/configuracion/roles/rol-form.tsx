@@ -113,7 +113,10 @@ export default function RolForm({ apps, plantillas, inicial }: RolFormProps) {
         show(inicial ? "Rol actualizado." : "Rol creado.", "success");
         router.push("/configuracion/roles");
       } catch (err) {
-        const message = err instanceof Error && err.message ? err.message : "No se pudo guardar el rol.";
+        // Rechazo de transporte o error inesperado: el detalle va a la consola,
+        // nunca a la pantalla.
+        console.error("RolForm: guardar", err);
+        const message = "No se pudo guardar el rol. Intenta de nuevo.";
         setError(message);
         show(message, "error");
       }

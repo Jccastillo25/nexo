@@ -1,9 +1,23 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+
+// fn_crear_contrato / fn_editar_contrato niegan con 'Permiso denegado:
+// rrhh.expedientes.compensacion.editar (requerido para fijar salario)'. El
+// mensaje genérico de denegación no diría que lo bloqueado es el salario.
+const SIN_PERMISO_SALARIO = "Tu rol no permite fijar el salario del contrato. Guárdalo sin salario o pide ayuda a quien tenga ese permiso.";
+
+function esDenegacionSalario(error: { code?: string; message?: string }): boolean {
+  return (
+    error.code === "P0001" &&
+    typeof error.message === "string" &&
+    /^Permiso denegado/.test(error.message) &&
+    error.message.includes("compensacion.editar")
+  );
+}
 
 /**
  * Datos para CREAR un contrato — puesto/departamento/plantilla son
@@ -101,7 +115,7 @@ export async function crearContrato(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.contratos.crear");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "crearContrato") };
     throw err;
   }
 
@@ -116,7 +130,10 @@ export async function crearContrato(
     p_salario_base: input.salarioBase,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    if (esDenegacionSalario(error)) return { ok: false, message: SIN_PERMISO_SALARIO };
+    return { ok: false, message: mensajeDeError(error, "crearContrato", "No se pudo crear el contrato. Intenta de nuevo.") };
+  }
 
   revalidatePath("/contratacion/contratos");
   return {
@@ -135,7 +152,7 @@ export async function editarContrato(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "editarContrato") };
     throw err;
   }
 
@@ -151,7 +168,10 @@ export async function editarContrato(
     p_salario_base: input.salarioBase,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    if (esDenegacionSalario(error)) return { ok: false, message: SIN_PERMISO_SALARIO };
+    return { ok: false, message: mensajeDeError(error, "editarContrato", "No se pudo guardar el contrato. Intenta de nuevo.") };
+  }
 
   revalidatePath(`/contratacion/contratos/${contratoId}`);
   revalidatePath("/contratacion/contratos");
@@ -170,7 +190,7 @@ export async function activarContrato(contratoId: string): Promise<PinResult> {
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.contratos.activar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "activarContrato") };
     throw err;
   }
 
@@ -179,7 +199,9 @@ export async function activarContrato(contratoId: string): Promise<PinResult> {
     p_company_id: companyId,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "activarContrato", "No se pudo activar el contrato. Intenta de nuevo.") };
+  }
 
   revalidatePath(`/contratacion/contratos/${contratoId}`);
   revalidatePath("/contratacion/contratos");
@@ -198,7 +220,7 @@ export async function regenerarPin(contratoId: string): Promise<PinResult> {
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.credenciales.regenerar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "regenerarPin") };
     throw err;
   }
 
@@ -207,7 +229,9 @@ export async function regenerarPin(contratoId: string): Promise<PinResult> {
     p_company_id: companyId,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "regenerarPin", "No se pudo regenerar el PIN. Intenta de nuevo.") };
+  }
 
   revalidatePath(`/contratacion/contratos/${contratoId}`);
   return { ok: true, pin: data?.[0]?.pin_kiosko };
@@ -225,7 +249,7 @@ export async function verEstadoCredencial(contratoId: string): Promise<EstadoCre
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.credenciales.ver");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "verEstadoCredencial") };
     throw err;
   }
 
@@ -234,7 +258,12 @@ export async function verEstadoCredencial(contratoId: string): Promise<EstadoCre
     p_company_id: companyId,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return {
+      ok: false,
+      message: mensajeDeError(error, "verEstadoCredencial", "No se pudo consultar el estado de la credencial. Intenta de nuevo."),
+    };
+  }
 
   const row = data?.[0];
   return {
@@ -263,7 +292,7 @@ export async function asignarJornada(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "asignarJornada") };
     throw err;
   }
 
@@ -274,7 +303,9 @@ export async function asignarJornada(
     p_vigente_desde: vigenteDesde || undefined,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "asignarJornada", "No se pudo asignar la jornada. Intenta de nuevo.") };
+  }
 
   revalidatePath(`/contratacion/contratos/${contratoId}`);
   return { ok: true, vigenteDesde: data?.[0]?.vigente_desde };
@@ -287,7 +318,7 @@ export async function finalizarContrato(contratoId: string): Promise<ActionResul
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.contratos.finalizar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "finalizarContrato") };
     throw err;
   }
 
@@ -296,7 +327,9 @@ export async function finalizarContrato(contratoId: string): Promise<ActionResul
     p_company_id: companyId,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "finalizarContrato", "No se pudo finalizar el contrato. Intenta de nuevo.") };
+  }
 
   revalidatePath(`/contratacion/contratos/${contratoId}`);
   revalidatePath("/contratacion/contratos");

@@ -22,7 +22,9 @@ export default function AppError({
         No se pudo completar la operación
       </h1>
       <p className="max-w-md text-sm text-neutral-500">
-        {error.message || "Ocurrió un error inesperado. Intenta de nuevo."}
+        {/* Nunca error.message: puede traer texto de Postgres/PostgREST. El
+            detalle queda en la consola y en el log del servidor (digest). */}
+        Ocurrió un error inesperado. Intenta de nuevo.
       </p>
       <button
         type="button"

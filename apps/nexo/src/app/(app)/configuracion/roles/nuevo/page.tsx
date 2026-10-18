@@ -3,6 +3,7 @@ import { hasPermission } from "@nexo/permissions";
 import { EmptyState, PageHeader } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAdministracion } from "../../errores";
 import { agruparCatalogo } from "@/lib/permisos-catalogo";
 import RolForm from "../rol-form";
 
@@ -37,7 +38,7 @@ export default async function NuevoRolPage() {
       <PageHeader title="Nuevo rol" description="Nombre, aplicaciones con acceso y permisos internos de cada una." />
       {error ? (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudo cargar el catálogo de permisos: {error.message}
+          {mensajeAdministracion(error, "roles/nuevo: catálogo de permisos", "No se pudo cargar el catálogo de permisos. Intenta de nuevo.")}
         </p>
       ) : (
         <RolForm apps={agruparCatalogo(catalogo ?? [])} plantillas={plantillas ?? []} inicial={null} />

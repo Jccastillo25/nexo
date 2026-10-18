@@ -169,7 +169,10 @@ export default function UsuarioForm({ roles, sucursales, sucursalesAsignadas, us
         show(usuario ? "Usuario actualizado." : "Usuario creado. Deberá cambiar la contraseña al entrar.", "success");
         router.push("/configuracion/usuarios");
       } catch (err) {
-        const message = err instanceof Error && err.message ? err.message : "No se pudo guardar.";
+        // Rechazo de transporte o error inesperado: el detalle va a la consola,
+        // nunca a la pantalla.
+        console.error("UsuarioForm: guardar", err);
+        const message = "No se pudo guardar. Intenta de nuevo.";
         setError(message);
         show(message, "error");
       }

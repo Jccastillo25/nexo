@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { hasPermission } from "@nexo/permissions";
-import { DEFAULT_CATEGORY_COLOR, NexoIcon, getCategoryColor, getCategoryIcon } from "@nexo/ui";
+import { AppTileIcon } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 import type { VisibleApp } from "@/lib/supabase/database.types";
@@ -12,17 +12,151 @@ export const metadata: Metadata = {
   title: "Nexo",
 };
 
-// Agrupa por categoria, preservando el orden de primera aparicion — mismo
-// patron visual que la grilla de apps de Odoo (secciones tituladas:
-// Finanzas, Ventas, Cadena de suministro...). Ver docs/planning/DISENO_UX_UI.md.
-function groupByCategory(apps: VisibleApp[]): [string, VisibleApp[]][] {
-  const groups = new Map<string, VisibleApp[]>();
-  for (const app of apps) {
-    const key = app.category ?? "General";
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(app);
+// Mosaicos blancos con el icono a color de la app y el nombre debajo, al
+// estilo de la pantalla de inicio de Odoo (pedido del usuario 2026-10-17),
+// agrupados en secciones por categoría (core.apps.category) con un título
+// arriba de cada grupo (pedido del usuario 2026-10-17, segunda parte).
+//
+// Cuadrícula fija (pedido del usuario 2026-10-17: "tener cuadrículas para que
+// se vayan agregando aplicaciones y se vea siempre con la misma similitud
+// visual, con Ventas arriba ocupando todo el espacio"): la página tiene
+// columnas de 104 px (3 en celular, 5 en tablet, 8 en escritorio) y cada
+// sección usa subgrid sobre esas mismas columnas, así todos los mosaicos
+// quedan alineados sin importar cuántas apps tenga cada categoría. Una
+// sección ocupa tantas columnas como apps (mínimo 2, para que quepa el
+// título); si tiene más que columnas, sus mosaicos bajan de fila. Las
+// secciones de SECCIONES_ANCHO_COMPLETO ocupan siempre la fila entera.
+const seccionesClass =
+  "grid grid-cols-[repeat(3,104px)] justify-center gap-x-3 gap-y-10 sm:grid-cols-[repeat(5,104px)] sm:gap-x-6 lg:grid-cols-[repeat(8,104px)]";
+const seccionClass = "grid grid-cols-subgrid content-start gap-y-5";
+const tituloClass =
+  "col-span-full border-b border-neutral-300/70 px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-neutral-500";
+
+// Orden de las secciones: estas categorías primero y en este orden; las demás
+// después, en el orden en que llegan. Administración (Configuración) siempre
+// al final.
+const ORDEN_CATEGORIAS = ["Ventas", "Cadena de suministro", "Finanzas", "RRHH", "Servicios"];
+const SECCIONES_ANCHO_COMPLETO = new Set(["Ventas"]);
+
+// Clases literales (Tailwind solo genera las que ve escritas en el código).
+const SPAN_BASE = ["col-span-2", "col-span-2", "col-span-2", "col-span-3"];
+const SPAN_SM = ["sm:col-span-2", "sm:col-span-2", "sm:col-span-2", "sm:col-span-3", "sm:col-span-4", "sm:col-span-5"];
+const SPAN_LG = [
+  "lg:col-span-2",
+  "lg:col-span-2",
+  "lg:col-span-2",
+  "lg:col-span-3",
+  "lg:col-span-4",
+  "lg:col-span-5",
+  "lg:col-span-6",
+  "lg:col-span-7",
+  "lg:col-span-8",
+];
+
+function spanDeSeccion(categoria: string, cantidad: number): string {
+  if (SECCIONES_ANCHO_COMPLETO.has(categoria)) return "col-span-full";
+  const n = (max: number) => Math.min(Math.max(cantidad, 2), max);
+  return `${SPAN_BASE[n(3)]} ${SPAN_SM[n(5)]} ${SPAN_LG[n(8)]}`;
+}
+const tileClass =
+  "flex h-[76px] w-[76px] items-center justify-center rounded-2xl bg-white shadow-[0_1px_3px_rgba(15,23,42,0.08),0_6px_16px_-6px_rgba(15,23,42,0.18)] ring-1 ring-black/5 transition-shadow duration-150 group-hover:shadow-[0_2px_6px_rgba(15,23,42,0.1),0_14px_24px_-8px_rgba(15,23,42,0.25)] group-hover:ring-black/10";
+// Sin translate en el hover: un transform animado hace que Chrome dibuje el
+// mosaico como capa rasterizada y, con escalado de pantalla de Windows (125 %,
+// 150 %), los iconos se ven borrosos.
+const itemClass =
+  "group flex w-[104px] flex-col items-center gap-2 rounded-xl p-1 text-center outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
+
+// Apps planificadas que se muestran como "Próximamente" (pedido del usuario
+// 2026-10-17: "para tener una mejor orientación visual"). Mosaico sin enlace,
+// igual que los ítems "Pronto" del menú lateral: no hay página placeholder.
+// Si una de estas apps llega en get_visible_apps (mismo slug), se muestra la
+// real y no el aviso. Flotilla y Agencia ya existen en core.apps, pero hoy no
+// están habilitadas para la empresa; si se habilitan y un usuario no tiene
+// permiso, verá "Próximamente" en vez de nada (aceptado: es solo orientación).
+// No van aquí las funciones que ya viven dentro de un módulo: Nómina (RRHH)
+// y Cotizaciones (CRM). Asistencia tampoco: desde 2026-10-17 es una app
+// propia en core.apps (slug `asistencia`, mismo deploy que RRHH bajo
+// /rrhh/asistencia) y llega por get_visible_apps. Listas de precios sí: el
+// usuario decidió (2026-10-17) que sea una app aparte, fuera de Productos.
+interface AppProxima {
+  slug: string;
+  name: string;
+  category: string;
+  icon: string;
+}
+
+const APPS_PROXIMAMENTE: AppProxima[] = [
+  { slug: "punto-de-venta", name: "Punto de venta", category: "Ventas", icon: "register" },
+  { slug: "facturacion", name: "Facturación", category: "Ventas", icon: "receipt" },
+  { slug: "precios", name: "Listas de precios", category: "Cadena de suministro", icon: "tag" },
+  { slug: "inventario", name: "Inventario", category: "Cadena de suministro", icon: "warehouse" },
+  { slug: "compras", name: "Compras", category: "Cadena de suministro", icon: "cart" },
+  { slug: "flotilla", name: "Flotilla", category: "Cadena de suministro", icon: "truck" },
+  { slug: "contabilidad", name: "Contabilidad", category: "Finanzas", icon: "calculator" },
+  { slug: "bancos", name: "Bancos", category: "Finanzas", icon: "bank" },
+  { slug: "agencia", name: "Agencia digital", category: "Servicios", icon: "sun" },
+];
+
+type ItemLauncher = { tipo: "app"; app: VisibleApp } | { tipo: "proxima"; app: AppProxima };
+
+// Agrupa por categoría: primero las apps reales (en el orden de
+// get_visible_apps) y después las "Próximamente" de esa categoría. Una app
+// sin categoría cae en "General".
+function agruparPorCategoria(apps: VisibleApp[]): [string, ItemLauncher[]][] {
+  const grupos = new Map<string, ItemLauncher[]>();
+  const agregar = (clave: string, item: ItemLauncher) => {
+    const grupo = grupos.get(clave);
+    if (grupo) grupo.push(item);
+    else grupos.set(clave, [item]);
+  };
+  for (const app of apps) agregar(app.category ?? "General", { tipo: "app", app });
+  const visibles = new Set(apps.map((a) => a.slug));
+  for (const app of APPS_PROXIMAMENTE) {
+    if (!visibles.has(app.slug)) agregar(app.category, { tipo: "proxima", app });
   }
-  return Array.from(groups.entries());
+  const posicion = (categoria: string) => {
+    const i = ORDEN_CATEGORIAS.indexOf(categoria);
+    return i === -1 ? ORDEN_CATEGORIAS.length : i;
+  };
+  // sort es estable: las categorías fuera de ORDEN_CATEGORIAS conservan el
+  // orden de llegada entre sí.
+  return Array.from(grupos.entries()).sort(([a], [b]) => posicion(a) - posicion(b));
+}
+
+function esRutaInterna(route: string | null | undefined): route is string {
+  return typeof route === "string" && route.startsWith("/") && !route.startsWith("//") && !route.startsWith("/\\");
+}
+
+function AppTile({ app }: { app: VisibleApp }) {
+  // Cambio de zona: <a> plano para cargar la aplicación completa, sin prefetch
+  // ni navegación cliente con los recursos de Nexo (Multi-Zones).
+  return (
+    <a href={app.route} className={itemClass}>
+      <span className={tileClass}>
+        <AppTileIcon icon={app.icon} category={app.category} className="h-12 w-12" />
+      </span>
+      <span className="text-[13px] leading-tight text-neutral-700">{app.name}</span>
+    </a>
+  );
+}
+
+function ProximaTile({ app }: { app: AppProxima }) {
+  return (
+    <div className="flex w-[104px] flex-col items-center gap-2 p-1 text-center">
+      <span className="flex h-[76px] w-[76px] items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white/50">
+        {/* Gris por color de relleno, no con filter (grayscale/opacity rasterizan el SVG y lo desenfocan). */}
+        <AppTileIcon
+          icon={app.icon}
+          category={app.category}
+          className="h-12 w-12 [&_[class*=fill-]:not(.fill-white)]:fill-neutral-300!"
+        />
+      </span>
+      <span className="text-[13px] leading-tight text-neutral-400">{app.name}</span>
+      <span className="-mt-1 rounded-full bg-neutral-200/70 px-2 py-0.5 text-[10px] font-medium text-neutral-500">
+        Próximamente
+      </span>
+    </div>
+  );
 }
 
 // Tarjeta "Configuración" del Launcher (decisión del usuario 2026-10-14:
@@ -65,12 +199,21 @@ export default async function PanelPage() {
     Promise.all(DESTINOS_CONFIGURACION.map((d) => hasPermission({ supabase, companyId }, d.code))),
   ]);
 
-  const groups = groupByCategory(apps ?? []);
+  // El detalle técnico queda en el log del servidor, nunca en pantalla.
+  if (error) console.error("get_visible_apps", error);
+  // Solo rutas internas del dominio (Multi-Zones + SSO): una URL absoluta o
+  // "//host" en core.apps.route sacaría al usuario del dominio de la sesión.
+  const lista = (apps ?? []).filter((app) => {
+    if (esRutaInterna(app.route)) return true;
+    console.warn("core.apps.route no interna; la app no se muestra", app.slug);
+    return false;
+  });
+  const secciones = agruparPorCategoria(lista);
   const configuracionHref = DESTINOS_CONFIGURACION.find((_, i) => permisosConfig[i])?.href;
 
   return (
-    <div className="min-h-screen bg-neutral-100">
-      <header className="flex items-center justify-between border-b border-neutral-200 bg-white px-4 py-3 sm:px-6">
+    <div className="min-h-screen bg-gradient-to-br from-violet-100 via-slate-50 to-sky-100">
+      <header className="flex items-center justify-between border-b border-white/60 bg-white/60 px-4 py-3 backdrop-blur sm:px-6">
         <span className="text-sm font-semibold tracking-tight text-neutral-900">Nexo</span>
         <div className="flex items-center gap-3 text-sm text-neutral-500">
           {user?.email && <span className="hidden sm:inline">{user.email}</span>}
@@ -82,19 +225,16 @@ export default async function PanelPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <div>
-          <h1 className="text-xl font-semibold text-neutral-900">Aplicaciones</h1>
-          <p className="text-sm text-neutral-500">Elegí una aplicación para continuar.</p>
-        </div>
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14">
+        <h1 className="sr-only">Aplicaciones</h1>
 
         {error && (
-          <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-            No se pudo cargar la lista de módulos: {error.message}
+          <p role="alert" className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+            No se pudo cargar la lista de aplicaciones. Intenta recargar la página.
           </p>
         )}
 
-        {!error && groups.length === 0 && (
+        {!error && lista.length === 0 && !configuracionHref && (
           <p className="rounded-md border border-neutral-200 bg-white px-4 py-6 text-sm text-neutral-500">
             No tenés ninguna aplicación habilitada todavía. Pedile a un
             administrador que te asigne un rol con acceso a las aplicaciones
@@ -102,57 +242,44 @@ export default async function PanelPage() {
           </p>
         )}
 
-        {groups.length > 0 && (
-          <div className="flex flex-col gap-6">
-            {groups.map(([category, categoryApps]) => (
-              <section key={category} className="flex flex-col gap-3">
-                <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-neutral-400">
-                  {category}
+        {(secciones.length > 0 || configuracionHref) && (
+          <div className={seccionesClass}>
+            {secciones.map(([categoria, items], i) => (
+              <section
+                key={categoria}
+                aria-labelledby={`seccion-${i}`}
+                className={`${seccionClass} ${spanDeSeccion(categoria, items.length)}`}
+              >
+                <h2 id={`seccion-${i}`} className={tituloClass}>
+                  {categoria}
                 </h2>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-                  {categoryApps.map((app) => {
-                    // Cambio de zona: cargar la aplicación completa, sin prefetch
-                    // ni navegación cliente con los recursos de Nexo.
-                    const color = getCategoryColor(app.category);
-                    const AppIcon = getCategoryIcon(app.category);
-                    return (
-                      <a
-                        key={app.slug}
-                        href={app.route}
-                        className="flex flex-col items-center gap-3 rounded-lg border border-neutral-200 bg-white p-5 text-center transition-shadow hover:shadow-md"
-                      >
-                        <span className={`flex h-12 w-12 items-center justify-center rounded-lg ${color.bg} ${color.text}`}>
-                          <AppIcon className="h-6 w-6" />
-                        </span>
-                        <span className="text-sm font-medium">{app.name}</span>
-                      </a>
-                    );
-                  })}
-                </div>
+                {items.map((item) =>
+                  item.tipo === "app" ? (
+                    <AppTile key={item.app.slug} app={item.app} />
+                  ) : (
+                    <ProximaTile key={item.app.slug} app={item.app} />
+                  ),
+                )}
               </section>
             ))}
-          </div>
-        )}
 
-        {configuracionHref && (
-          <section className="flex flex-col gap-3">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-neutral-400">
-              Administración
-            </h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-              <Link
-                href={configuracionHref}
-                className="flex flex-col items-center gap-3 rounded-lg border border-neutral-200 bg-white p-5 text-center transition-shadow hover:shadow-md"
+            {configuracionHref && (
+              <section
+                aria-labelledby="seccion-administracion"
+                className={`${seccionClass} ${spanDeSeccion("Administración", 1)}`}
               >
-                <span
-                  className={`flex h-12 w-12 items-center justify-center rounded-lg ${DEFAULT_CATEGORY_COLOR.bg} ${DEFAULT_CATEGORY_COLOR.text}`}
-                >
-                  <NexoIcon name="settings" className="h-6 w-6" />
-                </span>
-                <span className="text-sm font-medium">Configuración</span>
-              </Link>
-            </div>
-          </section>
+                <h2 id="seccion-administracion" className={tituloClass}>
+                  Administración
+                </h2>
+                <Link href={configuracionHref} className={itemClass}>
+                  <span className={tileClass}>
+                    <AppTileIcon icon="settings" className="h-12 w-12" />
+                  </span>
+                  <span className="text-[13px] leading-tight text-neutral-700">Configuración</span>
+                </Link>
+              </section>
+            )}
+          </div>
         )}
       </main>
     </div>

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
@@ -26,7 +26,7 @@ export async function eliminarEmpleado(empleadoId: string): Promise<ActionResult
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.empleados.eliminar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "eliminarEmpleado") };
     throw err;
   }
 
@@ -35,7 +35,9 @@ export async function eliminarEmpleado(empleadoId: string): Promise<ActionResult
     p_company_id: companyId,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "eliminarEmpleado", "No se pudo eliminar el empleado. Intenta de nuevo.") };
+  }
 
   revalidatePath("/expedientes");
   return { ok: true };

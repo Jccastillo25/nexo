@@ -359,8 +359,10 @@ hardcodeado en la app (todo pasa por `core.has_permission()`).
 | `rrhh.jornada_dias` | Catálogo (no particionada) | **F1.4**: reglas por día de semana (1=lunes..7=domingo) de una jornada — un único bloque entrada/salida, sin turnos nocturnos ni cruce de medianoche. Mismas policies que `jornadas` |
 | `rrhh.contrato_jornadas` | Catálogo (no particionada) | **F1.4**: histórico de asignación de jornada a un contrato, por rango de vigencia (`vigente_desde`/`vigente_hasta`). `EXCLUDE USING gist` (requiere `btree_gist`) contra solapamientos por `contrato_id`. Escritura SOLO vía `rrhh.fn_asignar_jornada_contrato` — sin policy de insert/update/delete directo, mismo criterio que `contrato_compensacion` |
 | `rrhh.feriados` | Catálogo (no particionada) | **F1.4**: calendario de feriados por empresa. Sin columna de tipo/alcance ni de pago — decisión de negocio pendiente (ver `RRHH_MVP.md` sección 14). RLS/GRANT directo, gateada por `rrhh.asistencia.feriados.ver/crear/editar/eliminar` (únicos 4 códigos nuevos de F1.4) |
-| `rrhh.kiosko_dispositivos` | Catálogo (no particionada) | Terminales físicas de marcaje. El `id` (UUID aleatorio) actúa como credencial del dispositivo frente al RPC de marcación |
-| `rrhh.asistencia_marcas` | **Hechos, particionada por mes** (`marcado_en`) | Un renglón por marca de entrada/salida, para siempre. Particiones vigentes: `_2026_09`, `_2026_10`, `_2026_11` (mantenidas por `core.fn_asegurar_particiones_futuras`, 2 meses de anticipación) |
+| `rrhh.kiosko_dispositivos` | Catálogo (no particionada) | Terminales físicas de marcaje. El `id` (UUID aleatorio) actúa como credencial del dispositivo frente al RPC de marcación heredado (`registrar_marca_kiosko`, mientras exista `NEXO_KIOSKO_ID`) |
+| `rrhh.kiosko_credenciales` | Estado operativo (no particionada; una fila por dispositivo) | **Enrolamiento, 2026-10-17** (`20261017180853`). Guarda el hash SHA-256 del código de asignación de 10 dígitos (vence en 10 min, un solo uso) y el hash del token del equipo (256 bits, en cookie httpOnly de la terminal, sin vencimiento hasta revocarse), además de quién y cuándo lo generó, emitió, usó por última vez y revocó. RLS sin políticas y sin grants: solo la tocan las RPC. Los eventos van a `core.audit_log` sin secretos |
+| `rrhh.kiosko_canje_limites` | Estado operativo (una sola fila) | Límite global de canjes fallidos: 300 en 10 min bloquean el canje 15 min (desde `20261017183023`; antes 20) y el bloqueo se audita en `core.audit_log` (`asistencia.terminal.canje_bloqueado`). No afecta la marcación. Sin grants |
+| `rrhh.asistencia_marcas` | **Hechos, particionada por mes** (`marcado_en`) | Un renglón por marca, para siempre. `tipo`: `entrada`, `inicio_descanso`, `fin_descanso` o `salida` (desde `20261017233458`, P4c; antes solo entrada/salida). La secuencia válida por contrato y día la impone `rrhh.fn_registrar_marca_kiosko(p_pin, p_kiosko_id, p_solicitud_id, p_accion)`: con `p_accion` nulo devuelve las acciones válidas sin escribir. Particiones vigentes: `_2026_09`, `_2026_10`, `_2026_11` (mantenidas por `core.fn_asegurar_particiones_futuras`, 2 meses de anticipación) |
 | `rrhh.seguridad_accesos` | **Hechos, particionada por mes** (`intentado_en`) | Solo intentos **fallidos** de acceso operativo (`nombre_usuario` + PIN) — no es un log de éxitos. Señal de fuerza bruta/enumeración |
 | `rrhh.parametros_ley` | Catálogo versionado | Valores oficiales INSS/INATEC que debe leer el motor de planillas (nunca hardcodeados). Versionado por `vigente_desde`/`vigente_hasta`: nunca se sobreescribe un valor histórico. **`techo_inss` sembrado con un valor de ejemplo (100000.00), no verificado como el oficial vigente** — ver [RRHH_MVP.md](RRHH_MVP.md) "Decisiones de negocio pendientes" |
 | `rrhh.planillas` | Catálogo (no particionada — volumen acotado, una fila por corrida) | Corridas de nómina: `periodo_inicio/fin`, `estado` (`borrador`/`aprobada`/`anulada`), `total`. `asiento_contable_id` queda suelto hasta que exista el schema `contabilidad` |
@@ -518,6 +520,14 @@ Migración 20261016231000: conserva firmas y retorno de activar/regenerar, usa g
 P3 preparado: contrato_id NOT NULL con FK (contrato_id,company_id,empleado_id), UNIQUE destino e indices en FKs y empresa/fecha; guardia aborta si existen marcas.
 
 ## RRHH P4 — preparado, sin aplicar
+Enrolamiento de terminales (2026-10-17, `20261017180853`). Funciones internas `rrhh.fn_*` con `search_path=''`, sin EXECUTE para la API, y wrappers en `public`:
+- `asistencia_generar_codigo_terminal(company, kiosko)`: exige `kioskos.asignar`.
+- `asistencia_revocar_terminal(company, kiosko)`: exige `kioskos.revocar`; también cancela un código pendiente.
+- `asistencia_estado_terminales(company)`: exige `kioskos.ver` y no devuelve hashes.
+- `canjear_codigo_terminal(codigo)`: anon.
+- `estado_terminal(token)`: anon.
+- `registrar_marca_terminal(token, pin, solicitud, confirmar)`: anon; resuelve el token y delega en `fn_registrar_marca_kiosko`.
+
 P4a agrega kiosko_solicitudes particionada por creado_en, indices FK/empresa-fecha/token/JSONB y registro en core.tablas_particionadas. Sin acceso directo ni retencion automatica. P4b reemplaza firma del kiosco por cuatro argumentos y respuesta JSON sin identidad; guarda resultados definitivos y serializa por token y contrato/dia America/Managua.
 
 ## RRHH P6 — preparado, sin aplicar

@@ -36,7 +36,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isPublicPath = PUBLIC_PATHS.some((p) => path.startsWith(p));
+  // Coincidencia exacta o subruta: un prefijo suelto haria publica cualquier
+  // ruta futura que empiece igual (ej. /login-admin).
+  const isPublicPath = PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();

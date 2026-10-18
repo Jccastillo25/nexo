@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { hasPermission } from "@nexo/permissions";
+import { hasPermission, mensajeDeError } from "@nexo/permissions";
 import { MetricCard, PageHeader } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
@@ -37,7 +37,9 @@ export default async function DashboardPage() {
       <div className="flex max-w-6xl flex-col gap-6">
         <PageHeader title="Catálogo de productos" />
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudo cargar el resumen{error ? `: ${error.message}` : "."}
+          {error
+            ? mensajeDeError(error, "productos_resumen", "No se pudo cargar el resumen. Intenta de nuevo.")
+            : "No se pudo cargar el resumen."}
         </p>
       </div>
     );

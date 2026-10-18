@@ -4,6 +4,7 @@ import { hasPermission } from "@nexo/permissions";
 import { PageHeader } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAtencion } from "@/lib/errores";
 import { rangoDe, type Metricas } from "@/lib/metricas";
 import FiltrosMetricas from "@/components/metricas/filtros";
 import ResumenKpis from "@/components/metricas/resumen";
@@ -49,7 +50,9 @@ export default async function ReportesPage({ searchParams }: PageProps<"/reporte
       <FiltrosMetricas ruta="/reportes" periodo={periodo} sucursal={sucursal} sucursales={sucursales} />
       {error || !metricas ? (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudieron cargar los reportes{error ? `: ${error.message}` : "."}
+          {error
+            ? mensajeAtencion(error, "atencion_metricas (reportes)", "No se pudieron cargar los reportes. Intenta de nuevo.")
+            : "No se pudieron cargar los reportes."}
         </p>
       ) : (
         <>

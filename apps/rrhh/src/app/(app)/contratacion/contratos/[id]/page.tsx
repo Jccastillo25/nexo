@@ -77,7 +77,7 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
     .schema("rrhh")
     .from("contratos")
     .select(
-      "id, empleado_id, numero_contrato, estado, puesto_id, departamento_id, plantilla_contrato_id, modalidad_contrato, fecha_inicio, fecha_fin_prevista, fecha_fin_real, empleados(nombre, apellido), puestos(nombre), departamentos(nombre), plantillas_contrato(nombre)"
+      "id, empleado_id, numero_contrato, estado, puesto_id, departamento_id, plantilla_contrato_id, modalidad_contrato, fecha_inicio, fecha_fin_prevista, fecha_fin_real, empleados!contratos_empleado_id_fkey(nombre, apellido), puestos!contratos_puesto_id_fkey(nombre), departamentos!contratos_departamento_id_fkey(nombre), plantillas_contrato!contratos_plantilla_contrato_id_fkey(nombre)"
     )
     .eq("id", id)
     .eq("company_id", companyId)

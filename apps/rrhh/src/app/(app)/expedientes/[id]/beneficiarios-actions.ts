@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
@@ -22,9 +22,10 @@ export interface BeneficiarioInput {
  * Fase 5 (2026-09-16, bloque pre-F1.5): beneficiarios -- dato sensible,
  * gateado por rrhh.expedientes.beneficiarios.* (solo admin). La suma de
  * porcentaje de filas activas por empleado no puede exceder 100 -- la
- * valida rrhh.fn_validar_porcentaje_beneficiarios() (trigger), el mensaje
- * de error de Postgres se propaga tal cual (ya pensado para el usuario
- * final). Sin DELETE expuesto -- se desactiva.
+ * valida rrhh.fn_validar_porcentaje_beneficiarios() (trigger), cuyo P0001
+ * ya esta pensado para el usuario final y mensajeDeError lo deja pasar;
+ * cualquier otro error de Postgres va al log y la UI recibe un mensaje
+ * generico. Sin DELETE expuesto -- se desactiva.
  */
 export async function crearBeneficiario(empleadoId: string, input: BeneficiarioInput): Promise<ActionResult> {
   const supabase = await createClient();
@@ -33,7 +34,7 @@ export async function crearBeneficiario(empleadoId: string, input: BeneficiarioI
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.beneficiarios.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "crearBeneficiario") };
     throw err;
   }
 
@@ -47,7 +48,9 @@ export async function crearBeneficiario(empleadoId: string, input: BeneficiarioI
     telefono: input.telefono?.trim() || null,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "crearBeneficiario", "No se pudo agregar el beneficiario. Intenta de nuevo.") };
+  }
 
   revalidatePath(`/expedientes/${empleadoId}`);
   return { ok: true };
@@ -64,7 +67,7 @@ export async function editarBeneficiario(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.beneficiarios.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "editarBeneficiario") };
     throw err;
   }
 
@@ -83,7 +86,9 @@ export async function editarBeneficiario(
     .eq("empleado_id", empleadoId)
     .eq("company_id", companyId);
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeDeError(error, "editarBeneficiario", "No se pudo guardar el beneficiario. Intenta de nuevo.") };
+  }
 
   revalidatePath(`/expedientes/${empleadoId}`);
   return { ok: true };

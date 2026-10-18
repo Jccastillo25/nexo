@@ -363,7 +363,9 @@ local). Por eso "probar en local" significa: **código solo en tu PC**, pero
 | 2026-10-16 | **Probar todo en local antes de subir a producción** (código local contra `nexo-core`; ver sección 6). |
 | 2026-10-16 | Listas de precios **debe comunicarse con Productos**: llamar los productos, hacer la comparativa de precios y generar listas de precios oficiales. Si es app aparte o sección de Productos **queda sin decidir**. |
 
-Recomendación para Listas de precios (pendiente de aprobación): **app aparte**
+| 2026-10-17 | **Decidido por el usuario: Listas de precios es una app aparte**, fuera de Productos ("precios podemos hacerlo como una app aparte, sería sacarlo de producto"). Se quitó el grupo "Precios" del menú de Productos y la app figura como "Próximamente" en el Launcher (slug previsto `precios`). Su Paso Cero (matriz de permisos y roles) se hace antes de cualquier tabla o pantalla. |
+
+Recomendación para Listas de precios (**aprobada 2026-10-17**): **app aparte**
 (`precios`, su propio Paso Cero y sus roles — quien publica precios oficiales
 no tiene por qué editar el catálogo). Están en la misma base `nexo-core`, así
 que la comunicación es directa: las tablas de precios referencian
@@ -375,4 +377,4 @@ Productos; no se copia el catálogo.
 Pendiente:
 
 1. ~~Activar la app para la empresa~~ — activada 2026-10-16 (`20261016220935`). Falta el recorrido en local con sesión real.
-2. Decidir si Listas de precios es app aparte o sección de Productos.
+2. ~~Decidir si Listas de precios es app aparte o sección de Productos~~: es app aparte (2026-10-17). Siguiente paso: su Paso Cero.

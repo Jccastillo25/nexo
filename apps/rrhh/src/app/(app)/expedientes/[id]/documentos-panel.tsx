@@ -89,8 +89,12 @@ export default function DocumentosPanel({
           .from("rrhh-documentos-privados")
           .uploadToSignedUrl(pedido.path, pedido.token, file);
         if (uploadError) {
-          setError(`No se pudo subir el archivo: ${uploadError.message}`);
-          show(`No se pudo subir el archivo: ${uploadError.message}`, "error");
+          // El detalle de Storage queda en la consola; la UI muestra un
+          // mensaje propio (revisión de seguridad 2026-10-17, H2).
+          console.error("subirDocumento: uploadToSignedUrl", uploadError);
+          const mensaje = "No se pudo subir el archivo. Revisa tu conexión e intenta de nuevo.";
+          setError(mensaje);
+          show(mensaje, "error");
           return;
         }
 

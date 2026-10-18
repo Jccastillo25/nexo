@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
@@ -49,7 +49,7 @@ export async function crearEmpleado(
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.empleados.crear");
   } catch (err) {
     if (err instanceof PermissionDeniedError) {
-      return { ok: false, message: err.message };
+      return { ok: false, message: mensajeDeError(err, "crearEmpleado") };
     }
     throw err;
   }
@@ -74,10 +74,12 @@ export async function crearEmpleado(
   });
 
   if (error) {
-    // rrhh.fn_crear_empleado propaga mensajes ya pensados para el
-    // usuario final (permiso faltante, validaciones) tal cual — no son
-    // datos sensibles de infraestructura.
-    return { ok: false, message: error.message };
+    // rrhh.fn_crear_empleado lanza P0001 con mensajes pensados para el
+    // usuario final (validaciones, cédula duplicada): mensajeDeError los
+    // deja pasar. La denegación de permiso y cualquier error técnico de
+    // Postgres se traducen a un mensaje genérico y van al log del servidor
+    // (revisión de seguridad 2026-10-17, H2).
+    return { ok: false, message: mensajeDeError(error, "crearEmpleado", "No se pudo crear el empleado. Intenta de nuevo.") };
   }
 
   const row = data?.[0];

@@ -3,6 +3,7 @@ import { hasPermission } from "@nexo/permissions";
 import { DataTable, EmptyState, PageHeader } from "@nexo/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAdministracion } from "../errores";
 import type { EventoAuditoria, Json } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = {
@@ -71,7 +72,7 @@ export default async function AuditoriaPage() {
       <PageHeader title="Auditoría" description="Historial de cambios en usuarios y roles: quién hizo qué y cuándo." />
       {error && (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudo cargar la auditoría: {error.message}
+          {mensajeAdministracion(error, "auditoria: admin_listar_auditoria", "No se pudo cargar la auditoría. Intenta de nuevo.")}
         </p>
       )}
       <DataTable<EventoAuditoria>

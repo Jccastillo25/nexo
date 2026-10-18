@@ -85,7 +85,40 @@ export type Database = {
         Returns: { marca_id: string; empleado_id: string; empleado_label: string; contrato_id: string; contrato_numero: number; fecha_local: string; tipo: string; marcado_en: string; estado: string }[];
       };
       registrar_marca_kiosko: {
-        Args: { p_kiosko_id: string; p_pin: string; p_solicitud_id: string; p_confirmar_salida: boolean };
+        Args: { p_kiosko_id: string; p_pin: string; p_solicitud_id: string; p_accion: string | null };
+        Returns: Json;
+      };
+      // Enrolamiento de terminales (2026-10-17) — ver
+      // supabase/migrations/20261017180853_asistencia_enrolamiento_terminales.sql.
+      asistencia_generar_codigo_terminal: {
+        Args: { p_company_id: string; p_kiosko_id: string };
+        Returns: Json;
+      };
+      asistencia_revocar_terminal: {
+        Args: { p_company_id: string; p_kiosko_id: string };
+        Returns: Json;
+      };
+      asistencia_estado_terminales: {
+        Args: { p_company_id: string };
+        Returns: {
+          kiosko_id: string;
+          estado: string;
+          codigo_vence_en: string | null;
+          token_emitido_en: string | null;
+          ultimo_uso_en: string | null;
+          revocado_en: string | null;
+        }[];
+      };
+      canjear_codigo_terminal: {
+        Args: { p_codigo: string };
+        Returns: Json;
+      };
+      estado_terminal: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      registrar_marca_terminal: {
+        Args: { p_token: string; p_pin: string; p_solicitud_id: string; p_accion: string | null };
         Returns: Json;
       };
       set_pin_empleado: {
@@ -799,7 +832,7 @@ export type Database = {
           company_id: string;
           empleado_id: string;
           kiosko_id: string | null;
-          tipo: "entrada" | "salida";
+          tipo: "entrada" | "inicio_descanso" | "fin_descanso" | "salida"; // P4c (2026-10-17)
           origen: "kiosko" | "manual";
           creado_por: string | null;
           marcado_en: string;

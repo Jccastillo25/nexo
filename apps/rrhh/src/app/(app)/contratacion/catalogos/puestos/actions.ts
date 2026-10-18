@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
 
@@ -30,7 +30,7 @@ export async function crearPuesto(input: PuestoInput): Promise<ActionResult> {
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.puestos.crear");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "crearPuesto") };
     throw err;
   }
 
@@ -49,7 +49,7 @@ export async function crearPuesto(input: PuestoInput): Promise<ActionResult> {
     if (error.message.includes("duplicate key")) {
       return { ok: false, message: "Ya existe un puesto con ese nombre en esta empresa." };
     }
-    return { ok: false, message: error.message };
+    return { ok: false, message: mensajeDeError(error, "crearPuesto", "No se pudo crear el puesto. Intenta de nuevo.") };
   }
 
   revalidatePath("/contratacion/catalogos/puestos");
@@ -66,7 +66,7 @@ export async function editarPuesto(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.puestos.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "editarPuesto") };
     throw err;
   }
 
@@ -90,7 +90,7 @@ export async function editarPuesto(
     if (error.message.includes("duplicate key")) {
       return { ok: false, message: "Ya existe un puesto con ese nombre en esta empresa." };
     }
-    return { ok: false, message: error.message };
+    return { ok: false, message: mensajeDeError(error, "editarPuesto", "No se pudo guardar el puesto. Intenta de nuevo.") };
   }
 
   revalidatePath("/contratacion/catalogos/puestos");
@@ -116,7 +116,7 @@ export async function asignarPlantillaPredeterminada(
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.plantillas.editar");
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: err.message };
+    if (err instanceof PermissionDeniedError) return { ok: false, message: mensajeDeError(err, "asignarPlantillaPredeterminada") };
     throw err;
   }
 
@@ -128,7 +128,12 @@ export async function asignarPlantillaPredeterminada(
     .eq("company_id", companyId)
     .eq("predeterminada", true);
 
-  if (unsetError) return { ok: false, message: unsetError.message };
+  if (unsetError) {
+    return {
+      ok: false,
+      message: mensajeDeError(unsetError, "asignarPlantillaPredeterminada", "No se pudo asignar la plantilla. Intenta de nuevo."),
+    };
+  }
 
   if (plantillaId) {
     const { error: upsertError } = await supabase
@@ -139,7 +144,12 @@ export async function asignarPlantillaPredeterminada(
         { onConflict: "puesto_id,plantilla_id" }
       );
 
-    if (upsertError) return { ok: false, message: upsertError.message };
+    if (upsertError) {
+      return {
+        ok: false,
+        message: mensajeDeError(upsertError, "asignarPlantillaPredeterminada", "No se pudo asignar la plantilla. Intenta de nuevo."),
+      };
+    }
   }
 
   revalidatePath("/contratacion/catalogos/puestos");

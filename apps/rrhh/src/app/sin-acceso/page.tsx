@@ -6,14 +6,17 @@ import { getPanelUrl } from "@/lib/panel";
 import { getLogoUrl } from "@/lib/platform-settings";
 
 export const metadata: Metadata = {
-  title: "Sin acceso · RRHH",
+  title: "Sin acceso",
 };
 
 /**
- * Se muestra cuando hay sesion valida pero sin el permiso `rrhh.ver_modulo`
- * para la empresa actual (ver el guard en app/(app)/layout.tsx). Vive
- * fuera del route group (app) a proposito: si estuviera adentro, el mismo
- * guard que redirige para aca volveria a redirigir, en loop infinito.
+ * Se muestra cuando hay sesion valida pero sin el permiso de visibilidad de
+ * la app para la empresa actual: `rrhh.ver_modulo` (guard de
+ * app/(app)/layout.tsx) o `asistencia.ver_modulo` (guard de
+ * app/(asistencia)/asistencia/layout.tsx, 2026-10-17). Por eso el texto es
+ * generico y no imprime codigos de permiso. Vive fuera de ambos route
+ * groups a proposito: si estuviera adentro, el mismo guard que redirige
+ * para aca volveria a redirigir, en loop infinito.
  * Mismo patron que apps/crm/src/app/sin-acceso/page.tsx.
  *
  * Nexo Enterprise UI (2026-09-07): restyle a tema claro — mismo sistema
@@ -32,9 +35,8 @@ export default async function SinAccesoPage() {
         <p className="text-xs uppercase tracking-[0.2em] text-neutral-400">Materiales J Castillo</p>
         <h1 className="mt-2 text-2xl font-semibold text-neutral-900">Sin acceso</h1>
         <p className="mt-4 text-sm text-neutral-500">
-          Tu cuenta no tiene el permiso <code>rrhh.ver_modulo</code> para
-          esta empresa. Si crees que es un error, pedile a un administrador
-          que te asigne el modulo RRHH.
+          Tu cuenta no tiene acceso a esta aplicación en esta empresa. Si
+          crees que es un error, pide a un administrador que te la asigne.
         </p>
 
         <div className="mt-6 flex items-center justify-center gap-4">

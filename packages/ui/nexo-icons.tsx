@@ -146,6 +146,26 @@ const ICONS = {
     </>
   ),
   price: <path d="M10 2.5v15M14 5.3H8.3a2.7 2.7 0 0 0 0 5.4h3.4a2.7 2.7 0 0 1 0 5.4H5.6" />,
+  // Menú desplegable en todas las apps (2026-10-17): análisis, metas y kioscos.
+  chart: (
+    <>
+      <path d="M3 3v14h14" />
+      <path d="M6.5 13.5V10M10 13.5V6.5M13.5 13.5V9" />
+    </>
+  ),
+  target: (
+    <>
+      <circle cx="10" cy="10" r="7" />
+      <circle cx="10" cy="10" r="3.5" />
+      <circle cx="10" cy="10" r="0.6" />
+    </>
+  ),
+  monitor: (
+    <>
+      <rect x="2.8" y="3.5" width="14.4" height="10" rx="1.3" />
+      <path d="M7 17h6M10 13.5V17" />
+    </>
+  ),
 } as const;
 
 export type NexoIconName = keyof typeof ICONS;

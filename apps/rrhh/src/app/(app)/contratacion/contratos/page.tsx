@@ -62,7 +62,7 @@ export default async function ContratosListPage() {
     .schema("rrhh")
     .from("contratos")
     .select(
-      "id, numero_contrato, estado, fecha_inicio, empleado_id, empleados(nombre, apellido), puestos(nombre), departamentos(nombre)"
+      "id, numero_contrato, estado, fecha_inicio, empleado_id, empleados!contratos_empleado_id_fkey(nombre, apellido), puestos!contratos_puesto_id_fkey(nombre), departamentos!contratos_departamento_id_fkey(nombre)"
     )
     .eq("company_id", companyId)
     .order("numero_contrato", { ascending: false });

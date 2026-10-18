@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyId } from "@/lib/company";
+import { mensajeAdministracion } from "../errores";
 
 export interface ActionResult {
   ok: boolean;
@@ -50,7 +51,9 @@ export async function guardarRol(input: GuardarRolInput): Promise<ActionResult> 
     p_descripcion: input.descripcion.trim() || null,
     p_permisos: Array.from(new Set(input.permisos)),
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeAdministracion(error, "guardarRol: admin_guardar_rol", "No se pudo guardar el rol. Intenta de nuevo.") };
+  }
 
   revalidatePath("/configuracion/roles");
   revalidatePath("/configuracion/usuarios");
@@ -71,7 +74,9 @@ export async function eliminarRol(rolId: string): Promise<ActionResult> {
   }
 
   const { error } = await supabase.rpc("admin_eliminar_rol", { p_company_id: companyId, p_rol_id: rolId });
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    return { ok: false, message: mensajeAdministracion(error, "eliminarRol: admin_eliminar_rol", "No se pudo eliminar el rol. Intenta de nuevo.") };
+  }
 
   revalidatePath("/configuracion/roles");
   return { ok: true };

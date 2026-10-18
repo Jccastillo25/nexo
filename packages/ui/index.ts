@@ -69,6 +69,7 @@ export {
   ServiciosIcon,
   DefaultAppIcon,
 } from "./category-icons";
+export { AppTileIcon } from "./app-icons";
 export {
   BULLET_ICONS,
   BULLET_ICON_NAMES,

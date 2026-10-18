@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
+import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCompanyId } from "@/lib/company";
@@ -37,6 +37,22 @@ function validateImageFile(file: File, label: string): string | null {
   return null;
 }
 
+// Error de subida ya redactado para el usuario (el detalle de Storage queda
+// en el log del servidor). Cualquier otro error inesperado → genérico.
+class ErrorDeSubida extends Error {}
+
+const ETIQUETAS: Record<string, string> = {
+  logo: "Logo",
+  "login-background": "Imagen de fondo",
+  favicon: "Favicon",
+};
+
+function mensajeDeSubida(err: unknown): string {
+  if (err instanceof ErrorDeSubida) return err.message;
+  console.error("updateSettings: subida de imagen", err);
+  return "No se pudo subir la imagen. Intenta de nuevo.";
+}
+
 async function uploadImage(
   admin: ReturnType<typeof createAdminClient>,
   file: File,
@@ -48,7 +64,8 @@ async function uploadImage(
     .from(BUCKET)
     .upload(path, file, { upsert: true, cacheControl: "3600" });
   if (error) {
-    throw new Error(`No se pudo subir "${baseName}": ${error.message}`);
+    console.error(`updateSettings: Storage upload "${baseName}"`, error);
+    throw new ErrorDeSubida(`No se pudo subir la imagen "${ETIQUETAS[baseName] ?? baseName}". Intenta de nuevo.`);
   }
   // Cache-bust: el path es siempre el mismo (upsert), así que sin esto el
   // navegador/CDN podría seguir sirviendo la imagen vieja después de
@@ -92,9 +109,11 @@ export async function updateSettings(
       // supabase-js tira sincrono ("supabaseKey is required") si falta
       // SUPABASE_SERVICE_ROLE_KEY en el entorno — sin este try/catch, esto
       // reventaba la pagina entera (error 500 generico de Next.js) en vez de
-      // mostrar un error legible en el formulario.
+      // mostrar un error legible en el formulario. El detalle (y el nombre
+      // de la variable faltante) va solo al log del servidor.
+      console.error("updateSettings: cliente admin de Storage", err);
       return {
-        error: `No se pudo inicializar el cliente de Storage: ${(err as Error).message}. Revisá que SUPABASE_SERVICE_ROLE_KEY esté configurada en el entorno de este deploy.`,
+        error: "No se pudo preparar la subida de imágenes. Intenta de nuevo o avisa al administrador del sistema.",
         success: false,
       };
     }
@@ -108,7 +127,7 @@ export async function updateSettings(
       try {
         logoUrl = await uploadImage(admin, logoFile, "logo");
       } catch (err) {
-        return { error: (err as Error).message, success: false };
+        return { error: mensajeDeSubida(err), success: false };
       }
     } else if (logoRemove) {
       logoUrl = ""; // '' = limpiar (convencion de la RPC)
@@ -123,7 +142,7 @@ export async function updateSettings(
       try {
         backgroundUrl = await uploadImage(admin, bgFile, "login-background");
       } catch (err) {
-        return { error: (err as Error).message, success: false };
+        return { error: mensajeDeSubida(err), success: false };
       }
     } else if (bgRemove) {
       backgroundUrl = "";
@@ -142,7 +161,7 @@ export async function updateSettings(
       try {
         faviconUrl = await uploadImage(admin, faviconFile, "favicon");
       } catch (err) {
-        return { error: (err as Error).message, success: false };
+        return { error: mensajeDeSubida(err), success: false };
       }
     } else if (faviconRemove) {
       faviconUrl = "";
@@ -171,7 +190,10 @@ export async function updateSettings(
     });
 
     if (error) {
-      return { error: error.message, success: false };
+      return {
+        error: mensajeDeError(error, "updateSettings: update_platform_settings", "No se pudo guardar la configuración de marca. Intenta de nuevo."),
+        success: false,
+      };
     }
 
     revalidatePath("/configuracion/marca");
@@ -181,8 +203,9 @@ export async function updateSettings(
 
     return { error: null, success: true };
   } catch (err) {
+    console.error("updateSettings: error inesperado", err);
     return {
-      error: `No se pudo guardar la configuración de marca: ${(err as Error).message ?? "error desconocido"}.`,
+      error: "No se pudo guardar la configuración de marca. Intenta de nuevo.",
       success: false,
     };
   }
