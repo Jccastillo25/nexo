@@ -347,6 +347,17 @@ Contrato de rutas actual:
 
 `/rrhh/kiosco` sigue siendo una excepción deliberada al guard de sesión del usuario porque el kiosko autentica dispositivo + PIN, no una sesión personal.
 
+Accesos al kiosco sin sesión (2026-10-20). Son `redirects` de `next.config`, que corren antes del proxy:
+
+```text
+/kiosco                  → /rrhh/kiosco   (apps/nexo/next.config.ts)
+/asistencia/kiosco       → /rrhh/kiosco   (apps/nexo/next.config.ts)
+/rrhh/asistencia/kiosco  → /rrhh/kiosco   (apps/rrhh/next.config.ts, con el basePath)
+/rrhh/<Kiosco en cualquier mayúscula> → /rrhh/kiosco   (apps/rrhh/src/proxy.ts)
+```
+
+El proxy de RRHH solo exime del guard `/kiosco` y sus subrutas, en minúsculas. Antes, `startsWith("/kiosco")` también dejaba sin guard rutas como `/kioscoX`. La query, por ejemplo `?asignar=1`, se conserva en todas las redirecciones.
+
 ---
 
 # 13. Pendientes arquitectónicos
