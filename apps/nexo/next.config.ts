@@ -44,6 +44,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "4mb",
     },
   },
+  // 2026-10-20: accesos cortos al kiosco de marcación. Un equipo sin sesión
+  // que abre /kiosco caía en el login, porque esa ruta es del panel. Las
+  // redirecciones de next.config corren antes del proxy: no piden sesión.
+  async redirects() {
+    return [
+      { source: "/kiosco", destination: "/rrhh/kiosco", permanent: false },
+      { source: "/asistencia/kiosco", destination: "/rrhh/kiosco", permanent: false },
+    ];
+  },
   async rewrites() {
     return [
       {

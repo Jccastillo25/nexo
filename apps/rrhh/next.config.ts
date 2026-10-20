@@ -22,8 +22,14 @@ const nextConfig: NextConfig = {
   // 2026-10-17: Marcas se movió a la app Asistencia (mismo deploy). El
   // basePath /rrhh se aplica solo: /rrhh/marcas → /rrhh/asistencia/marcas.
   // Temporal (no permanente) para no fijar la ruta en cachés del navegador.
+  // 2026-10-20: el kiosco pertenece a Asistencia, así que quien escriba
+  // /rrhh/asistencia/kiosco en el equipo llega a la terminal. Las redirecciones
+  // de next.config corren antes del proxy: no pide sesión.
   async redirects() {
-    return [{ source: "/marcas", destination: "/asistencia/marcas", permanent: false }];
+    return [
+      { source: "/marcas", destination: "/asistencia/marcas", permanent: false },
+      { source: "/asistencia/kiosco", destination: "/kiosco", permanent: false },
+    ];
   },
 
   async headers() {

@@ -9,7 +9,20 @@ export async function proxy(request: NextRequest) {
   // usuario administrativo logueado — se autentica por PIN, no por
   // sesion de Supabase Auth (ver comentario en lib/supabase/middleware.ts).
   // request.nextUrl.pathname ya viene sin el basePath ("/rrhh").
-  if (request.nextUrl.pathname.startsWith("/kiosco")) {
+  //
+  // 2026-10-20: el usuario reportó que el kiosco lo mandaba al login en un
+  // iPad sin sesión. "/rrhh/Kiosco" (con mayúscula) pasaba por el guard y
+  // terminaba en el login. Ahora cualquier variante de mayúsculas se lleva a
+  // "/kiosco" sin pedir sesión, y solo se exime la ruta exacta (antes
+  // también "/kioscoLoQueSea").
+  const ruta = request.nextUrl.pathname;
+  const minuscula = ruta.toLowerCase();
+  if (minuscula === "/kiosco" || minuscula.startsWith("/kiosco/")) {
+    if (ruta !== minuscula) {
+      const destino = request.nextUrl.clone();
+      destino.pathname = minuscula;
+      return NextResponse.redirect(destino);
+    }
     return NextResponse.next();
   }
 

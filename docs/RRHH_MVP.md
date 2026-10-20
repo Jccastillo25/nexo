@@ -224,6 +224,13 @@ duplicarse.
 
 El kiosko mantiene una ruta pública respecto a la sesión Web, pero el dispositivo debe estar autorizado.
 
+**Dirección del kiosco (2026-10-20).** La terminal vive en `nexo.materialesjcastillo.com/rrhh/kiosco`; para enrolar un equipo se usa `?asignar=1`. Estas direcciones redirigen ahí **sin pedir sesión**:
+- `/kiosco` y `/asistencia/kiosco`, en el panel.
+- `/rrhh/asistencia/kiosco`.
+- Cualquier variante con mayúsculas, como `/rrhh/Kiosco`.
+
+Antes de esa fecha caían en el login. Lo reportó el usuario desde un iPad sin sesión. Ninguna otra ruta de RRHH o Asistencia queda sin guard: `/rrhh/kioscos` y `/rrhh/asistencia` siguen pidiendo sesión. Ver [status-log](status-log/2026-10-20-kiosco-rutas-sin-sesion.md).
+
 ```text
 Kiosko autorizado
 → PIN contractual
