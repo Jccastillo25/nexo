@@ -7,6 +7,24 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-22 — Planilla: techo del INSS por persona en el mes (APLICADA)
+
+`20261022034035_rrhh_planilla_techo_inss_quincena`, aplicada en `nexo-core` con aprobación explícita del usuario en el chat.
+- **Qué hace:** reemplaza `rrhh.fn_planilla_calcular_nucleo` (techo acumulado del mes). Cada planilla cotiza lo devengado en ella hasta lo que le queda del techo a la persona: se resta la base de sus otros contratos en la planilla y, en la 2.ª quincena, la de la 1.ª, que tiene que estar aprobada. Corrige el hallazgo P1 del PR #50, que topaba cada quincena con medio techo.
+- **Antes de aplicar:**
+  - `test:rrhh:planilla` con 17 OK y la prueba de mutación detectada;
+  - dos rondas de revisión;
+  - dos ensayos revertidos en `nexo-core` con las quincenas reales de octubre, sin netos negativos.
+- **Poscheque remoto:**
+  - `md5(prosrc)` = `77c5da72…`, igual que en PGlite;
+  - `security definer` y `search_path=""`;
+  - sin EXECUTE para `anon` ni `authenticated`;
+  - 0 planillas.
+  - El primer `apply_migration` no respondió; se verificó que no había quedado aplicado y se reintentó.
+- **Advisors:** sin cambios: 4 categorías y las mismas 5 funciones de `anon`.
+- **Rollback:** volver a crear la función con el texto de `20261022000431` y revocar su EXECUTE.
+- [Detalle](status-log/2026-10-22-planilla-techo-inss.md).
+
 ## 2026-10-22 — Planilla PL2b (prestaciones) y PL2c (reportes y configuración) (APLICADAS)
 
 **Migraciones (9), aplicadas en este orden con `apply_migration` y guardadas con la versión remota:**

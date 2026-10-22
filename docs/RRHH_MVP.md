@@ -353,7 +353,7 @@ Integración contable queda fuera mientras no exista Contabilidad.
   - Quien crea o calcula no aprueba (decisión estricta del usuario).
   - Aprobar rechaza la planilla si un insumo cambió después del cálculo.
   - Lo aprobado ya no se edita: se anula y se genera otra que la reemplaza.
-- **Cálculo por contrato**, con los valores de `parametros_ley` e `ir_tramos` vigentes al cierre del período. El IR y el techo del INSS se suman por persona:
+- **Cálculo por contrato**, con los valores de `parametros_ley` e `ir_tramos` vigentes al cierre del período. El IR y el techo del INSS se suman por persona. Desde `20261022034035` el techo es del mes: cada planilla cotiza lo devengado en ella hasta lo que le queda del techo a la persona después de la 1.ª quincena y de sus otros contratos, y nunca más de lo devengado:
   - salario por días comerciales con la regla 30/360 (diario a 4 decimales), menos faltas;
   - horas extra (con los topes de 3 al día y 9 a la semana) y novedades;
   - INSS laboral, IR y deducciones (nunca dejan el neto negativo);

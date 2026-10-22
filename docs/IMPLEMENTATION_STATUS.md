@@ -1,6 +1,13 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
-**2026-10-22 — Planilla PL2b, PL2c y pantallas: APLICADAS en `nexo-core` (9 migraciones) y pantallas en local, sin commit.**
+**2026-10-22 — Planilla: techo del INSS por persona en el mes, APLICADO en `nexo-core` (`20261022034035`).**
+- Corrige el hallazgo P1 de la revisión del PR #50: el techo del INSS se topaba por quincena, con la mitad, y un mes con quincenas desiguales cotizaba de menos.
+- **Regla, aprobada por el usuario:** techo acumulado del mes. Ninguna planilla cotiza más de lo devengado ni deja un neto negativo. Por encima del techo, la 1.ª quincena cotiza más que la 2.ª. Se descartó el ajuste en la 2.ª quincena porque dejaba netos negativos.
+- **Verificación:** `test:rrhh:planilla` con 17 OK y la mutación detectada; dos rondas de revisión; dos ensayos revertidos; poscheque remoto con la huella igual a la local. Advisors sin cambios.
+- Hoy no cambia ningún cálculo: no hay planillas y ningún contrato activo cotiza INSS.
+[Detalle](status-log/2026-10-22-planilla-techo-inss.md).
+
+**2026-10-22 — Planilla PL2b, PL2c y pantallas: APLICADAS en `nexo-core` (9 migraciones); pantallas en el PR #50, todavía sin fusionar.**
 - Paso Cero de PL2b (`20261021235639`): `liquidaciones.pagar` y `.anular`, solo admin (27 códigos).
 - PL2b en 5 partes (`20261022000001` a `20261022001314`): vacaciones, préstamos, embargos, aguinaldo, liquidación como documento, pasivo y provisiones (particionadas). PL2c en 3 partes (`20261022001530` a `20261022001922`): detalle, comparación, régimen, simulador, conceptos, tipos, tabla de IR, declaraciones e importación desde Asistencia.
 - Antes de aplicar: dos rondas de revisión por migración, `test:rrhh:planilla` en PGlite con código 0 y un ensayo revertido por parte con datos reales (quincena, aguinaldo, liquidación, préstamo, embargo, provisiones, RLS y Asistencia). Las 79 funciones de planilla son idénticas en remoto y en local; advisors sin hallazgos nuevos.
@@ -194,6 +201,7 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-22 | [Planilla: techo del INSS por persona en el mes](status-log/2026-10-22-planilla-techo-inss.md) | Migración `20261022034035` **aplicada en `nexo-core`**: techo acumulado del mes, sin netos negativos. Corrige el P1 de la revisión del PR #50. 17 pruebas OK, mutación detectada, dos revisiones y dos ensayos revertidos. Huella remota igual a la local |
 | 2026-10-22 | [Planilla PL2b, PL2c y pantallas](status-log/2026-10-21-planilla-pl2b-pl2c-pantallas.md) | Prestaciones, reportes y configuración aplicadas en `nexo-core` (9 migraciones, `20261021235639` a `20261022001922`) y 40 pantallas de Planilla en local; sin commit ni recorrido visual con sesión |
 | 2026-10-21 | [Planilla PL2a: esquema y motor en RPC](status-log/2026-10-21-planilla-pl2a-motor.md) | Migración `20261021191441` **aplicada en `nexo-core`**. Régimen por contrato, conceptos, planillas por línea y novedades particionadas. 12 RPC con separación de funciones, huella e inmutabilidad, y simulador de liquidación por causa. IR y techo del INSS por persona, días 30/360, INSS patronal en 21.5%, 14 feriados y contratos en quincenal. 9 decisiones del usuario. PGlite pasa G1–G8 (C$45,021.66) y más de 40 reglas, con mutaciones detectadas. Revisión independiente (2 altos y 10 medios) corregida. Ensayo completo en `nexo-core` revertido: poscheques OK y la quincena real se calcula con 4 personas. Sin commit. |
 | 2026-10-21 | [Implementación de la revisión integral](status-log/2026-10-21-mejoras-revision-integral.md) | Flujo coordinador → 9 ejecutores → 2 revisores → correcciones. Seguridad: Next 16.3.8 y overrides (`pnpm audit` 28 → 0), cabeceras compartidas, N8/N12 cerrados y el kiosco heredado retirado. Kernel `@nexo/supabase`/`@nexo/auth`/`getPermisos` con las 6 apps migradas. Kit Enterprise UI v2, Fases 3 y 4, menú filtrado por permiso y español neutro. 4 migraciones **aplicadas el 2026-10-21** (`20261021164649`–`20261021165004`) y verificadas en remoto con la misma salida que antes; advisors con 0 FK sin índice y `anon` de 6 a 5. `pnpm verify` en verde. Sin commit ni deploy; falta el recorrido visual. |
