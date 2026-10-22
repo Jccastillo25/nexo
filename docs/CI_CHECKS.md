@@ -99,6 +99,7 @@ sirvió además para descubrir el problema de `next typegen` descrito abajo.
 | bcrypt | Se usa `bcrypt` real (pgcrypto), pero la comparación corre en PGlite: sirve para la lógica de coincidencia, **no** mide el costo/tiempos del `crypt()` en el Postgres de Supabase. |
 | App / navegador | Nada de esto recorre el kiosco en un navegador (Server Action → PostgREST → RPC), ni Rate Limit por IP, ni la UI. |
 | Deploy | `build` compila, pero no valida Vercel, dominios, rewrites de Multi-Zones ni variables de entorno reales. |
+| Variables en el build | El `build` de CI corre **sin** variables. Si una página con sesión lee una variable obligatoria antes de `cookies()`, Next intenta prerenderizarla y el build falla, aunque en Vercel no se note porque ahí las variables existen. Pasó el 2026-10-22 en el PR #50 con `NEXO_COMPANY_ID` en `/configuracion/auditoria`. Por eso `createServerClient` (`@nexo/supabase`) y `contextoActual` (`@nexo/auth`) llaman `cookies()` primero. |
 | Lint | 1 de 8 apps (`transporte-app`) no está cubierta por el check bloqueante (ver deuda abajo). |
 
 ## Deuda pre-existente en `main` (NO son regresiones de este cambio)

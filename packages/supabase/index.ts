@@ -26,8 +26,10 @@ export { updateSession, redirigirConSesion, type OpcionesSesion, type ResultadoS
  * @nexo/auth, que reutilizan un solo cliente por request.
  */
 export async function createServerClient<Db = any>() {
-  const { url, clave } = urlYClavePublica();
+  // cookies() primero: marca la ruta como dinámica antes de leer variables, así
+  // un build sin variables (CI) no intenta prerenderizar páginas con sesión.
   const cookieStore = await cookies();
+  const { url, clave } = urlYClavePublica();
 
   return crearClienteSsr<Db>(url, clave, {
     cookies: {

@@ -26,8 +26,10 @@ export interface Contexto<Db = any> {
 const clienteDelRequest = cache(() => createServerClient());
 
 const contextoCacheado = cache(async (): Promise<Contexto> => {
-  const companyId = getCompanyId(); // primero lo barato: falla sin tocar la red
-  return { supabase: await clienteDelRequest(), companyId };
+  // El cliente primero (lee cookies, sin red): la ruta queda dinámica antes de
+  // que falte NEXO_COMPANY_ID en un build sin variables (CI).
+  const supabase = await clienteDelRequest();
+  return { supabase, companyId: getCompanyId() };
 });
 
 const sesionCacheada = cache(async (): Promise<Sesion> => {
