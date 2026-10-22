@@ -2,11 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ConfirmDialog, FormSection, useToast } from "@nexo/ui";
+import { Button, ConfirmDialog, Field, FormSection, Input, useToast } from "@nexo/ui";
 import { cambiarEstadoUsuario, restablecerPassword } from "../actions";
-
-const inputClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
 
 /** Restablecer contraseña temporal y activar/desactivar la cuenta. */
 export default function CuentaAcciones({
@@ -23,14 +20,17 @@ export default function CuentaAcciones({
   const [password, setPassword] = useState("");
   const [errorPassword, setErrorPassword] = useState<string | null>(null);
   const [confirmar, setConfirmar] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  // Una transición por acción: cada botón muestra su propio estado de carga.
+  const [restableciendo, startRestablecer] = useTransition();
+  const [cambiandoEstado, startCambioEstado] = useTransition();
+  const ocupado = restableciendo || cambiandoEstado;
 
   function restablecer() {
     if (password.length < 8) {
       setErrorPassword("La contraseña temporal debe tener al menos 8 caracteres.");
       return;
     }
-    startTransition(async () => {
+    startRestablecer(async () => {
       const res = await restablecerPassword(userId, password);
       if (!res.ok) {
         setErrorPassword(res.message ?? "No se pudo restablecer la contraseña.");
@@ -44,7 +44,7 @@ export default function CuentaAcciones({
   }
 
   function cambiarEstado() {
-    startTransition(async () => {
+    startCambioEstado(async () => {
       const res = await cambiarEstadoUsuario(userId, !activo);
       setConfirmar(false);
       show(res.ok ? (activo ? "Usuario desactivado." : "Usuario reactivado.") : res.message ?? "No se pudo cambiar el estado.", res.ok ? "success" : "error");
@@ -54,30 +54,23 @@ export default function CuentaAcciones({
 
   return (
     <>
-      <FormSection title="Contraseña" description="Poné una contraseña temporal nueva; el usuario la cambia al entrar.">
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            type="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setErrorPassword(null);
-            }}
-            placeholder="Nueva contraseña temporal"
-            aria-label="Nueva contraseña temporal"
-            className={inputClass}
-          />
-          <button
-            type="button"
-            onClick={restablecer}
-            disabled={isPending}
-            className="shrink-0 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
-          >
-            Restablecer
-          </button>
-        </div>
-        {errorPassword && <p className="text-xs text-red-600">{errorPassword}</p>}
+      <FormSection title="Contraseña" description="Pon una contraseña temporal nueva; el usuario la cambia al entrar.">
+        <Field label="Nueva contraseña temporal" hint="Mínimo 8 caracteres." error={errorPassword}>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setErrorPassword(null);
+              }}
+            />
+            <Button variant="secondary" onClick={restablecer} loading={restableciendo} disabled={cambiandoEstado}>
+              Restablecer
+            </Button>
+          </div>
+        </Field>
       </FormSection>
 
       {puedeCambiarEstado && (
@@ -90,16 +83,13 @@ export default function CuentaAcciones({
           }
         >
           <div>
-            <button
-              type="button"
+            <Button
+              variant={activo ? "destructive" : "primary"}
               onClick={() => setConfirmar(true)}
-              disabled={isPending}
-              className={`rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${
-                activo ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
-              }`}
+              disabled={ocupado}
             >
               {activo ? "Desactivar" : "Reactivar"}
-            </button>
+            </Button>
           </div>
         </FormSection>
       )}
@@ -114,7 +104,7 @@ export default function CuentaAcciones({
         }
         confirmLabel={activo ? "Desactivar" : "Reactivar"}
         destructive={activo}
-        pending={isPending}
+        pending={cambiandoEstado}
         onCancel={() => setConfirmar(false)}
         onConfirm={cambiarEstado}
       />

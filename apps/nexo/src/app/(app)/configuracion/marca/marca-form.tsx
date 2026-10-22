@@ -1,15 +1,23 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { BulletIcon, BULLET_ICON_NAMES, FormSection, useToast } from "@nexo/ui";
+import {
+  Alert,
+  BulletIcon,
+  BULLET_ICON_NAMES,
+  Button,
+  Field,
+  FormSection,
+  Input,
+  NexoIcon,
+  Select,
+  useToast,
+} from "@nexo/ui";
+// Solo tipos: @nexo/auth es server-only, pero un `import type` se borra al compilar.
+import type { PlatformBullet, PlatformSettings } from "@nexo/auth";
 import { updateSettings, type SettingsFormState } from "./actions";
-import type { PlatformBullet, PlatformSettings } from "@/lib/platform-settings";
 
 const initialState: SettingsFormState = { error: null, success: false };
-
-const inputClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
-const labelClass = "text-xs font-medium uppercase tracking-wide text-neutral-500";
 
 // Debe coincidir con el limite del Server Action (actions.ts,
 // MAX_IMAGE_BYTES) — esta validacion en el cliente es solo UX (evita el
@@ -45,13 +53,13 @@ function ImageField({
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="flex flex-col gap-2">
-      <span className={labelClass}>{label}</span>
-      <p className="text-xs text-neutral-400">
-        {hint ? `${hint} ` : ""}PNG, JPG, WEBP, GIF o ICO — máx. {MAX_IMAGE_MB_LABEL}.
-      </p>
-      <div className="flex items-center gap-4">
-        <div className="flex h-16 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed border-neutral-300 bg-neutral-50">
+    <Field
+      label={label}
+      hint={`${hint ? `${hint} ` : ""}PNG, JPG, WEBP, GIF o ICO — máx. ${MAX_IMAGE_MB_LABEL}.`}
+      error={fieldError}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex h-16 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50">
           {preview ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={preview} alt="" className="h-full w-full object-contain" />
@@ -59,11 +67,11 @@ function ImageField({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={currentUrl} alt="" className="h-full w-full object-contain" />
           ) : (
-            <span className="text-xs text-neutral-400">Sin imagen</span>
+            <span className="text-xs text-neutral-500">Sin imagen</span>
           )}
         </div>
-        <div className="flex flex-col gap-1.5">
-          <input
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <Input
             ref={inputRef}
             type="file"
             name={name}
@@ -73,7 +81,7 @@ function ImageField({
               if (!file) return;
 
               if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-                setFieldError(`Formato no permitido (${file.type || "desconocido"}). Usá PNG, JPG, WEBP, GIF o ICO.`);
+                setFieldError(`Formato no permitido (${file.type || "desconocido"}). Usa PNG, JPG, WEBP, GIF o ICO.`);
                 if (inputRef.current) inputRef.current.value = "";
                 return;
               }
@@ -87,18 +95,14 @@ function ImageField({
               setRemove(false);
               setPreview(URL.createObjectURL(file));
             }}
-            className="text-sm text-neutral-600 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-neutral-700 hover:file:bg-neutral-200"
+            className="py-1 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-2.5 file:py-1 file:text-sm file:font-medium file:text-neutral-700 hover:file:bg-neutral-200"
           />
-          {fieldError && (
-            <p role="alert" className="text-xs text-red-600">
-              {fieldError}
-            </p>
-          )}
           {currentUrl && (
-            <label className="flex items-center gap-1.5 text-xs text-neutral-500">
+            <label className="flex items-center gap-1.5 text-xs text-neutral-600">
               <input
                 type="checkbox"
                 name={removeName}
+                className="size-4 accent-blue-600"
                 checked={remove}
                 onChange={(e) => {
                   setRemove(e.target.checked);
@@ -114,7 +118,7 @@ function ImageField({
           )}
         </div>
       </div>
-    </div>
+    </Field>
   );
 }
 
@@ -144,8 +148,7 @@ export default function MarcaForm({ initial }: { initial: PlatformSettings }) {
       // El texto del rechazo (p. ej. límite de tamaño del body) no se
       // muestra: va a la consola y la pantalla recibe un mensaje propio.
       console.error("MarcaForm: updateSettings", err);
-      const message =
-        "No se pudo guardar la configuración. Revisá el tamaño de las imágenes e intentá de nuevo.";
+      const message = "No se pudo guardar la configuración. Revisa el tamaño de las imágenes e intenta de nuevo.";
       show(message, "error");
       return { error: message, success: false };
     }
@@ -179,143 +182,118 @@ export default function MarcaForm({ initial }: { initial: PlatformSettings }) {
     <form action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="bullets_json" value={JSON.stringify(bullets)} />
       <div key={formKey} className="flex flex-col gap-6">
+        <FormSection title="Imágenes">
+          <ImageField name="logo" removeName="logo_remove" label="Logo" currentUrl={initial.logoUrl} />
+          <ImageField
+            name="background"
+            removeName="background_remove"
+            label="Imagen de fondo del login"
+            currentUrl={initial.loginBackgroundUrl}
+          />
+          <ImageField
+            name="favicon"
+            removeName="favicon_remove"
+            label="Favicon"
+            hint="Fuente recomendada 512×512 (PNG/ICO) — se sirve el mismo archivo para todos los tamaños del navegador."
+            currentUrl={initial.faviconUrl}
+          />
+        </FormSection>
 
-      <FormSection title="Imágenes">
-        <ImageField name="logo" removeName="logo_remove" label="Logo" currentUrl={initial.logoUrl} />
-        <ImageField
-          name="background"
-          removeName="background_remove"
-          label="Imagen de fondo del login"
-          currentUrl={initial.loginBackgroundUrl}
-        />
-        <ImageField
-          name="favicon"
-          removeName="favicon_remove"
-          label="Favicon"
-          hint="Fuente recomendada 512×512 (PNG/ICO) — se sirve el mismo archivo para todos los tamaños del navegador."
-          currentUrl={initial.faviconUrl}
-        />
-      </FormSection>
+        <FormSection title="Textos del login">
+          <Field label="Texto pequeño (arriba del nombre)">
+            <Input name="eyebrow_text" defaultValue={initial.eyebrowText} />
+          </Field>
+          <Field label="Nombre (se oculta si hay logo)">
+            <Input name="heading_text" defaultValue={initial.headingText} />
+          </Field>
+          <Field label="Tagline">
+            <Input name="tagline" defaultValue={initial.tagline} />
+          </Field>
+        </FormSection>
 
-      <FormSection title="Textos del login">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="eyebrow_text" className={labelClass}>
-            Texto pequeño (arriba del nombre)
-          </label>
-          <input id="eyebrow_text" name="eyebrow_text" defaultValue={initial.eyebrowText} className={inputClass} />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="heading_text" className={labelClass}>
-            Nombre (se oculta si hay logo)
-          </label>
-          <input id="heading_text" name="heading_text" defaultValue={initial.headingText} className={inputClass} />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="tagline" className={labelClass}>
-            Tagline
-          </label>
-          <input id="tagline" name="tagline" defaultValue={initial.tagline} className={inputClass} />
-        </div>
-      </FormSection>
-
-      <FormSection title="Bullets del login">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-neutral-400">Lista de beneficios a la izquierda del login.</span>
-          <button type="button" onClick={addBullet} className="text-xs font-medium text-blue-600 hover:text-blue-700">
-            + agregar bullet
-          </button>
-        </div>
-
-        {bullets.length === 0 && (
-          <p className="text-xs text-neutral-400">Sin bullets — el login se muestra sin la lista de la izquierda.</p>
-        )}
-
-        {bullets.map((bullet, i) => (
-          <div key={i} className="flex flex-col gap-2 rounded-md border border-neutral-200 p-3">
-            <div className="flex items-center gap-2">
-              <select
-                value={bullet.icon}
-                onChange={(e) => updateBullet(i, { icon: e.target.value })}
-                className="rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-900"
-              >
-                {BULLET_ICON_NAMES.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-600">
-                <BulletIcon name={bullet.icon} className="h-4 w-4" />
-              </span>
-              <input
-                value={bullet.title}
-                onChange={(e) => updateBullet(i, { title: e.target.value })}
-                placeholder="Título"
-                className={`${inputClass} flex-1`}
-              />
-              <button
-                type="button"
-                onClick={() => removeBullet(i)}
-                aria-label="Eliminar bullet"
-                className="shrink-0 rounded-md border border-neutral-200 px-2 py-1.5 text-xs text-neutral-500 hover:border-red-300 hover:text-red-700"
-              >
-                ✕
-              </button>
-            </div>
-            <input
-              value={bullet.description}
-              onChange={(e) => updateBullet(i, { description: e.target.value })}
-              placeholder="Descripción"
-              className={inputClass}
-            />
+        <FormSection title="Bullets del login">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-neutral-500">Lista de beneficios a la izquierda del login.</span>
+            <Button variant="secondary" size="sm" onClick={addBullet}>
+              Agregar bullet
+            </Button>
           </div>
-        ))}
-      </FormSection>
 
-      <FormSection title="Copyright (toda la plataforma)">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="copyright_text" className={labelClass}>
-            Texto de copyright
-          </label>
-          <input id="copyright_text" name="copyright_text" defaultValue={initial.copyrightText} className={inputClass} />
-          <p className="text-xs text-neutral-400">
-            Se muestra tal cual en el pie del login, del panel y de cada
-            módulo — incluí el año si querés que aparezca (ej. &quot;© 2026 Grupo
-            CT&quot;).
-          </p>
-        </div>
-      </FormSection>
+          {bullets.length === 0 && (
+            <p className="text-xs text-neutral-500">Sin bullets — el login se muestra sin la lista de la izquierda.</p>
+          )}
+
+          {bullets.map((bullet, i) => (
+            <fieldset key={i} className="flex min-w-0 flex-col gap-2 rounded-lg border border-neutral-200 p-3">
+              <legend className="sr-only">Bullet {i + 1}</legend>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* El ancho va en un contenedor: el de Select ya trae w-full. */}
+                <div className="w-36 shrink-0">
+                  <Select
+                    value={bullet.icon}
+                    onChange={(e) => updateBullet(i, { icon: e.target.value })}
+                    aria-label={`Icono del bullet ${i + 1}`}
+                  >
+                    {BULLET_ICON_NAMES.map((iconName) => (
+                      <option key={iconName} value={iconName}>
+                        {iconName}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-600">
+                  <BulletIcon name={bullet.icon} className="h-4 w-4" />
+                </span>
+                <Input
+                  value={bullet.title}
+                  onChange={(e) => updateBullet(i, { title: e.target.value })}
+                  placeholder="Título"
+                  aria-label={`Título del bullet ${i + 1}`}
+                  className="flex-1 basis-40"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeBullet(i)}
+                  aria-label={`Eliminar bullet ${i + 1}`}
+                  icon={<NexoIcon name="x" />}
+                />
+              </div>
+              <Input
+                value={bullet.description}
+                onChange={(e) => updateBullet(i, { description: e.target.value })}
+                placeholder="Descripción"
+                aria-label={`Descripción del bullet ${i + 1}`}
+              />
+            </fieldset>
+          ))}
+        </FormSection>
+
+        <FormSection title="Copyright (toda la plataforma)">
+          <Field
+            label="Texto de copyright"
+            hint={
+              <>
+                Se muestra tal cual en el pie del login, del panel y de cada módulo — incluye el año si quieres que
+                aparezca (ej. &quot;© 2026 Grupo CT&quot;).
+              </>
+            }
+          >
+            <Input name="copyright_text" defaultValue={initial.copyrightText} />
+          </Field>
+        </FormSection>
       </div>
 
-      {state.error && (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {state.error}
-        </p>
-      )}
-      {state.success && (
-        <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-          Configuración de marca guardada correctamente.
-        </p>
-      )}
+      {state.error ? <Alert tone="error">{state.error}</Alert> : null}
+      {state.success ? <Alert tone="success">Configuración de marca guardada correctamente.</Alert> : null}
 
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={handleCancel}
-          disabled={isPending}
-          className="rounded-md border border-neutral-300 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+      <div className="flex flex-wrap gap-3">
+        <Button variant="secondary" onClick={handleCancel} disabled={isPending}>
           Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isPending ? "Guardando…" : "Guardar cambios"}
-        </button>
+        </Button>
+        <Button type="submit" loading={isPending}>
+          Guardar cambios
+        </Button>
       </div>
     </form>
   );

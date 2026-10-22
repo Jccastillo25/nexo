@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import { Alert, PageHeader } from "@nexo/ui";
 import { permisosDe, type Permiso } from "@/lib/permisos";
 import type { Catalogos } from "@/lib/tipos";
 import { CATALOGOS_RUTA, type CatalogoRuta } from "@/lib/catalogos-ruta";
@@ -33,9 +32,7 @@ export default async function CatalogoConfigPage({ params }: PageProps<"/configu
   if (!esCatalogo(catalogo)) notFound();
   const pagina = PAGINAS[catalogo];
 
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-  const permisos = await permisosDe(supabase, companyId);
+  const [{ supabase, companyId }, permisos] = await Promise.all([contextoActual(), permisosDe()]);
   if (!permisos[pagina.permiso]) redirect("/catalogo");
 
   const { data, error } = await supabase.rpc("productos_catalogos", { p_company_id: companyId });
@@ -46,9 +43,9 @@ export default async function CatalogoConfigPage({ params }: PageProps<"/configu
     <div className="flex max-w-5xl flex-col gap-6">
       <PageHeader title={pagina.titulo} description={`${pagina.descripcion} Nada se borra: se desactiva.`} />
       {error ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudo cargar el catálogo. Intenta recargar la página.
-        </p>
+        <Alert tone="error" title="No se pudo cargar el catálogo">
+          Intenta recargar la página.
+        </Alert>
       ) : (
         <PanelesCatalogos catalogos={data as Catalogos} permisos={permisos} solo={catalogo} />
       )}

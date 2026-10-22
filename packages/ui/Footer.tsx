@@ -11,7 +11,7 @@ export interface FooterProps {
 export function Footer({ text }: FooterProps) {
   return (
     <footer
-      className={`${shellFont.className} border-t border-neutral-200 bg-white px-6 py-3 text-center text-xs text-neutral-400`}
+      className={`${shellFont.className} border-t border-neutral-200 bg-white px-6 py-3 text-center text-xs text-neutral-500`}
     >
       {text}
     </footer>

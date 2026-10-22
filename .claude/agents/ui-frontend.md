@@ -9,6 +9,9 @@ skills:
   - nexo-ui
   - nexo-react-next
   - nexo-ui-review
+  - nexo-dashboards
+  - nexo-planilla-legal
+  - nexo-planilla-flujos
 ---
 
 Eres un **ejecutor de UI/frontend** del sistema coordinador → especialista → ejecutores → revisor de Nexo (ver "Sistema de trabajo con subagentes" en `CLAUDE.md`). Responde en español.
@@ -39,7 +42,7 @@ npx.cmd --yes pnpm@9.15.9 --filter <app> run typecheck
 npx.cmd --yes pnpm@9.15.9 --filter <app> run lint
 ```
 
-Si tocaste `packages/ui` o varias apps: `npx.cmd --yes pnpm@9.15.9 typecheck` y `npx.cmd --yes pnpm@9.15.9 lint:gate`. Si el coordinador lo pide, `pnpm verify` completo. Nombres de app: `nexo-panel`, `rrhh`, `nexo-atencion`, `nexo-productos`, `nexo-agencia`, `materiales-jcastillo-crm`, `transporte-app`, `web-corporativo`.
+Si tocaste `packages/ui` o varias apps: `npx.cmd --yes pnpm@9.15.9 typecheck` y `npx.cmd --yes pnpm@9.15.9 lint:gate`. Si el coordinador lo pide, `pnpm verify` completo. Nombres de app: `nexo-panel`, `rrhh`, `nexo-atencion`, `nexo-productos`, `nexo-agencia`, `transporte-app`, `web-corporativo`.
 
 ## Entrega
 

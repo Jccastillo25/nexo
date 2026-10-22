@@ -1,0 +1,25 @@
+/* Tema compartido de Nexo Enterprise UI v2 (2026-10-20), Tailwind v4.
+   Importar en el globals.css de cada app que use @nexo/ui, despues de
+   tailwindcss y de tokens.css:
+
+     @import "../../../../packages/ui/theme.css";
+
+   Escala de la suite. Los componentes del kit usan directamente las clases
+   de Tailwind equivalentes (no alias propios), asi que se ven bien aunque
+   una app olvide este import; las pantallas nuevas siguen la misma escala:
+
+     radios   controles (boton, input, select)  rounded-lg   8px
+              tarjetas, tablas, alertas grandes rounded-xl  12px
+              dialogos                          rounded-2xl 16px
+     sombras  tarjeta = borde neutral-200 + shadow-xs
+              menus y popovers                  shadow-lg
+              dialogos                          shadow-xl
+     foco     focus-visible:outline-2 outline-offset-2 outline-blue-600
+              (inputs: border-blue-600 + ring-3 ring-blue-600/15)
+
+   Lo que si depende de este archivo: los rasgos tipograficos de Inter en
+   toda la app (cv11 = "a" de un piso, ss01 = digitos abiertos). Tailwind los
+   aplica desde su preflight (html) y desde la clase font-sans. */
+@theme {
+  --font-sans--font-feature-settings: "cv11", "ss01";
+}

@@ -1,12 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
-import { DataTable, EmptyState, PageHeader, StatusBadge } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { Alert, ButtonLink, DataTable, EmptyState, PageHeader, StatusBadge } from "@nexo/ui";
+import { contextoActual } from "@nexo/auth";
+import { permisosDe } from "@/lib/permisos";
 import { mensajeAdministracion } from "../errores";
 import { appsDelRol } from "@/lib/permisos-catalogo";
-import type { AdminRol } from "@/lib/supabase/database.types";
+import type { AdminRol, Database } from "@/lib/supabase/database.types";
 import EliminarRolButton from "./eliminar-rol-button";
 
 export const metadata: Metadata = {
@@ -19,25 +18,13 @@ export const metadata: Metadata = {
  * Lectura vía public.admin_listar_roles (exige nexo.administracion.roles.ver).
  */
 export default async function RolesPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-  const ctx = { supabase, companyId };
+  const [{ supabase, companyId }, permisos] = await Promise.all([contextoActual<Database>(), permisosDe()]);
 
-  const [canView, canCreate, canEdit, canDelete] = await Promise.all([
-    hasPermission(ctx, "nexo.administracion.roles.ver"),
-    hasPermission(ctx, "nexo.administracion.roles.crear"),
-    hasPermission(ctx, "nexo.administracion.roles.editar"),
-    hasPermission(ctx, "nexo.administracion.roles.eliminar"),
-  ]);
-
-  if (!canView) {
+  if (!permisos.rolesVer) {
     return (
       <div className="flex max-w-5xl flex-col gap-6">
         <PageHeader title="Roles" />
-        <EmptyState
-          title="Sin permiso para ver roles"
-          description="Tu cuenta no tiene el permiso nexo.administracion.roles.ver para esta empresa."
-        />
+        <EmptyState variant="no-access" title="No tienes acceso a los roles" />
       </div>
     );
   }
@@ -52,68 +39,64 @@ export default async function RolesPage() {
       <PageHeader
         title="Roles"
         description="Cada rol define a qué aplicaciones tiene acceso un usuario y qué puede hacer dentro de ellas. Cada usuario tiene un solo rol."
-        actions={
-          canCreate ? (
-            <Link
-              href="/configuracion/roles/nuevo"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              Nuevo rol
-            </Link>
-          ) : undefined
-        }
+        actions={permisos.rolesCrear ? <ButtonLink href="/configuracion/roles/nuevo">Nuevo rol</ButtonLink> : undefined}
       />
 
-      {error && (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {mensajeAdministracion(error, "roles: admin_listar_roles", "No se pudieron cargar los roles. Intenta de nuevo.")}
-        </p>
-      )}
-
-      {!error && (roles ?? []).length === 0 ? (
-        <EmptyState
-          title="Todavía no hay roles"
-          description="Creá el primer rol para poder asignarlo a los usuarios."
-        />
-      ) : (
-        <DataTable<AdminRol>
-          rows={roles ?? []}
-          rowKey={(r) => r.id}
-          columns={[
-            {
-              key: "nombre",
-              header: "Rol",
-              render: (r) =>
-                canEdit ? (
-                  <Link href={`/configuracion/roles/${r.id}`} className="font-medium text-blue-700 hover:underline">
-                    {r.nombre}
-                  </Link>
-                ) : (
-                  <span className="font-medium text-neutral-900">{r.nombre}</span>
-                ),
-            },
-            {
-              key: "apps",
-              header: "Aplicaciones",
-              render: (r) => appsDelRol(r.permisos, catalogo ?? []).join(", ") || "—",
-            },
-            { key: "permisos", header: "Permisos", render: (r) => r.permisos.length },
-            { key: "usuarios", header: "Usuarios", render: (r) => r.usuarios },
-            {
-              key: "estado",
-              header: "Estado",
-              render: (r) => <StatusBadge label={r.activo ? "Activo" : "Inactivo"} tone={r.activo ? "positive" : "neutral"} />,
-            },
-            {
-              key: "acciones",
-              header: "",
-              align: "right",
-              render: (r) =>
-                canDelete ? <EliminarRolButton rolId={r.id} nombre={r.nombre} enUso={r.usuarios > 0} /> : null,
-            },
-          ]}
-        />
-      )}
+      <DataTable<AdminRol>
+        rows={roles ?? []}
+        rowKey={(r) => r.id}
+        caption="Roles"
+        error={
+          error ? (
+            <Alert tone="error">
+              {mensajeAdministracion(error, "roles: admin_listar_roles", "No se pudieron cargar los roles. Intenta de nuevo.")}
+            </Alert>
+          ) : undefined
+        }
+        empty={
+          <EmptyState
+            bare
+            title="Todavía no hay roles"
+            description="Crea el primer rol para poder asignarlo a los usuarios."
+          />
+        }
+        columns={[
+          {
+            key: "nombre",
+            header: "Rol",
+            render: (r) =>
+              permisos.rolesEditar ? (
+                <Link
+                  href={`/configuracion/roles/${r.id}`}
+                  className="rounded-sm font-medium text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                >
+                  {r.nombre}
+                </Link>
+              ) : (
+                <span className="font-medium text-neutral-900">{r.nombre}</span>
+              ),
+          },
+          {
+            key: "apps",
+            header: "Aplicaciones",
+            render: (r) => appsDelRol(r.permisos, catalogo ?? []).join(", ") || "—",
+          },
+          { key: "permisos", header: "Permisos", numeric: true, render: (r) => r.permisos.length },
+          { key: "usuarios", header: "Usuarios", numeric: true, render: (r) => r.usuarios },
+          {
+            key: "estado",
+            header: "Estado",
+            render: (r) => <StatusBadge label={r.activo ? "Activo" : "Inactivo"} tone={r.activo ? "positive" : "neutral"} />,
+          },
+          {
+            key: "acciones",
+            header: <span className="sr-only">Acciones</span>,
+            align: "right",
+            render: (r) =>
+              permisos.rolesEliminar ? <EliminarRolButton rolId={r.id} nombre={r.nombre} enUso={r.usuarios > 0} /> : null,
+          },
+        ]}
+      />
     </div>
   );
 }

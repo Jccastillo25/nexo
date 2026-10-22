@@ -1,24 +1,28 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { BulletIcon } from "@nexo/ui";
+import { getPlatformSettings } from "@nexo/auth";
 import LoginForm from "./LoginForm";
-import { createClient } from "@/lib/supabase/server";
-import { getPlatformSettings } from "@/lib/platform-settings";
 
 export const metadata: Metadata = {
   title: "Ingresar · Nexo",
 };
 
+// Kernel (2026-10-20): la marca ya no lee cookies, así que sin esto la página
+// se prerenderizaría estática y LoginForm (useSearchParams dentro de
+// Suspense) llegaría vacío en el HTML hasta hidratar. Se mantiene dinámica,
+// como antes.
+export const dynamic = "force-dynamic";
+
 // Estilo alineado a la referencia visual del usuario (login oscuro, layout
 // partido con logo + bullets). Todo el contenido (logo, imagen de fondo,
 // textos, bullets, copyright) es editable desde /ajustes — ver
 // supabase/migrations/20260830000011_platform_settings.sql y
-// src/lib/platform-settings.ts (con sus defaults si la RPC falla). El
+// packages/auth/platform-settings.ts (con sus defaults si la RPC falla). El
 // negro queda reservado a esta pantalla — el resto de la suite (ShellBar
 // incluido) usa la paleta clara.
 export default async function LoginPage() {
-  const supabase = await createClient();
-  const settings = await getPlatformSettings(supabase);
+  const settings = await getPlatformSettings();
 
   return (
     <div

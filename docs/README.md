@@ -12,7 +12,7 @@
 
 | Carpeta | Contenido |
 |---|---|
-| [plan/](plan/) | 14 archivos que desagregan `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md` por objetivo/arquitectura, estrategia móvil, dominio RRHH, cada fase (1 a 8), la administración de usuarios y roles (`12-…`), el módulo Atención (`13-…`) y el módulo Productos (`14-…`). Ver la tabla del índice para saber cuál leer. |
+| [plan/](plan/) | 21 archivos que desagregan `PLAN_MAESTRO_IMPLEMENTACION_NEXO.md`. Cubren:<br>• objetivo y arquitectura, estrategia móvil, dominio RRHH y cada fase (1 a 8);<br>• la administración de usuarios y roles (`12-…`) y los módulos Atención (`13-…`) y Productos (`14-…`);<br>• Metas y el embudo del CRM (`15-…`, `16-…` y `16a-…`, retirados);<br>• el ERP (`17-…`), la réplica de AG Negocio (`18-…`) y la app Presupuesto (`19-…`);<br>• Planilla y prestaciones, reemplazo de AG Planilla, con el marco legal de Nicaragua (`20-…`).<br>Ver la tabla del índice para saber cuál leer. |
 | [status-log/](status-log/) | Una entrada por subfase/bloque ya cerrado, con el detalle completo de auditoría, migraciones y verificación. Ver la tabla de la sección 0 de `IMPLEMENTATION_STATUS.md` para saber cuál leer. |
 
 ## Arquitectura y documentación viva

@@ -79,8 +79,27 @@ nuevos en cualquier `apps/<módulo>`.
    sale de la sesión autenticada del lado del servidor, nunca de un
    parámetro que el llamador pueda falsear.
 4. **Oculta/deshabilita en la UI** el botón/checkbox correspondiente cuando
-   `hasPermission(...)` devuelva `false` — la verificación de servidor de
+   el usuario no tiene el permiso — la verificación de servidor de
    arriba es la que de verdad protege, esto es solo UX.
+   **Desde 2026-10-20, la UI no llama a `hasPermission` código por código.**
+   Antes, Productos hacía 17 RPC en el layout y otras 17 en la página, y en
+   remoto se midieron unas 20 por carga de página. Ahora cada app tiene un
+   `permisosDe()` en `lib/` que llama a `misPermisos(LISTA)` de `@nexo/auth`
+   con **una sola lista constante** de los códigos que usa su UI:
+   ```ts
+   import { misPermisos } from "@nexo/auth";
+   const LISTA = Object.values(P); // siempre la misma lista: cada lista distinta es otra consulta
+   export const permisosDe = () => misPermisos(LISTA); // ReadonlySet<string>, cacheado por request
+   ```
+   `misPermisos` hace **una** llamada a `public.mis_permisos(empresa,
+   códigos[])` por request, compartida entre layout y página, con la misma
+   lógica de `core.has_permission`. Si la RPC no existiera (por ejemplo, en
+   una base nueva sin migrar), cae sola a `has_permission` por código. **La
+   RPC está aplicada en `nexo-core` desde el 2026-10-21 (`20261021164649`).**
+   Se verificó así: como owner devuelve solo los códigos que tiene; sin
+   sesión devuelve `{}`. `cache` de React no memoriza dentro
+   de Server Actions, así que **en una mutación siempre va
+   `requirePermission`**, nunca la lista cacheada.
 5. Si el permiso debe verse en el panel de administración de permisos,
    agrégalo también a `packages/permissions` (matriz visual) — pendiente de
    construir en la Fase 4.
@@ -100,9 +119,12 @@ propios dominios según su negocio:
 |---|---|
 | RRHH | Centro de Control, Talento, Turnos, Asistencia, Nómina, Sistema *(los 6 de v2.0, sin cambios)* |
 | Flotilla | Viajes, Conductores, Flota, Reportes |
-| CRM | Clientes, Oportunidades |
+| CRM — **retirado el 2026-10-20** (`20261020143821`: la app y sus 34 códigos `crm.*` se borraron sin datos; la réplica de AG Negocio va en `erp`, ver [plan/18-replica-ag-negocio.md](plan/18-replica-ag-negocio.md)). Lo que sigue es solo historia | `clientes` (3 segmentos, anteriores a la norma); desde 2026-10-18 también `metas` (avance_propio, avance_equipo, meta_vendedor, presupuesto), `ventas` (factura_propia, factura: ver/importar) y `configuracion` (vendedor), de 4 segmentos (`20261018184849`; plantillas Vendedor/Gerente de ventas/Administrador de ventas; "propio" = vendedor vinculado al usuario, lo filtra la RPC; ver [plan/15-metas-ventas.md](plan/15-metas-ventas.md)). **Embudo comercial, desde 2026-10-19** (`20261019152215`): `ventas.lead` (ver, crear, editar, convertir, eliminar), `ventas.oportunidad` y `ventas.actividad` (ver, crear, editar, eliminar), `ventas.cotizacion` (ver, crear, editar, aprobar, anular), `ventas.equipo.ver`, `ventas.asignacion.gestionar` y `configuracion.embudo.gestionar`. Sin `equipo.ver`, cada quien opera solo lo que tiene asignado, y la RPC lo filtra. `lead.convertir` crea el cliente sin necesitar `crm.clientes.crear`. Plantillas: Vendedor 17, Gerente 27, Administrador 34. Ver [plan/16-crm-embudo-comercial.md](plan/16-crm-embudo-comercial.md) |
 | Atención | `recepcion`, `puesto`, `cola`, `cliente`, `configuracion`, `reportes` (Paso Cero 2026-10-14; ampliado 2026-10-15 con `reportes.mis_metricas.ver` y `cola.turno.reactivar`; plantillas Recepción/Agente/Supervisor; ver [plan/13-atencion-turnos.md](plan/13-atencion-turnos.md)) |
 | Productos | `dashboard`, `catalogo` (producto, costo, fiscal), `configuracion` (clasificación, marca, unidad, proveedor, característica, contable) (Paso Cero 2026-10-16, `20261016203638`; plantillas Consulta/Editor/Contabilidad/Administrador; costo y datos fiscales con permisos aparte; ver [plan/14-productos.md](plan/14-productos.md)) |
+| Presupuesto (`presupuesto`) | `metas` (avance_propio.ver, avance_equipo.ver, meta_vendedor.gestionar), `ventas` (presupuesto_anual.gestionar, factura_propia.ver, factura.ver, factura.importar) y `configuracion` (vendedor.gestionar). Son 8 códigos de 4 segmentos más `ver_modulo`. Paso Cero del 2026-10-20 (`20261020183127`), app inactiva. Plantillas: Vendedor 3, Gerente de ventas 7 y Administrador de ventas 9. "Propio" es el vendedor vinculado al usuario, y lo filtra la RPC. Solo el Administrador define el presupuesto anual y vincula vendedores. El dominio `contable` queda reservado para el presupuesto por centro de costo (fase 2). Funciones del 2026-10-20 (`20261020194816`), sin códigos nuevos: elegir los vendedores del cuadro de meta usa `metas.meta_vendedor.gestionar`; Clientes y Mis clientes usan `ventas.factura.ver` (todos) o `ventas.factura_propia.ver` (solo el vendedor vinculado), y la RPC fija el alcance. Ver [plan/19-presupuesto.md](plan/19-presupuesto.md) |
+| Listas de precios (`precios`) | `dashboard`, `listas` (lista, precio, costo), `clientes` (clasificacion), `reglas` (politica). Paso Cero del 2026-10-20 (`20261020064732`), app inactiva. Plantillas: Consulta, Analista y Administrador. Ver [plan/17-erp.md](plan/17-erp.md) |
+| ERP (`erp`) | `dashboard`, `inventario`, `compras`, `ventas`, `caja`, `cxc`, `cxp`, `bancos`, `contabilidad` y `fiscal`, con 51 códigos. Paso Cero del 2026-10-20 (`20261020064732`), app inactiva. Hay 9 plantillas, desde Bodeguero hasta Administrador. Nadie aprueba lo propio y los documentos fiscales y contables son inmutables; las dos reglas las aplica la RPC. Ver [plan/17-erp.md](plan/17-erp.md). Desde el 2026-10-20 la referencia es AG Negocio ([plan/18](plan/18-replica-ag-negocio.md)). Sus roles son una matriz recurso × acción: lista, crear, actualizar, eliminar, anular, exportar a Excel, exportar a PDF, reimprimir, más acciones especiales como aprobar, des-anular, editar precio o tasa y vender bajo costo. El Paso Cero de cada etapa R1–R8 ajustará estos códigos a esa matriz, y el usuario lo aprueba antes de crear tablas |
 | Nexo (panel) | `administracion` — usuarios, roles, auditoría y sucursales (`nexo.administracion.sucursales.ver/gestionar`, 2026-10-14) (Paso Cero aplicado 2026-10-14, 9 códigos `nexo.administracion.*`; ver [plan/12-administracion-usuarios-roles.md](plan/12-administracion-usuarios-roles.md), ; roles de empresa y RPC de administración aplicados 2026-10-14, ver "Modelo vigente" abajo — pantallas **sin implementar**) |
 | Todos (incluye `nexo`) | `acceso` — dominio reservado para el permiso `<slug>.ver_modulo` que crea el trigger |
 
@@ -213,6 +235,45 @@ P3 preparado (no aplicado): escritura directa de marcas retirada a authenticated
 ## Asistencia — app con visibilidad propia y permisos de RRHH (2026-10-17)
 
 Primer caso de una app del Launcher cuyo permiso de visibilidad y cuyos permisos de contenido pertenecen a módulos distintos. `asistencia.ver_modulo` (módulo `asistencia`, generado por el trigger con `20261017173701`) decide si se ve el mosaico y si se entra a `/rrhh/asistencia`. Lo que se puede hacer dentro lo deciden los permisos que ya existían, `rrhh.asistencia.{marcas,kioskos,justificaciones,turnos,feriados}.*`, que siguen en el módulo `rrhh` y caen si RRHH se desactiva. Las Server Actions validan solo el permiso de contenido, igual que RLS: la visibilidad es una barrera de interfaz, no de datos. Hoy solo el owner tiene `asistencia.ver_modulo`; asignarlo a roles requiere aprobación (Paso Cero). En el editor de roles, Asistencia aparece solo con "Acceso" y sus permisos funcionales bajo RRHH. [Detalle](status-log/2026-10-17-asistencia-app.md).
+
+### Reportes: `reportes.ver` y `reportes.exportar` (2026-10-18)
+
+Paso Cero aprobado y aplicado (`20261018014012`). `rrhh.asistencia.reportes.ver` permite consultar los 5 reportes en pantalla, incluidos los horarios y las tolerancias de la jornada. `rrhh.asistencia.reportes.exportar` permite el PDF y la vista de impresión; cada exportación queda en `core.audit_log` como `rrhh.asistencia.reporte.exportado`.
+
+Plantillas:
+- Administrador de RRHH, Supervisor de Asistencia y Especialista de Planillas: ver y exportar.
+- Consulta General: solo ver.
+
+## Planilla — Paso Cero y separación de funciones (2026-10-21)
+
+Paso Cero aprobado y aplicado (`20261021160943`). El diseño está en el [plan 20 §8](plan/20-planilla.md). Agrega 15 códigos al dominio `planillas` de RRHH, que llega a 25:
+- **Régimen:** `regimen.ver` y `regimen.cambiar`. El régimen va en cada contrato y puede ser laboral o de servicios profesionales; el usuario pidió dejar preparadas las dos opciones.
+- **Conceptos:** `conceptos.ver` y `conceptos.gestionar`.
+- **Pago:** `planilla.pagar`.
+- **Vacaciones:** `vacaciones.ver`, `vacaciones.registrar` y `vacaciones.aprobar`.
+- **Préstamos:** `prestamos.ver` y `prestamos.gestionar`.
+- **Liquidaciones:** `liquidaciones.ver`, `liquidaciones.calcular` y `liquidaciones.aprobar`.
+- **Declaraciones y colillas:** `declaraciones.generar` y `colillas.enviar`.
+
+**Separación de funciones:** quien genera la planilla no la aprueba ni la anula, y quien calcula una liquidación no la aprueba.
+- `especialista_planillas` ya no tiene `planilla.aprobar` ni `planilla.anular`.
+- Cambiar el régimen, pagar, aprobar o anular una planilla y aprobar liquidaciones queda solo en la plantilla `admin`.
+- Las RPC del motor deben además impedir que un mismo usuario genere y apruebe la misma corrida, aunque tenga los dos permisos. **PL2a (`20261021191441`, aplicada):** `planilla_aprobar` rechaza a quien creó o calculó la planilla, con aprobación estricta por decisión del usuario.
+- Fijar `contratos.fecha_antiguedad` usa `rrhh.planillas.liquidaciones.aprobar` (decisión del usuario del 2026-10-21; no es un código nuevo), porque decide el monto de la liquidación. Las nuevas vigencias de parámetros usan `parametros.editar` por RPC auditada, sin escritura directa.
+
+| Plantilla | Permisos de planillas |
+|---|---|
+| admin | 27 (todos; desde PL2b también pagar y anular liquidaciones) |
+| especialista_planillas | 18 (genera y prepara; no aprueba, no anula, no paga ni cambia el régimen) |
+| consulta | 7 (solo ver) |
+| supervisor_asistencia | 2 (ver y aprobar vacaciones) |
+| gestor_expedientes | 1 (ver régimen) |
+
+**Paso Cero de PL2b (`20261021235639`, aplicado el 2026-10-22):** `rrhh.planillas.liquidaciones.pagar` y `rrhh.planillas.liquidaciones.anular`, solo en la plantilla `admin` (decisión del usuario: "Dos permisos nuevos, solo admin"). El dominio `planillas` queda con 27 códigos. Aprobar una liquidación exige además `rrhh.expedientes.contratos.finalizar`, porque al aprobarla se finaliza el contrato. Las RPC de PL2b y PL2c aplican separación de funciones también en vacaciones (quien registra un movimiento no lo aprueba) y en liquidaciones (no la aprueba quien la creó ni quien la calculó).
+
+Ningún rol de empresa tiene estos permisos todavía. Se asignan desde Configuración → Roles. Hoy solo el owner de la empresa puede usar Planilla.
+
+`marcas.ver` y `reportes.ver` son independientes. Ningún rol de empresa los tiene todavía. Las RPC validan con `core.has_permission`, y el Route Handler y la vista de impresión validan antes de llamarlas.
 
 ### Enrolamiento de terminales: `kioskos.asignar` y `kioskos.revocar` (2026-10-17)
 

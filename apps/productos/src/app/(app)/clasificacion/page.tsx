@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
-import { PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
-import { P } from "@/lib/permisos";
+import { contextoActual } from "@nexo/auth";
+import { Alert, PageHeader } from "@nexo/ui";
+import { permisosDe } from "@/lib/permisos";
 import type { Catalogos } from "@/lib/tipos";
 import ArbolClasificacion from "./arbol";
 
@@ -14,12 +12,12 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function ClasificacionPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-  const [catalogos, puedeGestionar] = await Promise.all([
+  const { supabase, companyId } = await contextoActual();
+  const [catalogos, permisos] = await Promise.all([
     supabase.rpc("productos_catalogos", { p_company_id: companyId }),
-    hasPermission({ supabase, companyId }, P.clasificacion),
+    permisosDe(),
   ]);
+  const puedeGestionar = permisos.clasificacion;
   // El detalle técnico queda en el log del servidor, nunca en pantalla.
   if (catalogos.error) console.error("productos_catalogos", catalogos.error);
 
@@ -30,9 +28,9 @@ export default async function ClasificacionPage() {
         description="Clase › Tipo › Categoría. Cada nivel numera desde 01 dentro de su padre; el sistema propone el siguiente número y se puede cambiar al crear. Cuando un producto lo usa, el número queda fijo."
       />
       {catalogos.error ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudo cargar la clasificación. Intenta recargar la página.
-        </p>
+        <Alert tone="error" title="No se pudo cargar la clasificación">
+          Intenta recargar la página.
+        </Alert>
       ) : (
         <ArbolClasificacion clasificaciones={(catalogos.data as Catalogos).clasificaciones} puedeGestionar={puedeGestionar} />
       )}

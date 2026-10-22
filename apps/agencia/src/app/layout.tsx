@@ -2,16 +2,15 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
-import { createClient } from "@/lib/supabase/server";
-import { getFaviconUrl } from "@/lib/platform-settings";
+import { getPlatformSettings } from "@nexo/auth";
 import "./globals.css";
 
 // Misma tipografía, marca y shell de la suite.
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const supabase = await createClient();
-  const faviconUrl = await getFaviconUrl(supabase);
+  // Sin cookies y en caché: ya no vuelve dinámica cada ruta por el favicon.
+  const { faviconUrl } = await getPlatformSettings();
   return {
     title: "Agencia digital · Nexo",
     description: "Agentes, tickets y progreso. Vista de solo lectura con datos de ejemplo.",

@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import type { Database } from "@/lib/supabase/database.types";
 
 export interface ActionResult {
   ok: boolean;
@@ -22,8 +22,7 @@ export interface PlantillaInput {
  * construir. Sin RPC dedicado -- escritura directa protegida por RLS.
  */
 export async function crearPlantilla(input: PlantillaInput): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.plantillas.crear");
@@ -53,8 +52,7 @@ export async function editarPlantilla(
   plantillaId: string,
   input: PlantillaInput & { activo: boolean }
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.plantillas.editar");

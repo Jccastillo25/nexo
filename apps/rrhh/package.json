@@ -11,7 +11,10 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@nexo/auth": "workspace:*",
+    "@nexo/config": "workspace:*",
     "@nexo/permissions": "workspace:*",
+    "@nexo/supabase": "workspace:*",
     "@nexo/ui": "workspace:*",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.0",
@@ -19,10 +22,10 @@
     "@vercel/speed-insights": "^2.0.0",
     "date-fns": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
-    "jspdf": "^4.2.1",
-    "jspdf-autotable": "^5.0.7",
+    "jspdf": "4.2.1",
+    "jspdf-autotable": "5.0.8",
     "lucide-react": "^0.577.0",
-    "next": "16.3.0",
+    "next": "16.3.8",
     "numero-a-letras": "^1.0.6",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -39,7 +42,7 @@
     "@types/uuid": "^10.0.0",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.3.0",
+    "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

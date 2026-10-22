@@ -2,14 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import { P } from "@/lib/permisos";
+import type { Database } from "@/lib/supabase/database.types";
 import { mensajeAdministracion } from "../errores";
 
 export interface ActionResult {
   ok: boolean;
   message?: string;
   id?: string;
+  /** Campo al que pertenece el error, para mostrarlo junto a él. */
+  campo?: "nombre";
 }
 
 export interface GuardarRolInput {
@@ -26,26 +29,25 @@ export interface GuardarRolInput {
  * revalida. Ver docs/plan/12-administracion-usuarios-roles.md §6.
  */
 export async function guardarRol(input: GuardarRolInput): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-  const code = input.rolId ? "nexo.administracion.roles.editar" : "nexo.administracion.roles.crear";
+  const ctx = await contextoActual<Database>();
+  const code = input.rolId ? P.rolesEditar : P.rolesCrear;
 
   try {
-    await requirePermission({ supabase, companyId }, code);
+    await requirePermission(ctx, code);
   } catch (err) {
     if (err instanceof PermissionDeniedError) {
-      return { ok: false, message: "No tenés permiso para guardar roles." };
+      return { ok: false, message: "No tienes permiso para guardar roles." };
     }
     throw err;
   }
 
   const nombre = input.nombre.trim();
   if (nombre.length < 2 || nombre.length > 80) {
-    return { ok: false, message: "El nombre del rol debe tener entre 2 y 80 caracteres." };
+    return { ok: false, campo: "nombre", message: "El nombre del rol debe tener entre 2 y 80 caracteres." };
   }
 
-  const { data, error } = await supabase.rpc("admin_guardar_rol", {
-    p_company_id: companyId,
+  const { data, error } = await ctx.supabase.rpc("admin_guardar_rol", {
+    p_company_id: ctx.companyId,
     p_rol_id: input.rolId,
     p_nombre: nombre,
     p_descripcion: input.descripcion.trim() || null,
@@ -61,19 +63,18 @@ export async function guardarRol(input: GuardarRolInput): Promise<ActionResult> 
 }
 
 export async function eliminarRol(rolId: string): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const ctx = await contextoActual<Database>();
 
   try {
-    await requirePermission({ supabase, companyId }, "nexo.administracion.roles.eliminar");
+    await requirePermission(ctx, P.rolesEliminar);
   } catch (err) {
     if (err instanceof PermissionDeniedError) {
-      return { ok: false, message: "No tenés permiso para eliminar roles." };
+      return { ok: false, message: "No tienes permiso para eliminar roles." };
     }
     throw err;
   }
 
-  const { error } = await supabase.rpc("admin_eliminar_rol", { p_company_id: companyId, p_rol_id: rolId });
+  const { error } = await ctx.supabase.rpc("admin_eliminar_rol", { p_company_id: ctx.companyId, p_rol_id: rolId });
   if (error) {
     return { ok: false, message: mensajeAdministracion(error, "eliminarRol: admin_eliminar_rol", "No se pudo eliminar el rol. Intenta de nuevo.") };
   }

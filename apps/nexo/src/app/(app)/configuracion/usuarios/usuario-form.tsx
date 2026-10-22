@@ -3,13 +3,9 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormSection, useToast } from "@nexo/ui";
+import { Alert, Button, ButtonLink, Field, FormSection, Input, Select, useToast } from "@nexo/ui";
 import type { EmpleadoBusqueda } from "@/lib/supabase/database.types";
-import { buscarEmpleados, crearUsuario, editarUsuario } from "./actions";
-
-const inputClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-neutral-50 disabled:text-neutral-500";
-const labelClass = "text-xs font-medium uppercase tracking-wide text-neutral-500";
+import { buscarEmpleados, crearUsuario, editarUsuario, type CampoUsuario } from "./actions";
 
 export interface UsuarioFormProps {
   roles: { id: string; nombre: string }[];
@@ -29,6 +25,8 @@ export interface UsuarioFormProps {
     empleado: { id: string; nombre: string } | null;
   } | null;
 }
+
+type ErroresCampo = Partial<Record<CampoUsuario, string>>;
 
 function EmpleadoPicker({
   value,
@@ -52,62 +50,52 @@ function EmpleadoPicker({
 
   if (value) {
     return (
-      <div className="flex items-center justify-between rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm">
-        <span className="text-neutral-800">{value.nombre}</span>
-        <button type="button" onClick={() => onChange(null)} className="text-xs font-medium text-red-600 hover:text-red-700">
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm">
+        <span className="min-w-0 truncate text-neutral-800">{value.nombre}</span>
+        <Button variant="destructive-outline" size="sm" onClick={() => onChange(null)}>
           Quitar vínculo
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
-        <input
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              buscar();
-            }
-          }}
-          placeholder="Nombre, apellido o cédula"
-          aria-label="Buscar empleado de RRHH"
-          className={inputClass}
-        />
-        <button
-          type="button"
-          onClick={buscar}
-          disabled={isPending}
-          className="shrink-0 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
-        >
-          {isPending ? "Buscando…" : "Buscar"}
-        </button>
-      </div>
-      {mensaje && <p className="text-xs text-red-600">{mensaje}</p>}
+      <Field label="Buscar empleado" error={mensaje}>
+        <div className="flex gap-2">
+          <Input
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                buscar();
+              }
+            }}
+            placeholder="Nombre, apellido o cédula"
+          />
+          <Button variant="secondary" onClick={buscar} loading={isPending}>
+            Buscar
+          </Button>
+        </div>
+      </Field>
       {resultados && resultados.length === 0 && !mensaje && (
-        <p className="text-xs text-neutral-400">Sin resultados.</p>
+        <p className="text-xs text-neutral-500">Sin resultados.</p>
       )}
       {resultados && resultados.length > 0 && (
-        <ul className="divide-y divide-neutral-100 rounded-md border border-neutral-200">
+        <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200">
           {resultados.map((e) => (
-            <li key={e.id} className="flex items-center justify-between px-3 py-2 text-sm">
-              <span>
+            <li key={e.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+              <span className="min-w-0">
                 {e.nombre_completo}
-                {e.documento_identidad && <span className="ml-2 text-xs text-neutral-400">{e.documento_identidad}</span>}
+                {e.documento_identidad && <span className="ml-2 text-xs text-neutral-500">{e.documento_identidad}</span>}
               </span>
               {e.vinculado_a ? (
-                <span className="text-xs text-neutral-400">Ya vinculado</span>
+                <span className="shrink-0 text-xs text-neutral-500">Ya vinculado</span>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => onChange({ id: e.id, nombre: e.nombre_completo })}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-700"
-                >
+                <Button variant="link" size="sm" onClick={() => onChange({ id: e.id, nombre: e.nombre_completo })}>
                   Vincular
-                </button>
+                </Button>
               )}
             </li>
           ))}
@@ -121,6 +109,8 @@ function EmpleadoPicker({
  * Alta / edición de usuario (decisiones 2026-10-14): un solo rol por
  * usuario, contraseña temporal puesta por el administrador, vínculo
  * opcional con un empleado de RRHH. El correo no se edita después del alta.
+ * Los errores de validación (del navegador o de la Server Action, vía
+ * `campo`) se muestran junto a su campo; el resto, al pie.
  */
 export default function UsuarioForm({ roles, sucursales, sucursalesAsignadas, usuario }: UsuarioFormProps) {
   const router = useRouter();
@@ -134,18 +124,33 @@ export default function UsuarioForm({ roles, sucursales, sucursalesAsignadas, us
   const [rolId, setRolId] = useState(usuario?.rolId ?? "");
   const [empleado, setEmpleado] = useState(usuario?.empleado ?? null);
   const [sucursalIds, setSucursalIds] = useState<Set<string>>(() => new Set(sucursalesAsignadas));
+  const [errores, setErrores] = useState<ErroresCampo>({});
   const [error, setError] = useState<string | null>(null);
 
   const rolBloqueado = usuario?.esOwner || usuario?.esUnoMismo;
 
+  /** Cambia un campo y borra su error. */
+  function editar(campo: CampoUsuario, aplicar: () => void) {
+    aplicar();
+    if (errores[campo]) setErrores((prev) => ({ ...prev, [campo]: undefined }));
+  }
+
+  function validar(): ErroresCampo {
+    const e: ErroresCampo = {};
+    if (nombre.trim().length < 2) e.nombreCompleto = "Escribe el nombre completo.";
+    if (!usuario) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) e.email = "Escribe un correo válido.";
+      if (password.length < 8) e.password = "La contraseña temporal debe tener al menos 8 caracteres.";
+    }
+    if (!usuario?.esOwner && !rolId) e.rolId = "Selecciona un rol.";
+    return e;
+  }
+
   function guardar() {
     setError(null);
-    if (nombre.trim().length < 2) return setError("Escribí el nombre completo.");
-    if (!usuario) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError("Escribí un correo válido.");
-      if (password.length < 8) return setError("La contraseña temporal debe tener al menos 8 caracteres.");
-    }
-    if (!usuario?.esOwner && !rolId) return setError("Seleccioná un rol.");
+    const e = validar();
+    setErrores(e);
+    if (Object.keys(e).length > 0) return;
 
     const datos = {
       nombreCompleto: nombre,
@@ -162,8 +167,10 @@ export default function UsuarioForm({ roles, sucursales, sucursalesAsignadas, us
           ? await editarUsuario(usuario.userId, datos)
           : await crearUsuario({ ...datos, email, password });
         if (!res.ok) {
-          setError(res.message ?? "No se pudo guardar.");
-          show(res.message ?? "No se pudo guardar.", "error");
+          const message = res.message ?? "No se pudo guardar.";
+          if (res.campo) setErrores({ [res.campo]: message });
+          else setError(message);
+          show(message, "error");
           return;
         }
         show(usuario ? "Usuario actualizado." : "Usuario creado. Deberá cambiar la contraseña al entrar.", "success");
@@ -183,93 +190,100 @@ export default function UsuarioForm({ roles, sucursales, sucursalesAsignadas, us
     <div className="flex flex-col gap-6">
       <FormSection title="Datos de la persona">
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="u_nombre" className={labelClass}>
-              Nombre completo
-            </label>
-            <input id="u_nombre" value={nombre} maxLength={120} onChange={(e) => setNombre(e.target.value)} className={inputClass} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="u_email" className={labelClass}>
-              Correo (usuario de ingreso)
-            </label>
-            <input
-              id="u_email"
+          <Field label="Nombre completo" required error={errores.nombreCompleto}>
+            <Input
+              value={nombre}
+              maxLength={120}
+              autoComplete="name"
+              onChange={(e) => editar("nombreCompleto", () => setNombre(e.target.value))}
+            />
+          </Field>
+          <Field
+            label="Correo (usuario de ingreso)"
+            required={!usuario}
+            hint={usuario ? "El correo no se puede cambiar después del alta." : undefined}
+            error={errores.email}
+          >
+            <Input
               type="email"
               value={email}
               disabled={!!usuario}
-              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              onChange={(e) => editar("email", () => setEmail(e.target.value))}
               placeholder="nombre@materialesjcastillo.com"
-              className={inputClass}
             />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="u_telefono" className={labelClass}>
-              Teléfono
-            </label>
-            <input id="u_telefono" value={telefono} maxLength={30} onChange={(e) => setTelefono(e.target.value)} className={inputClass} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="u_cargo" className={labelClass}>
-              Cargo
-            </label>
-            <input id="u_cargo" value={cargo} maxLength={80} onChange={(e) => setCargo(e.target.value)} className={inputClass} />
-          </div>
+          </Field>
+          <Field label="Teléfono" optional error={errores.telefono}>
+            <Input
+              type="tel"
+              value={telefono}
+              maxLength={30}
+              autoComplete="tel"
+              onChange={(e) => editar("telefono", () => setTelefono(e.target.value))}
+            />
+          </Field>
+          <Field label="Cargo" optional error={errores.cargo}>
+            <Input
+              value={cargo}
+              maxLength={80}
+              autoComplete="organization-title"
+              onChange={(e) => editar("cargo", () => setCargo(e.target.value))}
+            />
+          </Field>
           {!usuario && (
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="u_password" className={labelClass}>
-                Contraseña temporal
-              </label>
-              <input
-                id="u_password"
+            <Field
+              label="Contraseña temporal"
+              required
+              hint="Mínimo 8 caracteres. El usuario deberá cambiarla en su primer ingreso."
+              error={errores.password}
+            >
+              <Input
                 type="password"
                 autoComplete="new-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={inputClass}
+                onChange={(e) => editar("password", () => setPassword(e.target.value))}
               />
-              <p className="text-xs text-neutral-400">Mínimo 8 caracteres. El usuario deberá cambiarla en su primer ingreso.</p>
-            </div>
+            </Field>
           )}
         </div>
       </FormSection>
 
       <FormSection title="Acceso">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="u_rol" className={labelClass}>
-            Rol
-          </label>
-          {usuario?.esOwner ? (
-            <p className="text-sm text-neutral-600">Owner — acceso total, no lleva rol.</p>
-          ) : (
-            <select
-              id="u_rol"
+        {usuario?.esOwner ? (
+          <div className="flex flex-col gap-1">
+            <span className="text-[13px] font-medium text-neutral-700">Rol</span>
+            <p className="text-sm text-neutral-600">Propietario: acceso total, no lleva rol.</p>
+          </div>
+        ) : (
+          <Field
+            label="Rol"
+            required
+            hint={usuario?.esUnoMismo ? "No puedes cambiar tu propio rol." : undefined}
+            error={errores.rolId}
+          >
+            <Select
               value={rolId}
               disabled={rolBloqueado}
-              onChange={(e) => setRolId(e.target.value)}
-              className={inputClass}
+              onChange={(e) => editar("rolId", () => setRolId(e.target.value))}
             >
-              <option value="">Seleccioná un rol</option>
+              <option value="">Selecciona un rol</option>
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.nombre}
                 </option>
               ))}
-            </select>
-          )}
-          {usuario?.esUnoMismo && !usuario.esOwner && (
-            <p className="text-xs text-neutral-400">No podés cambiar tu propio rol.</p>
-          )}
-          {!usuario?.esOwner && roles.length === 0 && (
-            <p className="text-xs text-amber-700">
-              No hay roles para elegir. Creá uno en{" "}
-              <Link href="/configuracion/roles/nuevo" className="underline">
-                Roles
-              </Link>{" "}
-              (o pedí el permiso para verlos).
-            </p>
-          )}
-        </div>
+            </Select>
+          </Field>
+        )}
+        {!usuario?.esOwner && roles.length === 0 && (
+          <Alert tone="warning">
+            No hay roles para elegir. Crea uno en{" "}
+            <Link href="/configuracion/roles/nuevo" className="font-medium underline">
+              Roles
+            </Link>{" "}
+            (o pide el permiso para verlos).
+          </Alert>
+        )}
       </FormSection>
 
       {sucursales && (
@@ -280,16 +294,18 @@ export default function UsuarioForm({ roles, sucursales, sucursalesAsignadas, us
           {sucursales.length === 0 ? (
             <p className="text-sm text-neutral-500">
               Todavía no hay sucursales.{" "}
-              <Link href="/configuracion/sucursales" className="text-blue-600 underline">
+              <Link href="/configuracion/sucursales" className="font-medium text-blue-600 underline">
                 Crear una
               </Link>
             </p>
           ) : (
-            <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <fieldset className="flex flex-wrap gap-x-5 gap-y-2">
+              <legend className="sr-only">Sucursales asignadas</legend>
               {sucursales.map((s) => (
                 <label key={s.id} className="flex items-center gap-2 text-sm text-neutral-700">
                   <input
                     type="checkbox"
+                    className="size-4 accent-blue-600"
                     checked={sucursalIds.has(s.id)}
                     onChange={(e) =>
                       setSucursalIds((prev) => {
@@ -303,7 +319,7 @@ export default function UsuarioForm({ roles, sucursales, sucursalesAsignadas, us
                   {s.nombre}
                 </label>
               ))}
-            </div>
+            </fieldset>
           )}
         </FormSection>
       )}
@@ -312,27 +328,15 @@ export default function UsuarioForm({ roles, sucursales, sucursalesAsignadas, us
         <EmpleadoPicker value={empleado} onChange={setEmpleado} />
       </FormSection>
 
-      {error && (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
-      )}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
-      <div className="flex gap-3">
-        <Link
-          href="/configuracion/usuarios"
-          className="rounded-md border border-neutral-300 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50"
-        >
+      <div className="flex flex-wrap gap-3">
+        <ButtonLink href="/configuracion/usuarios" variant="secondary">
           Cancelar
-        </Link>
-        <button
-          type="button"
-          onClick={guardar}
-          disabled={isPending}
-          className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isPending ? "Guardando…" : usuario ? "Guardar cambios" : "Crear usuario"}
-        </button>
+        </ButtonLink>
+        <Button onClick={guardar} loading={isPending}>
+          {usuario ? "Guardar cambios" : "Crear usuario"}
+        </Button>
       </div>
     </div>
   );

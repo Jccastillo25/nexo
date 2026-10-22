@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
+import { contextoActual } from "@nexo/auth";
 import { EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import type { Database } from "@/lib/supabase/database.types";
+import { permisosDe } from "@/lib/permisos-rrhh";
 import PlantillasPanel, { type PlantillaRow } from "./plantillas-panel";
 
 export const metadata: Metadata = {
@@ -15,49 +15,51 @@ export const metadata: Metadata = {
  * llega en Fase 4 (Storage privado).
  */
 export default async function PlantillasPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-
-  const [canVer, canCrear, canEditar] = await Promise.all([
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.plantillas.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.plantillas.crear"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.plantillas.editar"),
-  ]);
-
-  let plantillas: PlantillaRow[] = [];
-  if (canVer) {
-    const { data, error } = await supabase
+  const { supabase, companyId } = await contextoActual<Database>();
+  // Plantillas en paralelo con los permisos (la RLS las protege igual).
+  const [permisos, plantillasRes] = await Promise.all([
+    permisosDe(),
+    supabase
       .schema("rrhh")
       .from("plantillas_contrato")
       .select("id, nombre, descripcion, activo, storage_path")
       .eq("company_id", companyId)
-      .order("nombre");
+      .order("nombre"),
+  ]);
 
-    if (error) throw new Error(`No se pudieron cargar las plantillas: ${error.message}`);
-    plantillas = (data ?? []).map((p) => ({
-      id: p.id,
-      nombre: p.nombre,
-      descripcion: p.descripcion,
-      activo: p.activo,
-      tieneArchivo: p.storage_path != null,
-    }));
+  if (!permisos.plantillasVer) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader title="Plantillas de contrato" />
+        <EmptyState variant="no-access" title="No tienes acceso a las plantillas de contrato" />
+      </div>
+    );
   }
 
+  if (plantillasRes.error) {
+    // El detalle va al log del servidor; error.tsx muestra solo la referencia.
+    console.error("plantillas: listado", plantillasRes.error);
+    throw new Error("No se pudieron cargar las plantillas.");
+  }
+  const plantillas: PlantillaRow[] = (plantillasRes.data ?? []).map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    descripcion: p.descripcion,
+    activo: p.activo,
+    tieneArchivo: p.storage_path != null,
+  }));
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Plantillas de contrato"
-        description="Catálogo de plantillas — se pueden asignar como predeterminadas de un puesto."
+        description="Catálogo de plantillas. Se pueden asignar como predeterminadas de un puesto."
       />
-
-      {canVer ? (
-        <PlantillasPanel plantillas={plantillas} canCrear={canCrear} canEditar={canEditar} />
-      ) : (
-        <EmptyState
-          title="Sin permiso para ver plantillas"
-          description="No tenés el permiso rrhh.expedientes.plantillas.ver."
-        />
-      )}
+      <PlantillasPanel
+        plantillas={plantillas}
+        canCrear={permisos.plantillasCrear}
+        canEditar={permisos.plantillasEditar}
+      />
     </div>
   );
 }

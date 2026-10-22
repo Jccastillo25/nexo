@@ -1,12 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
-import { AppTileIcon } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
-import type { VisibleApp } from "@/lib/supabase/database.types";
-import { signOut } from "@/app/login/actions";
+import { Alert, AppTileIcon, Button, EmptyState } from "@nexo/ui";
+import { contextoActual, sesionActual, signOut } from "@nexo/auth";
+import type { Database, VisibleApp } from "@/lib/supabase/database.types";
+import { permisosDe, type Permiso } from "@/lib/permisos";
 import { exigirPasswordDefinitiva } from "@/lib/perfil";
+import RecargarButton from "./recargar-button";
 
 export const metadata: Metadata = {
   title: "Nexo",
@@ -62,9 +61,10 @@ const tileClass =
   "flex h-[76px] w-[76px] items-center justify-center rounded-2xl bg-white shadow-[0_1px_3px_rgba(15,23,42,0.08),0_6px_16px_-6px_rgba(15,23,42,0.18)] ring-1 ring-black/5 transition-shadow duration-150 group-hover:shadow-[0_2px_6px_rgba(15,23,42,0.1),0_14px_24px_-8px_rgba(15,23,42,0.25)] group-hover:ring-black/10";
 // Sin translate en el hover: un transform animado hace que Chrome dibuje el
 // mosaico como capa rasterizada y, con escalado de pantalla de Windows (125 %,
-// 150 %), los iconos se ven borrosos.
+// 150 %), los iconos se ven borrosos. Foco: el mismo anillo del kit
+// (Button, DataTable).
 const itemClass =
-  "group flex w-[104px] flex-col items-center gap-2 rounded-xl p-1 text-center outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
+  "group flex w-[104px] flex-col items-center gap-2 rounded-xl p-1 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
 
 // Apps planificadas que se muestran como "Próximamente" (pedido del usuario
 // 2026-10-17: "para tener una mejor orientación visual"). Mosaico sin enlace,
@@ -73,11 +73,13 @@ const itemClass =
 // real y no el aviso. Flotilla y Agencia ya existen en core.apps, pero hoy no
 // están habilitadas para la empresa; si se habilitan y un usuario no tiene
 // permiso, verá "Próximamente" en vez de nada (aceptado: es solo orientación).
-// No van aquí las funciones que ya viven dentro de un módulo: Nómina (RRHH)
-// y Cotizaciones (CRM). Asistencia tampoco: desde 2026-10-17 es una app
-// propia en core.apps (slug `asistencia`, mismo deploy que RRHH bajo
-// /rrhh/asistencia) y llega por get_visible_apps. Listas de precios sí: el
-// usuario decidió (2026-10-17) que sea una app aparte, fuera de Productos.
+// No van aquí las funciones que ya viven dentro de un módulo, como Nómina
+// (RRHH). Asistencia tampoco: desde 2026-10-17 es una app propia en
+// core.apps (slug `asistencia`, mismo deploy que RRHH bajo /rrhh/asistencia)
+// y llega por get_visible_apps. Listas de precios sí: el usuario decidió
+// (2026-10-17) que sea una app aparte, fuera de Productos. Punto de venta,
+// facturación, inventario, compras, contabilidad y bancos son una sola app
+// ERP (decisión 2026-10-20, réplica de AG Negocio: docs/plan/18).
 interface AppProxima {
   slug: string;
   name: string;
@@ -86,14 +88,12 @@ interface AppProxima {
 }
 
 const APPS_PROXIMAMENTE: AppProxima[] = [
-  { slug: "punto-de-venta", name: "Punto de venta", category: "Ventas", icon: "register" },
-  { slug: "facturacion", name: "Facturación", category: "Ventas", icon: "receipt" },
+  // App aparte desde 2026-10-20 (docs/plan/19-presupuesto.md); registrada en
+  // core.apps, todavía inactiva.
+  { slug: "presupuesto", name: "Presupuesto", category: "Ventas", icon: "target" },
+  { slug: "erp", name: "ERP", category: "Finanzas", icon: "calculator" },
   { slug: "precios", name: "Listas de precios", category: "Cadena de suministro", icon: "tag" },
-  { slug: "inventario", name: "Inventario", category: "Cadena de suministro", icon: "warehouse" },
-  { slug: "compras", name: "Compras", category: "Cadena de suministro", icon: "cart" },
   { slug: "flotilla", name: "Flotilla", category: "Cadena de suministro", icon: "truck" },
-  { slug: "contabilidad", name: "Contabilidad", category: "Finanzas", icon: "calculator" },
-  { slug: "bancos", name: "Bancos", category: "Finanzas", icon: "bank" },
   { slug: "agencia", name: "Agencia digital", category: "Servicios", icon: "sun" },
 ];
 
@@ -151,8 +151,8 @@ function ProximaTile({ app }: { app: AppProxima }) {
           className="h-12 w-12 [&_[class*=fill-]:not(.fill-white)]:fill-neutral-300!"
         />
       </span>
-      <span className="text-[13px] leading-tight text-neutral-400">{app.name}</span>
-      <span className="-mt-1 rounded-full bg-neutral-200/70 px-2 py-0.5 text-[10px] font-medium text-neutral-500">
+      <span className="text-[13px] leading-tight text-neutral-500">{app.name}</span>
+      <span className="-mt-1 rounded-full bg-neutral-200/70 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
         Próximamente
       </span>
     </div>
@@ -164,13 +164,13 @@ function ProximaTile({ app }: { app: AppProxima }) {
 // a la primera pantalla de Configuración que el usuario puede ver; sin
 // ningún permiso de administración, la tarjeta no aparece. Mostrarla no
 // autoriza nada: cada pantalla valida su propio permiso en el servidor.
-const DESTINOS_CONFIGURACION = [
-  { code: "nexo.administracion.usuarios.ver", href: "/configuracion/usuarios" },
-  { code: "nexo.administracion.roles.ver", href: "/configuracion/roles" },
-  { code: "nexo.administracion.sucursales.ver", href: "/configuracion/sucursales" },
-  { code: "nexo.administracion.auditoria.ver", href: "/configuracion/auditoria" },
-  { code: "nexo.configuracion.editar", href: "/configuracion/marca" },
-] as const;
+const DESTINOS_CONFIGURACION: { permiso: Permiso; href: string }[] = [
+  { permiso: "usuariosVer", href: "/configuracion/usuarios" },
+  { permiso: "rolesVer", href: "/configuracion/roles" },
+  { permiso: "sucursalesVer", href: "/configuracion/sucursales" },
+  { permiso: "auditoriaVer", href: "/configuracion/auditoria" },
+  { permiso: "marcaEditar", href: "/configuracion/marca" },
+];
 
 /**
  * App Launcher de Nexo — decisión vigente (2026-09-17): "/" es
@@ -180,23 +180,23 @@ const DESTINOS_CONFIGURACION = [
  * breadcrumb/buscador/menú de usuario con "Configuración de marca") — eso
  * seguía mostrando, aunque fuera mínimo, un sidebar/topbar/menú de módulo
  * en la propia raíz. Se movió a la raíz de `app/` (fuera del grupo
- * `(app)`) para que NO herede ese layout — el middleware
- * (lib/supabase/middleware.ts) sigue protegiendo esta ruta igual, la
- * sesión no depende de estar dentro de `(app)`. Header propio, mínimo:
- * "Nexo" (texto fijo, sin link — ya estamos en el inicio) + correo +
- * cerrar sesión, sin dropdown, sin buscador, sin enlace a Configuración
- * (esa ruta sigue funcionando, solo que ya no se muestra en el Launcher —
- * ver `(app)/configuracion/marca`, que conserva su propio NexoShell).
+ * `(app)`) para que NO herede ese layout — el proxy (src/proxy.ts) sigue
+ * protegiendo esta ruta igual, la sesión no depende de estar dentro de
+ * `(app)`. Header propio, mínimo: "Nexo" (texto fijo, sin link — ya
+ * estamos en el inicio) + correo + cerrar sesión, sin dropdown, sin
+ * buscador. La tarjeta "Configuración" de abajo lleva a esa sección.
+ *
+ * Kernel (2026-10-20): una llamada a Auth (sesionActual) y una sola
+ * consulta de permisos (permisosDe, la misma lista que el resto del panel).
  */
 export default async function PanelPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
-  const [{ data: apps, error }, { data: { user } }, , permisosConfig] = await Promise.all([
+  const [{ data: apps, error }, { user }, permisos] = await Promise.all([
     supabase.rpc("get_visible_apps", { p_company_id: companyId }),
-    supabase.auth.getUser(),
-    exigirPasswordDefinitiva(supabase),
-    Promise.all(DESTINOS_CONFIGURACION.map((d) => hasPermission({ supabase, companyId }, d.code))),
+    sesionActual<Database>(),
+    permisosDe(),
+    exigirPasswordDefinitiva(),
   ]);
 
   // El detalle técnico queda en el log del servidor, nunca en pantalla.
@@ -209,18 +209,18 @@ export default async function PanelPage() {
     return false;
   });
   const secciones = agruparPorCategoria(lista);
-  const configuracionHref = DESTINOS_CONFIGURACION.find((_, i) => permisosConfig[i])?.href;
+  const configuracionHref = DESTINOS_CONFIGURACION.find((d) => permisos[d.permiso])?.href;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-100 via-slate-50 to-sky-100">
       <header className="flex items-center justify-between border-b border-white/60 bg-white/60 px-4 py-3 backdrop-blur sm:px-6">
         <span className="text-sm font-semibold tracking-tight text-neutral-900">Nexo</span>
-        <div className="flex items-center gap-3 text-sm text-neutral-500">
-          {user?.email && <span className="hidden sm:inline">{user.email}</span>}
+        <div className="flex min-w-0 items-center gap-3 text-sm text-neutral-500">
+          {user?.email && <span className="hidden min-w-0 truncate sm:inline">{user.email}</span>}
           <form action={signOut}>
-            <button type="submit" className="text-neutral-500 hover:text-neutral-900">
+            <Button variant="ghost" size="sm" type="submit">
               Cerrar sesión
-            </button>
+            </Button>
           </form>
         </div>
       </header>
@@ -229,17 +229,17 @@ export default async function PanelPage() {
         <h1 className="sr-only">Aplicaciones</h1>
 
         {error && (
-          <p role="alert" className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-            No se pudo cargar la lista de aplicaciones. Intenta recargar la página.
-          </p>
+          <Alert tone="error" title="No se pudo cargar la lista de aplicaciones" action={<RecargarButton />}>
+            Intenta de nuevo en unos segundos.
+          </Alert>
         )}
 
         {!error && lista.length === 0 && !configuracionHref && (
-          <p className="rounded-md border border-neutral-200 bg-white px-4 py-6 text-sm text-neutral-500">
-            No tenés ninguna aplicación habilitada todavía. Pedile a un
-            administrador que te asigne un rol con acceso a las aplicaciones
-            que necesitás (Configuración → Usuarios).
-          </p>
+          <EmptyState
+            variant="no-access"
+            title="Todavía no tienes aplicaciones habilitadas"
+            description="Pide a quien administra Nexo en tu empresa que te asigne un rol con acceso a las aplicaciones que necesitas."
+          />
         )}
 
         {(secciones.length > 0 || configuracionHref) && (

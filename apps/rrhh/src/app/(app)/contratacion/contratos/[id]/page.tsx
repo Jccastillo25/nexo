@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { hasPermission } from "@nexo/permissions";
-import { EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import { EmptyState, PageHeader, StatusBadge } from "@nexo/ui";
+import type { Database } from "@/lib/supabase/database.types";
+import { permisosDe } from "@/lib/permisos-rrhh";
+import { ESTADO_CONTRATO } from "@/lib/contratos";
 import ContratoFicha, {
   type CredencialEstado,
   type JornadaOption,
@@ -18,6 +19,8 @@ import ContratoFicha, {
 export const metadata: Metadata = {
   title: "Contrato · RRHH",
 };
+
+const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Ficha de UN contrato (Contratación → Contratos → 👁/✎) — dueña del
@@ -33,58 +36,51 @@ export const metadata: Metadata = {
  */
 export default async function ContratoFichaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  // Primero lo barato: un id que no es UUID no existe.
+  if (!ES_UUID.test(id)) notFound();
 
-  const [
-    canVer,
-    canEditar,
-    canActivar,
-    canFinalizar,
-    canVerSalario,
-    canEditarSalario,
-    canVerCredenciales,
-    canRegenerarPin,
-    canVerTurnos,
-    canVerPuestos,
-    canVerDepartamentos,
-    canVerPlantillas,
-  ] = await Promise.all([
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.activar"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.finalizar"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.editar"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.credenciales.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.credenciales.regenerar"),
-    hasPermission({ supabase, companyId }, "rrhh.asistencia.turnos.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.puestos.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.departamentos.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.plantillas.ver"),
+  // Kernel (2026-10-20): los 12 hasPermission sueltos pasan a la lista única
+  // de permisosDe(); el contrato se pide en paralelo (la RLS lo protege).
+  const { supabase, companyId } = await contextoActual<Database>();
+  const [permisos, contratoRes] = await Promise.all([
+    permisosDe(),
+    supabase
+      .schema("rrhh")
+      .from("contratos")
+      .select(
+        "id, empleado_id, numero_contrato, estado, puesto_id, departamento_id, plantilla_contrato_id, modalidad_contrato, fecha_inicio, fecha_fin_prevista, fecha_fin_real, empleados!contratos_empleado_id_fkey(nombre, apellido), puestos!contratos_puesto_id_fkey(nombre), departamentos!contratos_departamento_id_fkey(nombre), plantillas_contrato!contratos_plantilla_contrato_id_fkey(nombre)"
+      )
+      .eq("id", id)
+      .eq("company_id", companyId)
+      .maybeSingle(),
   ]);
 
-  if (!canVer) {
+  if (!permisos.contratosVer) {
     return (
-      <EmptyState
-        title="Sin permiso para ver este contrato"
-        description="No tenés el permiso rrhh.expedientes.contratos.ver para esta empresa."
-      />
+      <div className="flex flex-col gap-6">
+        <PageHeader title="Contrato" back={{ href: "/contratacion/contratos", label: "Contratos" }} />
+        <EmptyState variant="no-access" title="No tienes acceso a este contrato" />
+      </div>
     );
   }
 
-  const { data: contrato, error: contratoError } = await supabase
-    .schema("rrhh")
-    .from("contratos")
-    .select(
-      "id, empleado_id, numero_contrato, estado, puesto_id, departamento_id, plantilla_contrato_id, modalidad_contrato, fecha_inicio, fecha_fin_prevista, fecha_fin_real, empleados!contratos_empleado_id_fkey(nombre, apellido), puestos!contratos_puesto_id_fkey(nombre), departamentos!contratos_departamento_id_fkey(nombre), plantillas_contrato!contratos_plantilla_contrato_id_fkey(nombre)"
-    )
-    .eq("id", id)
-    .eq("company_id", companyId)
-    .maybeSingle();
+  const canEditar = permisos.contratosEditar;
+  const canActivar = permisos.contratosActivar;
+  const canFinalizar = permisos.contratosFinalizar;
+  const canVerSalario = permisos.compensacionVer;
+  const canEditarSalario = permisos.compensacionEditar;
+  const canVerCredenciales = permisos.credencialesVer;
+  const canRegenerarPin = permisos.credencialesRegenerar;
+  const canVerTurnos = permisos.turnosVer;
+  const canVerPuestos = permisos.puestosVer;
+  const canVerDepartamentos = permisos.departamentosVer;
+  const canVerPlantillas = permisos.plantillasVer;
 
+  const { data: contrato, error: contratoError } = contratoRes;
   if (contratoError) {
-    throw new Error(`No se pudo cargar el contrato: ${contratoError.message}`);
+    // El detalle va al log del servidor; error.tsx muestra solo la referencia.
+    console.error("contrato: ficha", contratoError);
+    throw new Error("No se pudo cargar el contrato.");
   }
   if (!contrato) {
     notFound();
@@ -218,12 +214,22 @@ export default async function ContratoFichaPage({ params }: { params: Promise<{ 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={`Contrato #${contrato.numero_contrato}`}
+        title={`Contrato N.º ${contrato.numero_contrato}`}
+        back={{ href: "/contratacion/contratos", label: "Contratos" }}
+        meta={
+          <StatusBadge
+            label={ESTADO_CONTRATO[contrato.estado].label}
+            tone={ESTADO_CONTRATO[contrato.estado].tone}
+          />
+        }
         description={
           empleado ? (
             <>
               Empleado:{" "}
-              <Link href={`/expedientes/${contrato.empleado_id}`} className="text-blue-700 hover:underline">
+              <Link
+                href={`/expedientes/${contrato.empleado_id}`}
+                className="rounded-sm text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              >
                 {empleado.nombre} {empleado.apellido}
               </Link>
             </>

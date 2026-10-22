@@ -2,17 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FormSection, StatusBadge, useToast } from "@nexo/ui";
+import { Alert, Button, Field, FormSection, Input, Select, StatusBadge, useToast } from "@nexo/ui";
 import type { Permisos } from "@/lib/permisos";
 import type { Catalogos } from "@/lib/tipos";
 import type { CatalogoRuta } from "@/lib/catalogos-ruta";
 import { guardarCatalogo, type TipoCatalogo } from "./actions";
-
-const inputClass =
-  "rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
-
-// Foco visible de teclado en los botones del panel.
-const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2";
 
 interface Fila {
   id: string;
@@ -27,6 +21,7 @@ interface CampoDef {
   etiqueta: string;
   tipo?: "texto" | "select";
   opciones?: { valor: string; etiqueta: string }[];
+  /** Ancho desde sm (en móvil, todo el ancho): clase completa, p. ej. "sm:w-40". */
   ancho?: string;
   soloAlCrear?: boolean;
 }
@@ -84,16 +79,16 @@ function Panel({
               {!f.activo && <StatusBadge label="Inactivo" tone="neutral" />}
             </div>
             {puedeGestionar && (
-              <button
-                type="button"
+              <Button
+                variant="link"
+                aria-label={`Editar ${f.titulo}`}
                 onClick={() => {
                   setError(null);
                   setBorrador({ id: f.id, datos: { ...f.datos, activo: f.activo } });
                 }}
-                className={`rounded-sm text-xs font-semibold text-blue-600 hover:text-blue-700 ${focusRing}`}
               >
                 Editar
-              </button>
+              </Button>
             )}
           </li>
         ))}
@@ -107,27 +102,24 @@ function Panel({
               {campos
                 .filter((c) => !(c.soloAlCrear && borrador.id))
                 .map((c) => (
-                  <label key={c.clave} className="flex flex-col gap-1 text-xs text-neutral-500">
-                    {c.etiqueta}
+                  <Field key={c.clave} label={c.etiqueta} className={`w-full ${c.ancho ?? "sm:w-56"}`}>
                     {c.tipo === "select" ? (
-                      <select
-                        className={inputClass}
+                      <Select
                         value={String(borrador.datos[c.clave] ?? "")}
                         onChange={(e) => setBorrador({ ...borrador, datos: { ...borrador.datos, [c.clave]: e.target.value } })}
                       >
                         {c.opciones?.map((o) => <option key={o.valor} value={o.valor}>{o.etiqueta}</option>)}
-                      </select>
+                      </Select>
                     ) : (
-                      <input
-                        className={`${inputClass} ${c.ancho ?? "w-56"}`}
+                      <Input
                         value={String(borrador.datos[c.clave] ?? "")}
                         onChange={(e) => setBorrador({ ...borrador, datos: { ...borrador.datos, [c.clave]: e.target.value } })}
                       />
                     )}
-                  </label>
+                  </Field>
                 ))}
               {borrador.id && (
-                <label className="flex items-center gap-2 pb-1.5 text-sm text-neutral-700">
+                <label className="flex h-9 items-center gap-2 text-sm text-neutral-700">
                   <input
                     type="checkbox"
                     checked={borrador.datos.activo !== false}
@@ -138,21 +130,21 @@ function Panel({
               )}
             </div>
             {extra?.(borrador.datos, (d) => setBorrador({ ...borrador, datos: d }))}
-            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setBorrador(null)} className={`rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 ${focusRing}`}>
+            {error ? <Alert tone="error">{error}</Alert> : null}
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => setBorrador(null)}>
                 Cancelar
-              </button>
-              <button type="button" onClick={guardar} disabled={isPending} className={`rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 ${focusRing}`}>
+              </Button>
+              <Button onClick={guardar} loading={isPending}>
                 {isPending ? "Guardando…" : "Guardar"}
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
           <div>
-            <button type="button" onClick={nuevoBorrador} className={`rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 ${focusRing}`}>
+            <Button variant="secondary" onClick={nuevoBorrador}>
               Agregar
-            </button>
+            </Button>
           </div>
         ))}
     </FormSection>
@@ -163,6 +155,12 @@ const TIPO_CUENTA = [
   { valor: "ingreso", etiqueta: "Ingresos" },
   { valor: "inventario", etiqueta: "Inventario" },
   { valor: "costo", etiqueta: "Costos" },
+];
+
+const TIPO_CARACTERISTICA = [
+  { valor: "texto", etiqueta: "Texto" },
+  { valor: "numero", etiqueta: "Número" },
+  { valor: "si_no", etiqueta: "Sí / No" },
 ];
 
 /** Un catálogo por ruta (/configuracion/<solo>), como en el menú lateral. */
@@ -218,7 +216,7 @@ export default function PanelesCatalogos({ catalogos, permisos, solo }: { catalo
           titulo="Unidades de medida"
           descripcion="Se guardan en mayúsculas, como en el ERP (UNIDAD, GALON, QQ…)."
           puedeGestionar
-          campos={[{ clave: "nombre", etiqueta: "Nombre", ancho: "w-40" }, { clave: "simbolo", etiqueta: "Símbolo", ancho: "w-24" }]}
+          campos={[{ clave: "nombre", etiqueta: "Nombre", ancho: "sm:w-40" }, { clave: "simbolo", etiqueta: "Símbolo", ancho: "sm:w-24" }]}
           filas={catalogos.unidades.map((u) => ({ id: u.id, titulo: u.nombre, detalle: u.simbolo ?? undefined, activo: u.activa, datos: { nombre: u.nombre, simbolo: u.simbolo ?? "" } }))}
         />
       ),
@@ -232,7 +230,7 @@ export default function PanelesCatalogos({ catalogos, permisos, solo }: { catalo
           titulo="Proveedores"
           descripcion="Pasarán al módulo de Compras cuando exista."
           puedeGestionar
-          campos={[{ clave: "nombre", etiqueta: "Nombre", ancho: "w-80" }]}
+          campos={[{ clave: "nombre", etiqueta: "Nombre", ancho: "sm:w-80" }]}
           filas={catalogos.proveedores.map((x) => ({ id: x.id, titulo: x.nombre, activo: x.activo, datos: { nombre: x.nombre } }))}
         />
       ),
@@ -248,9 +246,15 @@ export default function PanelesCatalogos({ catalogos, permisos, solo }: { catalo
           puedeGestionar
           campos={[
             { clave: "nombre", etiqueta: "Nombre" },
-            { clave: "tipo", etiqueta: "Tipo", tipo: "select", opciones: [{ valor: "texto", etiqueta: "Texto" }, { valor: "numero", etiqueta: "Número" }, { valor: "si_no", etiqueta: "Sí / No" }] },
+            { clave: "tipo", etiqueta: "Tipo", tipo: "select", opciones: TIPO_CARACTERISTICA },
           ]}
-          filas={catalogos.caracteristicas.map((x) => ({ id: x.id, titulo: x.nombre, detalle: x.tipo, activo: x.activa, datos: { nombre: x.nombre, tipo: x.tipo } }))}
+          filas={catalogos.caracteristicas.map((x) => ({
+            id: x.id,
+            titulo: x.nombre,
+            detalle: TIPO_CARACTERISTICA.find((t) => t.valor === x.tipo)?.etiqueta,
+            activo: x.activa,
+            datos: { nombre: x.nombre, tipo: x.tipo },
+          }))}
         />
       ),
     },
@@ -265,8 +269,8 @@ export default function PanelesCatalogos({ catalogos, permisos, solo }: { catalo
             descripcion="Mismo código que en el ERP (ej. 411-01 / Ingreso por ventas de productos)."
             puedeGestionar
             campos={[
-              { clave: "codigo", etiqueta: "Código", ancho: "w-28" },
-              { clave: "nombre", etiqueta: "Nombre", ancho: "w-72" },
+              { clave: "codigo", etiqueta: "Código", ancho: "sm:w-28" },
+              { clave: "nombre", etiqueta: "Nombre", ancho: "sm:w-72" },
               { clave: "tipo", etiqueta: "Tipo", tipo: "select", opciones: TIPO_CUENTA, soloAlCrear: true },
             ]}
             filas={catalogos.cuentas.map((x) => ({
@@ -282,7 +286,7 @@ export default function PanelesCatalogos({ catalogos, permisos, solo }: { catalo
             titulo="Centros de costo"
             descripcion="Código y nombre del centro de costo."
             puedeGestionar
-            campos={[{ clave: "codigo", etiqueta: "Código", ancho: "w-28" }, { clave: "nombre", etiqueta: "Nombre", ancho: "w-72" }]}
+            campos={[{ clave: "codigo", etiqueta: "Código", ancho: "sm:w-28" }, { clave: "nombre", etiqueta: "Nombre", ancho: "sm:w-72" }]}
             filas={catalogos.centros_costo.map((x) => ({ id: x.id, titulo: `${x.codigo} · ${x.nombre}`, activo: x.activo, datos: { codigo: x.codigo, nombre: x.nombre } }))}
           />
         </div>

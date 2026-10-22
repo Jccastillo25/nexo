@@ -3,12 +3,9 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormSection, StatusBadge, useToast } from "@nexo/ui";
+import { Alert, Button, DataTable, Field, FormSection, Input, StatusBadge, useToast } from "@nexo/ui";
 import { campoActivo, type CampoPantalla, type CamposPantalla, type Pantalla } from "@/lib/supabase/database.types";
 import { guardarPantalla } from "./actions";
-
-const inputClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
 
 interface Borrador {
   pantallaId: string | null;
@@ -58,7 +55,15 @@ function ejemploAnuncio(anunciar: Record<CampoPantalla, boolean>): string {
  * Pantallas públicas (televisor de la sala). Cada una tiene su enlace propio,
  * que se abre en el navegador del televisor sin iniciar sesión.
  */
-export default function PantallasPanel({ sucursalId, pantallas }: { sucursalId: string; pantallas: Pantalla[] }) {
+export default function PantallasPanel({
+  sucursalId,
+  pantallas,
+  errorCarga = false,
+}: {
+  sucursalId: string;
+  pantallas: Pantalla[];
+  errorCarga?: boolean;
+}) {
   const router = useRouter();
   const { show } = useToast();
   const [borrador, setBorrador] = useState<Borrador | null>(null);
@@ -69,7 +74,17 @@ export default function PantallasPanel({ sucursalId, pantallas }: { sucursalId: 
     return `${window.location.origin}/atencion/pantalla/${id}`;
   }
 
-  function guardar() {
+  async function copiarEnlace(id: string) {
+    try {
+      await navigator.clipboard.writeText(enlace(id));
+      show("Enlace copiado.", "success");
+    } catch {
+      show("No se pudo copiar el enlace. Ábrelo y cópialo desde la barra de direcciones.", "error");
+    }
+  }
+
+  function guardar(e: React.FormEvent) {
+    e.preventDefault();
     if (!borrador) return;
     startTransition(async () => {
       const res = await guardarPantalla({ ...borrador, sucursalId });
@@ -83,133 +98,163 @@ export default function PantallasPanel({ sucursalId, pantallas }: { sucursalId: 
     });
   }
 
+  const exponen = borrador ? expuestos(borrador) : [];
+
   return (
     <FormSection
       title="Pantallas públicas"
-      description="Muestran el turno llamado y los próximos números. En cada pantalla elegís qué datos del turno se ven y cuáles se anuncian por voz. Abrí el enlace en el televisor."
+      description="Muestran el turno llamado y los próximos números. En cada pantalla eliges qué datos del turno se ven y cuáles se anuncian por voz. Abre el enlace en el televisor."
     >
-      <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200">
-        {pantallas.map((p) => (
-          <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
-            <div className="flex items-center gap-3">
-              <span className="font-medium text-neutral-900">{p.nombre}</span>
-              {!p.activa && <StatusBadge label="Inactiva" tone="neutral" />}
-              {p.config.youtube && <StatusBadge label="Con entretenimiento" tone="info" />}
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={async () => {
-                  await navigator.clipboard.writeText(enlace(p.id));
-                  show("Enlace copiado.", "success");
-                }}
-                className="text-xs font-medium text-neutral-600 hover:text-neutral-900"
-              >
-                Copiar enlace
-              </button>
-              <Link href={`/pantalla/${p.id}`} target="_blank" rel="noreferrer" className="text-xs font-medium text-neutral-600 hover:text-neutral-900">
-                Abrir
-              </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  setBorrador({
-                    pantallaId: p.id,
-                    nombre: p.nombre,
-                    activa: p.activa,
-                    youtube: p.config.youtube ?? "",
-                    mostrar: casillas(p.config.mostrar),
-                    anunciar: casillas(p.config.anunciar),
-                  });
-                  setError(null);
-                }}
-                className="text-xs font-medium text-blue-600 hover:text-blue-700"
-              >
-                Editar
-              </button>
-            </div>
-          </li>
-        ))}
-        {pantallas.length === 0 && <li className="px-4 py-4 text-sm text-neutral-500">Todavía no hay pantallas.</li>}
-      </ul>
+      {errorCarga ? (
+        <Alert tone="error">No se pudieron cargar las pantallas. Recarga la página para intentarlo de nuevo.</Alert>
+      ) : (
+        <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200">
+          {pantallas.map((p) => (
+            <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <span className="font-medium text-neutral-900">{p.nombre}</span>
+                {!p.activa && <StatusBadge label="Inactiva" tone="neutral" />}
+                {p.config.youtube && <StatusBadge label="Con entretenimiento" tone="info" />}
+              </div>
+              <div className="flex flex-wrap items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Copiar el enlace de ${p.nombre}`}
+                  onClick={() => void copiarEnlace(p.id)}
+                >
+                  Copiar enlace
+                </Button>
+                <Link
+                  href={`/pantalla/${p.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Abrir ${p.nombre} en una pestaña nueva`}
+                  className="inline-flex h-8 items-center rounded-lg px-3 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                >
+                  Abrir
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Editar ${p.nombre}`}
+                  onClick={() => {
+                    setBorrador({
+                      pantallaId: p.id,
+                      nombre: p.nombre,
+                      activa: p.activa,
+                      youtube: p.config.youtube ?? "",
+                      mostrar: casillas(p.config.mostrar),
+                      anunciar: casillas(p.config.anunciar),
+                    });
+                    setError(null);
+                  }}
+                >
+                  Editar
+                </Button>
+              </div>
+            </li>
+          ))}
+          {pantallas.length === 0 && <li className="px-4 py-4 text-sm text-neutral-500">Todavía no hay pantallas.</li>}
+        </ul>
+      )}
 
       {borrador ? (
-        <div className="flex flex-col gap-3 rounded-lg border border-neutral-200 p-4">
-          <label className="flex flex-col gap-1 text-xs text-neutral-500">
-            Nombre
-            <input value={borrador.nombre} maxLength={60} onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })} className={inputClass} />
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-neutral-500">
-            Entretenimiento: lista o video de YouTube (opcional)
-            <input
+        // noValidate: los errores los da el servidor, en el aviso de abajo, no la burbuja del navegador.
+        <form onSubmit={guardar} noValidate className="flex flex-col gap-4 rounded-lg border border-neutral-200 p-4">
+          <Field label="Nombre" required>
+            <Input
+              value={borrador.nombre}
+              maxLength={60}
+              required
+              autoComplete="off"
+              onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })}
+            />
+          </Field>
+          <Field
+            label="Entretenimiento"
+            optional
+            hint="Enlace de una lista o un video de YouTube. Sin enlace, la pantalla muestra «Bienvenido»."
+          >
+            <Input
+              type="url"
+              inputMode="url"
               value={borrador.youtube}
+              autoComplete="off"
               onChange={(e) => setBorrador({ ...borrador, youtube: e.target.value })}
               placeholder="https://www.youtube.com/playlist?list=…"
-              className={inputClass}
             />
-          </label>
-          <fieldset className="flex flex-col gap-2">
-            <legend className="text-xs text-neutral-500">Datos del turno llamado (el número siempre sale)</legend>
-            <table className="text-sm">
-              <thead>
-                <tr className="text-left text-xs text-neutral-500">
-                  <th className="py-1 font-medium">Dato</th>
-                  <th className="px-3 py-1 text-center font-medium">Mostrar</th>
-                  <th className="px-3 py-1 text-center font-medium">Anunciar por voz</th>
-                </tr>
-              </thead>
-              <tbody>
-                {CAMPOS.map(({ campo, etiqueta, ejemplo }) => (
-                  <tr key={campo} className="border-t border-neutral-100">
-                    <td className="py-1.5 text-neutral-800">
-                      {etiqueta} <span className="text-xs text-neutral-400">({ejemplo})</span>
-                    </td>
-                    {(["mostrar", "anunciar"] as const).map((donde) => (
-                      <td key={donde} className="px-3 py-1.5 text-center">
-                        <input
-                          type="checkbox"
-                          aria-label={`${donde === "mostrar" ? "Mostrar" : "Anunciar"}: ${etiqueta}`}
-                          checked={borrador[donde][campo]}
-                          onChange={(e) => setBorrador({ ...borrador, [donde]: { ...borrador[donde], [campo]: e.target.checked } })}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          </Field>
+          <fieldset className="flex min-w-0 flex-col gap-2">
+            <legend className="mb-1.5 text-[13px] leading-5 font-medium text-neutral-700">
+              Datos del turno llamado <span className="font-normal text-neutral-500">(el número siempre sale)</span>
+            </legend>
+            <DataTable
+              caption="Datos del turno llamado que se muestran y se anuncian"
+              density="compact"
+              rowKey={(f) => f.campo}
+              rows={CAMPOS}
+              columns={[
+                {
+                  key: "dato",
+                  header: "Dato",
+                  render: (f) => (
+                    <>
+                      <span className="text-neutral-800">{f.etiqueta}</span>{" "}
+                      <span className="text-xs text-neutral-500">({f.ejemplo})</span>
+                    </>
+                  ),
+                },
+                ...(["mostrar", "anunciar"] as const).map((donde) => ({
+                  key: donde,
+                  header: donde === "mostrar" ? "Mostrar" : "Anunciar por voz",
+                  className: "w-36 text-center",
+                  render: (f: (typeof CAMPOS)[number]) => (
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-blue-600"
+                      aria-label={`${donde === "mostrar" ? "Mostrar" : "Anunciar por voz"}: ${f.etiqueta}`}
+                      checked={borrador[donde][f.campo]}
+                      onChange={(e) =>
+                        setBorrador({ ...borrador, [donde]: { ...borrador[donde], [f.campo]: e.target.checked } })
+                      }
+                    />
+                  ),
+                })),
+              ]}
+            />
             <p className="text-xs text-neutral-500">Se anunciará: {ejemploAnuncio(borrador.anunciar)}</p>
-            {expuestos(borrador).length > 0 && (
-              <p className="text-xs text-amber-700">
-                {expuestos(borrador).join(" y ").replace(/^./, (c) => c.toUpperCase())}{" "}
-                {expuestos(borrador).length > 1 ? "quedan visibles" : "queda visible"} para cualquiera que tenga el enlace
-                de esta pantalla.
-              </p>
+            {exponen.length > 0 && (
+              <Alert tone="warning">
+                {exponen.join(" y ").replace(/^./, (c) => c.toUpperCase())}{" "}
+                {exponen.length > 1 ? "quedan visibles" : "queda visible"} para cualquiera que tenga el enlace de esta
+                pantalla.
+              </Alert>
             )}
           </fieldset>
           <label className="flex items-center gap-2 text-sm text-neutral-700">
-            <input type="checkbox" checked={borrador.activa} onChange={(e) => setBorrador({ ...borrador, activa: e.target.checked })} />
+            <input
+              type="checkbox"
+              className="size-4 accent-blue-600"
+              checked={borrador.activa}
+              onChange={(e) => setBorrador({ ...borrador, activa: e.target.checked })}
+            />
             Activa
           </label>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setBorrador(null)} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
+          {error ? <Alert tone="error">{error}</Alert> : null}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => setBorrador(null)} disabled={isPending}>
               Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={guardar}
-              disabled={isPending}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-            >
-              {isPending ? "Guardando…" : "Guardar pantalla"}
-            </button>
+            </Button>
+            <Button type="submit" loading={isPending}>
+              Guardar pantalla
+            </Button>
           </div>
-        </div>
+        </form>
       ) : (
         <div>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={() => {
               setBorrador({
                 pantallaId: null,
@@ -221,10 +266,9 @@ export default function PantallasPanel({ sucursalId, pantallas }: { sucursalId: 
               });
               setError(null);
             }}
-            className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
           >
             Agregar pantalla
-          </button>
+          </Button>
         </div>
       )}
     </FormSection>

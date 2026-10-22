@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
-import { EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import { ButtonLink, EmptyState, PageHeader } from "@nexo/ui";
+import type { Database } from "@/lib/supabase/database.types";
+import { permisosDe } from "@/lib/permisos-rrhh";
 import NuevoContratoForm, {
   type EmpleadoOption,
   type PuestoOption,
@@ -31,27 +31,26 @@ export const metadata: Metadata = {
  * no solo avisar que existe).
  */
 export default async function NuevoContratoPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const [{ supabase, companyId }, permisos] = await Promise.all([contextoActual<Database>(), permisosDe()]);
 
-  const [canCrear, canEditarSalario, canVerPuestos, canVerDepartamentos, canVerPlantillas] = await Promise.all([
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.crear"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.compensacion.editar"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.puestos.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.departamentos.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.plantillas.ver"),
-  ]);
-
-  if (!canCrear) {
+  if (!permisos.contratosCrear) {
     return (
-      <EmptyState
-        title="Sin permiso para crear contratos"
-        description="No tenés el permiso rrhh.expedientes.contratos.crear para esta empresa."
-      />
+      <div className="flex max-w-4xl flex-col gap-6">
+        <PageHeader title="Nuevo contrato" back={{ href: "/contratacion/contratos", label: "Contratos" }} />
+        <EmptyState variant="no-access" title="No tienes acceso a crear contratos" />
+      </div>
     );
   }
 
-  const [puestosRes, departamentosRes, plantillasRes] = await Promise.all([
+  const canEditarSalario = permisos.compensacionEditar;
+  const canVerPuestos = permisos.puestosVer;
+  const canVerDepartamentos = permisos.departamentosVer;
+  const canVerPlantillas = permisos.plantillasVer;
+
+  // Rendimiento (2026-10-20): las seis lecturas son independientes y van en
+  // paralelo. Contratos y relaciones puesto-plantilla se filtran por empresa
+  // (antes, un `.in()` con todos los ids, que esperaba a la consulta previa).
+  const [puestosRes, departamentosRes, plantillasRes, relacionesRes, empleadosRes, contratosRes] = await Promise.all([
     canVerPuestos
       ? supabase
           .schema("rrhh")
@@ -79,6 +78,26 @@ export default async function NuevoContratoPage() {
           .eq("activo", true)
           .order("nombre")
       : Promise.resolve({ data: null }),
+    canVerPlantillas
+      ? supabase
+          .schema("rrhh")
+          .from("puesto_plantillas")
+          .select("puesto_id, plantilla_id, predeterminada")
+          .eq("company_id", companyId)
+          .eq("activo", true)
+      : Promise.resolve({ data: null }),
+    supabase
+      .schema("rrhh")
+      .from("empleados")
+      .select("id, codigo_empleado, nombre, apellido, documento_identidad")
+      .eq("company_id", companyId)
+      .order("nombre", { ascending: true }),
+    supabase
+      .schema("rrhh")
+      .from("contratos")
+      .select("id, empleado_id, estado")
+      .eq("company_id", companyId)
+      .in("estado", ["activo", "borrador"]),
   ]);
   const puestos: PuestoOption[] = (puestosRes.data ?? []).map((p) => ({
     id: p.id,
@@ -87,35 +106,17 @@ export default async function NuevoContratoPage() {
   }));
   const departamentos: DepartamentoOption[] = departamentosRes.data ?? [];
   const plantillas: PlantillaOption[] = plantillasRes.data ?? [];
+  const puestoPlantillas: PuestoPlantillaOption[] = (relacionesRes.data ?? []).map((r) => ({
+    puestoId: r.puesto_id,
+    plantillaId: r.plantilla_id,
+    predeterminada: r.predeterminada,
+  }));
 
-  let puestoPlantillas: PuestoPlantillaOption[] = [];
-  if (canVerPlantillas && puestos.length > 0) {
-    const { data } = await supabase
-      .schema("rrhh")
-      .from("puesto_plantillas")
-      .select("puesto_id, plantilla_id, predeterminada")
-      .eq("company_id", companyId)
-      .eq("activo", true)
-      .in(
-        "puesto_id",
-        puestos.map((p) => p.id)
-      );
-    puestoPlantillas = (data ?? []).map((r) => ({
-      puestoId: r.puesto_id,
-      plantillaId: r.plantilla_id,
-      predeterminada: r.predeterminada,
-    }));
-  }
-
-  const { data: empleados, error } = await supabase
-    .schema("rrhh")
-    .from("empleados")
-    .select("id, codigo_empleado, nombre, apellido, documento_identidad")
-    .eq("company_id", companyId)
-    .order("nombre", { ascending: true });
-
+  const { data: empleados, error } = empleadosRes;
   if (error) {
-    throw new Error(`No se pudo cargar el listado de empleados: ${error.message}`);
+    // El detalle va al log del servidor; error.tsx muestra solo la referencia.
+    console.error("nuevo contrato: empleados", error);
+    throw new Error("No se pudo cargar el listado de empleados.");
   }
 
   // Mismo criterio que /expedientes (empleado-row-menu): un empleado con un
@@ -124,16 +125,8 @@ export default async function NuevoContratoPage() {
   // rrhh.fn_crear_contrato, esto es solo para poder avisar antes de
   // intentarlo y enlazar directo a ese contrato).
   const abiertoPorEmpleado = new Map<string, string>();
-  if ((empleados ?? []).length > 0) {
-    const { data: contratosDeTodos } = await supabase
-      .schema("rrhh")
-      .from("contratos")
-      .select("id, empleado_id, estado")
-      .eq("company_id", companyId)
-      .in("empleado_id", (empleados ?? []).map((e) => e.id));
-    for (const c of contratosDeTodos ?? []) {
-      if (c.estado === "activo" || c.estado === "borrador") abiertoPorEmpleado.set(c.empleado_id, c.id);
-    }
+  for (const c of contratosRes.data ?? []) {
+    abiertoPorEmpleado.set(c.empleado_id, c.id);
   }
 
   const opciones: EmpleadoOption[] = (empleados ?? []).map((e) => ({
@@ -145,16 +138,24 @@ export default async function NuevoContratoPage() {
   }));
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-4xl flex-col gap-6">
       <PageHeader
         title="Nuevo contrato"
-        description="Seleccioná un empleado existente y creá su contrato en borrador."
+        description="Elige un empleado existente y crea su contrato en borrador."
+        back={{ href: "/contratacion/contratos", label: "Contratos" }}
       />
 
       {opciones.length === 0 ? (
         <EmptyState
-          title="No hay empleados todavía"
-          description="Creá primero el Expediente General del empleado en Expedientes → Nuevo empleado."
+          title="Todavía no hay empleados"
+          description="Crea primero el expediente general del empleado."
+          action={
+            permisos.empleadosCrear ? (
+              <ButtonLink href="/expedientes/nuevo" variant="secondary">
+                Nuevo empleado
+              </ButtonLink>
+            ) : null
+          }
         />
       ) : (
         <NuevoContratoForm

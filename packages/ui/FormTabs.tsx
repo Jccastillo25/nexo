@@ -15,7 +15,11 @@
 // El esquema correcto: el padre ya renderiza cada contenido de pestaña como
 // JSX (serializable, a diferencia de una funcion) y se lo pasa a cada tab
 // via `content` — FormTabs solo decide cual mostrar segun el estado local.
-import { useState } from "react";
+//
+// v2 (2026-10-20): delega en Tabs, asi hereda el patron WAI-ARIA completo
+// (role="tablist"/"tab"/"tabpanel", aria-selected, flechas de teclado). La
+// API (tabs, defaultTab) no cambia.
+import { Tabs } from "./Tabs";
 
 export interface FormTab {
   key: string;
@@ -32,34 +36,16 @@ export interface FormTab {
 export interface FormTabsProps {
   tabs: FormTab[];
   defaultTab?: string;
+  /** Nombre accesible de la lista de pestañas. */
+  label?: string;
 }
 
-export function FormTabs({ tabs, defaultTab }: FormTabsProps) {
-  const [active, setActive] = useState(defaultTab ?? tabs[0]?.key);
-  const activeTab = tabs.find((tab) => tab.key === active) ?? tabs[0];
-
+export function FormTabs({ tabs, defaultTab, label }: FormTabsProps) {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-1 border-b border-neutral-200">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            disabled={tab.disabled}
-            onClick={() => setActive(tab.key)}
-            className={`relative -mb-px px-3 py-2 text-sm font-medium transition-colors ${
-              tab.disabled
-                ? "cursor-not-allowed text-neutral-300"
-                : active === tab.key
-                  ? "border-b-2 border-blue-600 text-blue-600"
-                  : "border-b-2 border-transparent text-neutral-500 hover:text-neutral-900"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-      {activeTab?.content}
-    </div>
+    <Tabs
+      label={label}
+      defaultValue={defaultTab}
+      items={tabs.map((tab) => ({ key: tab.key, label: tab.label, disabled: tab.disabled, content: tab.content }))}
+    />
   );
 }

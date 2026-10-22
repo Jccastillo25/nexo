@@ -200,6 +200,18 @@ Deuda:
 - **#10:** anuncio de regiones vivas por lectores de pantalla, sin probar.
 - **Reloj:** el reloj del kiosco está en 12 h y la hora del resultado en 24 h.
 
+## Despliegue en producción (2026-10-18)
+
+- **Antes del push:** `pnpm install --frozen-lockfile` y `pnpm verify` en verde en local: typecheck, lint y build de las 8 apps, P1–P7 en PGlite, P5 9/9 y P6 2/2.
+- **Rama y PR:** commit `5a7a6a6` (120 archivos) en `feat/launcher-iconos` y PR [#48](https://github.com/Jccastillo25/nexo/pull/48). El repositorio no permite la fusión automática, así que se fusionó a mano por pedido del usuario cuando pasaron los checks obligatorios (`typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access`). `lint-deuda (no bloquea)` falló por la deuda previa de CRM y Flotilla.
+- **Merge:** `main` `9e11e82`. Producción READY en los 6 proyectos: `nexocore`, `nexo-rrhh`, `nexo-productos`, `nexo-agencia`, `nexo-atencion` y `nexo-crm`.
+- **Comprobado en el dominio público, sin sesión:**
+  - `/rrhh/kiosco` muestra «Terminal sin asignar» (`NEXO_KIOSKO_ID` no está en Production);
+  - `/rrhh/asistencia` redirige a `/login?next=%2Frrhh%2Fasistencia`;
+  - `/agencia` responde 307 al login, con `AGENCIA_APP_URL` ya efectiva.
+- **Desde este deploy** el kiosco de producción vuelve a poder marcar con la firma nueva. Entre la aplicación de P4c y este deploy no pudo hacerlo.
+- **Pendiente:** recorrido con sesión real (Asistencia, enrolamiento de un equipo, entrada → descanso → salida, Marcas) y la deuda #4 de pruebas.
+
 ## Pendiente y deuda
 
 - **Recorrido con sesión real:** guard, redirección, CRUD contra RLS, conteo de Managua y portapapeles. Tampoco hay verificación visual del mosaico.

@@ -1,8 +1,21 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
-import { useToast } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/client";
+import { useId, useRef, useState, useTransition } from "react";
+import {
+  Alert,
+  Button,
+  ConfirmDialog,
+  DataTable,
+  EmptyState,
+  Field,
+  NexoIcon,
+  RowActionIcons,
+  Select,
+  StatusBadge,
+  fechaCorta,
+  useToast,
+} from "@nexo/ui";
+import type { Database } from "@/lib/supabase/database.types";
 import {
   pedirUrlSubidaDocumento,
   confirmarDocumentoSubido,
@@ -36,7 +49,7 @@ const TIPO_LABEL: Record<TipoDocumento, string> = {
 };
 
 function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
@@ -46,6 +59,10 @@ function formatBytes(bytes: number): string {
  * repetir el bug P0 del 2026-09-14 (techo de 4.5MB de Vercel Functions) --
  * el archivo va del navegador directo a Storage, nunca por una Server
  * Action.
+ *
+ * Rendimiento (2026-10-20): el cliente de Supabase del navegador (~268 KB)
+ * solo se usa para subir, así que se carga con import() dinámico dentro del
+ * manejador de subida, no con la pantalla.
  */
 export default function DocumentosPanel({
   empleadoId,
@@ -55,9 +72,12 @@ export default function DocumentosPanel({
   canEliminar,
 }: DocumentosPanelProps) {
   const { show } = useToast();
+  const archivoId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tipoDocumento, setTipoDocumento] = useState<TipoDocumento>("otro");
   const [error, setError] = useState<string | null>(null);
+  const [errorArchivo, setErrorArchivo] = useState<string | null>(null);
+  const [porEliminar, setPorEliminar] = useState<DocumentoRow | null>(null);
   const [isPending, startTransition] = useTransition();
   const [subiendo, setSubiendo] = useState(false);
 
@@ -65,9 +85,10 @@ export default function DocumentosPanel({
     e.preventDefault();
     const file = fileInputRef.current?.files?.[0];
     if (!file) {
-      setError("Elegí un archivo.");
+      setErrorArchivo("Elige un archivo para subir.");
       return;
     }
+    setErrorArchivo(null);
     setError(null);
     setSubiendo(true);
     startTransition(async () => {
@@ -84,7 +105,8 @@ export default function DocumentosPanel({
           return;
         }
 
-        const supabase = createClient();
+        const { createBrowserClient } = await import("@nexo/supabase/client");
+        const supabase = createBrowserClient<Database>();
         const { error: uploadError } = await supabase.storage
           .from("rrhh-documentos-privados")
           .uploadToSignedUrl(pedido.path, pedido.token, file);
@@ -113,6 +135,14 @@ export default function DocumentosPanel({
 
         show("Documento subido.", "success");
         if (fileInputRef.current) fileInputRef.current.value = "";
+      } catch (err) {
+        // Falla de red al cargar el cliente de Supabase (import dinámico) o
+        // al llamar una Server Action: se avisa en el panel sin tumbar la
+        // ficha. El detalle técnico queda solo en la consola.
+        console.error("subirDocumento", err);
+        const mensaje = "No se pudo subir el documento. Intenta de nuevo.";
+        setError(mensaje);
+        show(mensaje, "error");
       } finally {
         setSubiendo(false);
       }
@@ -132,10 +162,13 @@ export default function DocumentosPanel({
     });
   }
 
-  function eliminar(documentoId: string) {
+  function confirmarEliminar() {
+    if (!porEliminar) return;
+    const documentoId = porEliminar.id;
     setError(null);
     startTransition(async () => {
       const res = await eliminarDocumento(empleadoId, documentoId);
+      setPorEliminar(null);
       if (!res.ok) {
         setError(res.message ?? "No se pudo eliminar el documento.");
         show(res.message ?? "No se pudo eliminar el documento.", "error");
@@ -145,88 +178,128 @@ export default function DocumentosPanel({
     });
   }
 
+  const ocupado = isPending || subiendo;
+
   return (
     <div className="flex flex-col gap-4">
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
-      {canSubir && (
-        <form onSubmit={subir} className="flex flex-wrap items-end gap-3 rounded-xl border border-neutral-200 bg-white p-4">
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Tipo</span>
-            <select
-              value={tipoDocumento}
-              onChange={(e) => setTipoDocumento(e.target.value as TipoDocumento)}
-              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500"
-            >
+      {canSubir ? (
+        <form
+          onSubmit={subir}
+          className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-xs sm:flex-row sm:flex-wrap sm:items-start"
+        >
+          <Field label="Tipo" className="sm:w-48">
+            <Select value={tipoDocumento} onChange={(e) => setTipoDocumento(e.target.value as TipoDocumento)}>
               {Object.entries(TIPO_LABEL).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="flex flex-1 flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Archivo (PDF, JPG, PNG o Word, máx. 10 MB)</span>
+            </Select>
+          </Field>
+          <Field
+            label="Archivo"
+            id={archivoId}
+            hint="PDF, JPG, PNG o Word (.docx), de hasta 10 MB."
+            error={errorArchivo}
+            className="sm:flex-1"
+          >
             <input
+              id={archivoId}
               ref={fileInputRef}
               type="file"
               accept=".pdf,.jpg,.jpeg,.png,.docx"
-              className="text-sm text-neutral-700"
+              aria-describedby={`${archivoId}-ayuda${errorArchivo ? ` ${archivoId}-error` : ""}`}
+              aria-invalid={errorArchivo ? true : undefined}
+              onChange={() => setErrorArchivo(null)}
+              className="block w-full min-w-0 text-sm text-neutral-700 file:mr-3 file:rounded-lg file:border file:border-neutral-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-neutral-800 hover:file:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             />
-          </label>
-          <button
-            type="submit"
-            disabled={isPending || subiendo}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {subiendo ? "Subiendo…" : "Subir"}
-          </button>
+          </Field>
+          <div className="sm:pt-6">
+            {/* Mientras sube, `loading` ya bloquea el reenvío sin quitar el foco;
+                `disabled` solo cuando hay otra acción en curso. */}
+            <Button type="submit" loading={subiendo} disabled={ocupado && !subiendo} icon={<NexoIcon name="upload" />}>
+              {subiendo ? "Subiendo…" : "Subir documento"}
+            </Button>
+          </div>
         </form>
-      )}
+      ) : null}
 
-      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
-        {documentos.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-neutral-400">Sin documentos cargados.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <tbody>
-              {documentos.map((d) => (
-                <tr key={d.id} className="border-b border-neutral-100 last:border-0">
-                  <td className="px-4 py-2.5">
-                    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600">
-                      {TIPO_LABEL[d.tipoDocumento]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-neutral-900">{d.nombreOriginal}</td>
-                  <td className="px-4 py-2.5 text-neutral-400">{formatBytes(d.tamanoBytes)}</td>
-                  <td className="px-4 py-2.5 text-right">
-                    <div className="flex justify-end gap-3">
-                      {canDescargar && (
-                        <button
-                          type="button"
+      <DataTable
+        rows={documentos}
+        rowKey={(d) => d.id}
+        density="compact"
+        caption="Documentos del empleado"
+        empty={<EmptyState bare title="Sin documentos cargados" />}
+        columns={[
+          {
+            key: "nombre",
+            header: "Documento",
+            render: (d) => <span className="break-all text-neutral-900">{d.nombreOriginal}</span>,
+          },
+          {
+            key: "tipo",
+            header: "Tipo",
+            render: (d) => <StatusBadge label={TIPO_LABEL[d.tipoDocumento]} tone="neutral" dot={false} />,
+          },
+          { key: "subido", header: "Subido", render: (d) => fechaCorta(d.subidoAt) },
+          { key: "tamano", header: "Tamaño", numeric: true, render: (d) => formatBytes(d.tamanoBytes) },
+          ...(canDescargar || canEliminar
+            ? [
+                {
+                  key: "acciones",
+                  header: "Acciones",
+                  align: "right" as const,
+                  render: (d: DocumentoRow) => (
+                    <div className="flex items-center justify-end gap-1">
+                      {canDescargar ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={ocupado}
                           onClick={() => descargar(d.id)}
-                          className="text-neutral-500 hover:text-neutral-900"
+                          aria-label={`Descargar ${d.nombreOriginal}`}
                         >
                           Descargar
-                        </button>
-                      )}
-                      {canEliminar && (
-                        <button
-                          type="button"
-                          onClick={() => eliminar(d.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          Eliminar
-                        </button>
-                      )}
+                        </Button>
+                      ) : null}
+                      {canEliminar ? (
+                        <RowActionIcons
+                          actions={[
+                            {
+                              key: "eliminar",
+                              icon: "trash",
+                              label: `Eliminar ${d.nombreOriginal}`,
+                              destructive: true,
+                              disabled: ocupado,
+                              onClick: () => setPorEliminar(d),
+                            },
+                          ]}
+                        />
+                      ) : null}
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
+
+      <ConfirmDialog
+        open={porEliminar !== null}
+        title="Eliminar documento"
+        description={
+          porEliminar
+            ? `¿Eliminar «${porEliminar.nombreOriginal}» del expediente? Dejará de aparecer en la lista y no se podrá descargar.`
+            : undefined
+        }
+        confirmLabel="Eliminar documento"
+        destructive
+        pending={isPending}
+        onConfirm={confirmarEliminar}
+        onCancel={() => setPorEliminar(null)}
+      />
     </div>
   );
 }

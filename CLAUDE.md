@@ -236,9 +236,9 @@ estas reglas ni los permisos.
 
 | Agente | Skills precargadas |
 |---|---|
-| `ux-planner` | `nexo-ui`, `nexo-ui-review` |
-| `ui-frontend` | `nexo-ui`, `nexo-react-next`, `nexo-ui-review` |
-| `reviewer` | `nexo-ui-review`, `nexo-react-next` |
+| `ux-planner` | `nexo-ui`, `nexo-ui-review`, `nexo-dashboards`, `nexo-planilla-legal`, `nexo-planilla-flujos` |
+| `ui-frontend` | `nexo-ui`, `nexo-react-next`, `nexo-ui-review`, `nexo-dashboards`, `nexo-planilla-legal`, `nexo-planilla-flujos` |
+| `reviewer` | `nexo-ui-review`, `nexo-react-next`, `nexo-security`, `nexo-dashboards`, `nexo-planilla-legal`, `nexo-planilla-motor`, `nexo-planilla-flujos` |
 | `skills-specialist` | ninguna; las administra |
 
 Los subagentes **no heredan** las skills que cargue el coordinador. Si una
@@ -271,8 +271,8 @@ una, se ven desde la siguiente.
 ## REGLA CRÍTICA: monorepo, pnpm y despliegues en Vercel
 
 1. **Aislamiento de proyectos (1 app = 1 proyecto).** Este repositorio es
-   un monorepo. Cada directorio dentro de `apps/` (ej. `apps/crm`,
-   `apps/rrhh`) es una aplicación independiente. Al crear un módulo nuevo,
+   un monorepo. Cada directorio dentro de `apps/` (ej. `apps/rrhh`,
+   `apps/productos`) es una aplicación independiente. Al crear un módulo nuevo,
    **hace falta crear un proyecto nuevo y dedicado en Vercel**,
    estableciendo su *Root Directory* hacia esa subcarpeta específica.
    Nunca asumas que una app nueva se despliega bajo un proyecto unificado
@@ -295,7 +295,7 @@ una, se ven desde la siguiente.
 4. **Enrutamiento del Launcher — rewrite de Multi-Zones, nunca URL
    absoluta en `core.apps`.** `core.apps.route` (lo que arma la grilla del
    Launcher en `apps/nexo`) **siempre es una ruta relativa** (`/rrhh`,
-   `/crm`, nunca `https://<proyecto>.vercel.app/...`) — así lo consume
+   `/productos`, nunca `https://<proyecto>.vercel.app/...`) — así lo consume
    `next/link` en [`apps/nexo/src/app/page.tsx`](apps/nexo/src/app/page.tsx),
    y así se sostiene la regla de login único: las cookies de sesión de
    Supabase son del dominio público compartido, y un link a un dominio
@@ -303,7 +303,7 @@ una, se ven desde la siguiente.
    proyecto — exactamente lo que la regla de SSO prohíbe. La URL absoluta
    real del deploy de cada módulo **sí existe**, pero como *destino de un
    rewrite* en `apps/nexo/next.config.ts` (vía una env var tipo
-   `CRM_APP_URL`), no en la base de datos — ver el rewrite de `/crm` ahí
+   `RRHH_APP_URL`), no en la base de datos — ver el rewrite de `/rrhh` ahí
    como referencia. Al activar un módulo nuevo en `core.apps`
    (`core.company_apps.enabled = true`) verificá también que
    `apps/nexo/next.config.ts` tenga su rewrite `source`/`destination`
@@ -389,7 +389,7 @@ login vive solo en `apps/nexo` (el panel). Al crear o adaptar un módulo:
 1. El middleware/proxy del módulo, sin sesión válida, redirige a
    `${NEXO_PANEL_URL:-origin}/login?next=<ruta-con-basePath>` — nunca a un
    `/login` propio del módulo. Ver
-   [`apps/crm/src/lib/supabase/middleware.ts`](apps/crm/src/lib/supabase/middleware.ts)
+   [`apps/productos/src/lib/supabase/middleware.ts`](apps/productos/src/lib/supabase/middleware.ts)
    como referencia.
 2. `NEXO_PANEL_URL` es un override opcional (dev local con puertos
    distintos, o acceso directo al deployment `*.vercel.app` del módulo sin
@@ -458,12 +458,12 @@ desplegable".
 ## Regla obligatoria: navegación interna con `next/link`, nunca `<a>` plano
 
 **Todo link que se queda dentro del mismo módulo usa `next/link`, nunca
-un `<a href>` nativo** — el `basePath` (`/crm`, `/rrhh`, `/flotilla`) se
+un `<a href>` nativo** — el `basePath` (`/rrhh`, `/productos`, `/flotilla`) se
 aplica solo a `next/link`/`router.push`, no a un `<a>` nativo. Un
 `<a href="/clientes">` navega a `dominio.com/clientes` (404 real en
 producción) en vez de `dominio.com/crm/clientes`. Bug real que esto
-corrigió: [`packages/ui/Sidebar.tsx`](packages/ui/Sidebar.tsx) usaba `<a>`
-en sus ítems. Única excepción a propósito:
+corrigió: el antiguo `packages/ui/Sidebar.tsx` (retirado el 2026-09-07, hoy
+`NexoSidebar`) usaba `<a>` en sus ítems. Única excepción a propósito:
 [`BackToPanelLink`](packages/ui/BackToPanelLink.tsx), que cruza de zona en
 Multi-Zones y por eso sí necesita un `<a>` plano. Detalle completo:
 [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
@@ -475,7 +475,7 @@ siempre a un `/dashboard` propio, con las métricas principales de esa
 área — nunca a una lista de contenido ni a una página en blanco.** No
 alcanza con "no dejarlo en blanco": tiene que ser una vista de KPIs (2-3
 tarjetas con datos reales del módulo como mínimo). Ver
-[`apps/crm/src/app/(app)/dashboard/page.tsx`](apps/crm/src/app/(app)/dashboard/page.tsx)
+[`apps/productos/src/app/(app)/dashboard/page.tsx`](apps/productos/src/app/(app)/dashboard/page.tsx)
 como referencia y el checklist completo en
 [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
@@ -592,8 +592,8 @@ import { Analytics } from "@vercel/analytics/next";
 </body>
 ```
 
-Ya está en `apps/nexo`, `apps/crm` y `apps/web-corporativo`. Falta agregarlo
-a `apps/rrhh` y `apps/flotilla` cuando se adapten en sus fases.
+Ya está en `apps/nexo`, `apps/rrhh`, `apps/productos` y `apps/web-corporativo`.
+Falta agregarlo a `apps/flotilla` cuando se adapte en su fase.
 
 ## Regla obligatoria: validación local y CI antes de abrir un PR
 
@@ -629,12 +629,12 @@ checks obligatorios, `enforce_admins: true`, sin force push) están en
 - Monorepo Turborepo + pnpm. Un módulo = una app en `apps/*`, desplegable
   de forma independiente.
 - Un solo dominio para toda la app (`nexo.materialesjcastillo.com`), los
-  módulos son **rutas** (`/rrhh`, `/flotilla`, `/crm`), no subdominios —
+  módulos son **rutas** (`/rrhh`, `/flotilla`, `/productos`), no subdominios —
   mecanismo: [Next.js Multi-Zones](https://nextjs.org/docs/pages/guides/multi-zones).
   El sitio público (`materialesjcastillo.com`) es un dominio aparte.
 - Un solo proyecto Supabase, `nexo-core` (ref `yrbjlmiqhkyxtlcerowh`,
   `us-east-1`), con un schema Postgres por módulo (`rrhh`, `flotilla`,
-  `crm`) más el schema `core` (compañías, catálogo de apps, permisos).
+  `productos`) más el schema `core` (compañías, catálogo de apps, permisos).
 - Cada `apps/<módulo>` importado desde su repo original vía `git subtree`
   (historial preservado) — hoy sigue apuntando a su Supabase original hasta
   que se adapte en su fase correspondiente (ver `docs/ROADMAP.md`).

@@ -9,6 +9,10 @@ skills:
   - nexo-ui-review
   - nexo-react-next
   - nexo-security
+  - nexo-dashboards
+  - nexo-planilla-legal
+  - nexo-planilla-motor
+  - nexo-planilla-flujos
 ---
 
 Eres el **revisor independiente** del sistema coordinador → especialista → ejecutores → revisor de Nexo (ver "Sistema de trabajo con subagentes" en `CLAUDE.md`). Responde en español.

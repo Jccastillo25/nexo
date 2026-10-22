@@ -51,7 +51,7 @@ Fuentes: `CLAUDE.md` ("Regla obligatoria: permisos"), `docs/PERMISSIONS.md:54-90
 
 Dos patrones vigentes y verificados; identificar cuál usa el schema antes de opinar:
 
-**Patrón A — schema expuesto a la Data API** (`crm`, `rrhh`):
+**Patrón A — schema expuesto a la Data API** (`rrhh`):
 - [ ] `alter table … enable row level security` en **toda** tabla (y partición) del schema, con policies que llaman `core.has_permission()` (`docs/PERMISSIONS.md:111-115`).
 - [ ] `grant usage on schema <s> to authenticated` + `grant select, insert, update, delete on … to authenticated` **en la misma migración que crea el schema**. RLS filtra filas, no reemplaza el GRANT. Precedentes de olvido: `supabase/migrations/20260830000010_fix_crm_schema_grants.sql:15-16`, `supabase/migrations/20260904000001_fix_rrhh_schema_grants.sql:27-29`.
 - [ ] Ningún grant a `anon` sin justificación escrita en la migración (el kiosko de RRHH entra por RPC, `20260904000001…:21-24`).
@@ -85,7 +85,7 @@ Fuentes: `core.fn_exigir_permiso(p_company_id uuid, p_code text) returns uuid` e
 
 ## §5 SSO único y redirecciones
 
-Fuentes: `CLAUDE.md` ("login único"), `apps/crm/src/lib/supabase/middleware.ts:43-55`, `apps/nexo/src/app/login/actions.ts:8-11,36`.
+Fuentes: `CLAUDE.md` ("login único"), `apps/productos/src/lib/supabase/middleware.ts:37-48`, `apps/nexo/src/app/login/actions.ts:8-11,36`.
 
 - [ ] Ningún `apps/<módulo>` (salvo `apps/nexo`) tiene formulario de login ni llama `signInWithPassword`. Su `login/actions.ts` solo puede tener `signOut` (`apps/productos/src/app/login/actions.ts:7-12`).
 - [ ] El `proxy.ts` del módulo usa `updateSession` y, sin usuario, redirige a `new URL("/login", process.env.NEXO_PANEL_URL || request.nextUrl.origin)` con `next=/<basePath><pathname>`.

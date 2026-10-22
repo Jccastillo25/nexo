@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import type { Database } from "@/lib/supabase/database.types";
 
 export interface ActionResult {
   ok: boolean;
@@ -36,8 +36,7 @@ export interface DiaInput {
  * proteccion real es RLS.
  */
 export async function crearJornada(input: JornadaInput): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.asistencia.turnos.crear");
@@ -64,8 +63,7 @@ export async function editarJornada(
   jornadaId: string,
   input: JornadaInput & { activo: boolean }
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.asistencia.turnos.editar");
@@ -94,8 +92,7 @@ export async function editarJornada(
 }
 
 export async function eliminarJornada(jornadaId: string): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.asistencia.turnos.eliminar");
@@ -136,8 +133,7 @@ export async function eliminarJornada(jornadaId: string): Promise<ActionResult> 
  * la semana completa junta.
  */
 export async function guardarDiasJornada(jornadaId: string, dias: DiaInput[]): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.asistencia.turnos.editar");
@@ -180,8 +176,7 @@ export interface FeriadoInput {
 }
 
 export async function crearFeriado(input: FeriadoInput): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.asistencia.feriados.crear");
@@ -203,13 +198,13 @@ export async function crearFeriado(input: FeriadoInput): Promise<ActionResult> {
     return { ok: false, message: mensajeDeError(error, "crearFeriado", "No se pudo crear el feriado. Intenta de nuevo.") };
   }
 
-  revalidatePath("/jornadas");
+  // El calendario vive en /feriados desde 2026-09-07.
+  revalidatePath("/feriados");
   return { ok: true };
 }
 
 export async function eliminarFeriado(feriadoId: string): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.asistencia.feriados.eliminar");
@@ -229,6 +224,6 @@ export async function eliminarFeriado(feriadoId: string): Promise<ActionResult> 
     return { ok: false, message: mensajeDeError(error, "eliminarFeriado", "No se pudo eliminar el feriado. Intenta de nuevo.") };
   }
 
-  revalidatePath("/jornadas");
+  revalidatePath("/feriados");
   return { ok: true };
 }

@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { hasPermission } from "@nexo/permissions";
-import { EmptyState, FormTabs, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import { ButtonLink, EmptyState, FormTabs, PageHeader } from "@nexo/ui";
+import type { Database } from "@/lib/supabase/database.types";
+import { permisosDe } from "@/lib/permisos-rrhh";
 import DireccionPanel, { type DepartamentoGeoOption, type MunicipioGeoOption } from "./direccion-panel";
 import InfoComplementariaPanel from "./info-complementaria-panel";
 import CuentasBancariasPanel, { type CuentaBancariaRow } from "./cuentas-bancarias-panel";
@@ -14,6 +13,8 @@ import DocumentosPanel, { type DocumentoRow } from "./documentos-panel";
 export const metadata: Metadata = {
   title: "Expediente · RRHH",
 };
+
+const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Ficha del Expediente General de un empleado — SOLO información de
@@ -35,6 +36,9 @@ export const metadata: Metadata = {
  * queries cuando el usuario tiene el permiso .ver correspondiente, para no
  * traer filas que la RLS de todas formas bloquearía pero que no hace falta
  * ni intentar pedir.
+ *
+ * Kernel (2026-10-20): los 14 hasPermission sueltos pasan a la lista única
+ * de permisosDe() (una consulta, compartida con el layout).
  */
 export default async function ExpedienteDetallePage({
   params,
@@ -42,40 +46,14 @@ export default async function ExpedienteDetallePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-
-  const [
-    canVer,
-    canEditar,
-    canVerDireccion,
-    canEditarDireccion,
-    canVerInfoComplementaria,
-    canEditarInfoComplementaria,
-    canVerCuentasBancarias,
-    canEditarCuentasBancarias,
-    canVerBeneficiarios,
-    canEditarBeneficiarios,
-    canVerDocumentos,
-    canSubirDocumentos,
-    canDescargarDocumentos,
-    canEliminarDocumentos,
-    empleadoResult,
-  ] = await Promise.all([
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.empleados.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.empleados.editar"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.direccion.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.direccion.editar"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.info_complementaria.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.info_complementaria.editar"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.cuentas_bancarias.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.cuentas_bancarias.editar"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.beneficiarios.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.beneficiarios.editar"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.documentos.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.documentos.subir"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.documentos.descargar"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.documentos.eliminar"),
+  // Primero lo barato: un id que no es UUID no existe (y PostgREST lo
+  // rechazaría con un error técnico).
+  if (!ES_UUID.test(id)) notFound();
+  // contextoActual no toca la red; el empleado se pide en paralelo con los
+  // permisos (la RLS lo protege igual) y se descarta si no hay permiso.
+  const { supabase, companyId } = await contextoActual<Database>();
+  const [permisos, empleadoRes] = await Promise.all([
+    permisosDe(),
     supabase
       .schema("rrhh")
       .from("empleados")
@@ -85,18 +63,31 @@ export default async function ExpedienteDetallePage({
       .maybeSingle(),
   ]);
 
-  if (!canVer) {
+  if (!permisos.empleadosVer) {
     return (
-      <EmptyState
-        title="Sin permiso para ver este expediente"
-        description="No tenés el permiso rrhh.expedientes.empleados.ver para esta empresa."
-      />
+      <div className="flex flex-col gap-6">
+        <PageHeader title="Expediente" back={{ href: "/expedientes", label: "Empleados" }} />
+        <EmptyState variant="no-access" title="No tienes acceso a este expediente" />
+      </div>
     );
   }
 
-  const { data: empleado, error: empleadoError } = empleadoResult;
+  const canEditar = permisos.empleadosEditar;
+  const canVerDireccion = permisos.direccionVer;
+  const canEditarDireccion = permisos.direccionEditar;
+  const canVerInfoComplementaria = permisos.infoComplementariaVer;
+  const canEditarInfoComplementaria = permisos.infoComplementariaEditar;
+  const canVerCuentasBancarias = permisos.cuentasBancariasVer;
+  const canEditarCuentasBancarias = permisos.cuentasBancariasEditar;
+  const canVerBeneficiarios = permisos.beneficiariosVer;
+  const canEditarBeneficiarios = permisos.beneficiariosEditar;
+  const canVerDocumentos = permisos.documentosVer;
+
+  const { data: empleado, error: empleadoError } = empleadoRes;
   if (empleadoError) {
-    throw new Error(`No se pudo cargar el expediente: ${empleadoError.message}`);
+    // El detalle va al log del servidor; error.tsx muestra solo la referencia.
+    console.error("expediente: empleado", empleadoError);
+    throw new Error("No se pudo cargar el expediente.");
   }
   if (!empleado) {
     notFound();
@@ -196,33 +187,32 @@ export default async function ExpedienteDetallePage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title={`${empleado.nombre} ${empleado.apellido}`}
-        description={`#${empleado.codigo_empleado} · ${empleado.documento_identidad}`}
+        description={`#${empleado.codigo_empleado}${empleado.documento_identidad ? ` · ${empleado.documento_identidad}` : ""}`}
+        back={{ href: "/expedientes", label: "Empleados" }}
         actions={
-          canEditar && (
-            <Link
-              href={`/expedientes/${id}/editar`}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-            >
-              Editar
-            </Link>
-          )
+          canEditar ? (
+            <ButtonLink href={`/expedientes/${id}/editar`} variant="secondary">
+              Editar datos personales
+            </ButtonLink>
+          ) : null
         }
       />
 
       <FormTabs
+        label="Secciones del expediente"
         tabs={[
           {
             key: "personales",
             label: "Datos personales",
             content: (
-              <div className="grid grid-cols-1 gap-4 rounded-xl border border-neutral-200 bg-white p-5 sm:grid-cols-2">
-                <Field label="Nombres" value={empleado.nombre} />
-                <Field label="Apellidos" value={empleado.apellido} />
-                <Field label="Documento de identidad" value={empleado.documento_identidad} />
-                <Field label="Código de empleado" value={`#${empleado.codigo_empleado}`} />
-                <Field label="Correo" value={empleado.email ?? "—"} />
-                <Field label="Teléfono" value={empleado.telefono ?? "—"} />
-              </div>
+              <dl className="grid grid-cols-1 gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs sm:grid-cols-2">
+                <Dato label="Nombres" value={empleado.nombre} />
+                <Dato label="Apellidos" value={empleado.apellido} />
+                <Dato label="Documento de identidad" value={empleado.documento_identidad ?? "—"} />
+                <Dato label="Código de empleado" value={`#${empleado.codigo_empleado}`} />
+                <Dato label="Correo" value={empleado.email ?? "—"} />
+                <Dato label="Teléfono" value={empleado.telefono ?? "—"} />
+              </dl>
             ),
           },
           {
@@ -245,7 +235,7 @@ export default async function ExpedienteDetallePage({
                 canEditar={canEditarDireccion}
               />
             ) : (
-              <SinPermiso codigo="rrhh.expedientes.direccion.ver" />
+              <SinPermiso seccion="la dirección" />
             ),
           },
           {
@@ -267,7 +257,7 @@ export default async function ExpedienteDetallePage({
                 canEditar={canEditarInfoComplementaria}
               />
             ) : (
-              <SinPermiso codigo="rrhh.expedientes.info_complementaria.ver" />
+              <SinPermiso seccion="la información complementaria" />
             ),
           },
           {
@@ -281,7 +271,7 @@ export default async function ExpedienteDetallePage({
                 canEditar={canEditarCuentasBancarias}
               />
             ) : (
-              <SinPermiso codigo="rrhh.expedientes.cuentas_bancarias.ver" />
+              <SinPermiso seccion="las cuentas bancarias" />
             ),
           },
           {
@@ -295,7 +285,7 @@ export default async function ExpedienteDetallePage({
                 canEditar={canEditarBeneficiarios}
               />
             ) : (
-              <SinPermiso codigo="rrhh.expedientes.beneficiarios.ver" />
+              <SinPermiso seccion="los beneficiarios" />
             ),
           },
           {
@@ -305,12 +295,12 @@ export default async function ExpedienteDetallePage({
               <DocumentosPanel
                 empleadoId={id}
                 documentos={documentos}
-                canSubir={canSubirDocumentos}
-                canDescargar={canDescargarDocumentos}
-                canEliminar={canEliminarDocumentos}
+                canSubir={permisos.documentosSubir}
+                canDescargar={permisos.documentosDescargar}
+                canEliminar={permisos.documentosEliminar}
               />
             ) : (
-              <SinPermiso codigo="rrhh.expedientes.documentos.ver" />
+              <SinPermiso seccion="los documentos" />
             ),
           },
         ]}
@@ -319,20 +309,17 @@ export default async function ExpedienteDetallePage({
   );
 }
 
-function SinPermiso({ codigo }: { codigo: string }) {
-  return (
-    <EmptyState
-      title="Sin permiso para ver esta sección"
-      description={`No tenés el permiso ${codigo} para esta empresa.`}
-    />
-  );
+/** Pestaña sin permiso: nunca muestra el código del permiso. */
+function SinPermiso({ seccion }: { seccion: string }) {
+  return <EmptyState variant="no-access" title={`No tienes acceso a ${seccion}`} />;
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+/** Dato de solo lectura (no confundir con el Field de formulario del kit). */
+function Dato({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium uppercase tracking-wide text-neutral-400">{label}</span>
-      <span className="text-sm text-neutral-900">{value}</span>
+    <div className="flex min-w-0 flex-col gap-1">
+      <dt className="text-xs font-medium text-neutral-500">{label}</dt>
+      <dd className="break-words text-sm text-neutral-900">{value}</dd>
     </div>
   );
 }

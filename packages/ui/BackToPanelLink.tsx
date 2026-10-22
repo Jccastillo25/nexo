@@ -25,7 +25,8 @@ export interface BackToPanelLinkProps {
   className?: string;
 }
 
-const DEFAULT_CLASS = "inline-flex items-center transition-opacity hover:opacity-80";
+const DEFAULT_CLASS =
+  "inline-flex items-center rounded-md transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
 const ARIA_LABEL = "Volver al inicio de Nexo";
 
 export function BackToPanelLink({ href, logoUrl, className }: BackToPanelLinkProps) {

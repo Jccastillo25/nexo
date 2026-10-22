@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-import { BackToPanelLink } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { signOut } from "@/app/(app)/actions";
-import { getPanelUrl } from "@/lib/panel";
-import { getLogoUrl } from "@/lib/platform-settings";
+import { BackToPanelLink, SubmitButton } from "@nexo/ui";
+import { getPanelUrl, getPlatformSettings, signOut } from "@nexo/auth";
 
 export const metadata: Metadata = {
   title: "Sin acceso",
@@ -17,37 +14,31 @@ export const metadata: Metadata = {
  * generico y no imprime codigos de permiso. Vive fuera de ambos route
  * groups a proposito: si estuviera adentro, el mismo guard que redirige
  * para aca volveria a redirigir, en loop infinito.
- * Mismo patron que apps/crm/src/app/sin-acceso/page.tsx.
  *
- * Nexo Enterprise UI (2026-09-07): restyle a tema claro — mismo sistema
- * visual en toda la suite (ajuste obligatorio §7).
- * Reconciliacion de navegacion (2026-09-14): "Volver a Nexo" (texto) se
- * reemplaza por el logo, mismo patron que la cabecera de NexoSidebar —
- * decision vigente, "Volver a Nexo" queda eliminado en toda la suite.
+ * Nexo Enterprise UI (2026-09-07): tema claro. Reconciliacion de navegacion
+ * (2026-09-14): el logo vuelve al panel (BackToPanelLink).
+ * Kernel (2026-10-20): marca (sin cookies, en caché), URL del panel y cierre
+ * de sesión salen de @nexo/auth.
  */
 export default async function SinAccesoPage() {
-  const supabase = await createClient();
-  const [panelUrl, logoUrl] = await Promise.all([getPanelUrl(), getLogoUrl(supabase)]);
+  const [panelUrl, { logoUrl }] = await Promise.all([getPanelUrl(), getPlatformSettings()]);
 
   return (
     <div className="flex min-h-screen flex-1 items-center justify-center bg-[var(--nexo-enterprise-bg)] px-4 py-16">
       <div className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-        <p className="text-xs uppercase tracking-[0.2em] text-neutral-400">Materiales J Castillo</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">Materiales J Castillo</p>
         <h1 className="mt-2 text-2xl font-semibold text-neutral-900">Sin acceso</h1>
         <p className="mt-4 text-sm text-neutral-500">
           Tu cuenta no tiene acceso a esta aplicación en esta empresa. Si
           crees que es un error, pide a un administrador que te la asigne.
         </p>
 
-        <div className="mt-6 flex items-center justify-center gap-4">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
           <BackToPanelLink href={panelUrl} logoUrl={logoUrl} />
           <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded-md border border-neutral-300 px-4 py-2 text-xs uppercase tracking-wide text-neutral-600 transition-colors hover:border-neutral-400 hover:text-neutral-900"
-            >
+            <SubmitButton variant="secondary" size="sm" pendingLabel="Cerrando sesión…">
               Cerrar sesión
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </div>

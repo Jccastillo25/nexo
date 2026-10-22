@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { hasPermission } from "@nexo/permissions";
-import { PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import { Alert, PageHeader } from "@nexo/ui";
 import { mensajeAtencion } from "@/lib/errores";
+import { permisosDe } from "@/lib/permisos";
 import { rangoDe, type Metricas } from "@/lib/metricas";
+import type { Database } from "@/lib/supabase/database.types";
 import FiltrosMetricas from "@/components/metricas/filtros";
 import ResumenKpis from "@/components/metricas/resumen";
 import GraficoPorHora from "@/components/metricas/grafico-por-hora";
@@ -23,17 +23,13 @@ export const dynamic = "force-dynamic";
  * public.atencion_metricas(p_solo_mias = true).
  */
 export default async function MisMetricasPage({ searchParams }: PageProps<"/metricas">) {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-  const ctx = { supabase, companyId };
-
-  const [propias, globales] = await Promise.all([
-    hasPermission(ctx, "atencion.reportes.mis_metricas.ver"),
-    hasPermission(ctx, "atencion.reportes.turno.ver"),
+  const [{ supabase, companyId }, permisos, params] = await Promise.all([
+    contextoActual<Database>(),
+    permisosDe(),
+    searchParams,
   ]);
-  if (!propias && !globales) redirect("/dashboard");
+  if (!permisos.misMetricas && !permisos.reportes) redirect("/dashboard");
 
-  const params = await searchParams;
   const { periodo, desde, hasta } = rangoDe(typeof params.periodo === "string" ? params.periodo : undefined);
 
   const { data, error } = await supabase.rpc("atencion_metricas", {
@@ -49,11 +45,11 @@ export default async function MisMetricasPage({ searchParams }: PageProps<"/metr
       <PageHeader title="Mis métricas" description="Tus turnos atendidos y tus tiempos de espera y de atención." />
       <FiltrosMetricas ruta="/metricas" periodo={periodo} />
       {error || !metricas ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <Alert tone="error" title="No se pudieron cargar tus métricas">
           {error
-            ? mensajeAtencion(error, "atencion_metricas (mis métricas)", "No se pudieron cargar tus métricas. Intenta de nuevo.")
-            : "No se pudieron cargar tus métricas."}
-        </p>
+            ? mensajeAtencion(error, "atencion_metricas (mis métricas)", "Intenta de nuevo en unos minutos.")
+            : "Intenta de nuevo en unos minutos."}
+        </Alert>
       ) : (
         <>
           <ResumenKpis resumen={metricas.resumen} global={false} />

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { contextoActual } from "@nexo/auth";
 import { PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
 import { permisosDe } from "@/lib/permisos";
 import type { Catalogos, Resumen } from "@/lib/tipos";
 import FichaProducto from "../ficha-producto";
@@ -14,9 +13,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function NuevoProductoPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-  const permisos = await permisosDe(supabase, companyId);
+  const [{ supabase, companyId }, permisos] = await Promise.all([contextoActual(), permisosDe()]);
   if (!permisos.crear) redirect("/catalogo");
 
   const [catalogos, resumen] = await Promise.all([

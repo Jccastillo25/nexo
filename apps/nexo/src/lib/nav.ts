@@ -1,4 +1,5 @@
 import type { NexoNavItem } from "@nexo/ui";
+import type { Permisos } from "@/lib/permisos";
 
 /**
  * Arbol de navegacion del propio panel Nexo (apps/nexo) -- reconciliacion
@@ -15,20 +16,21 @@ import type { NexoNavItem } from "@nexo/ui";
  * extrae a su propia app en el ticket #18 y se abre desde el Launcher;
  * /dashboard solo conserva una redirección a /agencia/dashboard.
  *
- * Mostrar un item en el sidebar NO autoriza la ruta: ocultarlo o mostrarlo
- * no cambia la proteccion, que vive en el servidor.
+ * Desde 2026-10-20 cada hijo de Configuración se lista solo con su permiso
+ * (regla del menú lateral en CLAUDE.md): sin ninguno, el grupo queda con
+ * `children: []` y NexoSidebar no lo muestra. Mostrar u ocultar un item NO
+ * autoriza la ruta: la proteccion vive en el servidor.
  */
-export const NEXO_NAV_ITEMS: NexoNavItem[] = [
-  { label: "Inicio", href: "/", icon: "grid" },
-  {
-    label: "Configuración",
-    icon: "settings",
-    children: [
-      { label: "Marca", href: "/configuracion/marca", icon: "sliders" },
-      { label: "Usuarios", href: "/configuracion/usuarios", icon: "users" },
-      { label: "Roles", href: "/configuracion/roles", icon: "shield" },
-      { label: "Sucursales", href: "/configuracion/sucursales", icon: "building" },
-      { label: "Auditoría", href: "/configuracion/auditoria", icon: "list" },
-    ],
-  },
-];
+export function nexoNav(p: Permisos): NexoNavItem[] {
+  const configuracion: NexoNavItem[] = [];
+  if (p.marcaEditar) configuracion.push({ label: "Marca", href: "/configuracion/marca", icon: "sliders" });
+  if (p.usuariosVer) configuracion.push({ label: "Usuarios", href: "/configuracion/usuarios", icon: "users" });
+  if (p.rolesVer) configuracion.push({ label: "Roles", href: "/configuracion/roles", icon: "shield" });
+  if (p.sucursalesVer) configuracion.push({ label: "Sucursales", href: "/configuracion/sucursales", icon: "building" });
+  if (p.auditoriaVer) configuracion.push({ label: "Auditoría", href: "/configuracion/auditoria", icon: "list" });
+
+  return [
+    { label: "Inicio", href: "/", icon: "grid" },
+    { label: "Configuración", icon: "settings", children: configuracion },
+  ];
+}

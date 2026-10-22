@@ -2,6 +2,7 @@
 /* Ruta relativa, no el specifier del paquete. NexoShell/NexoSidebar/NexoTopbar
    usan variables como --nexo-enterprise-sidebar-bg definidas en tokens.css. */
 @import "../../../../packages/ui/tokens.css";
+@import "../../../../packages/ui/theme.css";
 
 /* Tailwind v4 solo escanea el árbol de esta app: sin esto, las clases usadas
    únicamente en @nexo/ui nunca se generan (ver docs/DESIGN_SYSTEM.md). */

@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import type { Database } from "@/lib/supabase/database.types";
 
 export interface ActionResult {
   ok: boolean;
@@ -25,8 +25,7 @@ export interface CuentaBancariaInput {
  * DELETE expuesto -- se desactiva.
  */
 export async function crearCuentaBancaria(empleadoId: string, input: CuentaBancariaInput): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.cuentas_bancarias.editar");
@@ -61,8 +60,7 @@ export async function editarCuentaBancaria(
   cuentaId: string,
   input: CuentaBancariaInput & { activo: boolean }
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.cuentas_bancarias.editar");

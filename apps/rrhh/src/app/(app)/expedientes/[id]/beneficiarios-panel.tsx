@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { StatusBadge, useToast } from "@nexo/ui";
+import { Alert, Button, DataTable, EmptyState, Field, Input, StatusBadge, porcentaje, useToast } from "@nexo/ui";
 import { crearBeneficiario, editarBeneficiario, type BeneficiarioInput } from "./beneficiarios-actions";
 
 export interface BeneficiarioRow {
@@ -15,8 +15,11 @@ export interface BeneficiarioRow {
 }
 
 const EMPTY: BeneficiarioInput = { nombreCompleto: "", parentesco: "", porcentaje: 0, documentoIdentidad: "", telefono: "" };
-const inputClass =
-  "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500";
+
+/** El porcentaje se guarda como 0–100; porcentaje() del kit recibe una fracción. */
+function pct(valor: number): string {
+  return porcentaje(valor / 100, { decimales: 2 });
+}
 
 /**
  * Fase 5 (2026-09-16, bloque pre-F1.5): pestaña "Beneficiario" -- dato
@@ -82,127 +85,120 @@ export default function BeneficiariosPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-neutral-900">
-          Beneficiarios <span className="font-normal text-neutral-400">— {totalActivo}% asignado</span>
+          Beneficiarios{" "}
+          <span className="font-normal text-neutral-500">
+            · <span className="tabular-nums">{pct(totalActivo)}</span> asignado
+          </span>
         </h3>
-        {canCrear && !showForm && (
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            + Nuevo beneficiario
-          </button>
-        )}
+        {canCrear && !showForm ? (
+          <Button variant="secondary" onClick={() => setShowForm(true)}>
+            Agregar beneficiario
+          </Button>
+        ) : null}
       </div>
 
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
-      {showForm && (
-        <form onSubmit={crear} className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-neutral-500">Nombre completo</span>
-              <input
+      {showForm ? (
+        <form
+          onSubmit={crear}
+          className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs"
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Nombre completo" required>
+              <Input
                 required
+                autoComplete="off"
                 value={nuevo.nombreCompleto}
                 onChange={(e) => setNuevo((n) => ({ ...n, nombreCompleto: e.target.value }))}
-                className={inputClass}
               />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-neutral-500">Parentesco</span>
-              <input
+            </Field>
+            <Field label="Parentesco" required>
+              <Input
                 required
                 value={nuevo.parentesco}
                 onChange={(e) => setNuevo((n) => ({ ...n, parentesco: e.target.value }))}
-                className={inputClass}
               />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-neutral-500">Porcentaje</span>
-              <input
+            </Field>
+            <Field label="Porcentaje" required hint="Entre 1 y 100. La suma de los activos no puede pasar de 100.">
+              <Input
                 required
                 type="number"
+                inputMode="decimal"
                 min={1}
                 max={100}
                 step="0.01"
                 value={nuevo.porcentaje || ""}
                 onChange={(e) => setNuevo((n) => ({ ...n, porcentaje: Number(e.target.value) }))}
-                className={inputClass}
               />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-neutral-500">Documento (opcional)</span>
-              <input
+            </Field>
+            <Field label="Documento de identidad" optional>
+              <Input
+                autoComplete="off"
                 value={nuevo.documentoIdentidad}
                 onChange={(e) => setNuevo((n) => ({ ...n, documentoIdentidad: e.target.value }))}
-                className={inputClass}
               />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-neutral-500">Teléfono (opcional)</span>
-              <input
+            </Field>
+            <Field label="Teléfono" optional>
+              <Input
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
                 value={nuevo.telefono}
                 onChange={(e) => setNuevo((n) => ({ ...n, telefono: e.target.value }))}
-                className={inputClass}
               />
-            </label>
+            </Field>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              Agregar
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="text-sm text-neutral-500 hover:text-neutral-900"
-            >
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" onClick={() => setShowForm(false)} disabled={isPending}>
               Cancelar
-            </button>
+            </Button>
+            <Button type="submit" loading={isPending}>
+              Agregar beneficiario
+            </Button>
           </div>
         </form>
-      )}
+      ) : null}
 
-      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
-        {beneficiarios.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-neutral-400">Sin beneficiarios registrados.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <tbody>
-              {beneficiarios.map((b) => (
-                <tr key={b.id} className="border-b border-neutral-100 last:border-0">
-                  <td className="px-4 py-2.5">
-                    <span className="font-medium text-neutral-900">{b.nombreCompleto}</span>
-                    <span className="ml-2 text-neutral-400">
-                      {b.parentesco} · {b.porcentaje}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <StatusBadge label={b.activo ? "activo" : "inactivo"} tone={b.activo ? "positive" : "neutral"} />
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    {canEditar && (
-                      <button
-                        type="button"
-                        onClick={() => toggleActivo(b)}
-                        className="text-neutral-500 hover:text-neutral-900"
-                      >
-                        {b.activo ? "Desactivar" : "Activar"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <DataTable
+        rows={beneficiarios}
+        rowKey={(b) => b.id}
+        density="compact"
+        caption="Beneficiarios del empleado"
+        empty={<EmptyState bare title="Sin beneficiarios registrados" />}
+        columns={[
+          {
+            key: "nombre",
+            header: "Nombre",
+            render: (b) => <span className="font-medium text-neutral-900">{b.nombreCompleto}</span>,
+          },
+          { key: "parentesco", header: "Parentesco", render: (b) => b.parentesco },
+          { key: "porcentaje", header: "Porcentaje", numeric: true, render: (b) => pct(b.porcentaje) },
+          {
+            key: "estado",
+            header: "Estado",
+            render: (b) => (
+              <StatusBadge label={b.activo ? "Activo" : "Inactivo"} tone={b.activo ? "positive" : "neutral"} />
+            ),
+          },
+          ...(canEditar
+            ? [
+                {
+                  key: "acciones",
+                  header: "Acciones",
+                  align: "right" as const,
+                  render: (b: BeneficiarioRow) => (
+                    <Button variant="ghost" size="sm" disabled={isPending} onClick={() => toggleActivo(b)}>
+                      {b.activo ? "Desactivar" : "Activar"}
+                    </Button>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
     </div>
   );
 }

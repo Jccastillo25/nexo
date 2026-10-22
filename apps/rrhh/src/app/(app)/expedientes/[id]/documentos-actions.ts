@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import { createServiceRoleClient } from "@nexo/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 
 const BUCKET = "rrhh-documentos-privados";
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -64,8 +64,7 @@ export async function pedirUrlSubidaDocumento(
   empleadoId: string,
   input: PedirSubidaInput
 ): Promise<PedirSubidaResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.documentos.subir");
@@ -78,7 +77,7 @@ export async function pedirUrlSubidaDocumento(
     return { ok: false, message: "Tipo de documento inválido." };
   }
   if (!ALLOWED_MIME.has(input.mimeType)) {
-    return { ok: false, message: "Formato no permitido. Usá PDF, JPG, PNG o Word (.docx)." };
+    return { ok: false, message: "Formato no permitido. Usa PDF, JPG, PNG o Word (.docx)." };
   }
   if (input.tamanoBytes <= 0 || input.tamanoBytes > MAX_BYTES) {
     return { ok: false, message: `El archivo supera el máximo permitido de ${MAX_BYTES / (1024 * 1024)} MB.` };
@@ -97,9 +96,9 @@ export async function pedirUrlSubidaDocumento(
 
   const path = `${companyId}/empleados/${empleadoId}/${randomUUID()}-${sanearNombre(input.nombreOriginal)}`;
 
-  let admin: ReturnType<typeof createAdminClient>;
+  let admin: ReturnType<typeof createServiceRoleClient>;
   try {
-    admin = createAdminClient();
+    admin = createServiceRoleClient();
   } catch (err) {
     return { ok: false, message: mensajeDeError(err, "pedirUrlSubidaDocumento: cliente admin", MENSAJE_STORAGE) };
   }
@@ -137,8 +136,7 @@ export async function confirmarDocumentoSubido(
   empleadoId: string,
   input: ConfirmarSubidaInput
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.documentos.subir");
@@ -152,9 +150,9 @@ export async function confirmarDocumentoSubido(
     return { ok: false, message: "Ruta de archivo inválida." };
   }
 
-  let admin: ReturnType<typeof createAdminClient>;
+  let admin: ReturnType<typeof createServiceRoleClient>;
   try {
-    admin = createAdminClient();
+    admin = createServiceRoleClient();
   } catch (err) {
     return { ok: false, message: mensajeDeError(err, "confirmarDocumentoSubido: cliente admin", MENSAJE_STORAGE) };
   }
@@ -186,7 +184,7 @@ export async function confirmarDocumentoSubido(
     return { ok: false, message: `El archivo supera el máximo permitido de ${MAX_BYTES / (1024 * 1024)} MB.` };
   }
   if (!ALLOWED_MIME.has(mimeReal)) {
-    return { ok: false, message: "Formato no permitido. Usá PDF, JPG, PNG o Word (.docx)." };
+    return { ok: false, message: "Formato no permitido. Usa PDF, JPG, PNG o Word (.docx)." };
   }
   if (!TIPOS.includes(input.tipoDocumento)) {
     return { ok: false, message: "Tipo de documento inválido." };
@@ -223,8 +221,7 @@ export interface PedirDescargaResult extends ActionResult {
  * persiste esta URL como fuente de verdad, solo storage_path.
  */
 export async function pedirUrlDescargaDocumento(documentoId: string): Promise<PedirDescargaResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.documentos.descargar");
@@ -250,9 +247,9 @@ export async function pedirUrlDescargaDocumento(documentoId: string): Promise<Pe
   }
   if (!doc) return { ok: false, message: "Documento no encontrado." };
 
-  let admin: ReturnType<typeof createAdminClient>;
+  let admin: ReturnType<typeof createServiceRoleClient>;
   try {
-    admin = createAdminClient();
+    admin = createServiceRoleClient();
   } catch (err) {
     return { ok: false, message: mensajeDeError(err, "pedirUrlDescargaDocumento: cliente admin", MENSAJE_STORAGE) };
   }
@@ -273,8 +270,7 @@ export async function pedirUrlDescargaDocumento(documentoId: string): Promise<Pe
  * conservador que las columnas deprecadas de otras tablas del proyecto).
  */
 export async function eliminarDocumento(empleadoId: string, documentoId: string): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.documentos.eliminar");

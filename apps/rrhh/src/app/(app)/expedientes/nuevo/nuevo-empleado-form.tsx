@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
-import { useToast } from "@nexo/ui";
+import { Alert, Button, ButtonLink, Field, Input, NexoIcon, useToast } from "@nexo/ui";
 import { crearEmpleado, type CrearEmpleadoResult } from "./actions";
 
 const EMPTY_FORM = {
@@ -18,11 +17,11 @@ const EMPTY_FORM = {
  * General de un empleado — nombre, apellido, documento de identidad,
  * correo y telefono. Ya no pide puesto, departamento, modalidad de
  * contrato, salario ni PIN: eso pertenece al Contrato (F1.2), que se
- * crea despues, sobre este mismo empleado, desde su ficha. "Crear
- * empleado != contratar empleado" (docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md).
+ * crea despues, sobre este mismo empleado. "Crear empleado != contratar
+ * empleado" (docs/PLAN_MAESTRO_IMPLEMENTACION_NEXO.md).
  *
- * Nexo Enterprise UI (2026-09-07): feedback idle→loading→success/error via
- * useToast (regla obligatoria §1.10) ademas del panel de exito existente.
+ * Feedback idle→loading→success/error via useToast, ademas del panel de
+ * exito.
  */
 export default function NuevoEmpleadoForm() {
   const { show } = useToast();
@@ -58,104 +57,83 @@ export default function NuevoEmpleadoForm() {
   }
 
   if (result?.ok) {
-    return <ExpedienteCreadoPanel result={result} onNuevo={() => { setResult(null); setForm(EMPTY_FORM); }} />;
+    return (
+      <ExpedienteCreadoPanel
+        result={result}
+        onNuevo={() => {
+          setResult(null);
+          setForm(EMPTY_FORM);
+        }}
+      />
+    );
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-5 rounded-xl border border-neutral-200 bg-white p-6">
+    <form
+      onSubmit={submit}
+      className="flex flex-col gap-5 rounded-xl border border-neutral-200 bg-white p-6 shadow-xs"
+    >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Nombres" required>
-          <input
+          <Input
             required
             value={form.nombre}
             onChange={(e) => update("nombre", e.target.value)}
-            className={inputClass}
+            autoComplete="off"
             placeholder="Julio César"
           />
         </Field>
         <Field label="Apellidos" required>
-          <input
+          <Input
             required
             value={form.apellido}
             onChange={(e) => update("apellido", e.target.value)}
-            className={inputClass}
+            autoComplete="off"
             placeholder="Castillo Canales"
           />
         </Field>
         <Field label="Documento de identidad (cédula)" required>
-          <input
+          <Input
             required
             value={form.documentoIdentidad}
             onChange={(e) => update("documentoIdentidad", e.target.value)}
-            className={inputClass}
+            autoComplete="off"
             placeholder="001-010190-0001A"
           />
         </Field>
-        <Field label="Correo">
-          <input
+        <Field label="Correo" optional>
+          <Input
             type="email"
+            inputMode="email"
             value={form.email}
             onChange={(e) => update("email", e.target.value)}
-            className={inputClass}
-            placeholder="opcional"
+            autoComplete="off"
           />
         </Field>
-        <Field label="Teléfono">
-          <input
+        <Field label="Teléfono" optional>
+          <Input
+            type="tel"
+            inputMode="tel"
             value={form.telefono}
             onChange={(e) => update("telefono", e.target.value)}
-            className={inputClass}
-            placeholder="opcional"
+            autoComplete="off"
           />
         </Field>
       </div>
 
-      <p className="text-xs text-neutral-400">
-        Este formulario solo crea el expediente general. Puesto,
-        departamento, salario y PIN de asistencia se asignan al crear un
-        contrato para este empleado, desde su ficha.
-      </p>
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-        >
-          {isPending ? "Creando…" : "Crear empleado"}
-        </button>
-        <Link href="/expedientes" className="text-sm text-neutral-500 hover:text-neutral-900">
+      <div className="flex flex-wrap items-center gap-2">
+        <ButtonLink href="/expedientes" variant="ghost">
           Cancelar
-        </Link>
+        </ButtonLink>
+        <Button type="submit" loading={isPending}>
+          {isPending ? "Creando…" : "Crear empleado"}
+        </Button>
       </div>
     </form>
   );
 }
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1.5 text-sm">
-      <span className="text-neutral-500">
-        {label}
-        {required && <span className="text-blue-600"> *</span>}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-const inputClass =
-  "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
 
 function ExpedienteCreadoPanel({
   result,
@@ -165,9 +143,15 @@ function ExpedienteCreadoPanel({
   onNuevo: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-4 rounded-xl border border-neutral-200 bg-white p-8 text-center">
-      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">
-        ✓
+    <div
+      role="status"
+      className="flex flex-col items-center gap-4 rounded-xl border border-neutral-200 bg-white p-8 text-center shadow-xs"
+    >
+      <span
+        aria-hidden="true"
+        className="flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 [&_svg]:size-6"
+      >
+        <NexoIcon name="check-circle" />
       </span>
       <div>
         <p className="text-lg font-semibold text-neutral-900">Expediente creado</p>
@@ -177,22 +161,19 @@ function ExpedienteCreadoPanel({
       </div>
 
       <p className="max-w-sm rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
-        Todavía no tiene contrato ni PIN de asistencia. Para habilitarlo a
-        trabajar, creá un contrato desde su ficha y activalo — el PIN se
-        genera automáticamente en ese momento.
+        Todavía no tiene contrato ni PIN de asistencia. Para habilitarlo a trabajar, crea un contrato y actívalo:
+        el PIN se genera automáticamente en ese momento.
       </p>
 
-      <div className="mt-2 flex items-center gap-4">
-        <button
-          type="button"
-          onClick={onNuevo}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-        >
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+        <Button variant="secondary" onClick={onNuevo}>
           Crear otro empleado
-        </button>
-        <Link href="/expedientes" className="text-sm text-neutral-500 hover:text-neutral-900">
-          Volver al listado
-        </Link>
+        </Button>
+        {result.empleadoId ? (
+          <ButtonLink href={`/expedientes/${result.empleadoId}`}>Ver expediente</ButtonLink>
+        ) : (
+          <ButtonLink href="/expedientes">Volver al listado</ButtonLink>
+        )}
       </div>
     </div>
   );

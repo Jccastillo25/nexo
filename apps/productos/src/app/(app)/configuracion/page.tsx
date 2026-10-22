@@ -1,14 +1,11 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
 import { permisosDe } from "@/lib/permisos";
 
 export const dynamic = "force-dynamic";
 
 /** Cada catálogo tiene su ruta y su entrada en el menú; esta raíz lleva al primero que el rol puede gestionar. */
 export default async function ConfiguracionPage() {
-  const supabase = await createClient();
-  const p = await permisosDe(supabase, getCompanyId());
+  const p = await permisosDe();
   if (p.marca) redirect("/configuracion/marcas");
   if (p.unidad) redirect("/configuracion/unidades");
   if (p.proveedor) redirect("/configuracion/proveedores");

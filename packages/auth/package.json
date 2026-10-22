@@ -2,7 +2,24 @@
   "name": "@nexo/auth",
   "version": "0.0.0",
   "private": true,
-  "description": "Cliente de Supabase Auth compartido y hooks de sesion para todas las zonas de Nexo",
+  "description": "Sesion, empresa activa, URL del panel, cierre de sesion y ajustes de plataforma compartidos por todas las zonas de Nexo",
   "main": "./index.ts",
-  "types": "./index.ts"
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./acciones": "./acciones.ts"
+  },
+  "peerDependencies": {
+    "next": "^16",
+    "react": "^19"
+  },
+  "dependencies": {
+    "@nexo/permissions": "workspace:*",
+    "@nexo/supabase": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "next": "16.3.8",
+    "react": "^19"
+  }
 }

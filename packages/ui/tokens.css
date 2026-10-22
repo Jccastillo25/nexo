@@ -10,16 +10,30 @@
    NexoTopbar/MetricCard y el resto del kit de packages/ui usan estos
    tokens. Dark puede volver mas adelante como opcion — no se borra el set
    dark/glass de abajo, sigue vigente para el kiosko (pantalla inmersiva,
-   fuera de alcance de este rediseño). */
+   fuera de alcance de este rediseño).
+
+   === v2 (2026-10-20): un solo azul ===
+   Antes estos tokens llevaban los hex de la paleta de Tailwind v3, un azul
+   distinto del OKLCH de Tailwind v4 que pintan las clases blue-600
+   de las apps: el sidebar, los botones y los focos no coincidian. Ahora
+   apuntan a las variables de color de Tailwind v4, asi que token y clase
+   son el mismo color. Tailwind emite esas variables porque una referencia
+   var() en CSS propio cuenta como uso (y el kit ya usa esas clases). */
 
 :root {
-  --nexo-enterprise-bg: #f3f4f6; /* neutral-100, fondo de la app */
-  --nexo-enterprise-surface: #ffffff; /* cards, topbar */
-  --nexo-enterprise-border: #e5e7eb; /* neutral-200 */
-  --nexo-enterprise-sidebar-bg: #0f2a5c; /* azul marino persistente */
-  --nexo-enterprise-sidebar-active: #1d4ed8; /* blue-700 */
-  --nexo-enterprise-accent: #2563eb; /* blue-600 — ya documentado en DESIGN_SYSTEM.md */
-  --nexo-enterprise-accent-hover: #1d4ed8; /* blue-700 */
+  --nexo-enterprise-bg: var(--color-neutral-50); /* fondo de la app */
+  --nexo-enterprise-surface: var(--color-white); /* tarjetas, topbar */
+  --nexo-enterprise-border: var(--color-neutral-200);
+  --nexo-enterprise-text: var(--color-neutral-900);
+  --nexo-enterprise-muted: var(--color-neutral-500);
+  --nexo-enterprise-sidebar-bg: var(--color-blue-950); /* azul marino persistente */
+  /* Ya no lo usa NexoSidebar (el activo es barra de 2px + bg-white/10); se
+     conserva por compatibilidad con cualquier uso fuera del kit. */
+  --nexo-enterprise-sidebar-active: var(--color-blue-700);
+  --nexo-enterprise-accent: var(--color-blue-600); /* boton primario, foco, enlaces */
+  --nexo-enterprise-accent-hover: var(--color-blue-700);
+  --nexo-enterprise-accent-active: var(--color-blue-800);
+  --nexo-enterprise-focus: var(--color-blue-600);
 }
 
 /* === Tema oscuro + glassmorphism (kiosko unicamente) ===

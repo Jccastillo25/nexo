@@ -1,11 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { contextoActual } from "@nexo/auth";
 import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
 import { mensajeAtencion } from "@/lib/errores";
-import type { MiEstado, TurnoCola } from "@/lib/supabase/database.types";
+import type { Database, MiEstado, TurnoCola } from "@/lib/supabase/database.types";
 
 export interface Resultado<T = undefined> {
   ok: boolean;
@@ -21,15 +20,14 @@ export interface Resultado<T = undefined> {
  * sucursal y reglas del módulo (ver supabase/migrations/20261014224341_atencion_esquema.sql).
  */
 async function contexto(code: string) {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const ctx = await contextoActual<Database>();
   try {
-    await requirePermission({ supabase, companyId }, code);
+    await requirePermission(ctx, code);
   } catch (err) {
     if (err instanceof PermissionDeniedError) return { error: "Tu rol no permite esta acción." } as const;
     throw err;
   }
-  return { supabase, companyId } as const;
+  return ctx;
 }
 
 export async function cargarEstado(): Promise<Resultado<MiEstado>> {
@@ -83,7 +81,7 @@ export async function cargarCola(
 export async function crearTurno(nombre: string, telefono: string, factura: string): Promise<Resultado<{ numero: number }>> {
   const ctx = await contexto("atencion.recepcion.turno.crear");
   if ("error" in ctx) return { ok: false, message: ctx.error };
-  if (!nombre.trim()) return { ok: false, message: "Escribí el nombre del cliente." };
+  if (!nombre.trim()) return { ok: false, message: "Escribe el nombre del cliente." };
   const { data, error } = await ctx.supabase.rpc("atencion_crear_turno", {
     p_company_id: ctx.companyId,
     p_cliente_nombre: nombre.trim(),

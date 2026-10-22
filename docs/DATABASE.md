@@ -1,5 +1,15 @@
 # Base de datos de Nexo
 
+**Aplicado el 2026-10-21, revisión integral** (detalle y rollback en [MIGRATION_LOG.md](MIGRATION_LOG.md)):
+- `20261021164649`: RPC `public.mis_permisos(empresa, códigos[]) → text[]`, que da todos los permisos pedidos en una llamada, más las políticas de `core.company_memberships` y `core.user_app_roles` con `(select auth.uid())`.
+- `20261021164748`: `presupuesto_indicadores` acotada a su ventana (181 ms frente a 660), con el índice de expresión `presupuesto.ix_facturas_company_cliente_norm_fecha` sobre `(company_id, cliente normalizado, fecha)`.
+- `20261021164902`:
+  - `public.registrar_marca_kiosko` ya no la pueden ejecutar `anon` ni `authenticated`. La terminal usa `registrar_marca_terminal`.
+  - Las RPC de reportes de Asistencia `asistencia_reporte_diario`, `_tardanzas`, `_incidencias` y `_resumen` son envoltorios en `public`. Las originales viven como `rrhh.asistencia_reporte_*_base`, sin EXECUTE para nadie.
+  - Tope de 200 filas sin `reportes.exportar`, con el helper `rrhh.fn_reporte_exigir_tope`.
+  - `asistencia_registrar_exportacion` firma con `core.perfiles.nombre_completo`, y `productos_exportar` audita en `core.audit_log` (`productos.catalogo.exportado`).
+- `20261021165004`: 101 índices B-Tree sobre llaves foráneas en `core`, `rrhh`, `atencion`, `productos` y `presupuesto`. Ya no queda ninguna FK sin índice en esos esquemas.
+
 **Actualización acotada 2026-10-14:** matriz de `agencia` registrada en `core.apps` (inactiva), `permissions_catalog`, `app_roles` y `app_role_permissions`. No se crea schema o tabla de negocio, no se modifica RLS ni el resolver. Rol `consulta`, dos permisos de lectura, ningún usuario asignado y ninguna empresa habilitada. [Migración y estado](status-log/2026-10-14-agencia-independiente.md).
 
 
@@ -38,11 +48,13 @@ jornadas mínimas) completados (2026-09-07)**. `flotilla` todavía no existe.
 | Schema | Contenido | Origen | Estado |
 |---|---|---|---|
 | `core` | Compañías, membresías/roles, catálogo de apps, catálogo de permisos, roles por app, auditoría, mapa de migración | Nuevo | ✅ Aplicado (2026-08-30), extendido 2026-09-02 (`app_scoped_roles`) |
-| `crm` | `clientes` | Migrado de materiales-jcastillo | ✅ Completo (2026-08-30), en producción |
+| `crm` | **Vacío desde el 2026-10-20.** Antes tenía `clientes` y el embudo comercial (12 tablas, 48 RPC `public.crm_*`) | CRM retirado por pedido del usuario; se replica AG Negocio en `erp` ([plan 18](plan/18-replica-ag-negocio.md)) | ❌ Contenido borrado (`20261020143821`), sin datos. El esquema se conserva sin GRANT solo porque sigue en "Exposed schemas"; se borra cuando el usuario lo quite de esa lista |
 | `rrhh` | Empleados, contratos, compensación, credenciales, jornadas/feriados (F1.4), kioscos, asistencia, seguridad de accesos, parámetros de ley, planillas, rate-limit de kiosko — 16 tablas base (22 con particiones) | Diseño nuevo para Nexo (no migración 1:1 de Gestor360) | ✅ Aplicado (2026-09-02 a 2026-09-04); auditoría de seguridad cerrada y verificada en producción (2026-09-05); F1.1-F1.4 (contratos/PIN contractual/jornadas) aplicados 2026-09-07. **MVP operativo sin validar** (motor de consolidación/planillas no construido) — ver [RRHH_MVP.md](RRHH_MVP.md) |
 | `flotilla` | Flota, viajes, conductores, evidencias | Migrado de Ruta360 | ⏳ Pendiente |
 | `atencion` | Turnos de sala de espera | Nuevo | ✅ Aplicado 2026-10-14 (ver sección propia) |
 | `productos` | Catálogo maestro de productos y sus catálogos (clasificación, marcas, unidades, proveedores, características, cuentas, centros de costo) | Nuevo, modelado sobre las plantillas del ERP | ✅ Aplicado 2026-10-16 (`20261016214634`); sin datos |
+| `metas` | — | Metas y Presupuesto del CRM (2026-10-18) | ❌ Borrado el 2026-10-20 (`20261020143821`) junto con sus 13 RPC `public.metas_*`, sin datos. Vuelve renombrado como `presupuesto` |
+| `presupuesto` | Presupuesto de ventas y metas: vendedores, facturas importadas de AG Negocio, importaciones, presupuesto anual por mes y meta por vendedor | App Presupuesto ([plan 19](plan/19-presupuesto.md)); es el esquema de `metas` renombrado | ✅ Aplicado 2026-10-20 (`20261020184030`); sin datos. Cerrado a la API (ver sección propia) |
 
 ## Exponer schemas en la API (paso manual)
 
@@ -51,6 +63,11 @@ PostgREST — por defecto solo `public`. Ya expuestos a mano en el
 dashboard (Settings → API → Data API → Exposed schemas): `public`,
 `graphql_public`, `crm`, `rrhh`. No hay herramienta MCP para este ajuste,
 hay que repetirlo a mano para `flotilla` cuando le toque su fase.
+
+`crm` está vacío desde el 2026-10-20. El usuario debe **quitarlo** de esa
+lista, y después se borra el esquema con una migración. No se borró antes
+porque, si un esquema desaparece mientras sigue expuesto, PostgREST puede
+fallar al recargar su caché y dejar sin API a las demás apps.
 
 `core` queda deliberadamente **sin exponer** — todo lo que las apps
 necesitan de `core` (permisos, catálogo de módulos) pasa por wrappers en
@@ -227,6 +244,75 @@ costo / fiscal), `_descontinuar`, `_siguiente_numero`,
 vista previa revertida con `confirmar = false`), `_exportar`. El costo no sale
 sin `productos.catalogo.costo.ver`.
 
+## Schema `presupuesto` (2026-10-20, `20261020184030`)
+
+App Presupuesto ([plan 19](plan/19-presupuesto.md)). Es **el mismo diseño del schema `metas` que se describe abajo**, renombrado:
+- `metas.*` pasa a `presupuesto.*`, con las mismas 6 tablas, helpers y reglas;
+- `public.metas_*` pasa a `public.presupuesto_*` (`metas_presupuesto` → `presupuesto_anual` y `metas_guardar_presupuesto` → `presupuesto_guardar_anual`).
+
+Lo que cambia:
+- Se agrega `public.presupuesto_mis_permisos`: devuelve los códigos `presupuesto.*` del usuario y exige `presupuesto.ver_modulo`. Son 14 RPC.
+- Los permisos exigidos son los del Paso Cero `20261020183127` (`presupuesto.metas.*`, `presupuesto.ventas.*`, `presupuesto.configuracion.vendedor.gestionar`).
+- Los mensajes van en "tú".
+- La auditoría usa las acciones `presupuesto.*`.
+- Las facturas vienen del Excel de AG Negocio.
+
+Tiene particiones de `facturas` desde 2023-01, y las dos tablas de hechos están registradas en `core.tablas_particionadas`. El schema no tiene USAGE para `anon` ni `authenticated`, y los helpers no son ejecutables por `authenticated`.
+
+Ajustes de la revisión (`20261020191334`):
+- `presupuesto_vendedores` solo devuelve `user_id` y `usuario_nombre` (el correo) con `presupuesto.configuracion.vendedor.gestionar`. Para los demás roles devuelve `vinculado` (sí o no).
+- En la importación, un número de fila que no es entero ya no aborta el lote.
+- Los helpers de partición usan `search_path = ''`.
+
+Cuadro de meta y clientes (`20261020194816`):
+- `vendedores.en_tablero` marca quién se muestra en el cuadro de meta. Lo cambia `presupuesto_guardar_tablero` y no afecta metas ni totales.
+- `presupuesto_clientes` agrega las facturas vigentes por nombre de cliente: facturas, total, total del año y última factura.
+- `presupuesto_facturas_cliente` lista las facturas de un cliente.
+- El alcance lo da `presupuesto.fn_alcance_facturas`: con `factura.ver` se ven todos; solo con `factura_propia.ver`, el vendedor vinculado al usuario.
+- En total son 17 RPC.
+
+Indicadores del Dashboard (`20261020204854`):
+- `presupuesto_indicadores(empresa, año, mes, vista 'propio'|'equipo')` devuelve:
+  - días hábiles (lun–sáb) del mes y transcurridos hasta el corte, que es la última factura importada;
+  - venta del mes, contado ("Vario"), clientes atendidos y nuevos;
+  - la meta del mes;
+  - el mismo período del año anterior;
+  - el acumulado del año y su meta previa;
+  - en 12 meses: clientes, ventas, top 10 y contado;
+  - los clientes por recuperar (3+ facturas en 12 meses y 45+ días sin comprar);
+  - los clientes recientes y la última factura.
+- Las listas con nombres solo vuelven con permiso de facturas.
+- Helpers `fn_dias_habiles` y `fn_cliente_generico`.
+- Ahora son 18 RPC.
+
+Venta diaria (`20261020210947`): `presupuesto_venta_diaria(empresa, año, mes, vista)` devuelve, por cada día del mes, la venta vigente, la del mismo día del año anterior y si es día hábil. Tiene el mismo alcance que los indicadores. Ahora son 19 RPC.
+
+## Schema `metas` (2026-10-18, `20261018135152`) — BORRADO el 2026-10-20
+
+Metas y Presupuesto del CRM ([plan 15](plan/15-metas-ventas.md)); las
+pantallas viven en `apps/crm` y las RPC exigen permisos `crm.*` desde
+`20261018184849`. Schema cerrado a la API
+(`revoke all`, RLS sin políticas): todo por RPC `public.metas_*`. Cada
+escritura deja su fila en `core.audit_log` (`metas.*`). FK compuestas
+`(x_id, company_id)`.
+
+| Tabla | Contenido |
+|---|---|
+| `metas.vendedores` | Código del ERP (único sin distinguir mayúsculas), nombre, `user_id` opcional (único por empresa), activo. Se crean al importar |
+| `metas.facturas` | **Particionada por mes de `fecha`** (2023-01 en adelante, `fn_asegurar_particion_facturas`). Número, vencimiento, cliente, anulada, total C$/US$, vendedor, importación. Único `(company_id, numero, fecha)`; la importación reemplaza la versión con otra fecha |
+| `metas.importaciones` | **Particionada por mes de `creado_en`**. Archivo, usuario, filas, nuevas, actualizadas, errores, vendedores nuevos, rango de fechas |
+| `metas.presupuestos` + `presupuesto_meses` | Venta base, % de crecimiento, total por año; % (suman 100) y monto por mes |
+| `metas.metas_vendedor` | Meta US$ por vendedor/año/mes, origen `sugerida`/`ajustada` |
+
+Helpers: `fn_mi_vendedor`, `fn_exigir_alguno`, `fn_tipo_cambio` (sum C$ /
+sum US$ del mes), `fn_sugerencias` (meta del mes × peso del vendedor activo en
+los 3 meses anteriores), `fn_avance_vendedor`, `fn_serie_anual`.
+RPC: `metas_mi_avance`, `_mis_facturas` (solo el vendedor vinculado al
+usuario), `_equipo`, `_facturas`, `_vendedores`, `_usuarios_vinculables`,
+`_presupuesto`, `_metas_mes`, `_importar_facturas` (lotes ≤ 5000, vista previa
+revertida con `confirmar = false`), `_guardar_vendedor`, `_guardar_presupuesto`,
+`_generar_sugeridas` (no pisa las ajustadas salvo que se pida), `_ajustar_meta`.
+
 - `core.platform_settings` — singleton de marca de la plataforma
 - `core.geografia_ni_departamentos` / `core.geografia_ni_municipios` —
   **bloque pre-F1.5 (2026-09-16)**: geografía nacional de Nicaragua, sin
@@ -301,7 +387,18 @@ completo de cada una:
 20261016203638_productos_paso_cero
 20261016214634_productos_esquema
 20261016220935_productos_activar
+20261018133816_metas_paso_cero
+20261018135152_metas_esquema
+20261018174647_metas_activar        (app suelta; retirada por la siguiente)
+20261018184849_metas_dentro_de_crm
+20261019152215_crm_embudo_paso_cero  (solo catálogo de permisos y plantillas, sin tablas)
+20261020060058_crm_embudo_esquema    (embudo comercial: 9 tablas en crm, 3 particionadas por mes, 48 RPC public.crm_*)
+20261020064732_erp_precios_paso_cero (apps precios y erp inactivas; 11 + 52 permisos y 12 plantillas)
+20261020143821_retirar_crm_y_metas   (borra metas, vacía crm y retira la app crm con sus permisos; sin datos)
 ```
+
+(La lista no incluye todas las migraciones posteriores a `20261016220935` de
+RRHH/Asistencia/Agencia; la fuente completa es `supabase/migrations/`.)
 
 Nota: esta lista no reflejaba `20260914090000` hasta esta actualización
 (2026-09-16) — quedó afuera cuando se aplicó, divergencia detectada y
@@ -365,9 +462,83 @@ hardcodeado en la app (todo pasa por `core.has_permission()`).
 | `rrhh.asistencia_marcas` | **Hechos, particionada por mes** (`marcado_en`) | Un renglón por marca, para siempre. `tipo`: `entrada`, `inicio_descanso`, `fin_descanso` o `salida` (desde `20261017233458`, P4c; antes solo entrada/salida). La secuencia válida por contrato y día la impone `rrhh.fn_registrar_marca_kiosko(p_pin, p_kiosko_id, p_solicitud_id, p_accion)`: con `p_accion` nulo devuelve las acciones válidas sin escribir. Particiones vigentes: `_2026_09`, `_2026_10`, `_2026_11` (mantenidas por `core.fn_asegurar_particiones_futuras`, 2 meses de anticipación) |
 | `rrhh.seguridad_accesos` | **Hechos, particionada por mes** (`intentado_en`) | Solo intentos **fallidos** de acceso operativo (`nombre_usuario` + PIN) — no es un log de éxitos. Señal de fuerza bruta/enumeración |
 | `rrhh.parametros_ley` | Catálogo versionado | Valores oficiales INSS/INATEC que debe leer el motor de planillas (nunca hardcodeados). Versionado por `vigente_desde`/`vigente_hasta`: nunca se sobreescribe un valor histórico. **`techo_inss` sembrado con un valor de ejemplo (100000.00), no verificado como el oficial vigente** — ver [RRHH_MVP.md](RRHH_MVP.md) "Decisiones de negocio pendientes" |
-| `rrhh.planillas` | Catálogo (no particionada — volumen acotado, una fila por corrida) | Corridas de nómina: `periodo_inicio/fin`, `estado` (`borrador`/`aprobada`/`anulada`), `total`. `asiento_contable_id` queda suelto hasta que exista el schema `contabilidad` |
-| `rrhh.planilla_detalles` | Catálogo (no particionada) | Un renglón por empleado por planilla: `salario_base`, `horas_extra`, `bonos`, `deducciones`, `total` |
+| `rrhh.planillas` | Catálogo (no particionada — volumen acotado, una fila por corrida) | Corridas de nómina: `periodo_inicio/fin`, `estado` (`borrador`/`aprobada`/`anulada`), `total`. `asiento_contable_id` queda suelto hasta que exista el schema `contabilidad`. **PL2a (`20261021191441`, aplicada el 2026-10-21):** estados `borrador → calculada → aprobada → pagada` o `anulada`; columnas `planilla_tipo_id` (obligatoria), `fecha_pago`, `hash_insumos`, `calculada_por/en`, `hash_aprobado`, `pagada_por/en`, `metodo_pago`, `referencia_pago`, `motivo_anulacion`, `reemplaza_a` y `totales`. Una planilla viva por tipo y período. Sin escritura directa: se retiran sus policies y grants de INSERT/UPDATE/DELETE. El trigger `trg_planilla_proteger` impide borrarla o editarla después de aprobada |
+| `rrhh.planilla_detalles` | Catálogo (no particionada) | Un renglón por empleado por planilla: `salario_base`, `horas_extra`, `bonos`, `deducciones`, `total`. **En desuso desde PL2a:** no se borra, pero pierde la escritura; la reemplazan `planilla_empleados` y `planilla_lineas` |
+| `rrhh.contrato_regimen` | Catálogo versionado (PL2a) | Régimen de cada contrato con vigencia: `laboral` o `servicios_profesionales`, régimen INSS, método de IR (`tabla_progresiva`, `retencion_fija` con %, `exento`) y si lleva vacaciones, aguinaldo e indemnización. Check de coherencia; una sola vigencia abierta por contrato. Guarda también el descarte auditado del aviso "Revisar régimen con el contador". Escritura solo por `planilla_regimen_cambiar` y `planilla_regimen_aviso_descartar`; lectura con `rrhh.planillas.regimen.ver` |
+| `rrhh.ir_tramos` | Catálogo versionado (PL2a) | Tabla progresiva de IR (renta neta anual) por vigencia; 5 tramos desde 2015-01-01, contiguos. Lectura con `parametros.ver` |
+| `rrhh.planilla_tipos` | Catálogo (PL2a) | Las planillas de la empresa (`ordinaria` o `aguinaldo`; frecuencia mensual, quincenal, semanal o anual; NIO). Semilla: "Planilla quincenal". Un contrato entra cuando su `frecuencia_pago` coincide, y hay un solo tipo activo por clase y frecuencia. Lectura con `conceptos.ver` |
+| `rrhh.conceptos` | Catálogo (PL2a) | Ingresos, deducciones, aportes y provisiones con sus flags (INSS, IR, INATEC, cuenta para aguinaldo, vacaciones o indemnización, admite novedad). Semilla de 16 conceptos, 12 de sistema. Lectura con `conceptos.ver` |
+| `rrhh.planilla_empleados` | Detalle de corrida (no particionada, acotada por corrida; PL2a) | Un renglón por contrato y planilla, con la copia congelada de salario, diario a 4 decimales, jornada y régimen, más los totales (suma de líneas) y los avisos. Lectura con `planilla.ver` |
+| `rrhh.planilla_lineas` | **Hechos, particionada por mes** (`periodo_fin`; PL2a) | Una línea por concepto, con cantidad, base, tasa, monto redondeado, copia de los flags del concepto, origen y artículo. PK `(id, periodo_fin)`; ninguna tabla le apunta con FK. Particiones desde 2026-01 con RLS y sin grants (`rrhh.fn_asegurar_particion_planilla_lineas`). Lectura con `planilla.ver` |
+| `rrhh.novedades` | **Hechos, particionada por mes** (`fecha`; PL2a) | Horas extra, ausencias, comisiones, bonos y deducciones del período. Estados `pendiente → aplicada`, o `anulada`. Particiones con `rrhh.fn_asegurar_particion_novedades`. Lectura con `movimientos.ver` |
 | `rrhh.kiosko_rate_limits` | Catálogo (no particionada — 1 fila por kiosko) | Límite de fuerza bruta persistente del kiosko físico (`20260905000005`): `window_started_at`, `intentos_en_ventana`, `bloqueado_hasta`. Sin PIN, nombre, empleado ni IP. RLS habilitado **sin policies** — solo la lee/escribe `rrhh.fn_registrar_marca_kiosko` (`SECURITY DEFINER`). Verificado en producción (2026-09-05): `anon` y `authenticated` sin `SELECT`/`INSERT` directo |
+
+**`rrhh.parametros_ley` en PL2a:**
+- Gana las columnas `certeza` (`oficial`, `coincidente` o `verificar`) y `fuente`, y la unidad `numero`.
+- El INSS patronal de 22.5% se cierra el mismo día de su semilla y el 21.5% rige desde 2026-09-03.
+- Se agregan 16 parámetros desde 2026-01-01: días del mes comercial, días de vacaciones y de aguinaldo por mes, mes de inicio del aguinaldo, tabla de la indemnización, confianza (art. 47), divisor de la provisión de indemnización, horas extra y exención de IR de la indemnización.
+
+- Se retiran las policies y los grants de escritura directa. Desde ahora solo se escribe con `planilla_parametro_vigencia_nueva`, que cierra la vigencia abierta y abre otra, auditado.
+
+**Otros cambios de PL2a:**
+- `rrhh.feriados` gana `tipo` (`nacional`, `asueto` o `local`) y los 14 feriados de 2026.
+- `rrhh.contratos` gana `fecha_antiguedad`. El trigger `trg_contrato_antiguedad_proteger` impide que `authenticated` y `anon` la escriban directo.
+- `rrhh.contrato_compensacion`: los contratos activos pasan a `quincenal` (auditado como `rrhh.planilla.frecuencia_migrada`) y el default cambia a `quincenal`.
+- `crear_contrato` y `editar_contrato` (wrapper público y núcleo `rrhh.fn_*`) se recrean con un parámetro final opcional, `p_frecuencia_pago`. El resto del cuerpo queda igual que en `20260918043955`.
+- `rrhh.planilla_tipos`: un solo tipo activo por clase y frecuencia (`planilla_tipos_activo_unico`), hasta que los contratos se asignen a un tipo.
+- `rrhh.novedades.clave_idempotencia`: un reintento desde Mobile no duplica la novedad.
+
+**RPC de PL2a** (`public.planilla_*`, todas `security definer` con `search_path = ''` y `core.fn_exigir_permiso` antes de leer o escribir; `anon` sin EXECUTE):
+
+| RPC | Permiso |
+|---|---|
+| `planilla_crear` | `planilla.generar` |
+| `planilla_calcular` | `planilla.generar` |
+| `planilla_aprobar` (quien creó o calculó no aprueba; compara la huella de insumos) | `planilla.aprobar` |
+| `planilla_pagar` | `planilla.pagar` |
+| `planilla_anular` | `planilla.anular` |
+| `planilla_novedad_crear` | `movimientos.crear` |
+| `planilla_novedad_anular` | `movimientos.eliminar` |
+| `planilla_regimen_cambiar` (nueva vigencia, o corrección de la abierta sin usar) y `planilla_regimen_aviso_descartar` | `regimen.cambiar` |
+| `planilla_contrato_antiguedad_fijar` (fecha dada o heredada del contrato anterior) | `liquidaciones.aprobar` |
+| `planilla_parametro_vigencia_nueva` | `parametros.editar` |
+| `planilla_liquidacion_simular` (no guarda nada) | `liquidaciones.calcular` |
+
+Los núcleos `rrhh.fn_planilla_*` y `rrhh.fn_liquidacion_calcular` no tienen EXECUTE para la API.
+
+**PL2b y PL2c (aplicadas el 2026-10-22, versiones `20261021235639` a `20261022001922`; detalle en [MIGRATION_LOG](MIGRATION_LOG.md)):**
+
+| Tabla | Tipo | Qué guarda |
+|---|---|---|
+| `rrhh.liquidaciones` | Documento (no particionada) | Liquidación final de un contrato: `calculada → aprobada → pagada`, o `anulada`. Una viva por contrato. Copia del salario, diario, antigüedad, días de vacaciones, inicio del aguinaldo, totales, avisos, `resultado` (jsonb) y `hash_insumos`. `creada_por` y `calculada_por` no aprueban. Trigger de inmutabilidad. Lectura con `liquidaciones.ver` |
+| `rrhh.liquidacion_lineas` | Detalle del documento | Devengados (indemnización, confianza, aguinaldo, vacaciones, salario pendiente) y deducciones (saldo de préstamos). Solo se cambian mientras la liquidación está calculada |
+| `rrhh.vacaciones_movimientos` | **Hechos, particionada por mes** (`fecha_inicio`) | `saldo_inicial`, `goce`, `pago`, `ajuste` y `liquidacion`; estados `solicitada`, `aprobada`, `rechazada`, `anulada`. PK `(id, fecha_inicio)`, sin FK entrantes. El saldo lo calcula `rrhh.fn_vacaciones_saldo` (2.5 días por mes de régimen con vacaciones). Lectura con `vacaciones.ver` |
+| `rrhh.prestamos` | Documento | Préstamos y adelantos (`origen` `nexo` o `ag`). Las cuotas son novedades con `prestamo_id`; `monto_liquidado` guarda lo descontado en la liquidación. Lectura con `prestamos.ver` |
+| `rrhh.embargos` | Documento | Alimentos o judicial, por porcentaje (0–1) o monto mensual prorrateado, con tope total opcional; estados `activo`, `terminado`, `anulado`. Lectura con `prestamos.ver` |
+| `rrhh.provisiones` | **Hechos, particionada por mes** (`mes`) | Copia mensual del pasivo laboral por contrato (vacaciones, aguinaldo e indemnización). Lectura con `planilla.ver` |
+
+Cambios en tablas de PL2a: `novedades` gana `prestamo_id` (FK), `cuota_numero`, `vacaciones_movimiento_id` (sin FK, la tabla destino está particionada) y `liquidacion_id`, y el origen admite `prestamo` y `vacaciones`; `planilla_lineas.origen` admite `embargo`. Conceptos nuevos de sistema: AGUINALDO, VACACIONES_PAGADAS, EMBARGO_ALIMENTOS, EMBARGO_JUDICIAL y PRESTAMO (ADELANTO pasa a sistema). Tipo de planilla "Aguinaldo" (anual). Parámetro `horas_extra_fraccion_minutos` (30, verificar).
+
+| RPC (PL2b y PL2c) | Permiso |
+|---|---|
+| `planilla_vacaciones_registrar` / `_aprobar` (quien registra no aprueba) / `_rechazar` / `_anular`; `_saldos` y `_movimientos` | `vacaciones.registrar` / `vacaciones.aprobar` / `vacaciones.ver` |
+| `planilla_prestamo_crear` / `_anular` / `_cancelar`, `planilla_embargo_crear` / `_terminar` | `prestamos.gestionar` |
+| `planilla_prestamos_saldos`, `planilla_prestamo_cuotas`, `planilla_embargos_saldos` | `prestamos.ver` |
+| `planilla_liquidacion_crear` / `_recalcular`, `planilla_liquidacion_simular` | `liquidaciones.calcular` |
+| `planilla_liquidacion_aprobar` (finaliza el contrato; exige también `rrhh.expedientes.contratos.finalizar`) | `liquidaciones.aprobar` |
+| `planilla_liquidacion_pagar` / `_anular` | `liquidaciones.pagar` / `liquidaciones.anular` |
+| `planilla_liquidaciones_listado`, `planilla_liquidacion_detalle` | `liquidaciones.ver` |
+| `planilla_pasivo_laboral`, `planilla_detalle`, `planilla_comparar` | `planilla.ver` |
+| `planilla_provisiones_generar` | `planilla.generar` |
+| `planilla_contratos_opciones` | cualquiera de `movimientos.crear`, `vacaciones.registrar`, `prestamos.gestionar`, `liquidaciones.calcular` o `regimen.ver` |
+| `planilla_novedades_listado` | `movimientos.ver` |
+| `planilla_regimen_listado`, `planilla_simular_regimen` (montos en null sin `planilla.ver` ni `compensacion.ver`) | `regimen.ver` |
+| `planilla_concepto_guardar`, `planilla_tipo_guardar` | `conceptos.gestionar` |
+| `planilla_ir_tabla_nueva` | `parametros.editar` |
+| `planilla_declaracion_inss` / `_inatec` / `_ir` (auditadas) | `declaraciones.generar` |
+| `planilla_asistencia_propuesta` / `_importar` | `movimientos.crear` y `rrhh.asistencia.reportes.ver` |
+
+PL2b reemplaza `planilla_crear`, `planilla_anular`, `planilla_novedad_crear` / `_anular`, `planilla_regimen_cambiar`, `planilla_parametro_vigencia_nueva` y `planilla_liquidacion_simular`, y los núcleos del motor. Núcleos nuevos sin EXECUTE para la API: `rrhh.fn_planilla_calcular_aguinaldo`, `fn_liquidacion_preparar`, `fn_vacaciones_saldo`, `fn_planilla_pasivo`, `fn_planilla_prestamo_crear`, `fn_planilla_asistencia_propuesta` y los de apoyo.
 
 ### Funciones públicas (RPC) que consume `apps/rrhh`
 
@@ -529,6 +700,28 @@ Enrolamiento de terminales (2026-10-17, `20261017180853`). Funciones internas `r
 - `registrar_marca_terminal(token, pin, solicitud, confirmar)`: anon; resuelve el token y delega en `fn_registrar_marca_kiosko`.
 
 P4a agrega kiosko_solicitudes particionada por creado_en, indices FK/empresa-fecha/token/JSONB y registro en core.tablas_particionadas. Sin acceso directo ni retencion automatica. P4b reemplaza firma del kiosco por cuatro argumentos y respuesta JSON sin identidad; guarda resultados definitivos y serializa por token y contrato/dia America/Managua.
+
+## Asistencia — reportes (aplicado 2026-10-18)
+
+Migración `20261018014127_asistencia_reportes`. No crea tablas.
+
+**Núcleo `rrhh.fn_asistencia_dias(company, desde, hasta, departamento, puesto, empleado, contrato)`**
+- Devuelve una fila por contrato (activo o finalizado) y día local America/Managua.
+- Cada fila trae: jornada vigente, feriado, primera marca de cada tipo truncada al minuto, secuencia, descanso real/aplicado/origen, minutos netos/programados/sobre jornada/no laborable/tardanza/salida temprana, estado y observaciones.
+- SECURITY DEFINER con `search_path = ''`. Exige `reportes.ver` y no se expone a la API.
+- Es el cálculo que debe reutilizar F1.5.
+
+**RPC públicas** (solo `authenticated`, devuelven jsonb `{total, totales, filas}`):
+- `asistencia_reporte_diario`: paginado, hasta 5000 filas.
+- `asistencia_reporte_resumen`: un total por contrato, máximo 2000.
+- `asistencia_reporte_tardanzas`.
+- `asistencia_reporte_incidencias`.
+- `asistencia_reporte_opciones`: listas para los filtros.
+- `asistencia_registrar_exportacion`: exige `reportes.exportar`, audita y devuelve empresa, RUC, emisor y hora.
+
+**Errores comunes** (los valida `rrhh.fn_reporte_validar`):
+- 42501: sin permiso.
+- 22023: rango de más de 62 días, desde posterior a hasta, o hasta posterior a hoy.
 
 ## RRHH P6 — preparado, sin aplicar
 P6 preparado: rrhh.fn_consultar_marcas y public.consultar_marcas, SECURITY DEFINER con search_path fijo y comprobacion de marcas.ver/empresa. Wrapper solo authenticated; interna no accesible. Devuelve identificadores minimos, etiqueta de empleado, numero de contrato, fecha/tipo/hora/estado. Rango maximo 62 dias, limite 100, offset validado; sin datos de credenciales.

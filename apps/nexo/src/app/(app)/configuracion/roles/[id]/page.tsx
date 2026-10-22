@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { hasPermission } from "@nexo/permissions";
-import { EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { Alert, EmptyState, PageHeader } from "@nexo/ui";
+import { contextoActual } from "@nexo/auth";
+import { permisosDe } from "@/lib/permisos";
+import type { Database } from "@/lib/supabase/database.types";
 import { mensajeAdministracion } from "../../errores";
 import { agruparCatalogo } from "@/lib/permisos-catalogo";
 import RolForm from "../rol-form";
@@ -13,19 +13,17 @@ export const metadata: Metadata = {
 };
 
 export default async function EditarRolPage({ params }: PageProps<"/configuracion/roles/[id]">) {
-  const { id } = await params;
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const [{ id }, { supabase, companyId }, permisos] = await Promise.all([
+    params,
+    contextoActual<Database>(),
+    permisosDe(),
+  ]);
 
-  const canEdit = await hasPermission({ supabase, companyId }, "nexo.administracion.roles.editar");
-  if (!canEdit) {
+  if (!permisos.rolesEditar) {
     return (
       <div className="flex max-w-4xl flex-col gap-6">
         <PageHeader title="Editar rol" />
-        <EmptyState
-          title="Sin permiso para editar roles"
-          description="Tu cuenta no tiene el permiso nexo.administracion.roles.editar para esta empresa."
-        />
+        <EmptyState variant="no-access" title="No tienes acceso a la edición de roles" />
       </div>
     );
   }
@@ -38,9 +36,12 @@ export default async function EditarRolPage({ params }: PageProps<"/configuracio
 
   if (error) {
     return (
-      <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-        {mensajeAdministracion(error, "roles/[id]: carga del rol", "No se pudo cargar el rol. Intenta de nuevo.")}
-      </p>
+      <div className="flex max-w-4xl flex-col gap-6">
+        <PageHeader title="Editar rol" />
+        <Alert tone="error">
+          {mensajeAdministracion(error, "roles/[id]: carga del rol", "No se pudo cargar el rol. Intenta de nuevo.")}
+        </Alert>
+      </div>
     );
   }
 

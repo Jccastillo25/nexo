@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
 import { NexoShell } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
-import { getPanelUrl } from "@/lib/panel";
-import { permisosAsistenciaDe } from "@/lib/permisos-asistencia";
+import { getPanelUrl, getPlatformSettings, sesionActual, signOut } from "@nexo/auth";
+import { permisosAsistencia } from "@/lib/permisos-asistencia";
 import { asistenciaNav } from "@/lib/asistencia-nav";
-import { signOut } from "@/app/(app)/actions";
 
 /**
  * App Asistencia (2026-10-17): mismo deploy que RRHH (basePath /rrhh), pero
@@ -14,15 +11,17 @@ import { signOut } from "@/app/(app)/actions";
  * layout autoriza la app con `asistencia.ver_modulo` (permiso de
  * visibilidad creado por trg_seed_module_permission al registrar el slug
  * en core.apps). Mismo patrón que apps/productos/src/app/(app)/layout.tsx.
+ *
+ * Kernel (2026-10-20): sesionActual y permisosAsistencia quedan en la caché
+ * del request, así la página los reutiliza sin otra llamada a Auth ni otra
+ * consulta de permisos.
  */
 export default async function AsistenciaLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-
-  const [permisos, panelUrl, { data: { user } }] = await Promise.all([
-    permisosAsistenciaDe(companyId),
+  const [permisos, { user }, panelUrl, ajustes] = await Promise.all([
+    permisosAsistencia(),
+    sesionActual(),
     getPanelUrl(),
-    supabase.auth.getUser(),
+    getPlatformSettings(),
   ]);
 
   if (!permisos.modulo) {
@@ -37,6 +36,7 @@ export default async function AsistenciaLayout({ children }: { children: React.R
       userEmail={user?.email}
       onSignOut={signOut}
       backHref={panelUrl}
+      footerText={ajustes.copyrightText}
     >
       {children}
     </NexoShell>

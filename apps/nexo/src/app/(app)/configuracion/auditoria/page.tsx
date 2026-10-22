@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
-import { DataTable, EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { Alert, DataTable, EmptyState, PageHeader, fechaHora } from "@nexo/ui";
+import { contextoActual } from "@nexo/auth";
+import { permisosDe } from "@/lib/permisos";
 import { mensajeAdministracion } from "../errores";
-import type { EventoAuditoria, Json } from "@/lib/supabase/database.types";
+import type { Database, EventoAuditoria, Json } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = {
   title: "Auditoría · Nexo",
@@ -46,18 +45,13 @@ function resumen(detalle: Json): string {
 
 /** Últimos 200 cambios de usuarios y roles (acciones admin.* de core.audit_log). */
 export default async function AuditoriaPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const [{ supabase, companyId }, permisos] = await Promise.all([contextoActual<Database>(), permisosDe()]);
 
-  const canView = await hasPermission({ supabase, companyId }, "nexo.administracion.auditoria.ver");
-  if (!canView) {
+  if (!permisos.auditoriaVer) {
     return (
       <div className="flex max-w-5xl flex-col gap-6">
         <PageHeader title="Auditoría" />
-        <EmptyState
-          title="Sin permiso para ver la auditoría"
-          description="Tu cuenta no tiene el permiso nexo.administracion.auditoria.ver para esta empresa."
-        />
+        <EmptyState variant="no-access" title="No tienes acceso a la auditoría" />
       </div>
     );
   }
@@ -70,27 +64,24 @@ export default async function AuditoriaPage() {
   return (
     <div className="flex max-w-6xl flex-col gap-6">
       <PageHeader title="Auditoría" description="Historial de cambios en usuarios y roles: quién hizo qué y cuándo." />
-      {error && (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {mensajeAdministracion(error, "auditoria: admin_listar_auditoria", "No se pudo cargar la auditoría. Intenta de nuevo.")}
-        </p>
-      )}
       <DataTable<EventoAuditoria>
         rows={eventos ?? []}
         rowKey={(e) => e.id}
+        caption="Historial de cambios"
         emptyLabel="Todavía no hay cambios registrados."
+        error={
+          error ? (
+            <Alert tone="error">
+              {mensajeAdministracion(error, "auditoria: admin_listar_auditoria", "No se pudo cargar la auditoría. Intenta de nuevo.")}
+            </Alert>
+          ) : undefined
+        }
         columns={[
           {
             key: "fecha",
             header: "Fecha",
-            render: (e) =>
-              new Date(e.creado_en).toLocaleString("es-NI", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
+            className: "whitespace-nowrap tabular-nums",
+            render: (e) => fechaHora(e.creado_en),
           },
           { key: "actor", header: "Quién", render: (e) => e.actor_email ?? "—" },
           { key: "accion", header: "Acción", render: (e) => ACCIONES[e.accion] ?? e.accion },

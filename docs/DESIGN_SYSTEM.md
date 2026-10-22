@@ -80,6 +80,51 @@ monorepo, incluida `apps/flotilla`, antes de eliminarlos — nada fuera de
 | `Breadcrumb`, `PageHeader`, `DashboardHero`, `ActivityFeed`, `QuickActions`, `DataTable`, `FilterBar`, `StatusBadge`, `FormTabs`, `FormSection`, `EmptyState`, `ConfirmDialog`, `Toast`/`useToast` | — (100% nuevos) | Ver el componente para su rol puntual |
 | `RowActionIcons` | — (nuevo, 2026-09-08) | Columna de acciones VISIBLE de una fila (👁 ✎ 🗑, con tooltip/hover/foco/`aria-label`) — complementa a `RowActionsMenu` ("⋯"), que sigue existiendo para acciones secundarias que sí conviene esconder. Regla obligatoria: las 2-3 acciones principales de una fila (visualizar/editar/eliminar) no van dentro de un menú "⋯". |
 
+### Nexo Enterprise UI v2 (2026-10-20): kit base y estados
+
+La revisión integral del 2026-10-20 ([status-log](status-log/2026-10-20-revision-integral.md))
+encontró que la suite se sentía "genérica" porque el kit solo resolvía la
+estructura de la página. Botones, campos, alertas, carga y paginación se
+escribían a mano en cada pantalla: había 46 botones primarios distintos y
+unas 20 copias de `inputClass`. Desde v2 eso también vive en `packages/ui`,
+y **una pantalla nueva no escribe a mano un botón, un campo, una alerta, un
+esqueleto de carga ni una paginación:**
+
+| Componente | Para qué | Nota |
+|---|---|---|
+| `Button`, `ButtonLink`, `SubmitButton`, `buttonClassName`, `Spinner` | Toda acción | Variantes `primary`, `secondary`, `ghost`, `destructive`, `destructive-outline` y `link`; tamaños `sm`/`md`/`lg`; `loading` con spinner. Con `loading`, el botón queda `aria-disabled` y bloquea el clic y el envío, pero conserva el foco del teclado. `disabled` real solo con la prop `disabled`. **Una sola `primary` por pantalla.** En un grupo, la secundaria va primero y la primaria al final. `SubmitButton` lee `useFormStatus` en formularios con Server Action |
+| `Field` + `Input` / `Select` / `Textarea` | Todo campo de formulario | Etiqueta, ayuda y error conectados con `aria-describedby`/`aria-invalid`. El error va **junto al campo**, no en un único mensaje al pie |
+| `Alert` | Avisos dentro de la página | Tonos `info`, `warning`, `error` y `success` |
+| `Skeleton`, `PageSkeleton` | `loading.tsx` | Variantes `dashboard`, `table` y `form` |
+| `ErrorState` | `error.tsx` | Nunca muestra `error.message`, solo la referencia (`digest`) y "Intentar de nuevo" |
+| `Pagination` | Listados paginados | Basada en la URL: "1–50 de 699" |
+| `Tabs`, `TabLinks` | Pestañas | Patrón WAI-ARIA completo; `FormTabs` ahora delega en `Tabs` |
+| `formato.ts` (`@nexo/ui/formato`) | Fechas y montos | `fechaCorta`, `fechaHora`, `hora` (siempre `America/Managua`), `moneda(valor, "NIO" \| "USD")` → "C$ 1,234.50" / "US$ 1,234.50", `entero` y `porcentaje`. Sin Next ni React, para que también sirva a Mobile. **No se formatea una fecha o un monto a mano en una pantalla** |
+
+Componentes existentes que cambiaron, todos de forma compatible:
+- **`MetricCard`:** acepta `delta` (comparación con flecha), `unit`, `href`, `loading` y `size="hero"`. El valor va siempre en `neutral-900`; el `tone` pinta un punto, no el número.
+- **`PageHeader`:** acepta `meta`, `back` y `tabs`.
+- **`EmptyState`:** variantes `empty`, `no-results`, `no-access` (**nunca muestra un código de permiso**), `error`, `pending` y `dropzone`.
+- **`DataTable`:** acepta columnas `numeric` (a la derecha y con `tabular-nums`), `density`, ranuras `toolbar`/`empty`/`error` y `rowHref`.
+- **`StatusBadge`:** muestra un punto de color.
+- **`Toast`:** pasa a tema claro.
+- **`NexoSidebar`:**
+  - el ítem activo lleva una barra de 2px;
+  - los grupos se abren de forma recursiva;
+  - colapsado, cada grupo abre un menú flotante;
+  - en móvil es un drawer con Escape, foco retenido y cierre al navegar.
+- **`NexoShell`:** recuerda si el sidebar quedó colapsado y agrega "Saltar al contenido".
+
+**Toda app tiene `loading.tsx` y `error.tsx`** en su grupo autenticado, con `PageSkeleton` y `ErrorState`. Sin `loading.tsx`, Next no prefetchea la ruta dinámica y el clic espera la respuesta completa del servidor, así que la pantalla parece congelada. Eso fue lo que se midió en Atención y Agencia, con TTFB de más de 1 s.
+
+### Lenguaje de la interfaz: español neutro (decisión del usuario, 2026-10-20)
+
+Todo texto visible (botones, mensajes, errores, login, PDF, correos) va en
+**español neutro**, con trato de tú o impersonal: "Ingresa", "Elige",
+"Intenta de nuevo", "inicia sesión". **Nunca voseo** ("Ingresá", "Elegí",
+"tenés", "Pedile") ni regionalismos o anglicismos ("loguearte"). Al tocar un
+archivo que todavía tiene voseo, se corrige en el mismo cambio.
+
 `Toast`/`useToast` **no** reimplementan un sistema de notificaciones desde
 cero: envuelven `sonner` (ya era una dependencia real y en uso en
 `apps/crm`/`apps/rrhh` — ver `apps/crm/src/components/ClienteForm.tsx`).
@@ -200,21 +245,21 @@ RRHH
 └── Planillas          (placeholder histórico conservado)
 
 ASISTENCIA (app propia desde 2026-10-17, /rrhh/asistencia, mismo deploy que RRHH)
-├── Dashboard          (marcas de hoy, dispositivos activos, envíos pendiente de integración)
+├── Dashboard          (2026-10-20: ya marcaron hoy de E, sin marcar, tardanzas,
+│                        incompletas en 7 días, puntualidad en 30 días; pendientes
+│                        de marcar y terminales)
 ├── Marcaciones
 │   ├── Marcas          (antes /rrhh/marcas, que redirige aquí)
-│   ├── Incidencias     (Pronto — F1.6)
 │   └── Justificaciones (Pronto — F1.6)
 ├── Análisis
-│   ├── Resumen diario  (Pronto — F1.5)
+│   ├── Asistencia diaria, Resumen por persona, Tardanzas y salidas,
+│   │   Incidencias, Tarjeta individual  (reportes del 2026-10-18, con PDF)
 │   └── Envíos del kiosco (Pronto — falta RPC)
 └── Configuración
     └── Dispositivos   (registrar, editar, desactivar, reactivar)
 (La terminal pública /rrhh/kiosco no va en ningún menú.)
 
-CRM
-├── Dashboard
-└── Clientes
+(El CRM se retiró el 2026-10-20; ver MODULES.md.)
 ```
 
 ## Regla obligatoria: todo módulo aterriza en su Dashboard de KPIs
@@ -257,7 +302,7 @@ mismo motivo, el hover del mosaico solo cambia la sombra y no usa `translate`. E
 no hay página placeholder. Si llega por `get_visible_apps` una app con el
 mismo `slug`, se muestra la real. Al lanzar una app nueva se quita de esa
 lista. Sus iconos (`register`, `receipt`, `warehouse`, `cart`, `calculator`,
-`bank`) viven en `packages/ui/app-icons.tsx`. Configuración va
+`bank`, y `target` para Presupuesto desde 2026-10-20) viven en `packages/ui/app-icons.tsx`. Configuración va
 en su propia sección, "Administración", al final. Cada app es un mosaico blanco redondeado (76 px, sombra suave)
 con un icono a color propio de la app y el nombre debajo, sobre un fondo
 degradado claro (violeta → gris → celeste). Los iconos viven en
@@ -295,11 +340,17 @@ más abajo también cambió: el sidebar de `apps/nexo` ya no lista RRHH/CRM/
 Transporte/Fabricación (eso es contenido del Launcher, no navegación
 interna de "la app Nexo") — ver la sección siguiente.
 
-Referencia (módulos reales): [`apps/crm/src/app/(app)/dashboard/page.tsx`](../apps/crm/src/app/(app)/dashboard/page.tsx)
-(total de clientes, nuevos este mes, distribución por tipo) y
-[`apps/rrhh/src/app/(app)/dashboard/page.tsx`](../apps/rrhh/src/app/(app)/dashboard/page.tsx)
-(expedientes, contratos activos, planillas pendientes; "marcas del día" pasó
-al dashboard de Asistencia el 2026-10-17, contadas con el día de Managua).
+Referencias, todas con el patrón de la skill `nexo-dashboards` desde la revisión del 2026-10-20:
+- **Presupuesto** ([`apps/presupuesto/src/app/(app)/dashboard/page.tsx`](../apps/presupuesto/src/app/(app)/dashboard/page.tsx)): es la pirámide más completa. Muestra el número del mes con su ritmo y una barra de meta, 4 indicadores en `Suspense`, la venta acumulada, los clientes y el ranking.
+- **RRHH** ([`apps/rrhh/src/app/(app)/dashboard/page.tsx`](../apps/rrhh/src/app/(app)/dashboard/page.tsx)): personal activo de E empleados, con altas y bajas del mes; contratos en borrador; vencen en 30 días; sin contrato activo; y la tabla de próximos vencimientos.
+- **Asistencia** ([`apps/rrhh/src/app/(asistencia)/asistencia/dashboard/page.tsx`](../apps/rrhh/src/app/(asistencia)/asistencia/dashboard/page.tsx)): ver el árbol de arriba.
+- **Atención** ([`apps/atencion/src/app/(app)/dashboard/page.tsx`](../apps/atencion/src/app/(app)/dashboard/page.tsx)): bloques "Sala ahora", "Hoy" (frente a los 7 días anteriores) y "Tu día".
+- **Productos** ([`apps/productos/src/app/(app)/dashboard/page.tsx`](../apps/productos/src/app/(app)/dashboard/page.tsx)): `productos_resumen`, con el total del catálogo y su completitud.
+
+En todos, si una RPC falla su tarjeta dice "No disponible" (nunca 0), y un
+bloque sin permiso no ejecuta su consulta. Quedan pendientes (Fase 4b) las
+RPC de indicadores de RRHH y de Asistencia: hoy RRHH hace 8 conteos desde la
+página, y Asistencia lee la puntualidad del reporte Resumen completo.
 
 Al crear o adaptar un módulo nuevo:
 
@@ -308,8 +359,12 @@ Al crear o adaptar un módulo nuevo:
    distribuciones) — no placeholders ni datos de ejemplo. Sin fuente real
    todavía, usar "Pendiente de integración"/"Pendiente de consolidación"
    con `tone="pending"` en `MetricCard`, nunca un número inventado.
-3. Un gráfico simple (barras de distribución, como en el CRM) es
-   suficiente para el MVP de cada módulo.
+3. Un gráfico simple (barras de distribución, o la venta acumulada de
+   Presupuesto) es suficiente para el MVP de cada módulo.
+4. **No** se usan bloques `QuickActions` que repitan el menú ni tarjetas
+   "Pendiente de integración" que ocupen espacio sin dar información
+   (revisión del 2026-10-20). Cada KPI lleva una comparación o una pista que
+   explique por qué no la tiene.
 
 ## Regla obligatoria: menú lateral desplegable (2026-10-17)
 
@@ -335,15 +390,15 @@ crear una app, un nuevo submenú". Resumen en `CLAUDE.md`. Reglas del árbol
   quedan plegados.
 - Excepción: una app con un único ítem (su Dashboard), p. ej. Agencia hoy.
 
-Estado aplicado el 2026-10-17:
+Estado aplicado (2026-10-17, actualizado el 2026-10-20):
 
 | App | Árbol |
 |---|---|
-| Nexo (panel) | Inicio · Configuración (Marca, Usuarios, Roles, Sucursales, Auditoría) |
-| RRHH | Dashboard · Expedientes · Contratación (con Catálogos anidado) · Nómina (Planillas) |
-| Asistencia | Dashboard · Marcaciones (Marcas; Incidencias y Justificaciones "Pronto") · Análisis ("Pronto") · Configuración (Dispositivos); filtrado por permiso |
+| Nexo (panel) | Inicio · Configuración (Marca, Usuarios, Roles, Sucursales, Auditoría); **filtrado por permiso desde el 2026-10-20** |
+| RRHH | Dashboard · Expedientes · Contratación (con Catálogos anidado) · Nómina (Planillas); **filtrado por permiso desde el 2026-10-20** (`rrhhNav(permisos)`) |
+| Asistencia | Dashboard · Marcaciones (Marcas; Justificaciones "Pronto") · Análisis (5 reportes; Envíos del kiosco "Pronto") · Configuración (Dispositivos); filtrado por permiso |
 | Atención | Inicio · Atención (Atender) · Análisis (Mis métricas, Reportes) · Configuración (Puestos y pantallas) |
-| CRM | Dashboard · Ventas (Clientes; Leads, Oportunidades, Actividades y Cotizaciones con "Pronto") |
+| Presupuesto | Dashboard · Metas (Metas por vendedor, Presupuesto anual) · Ventas (Facturas o Mis facturas, Clientes o Mis clientes, Importar de AG Negocio) · Análisis (Histórico y Presupuesto contra lo real, "Pronto") · Configuración (Vendedores y usuarios); filtrado por permiso |
 | Productos | Dashboard · Catálogo (Productos, Importar y exportar) · Precios (Listas de precios, "Pronto") · Configuración (Clasificación, Marcas, Unidades, Proveedores, Características, Cuentas contables) |
 | Agencia | Dashboard (excepción) |
 | Flotilla | Sin adaptar a `NexoShell` todavía (Fase 4): aplica la regla al adaptarla |
@@ -383,7 +438,7 @@ layout autenticado del módulo (`items`, `moduleLabel`, `backHref`,
 `userEmail`, `onSignOut`), nunca como inspiración para un componente
 propio. Ver
 [`apps/rrhh/src/app/(app)/layout.tsx`](../apps/rrhh/src/app/(app)/layout.tsx),
-[`apps/crm/src/app/(app)/layout.tsx`](../apps/crm/src/app/(app)/layout.tsx) y
+[`apps/productos/src/app/(app)/layout.tsx`](../apps/productos/src/app/(app)/layout.tsx) y
 [`apps/nexo/src/app/(app)/layout.tsx`](../apps/nexo/src/app/(app)/layout.tsx) —
 los tres son wrappers delgados de `NexoShell`, cero lógica de shell propia.
 
@@ -398,7 +453,7 @@ módulo nuevo (o una página nueva de un módulo existente), verificá:
    `sin-acceso`, que no puede montar el layout sin caer en loop de
    redirect), al menos `BackToPanelLink` de `@nexo/ui` suelto.
 2. La URL que le pasás sale de un helper `getPanelUrl()` propio de tu app
-   (ver [`apps/crm/src/lib/panel.ts`](../apps/crm/src/lib/panel.ts)) — **no
+   (ver [`apps/productos/src/lib/panel.ts`](../apps/productos/src/lib/panel.ts)) — **no
    la hardcodees**. Se duplica a propósito en cada app — cada zona de
    Multi-Zones es un proceso independiente, no comparten runtime.
 3. Páginas fuera del layout autenticado normal pero que igual son parte
@@ -409,14 +464,22 @@ módulo nuevo (o una página nueva de un módulo existente), verificá:
 
 ## Tokens compartidos (`packages/ui/tokens.css`)
 
+**v2 (2026-10-20):** los tokens *enterprise* apuntan a las variables de
+Tailwind v4 (`var(--color-…)`, OKLCH) en lugar de los hex de Tailwind v3.
+Antes había dos azules: el sidebar usaba `#1D4ED8` y los botones el
+`blue-600` de v4. Ahora hay **un solo azul** en toda la suite.
+
 | Token | Valor | Uso |
 |---|---|---|
-| `--nexo-enterprise-bg` | `#F3F4F6` (neutral-100) | Fondo base de la app — **por defecto desde 2026-09-07** |
-| `--nexo-enterprise-surface` | `#FFFFFF` | Cards, topbar |
-| `--nexo-enterprise-border` | `#E5E7EB` (neutral-200) | Bordes |
-| `--nexo-enterprise-sidebar-bg` | `#0F2A5C` | Fondo del sidebar azul persistente |
-| `--nexo-enterprise-sidebar-active` | `#1D4ED8` (blue-700) | Ítem activo del sidebar |
-| `--nexo-enterprise-accent` / `-hover` | `#2563EB` / `#1D4ED8` (blue-600/700) | Botón primario, foco de inputs, links |
+| `--nexo-enterprise-bg` | `var(--color-neutral-50)` | Fondo base de la app (era neutral-100 hasta v2) |
+| `--nexo-enterprise-surface` | `var(--color-white)` | Cards, topbar |
+| `--nexo-enterprise-border` | `var(--color-neutral-200)` | Bordes |
+| `--nexo-enterprise-text` / `-muted` | `var(--color-neutral-900)` / `var(--color-neutral-500)` | Texto principal y secundario |
+| `--nexo-enterprise-sidebar-bg` | `var(--color-blue-950)` | Fondo del sidebar azul persistente |
+| `--nexo-enterprise-sidebar-active` | `var(--color-blue-700)` | Reservado. El ítem activo del sidebar v2 usa una barra izquierda de 2px más `bg-white/10` |
+| `--nexo-enterprise-accent` / `-hover` / `-active` | `var(--color-blue-600/700/800)` | Botón primario, enlaces |
+| `--nexo-enterprise-focus` | `var(--color-blue-600)` | Anillo de foco |
+| Escala (`packages/ui/theme.css`) | Radios: controles 8px, tarjetas 12px, diálogos 16px. Sombras: tarjeta = borde + `shadow-xs`, menús `shadow-lg`, diálogos `shadow-xl` | Rasgos de Inter `cv11`/`ss01` en toda la app |
 | `--nexo-bg` / `--nexo-shell-fg` / `.nexo-glass` | ver `tokens.css` | **Solo kiosko** (pantalla inmersiva) — ningún componente Enterprise UI los usa |
 | Categoría Finanzas | verde `#DCFCE7` / texto `#166534` | `packages/ui/category-colors.ts` — solo iconos del launcher |
 | Categoría Ventas | rosa `#FCE7F3` / texto `#9D174D` | ídem — CRM vive acá |
@@ -453,8 +516,25 @@ esta tabla en el mismo commit.
    adaptado a Multi-Zones todavía, se migra en su fase correspondiente.
 5. El contenido del módulo usa Inter y la paleta clara de la tabla de
    arriba — **no** una tipografía o paleta de marca propia.
-6. La raíz del módulo (`page.tsx` en `/`) redirige a `/dashboard`, con
-   KPIs reales — ver la regla obligatoria de arriba.
+6. La raíz del módulo redirige a `/dashboard`, con KPIs reales (ver la
+   regla obligatoria de arriba). **Desde 2026-10-20 la redirección va en
+   `redirects()` de `next.config.ts`** (`{ source: "/", destination:
+   "/dashboard", permanent: false }`). Así la resuelve el borde de Vercel,
+   sin función ni llamada a Auth; con `redirect()` en `page.tsx`, cada
+   entrada al módulo pagaba dos veces todo el recorrido. El `page.tsx`
+   queda solo como respaldo.
 7. Ítems del árbol de navegación sin pantalla real todavía se agregan sin
    `href` (se ven deshabilitados/"Próximamente") — no se crea una página
    placeholder por cada uno.
+8. **`globals.css` importa también `theme.css`**, después de `tokens.css`:
+   `@import "../../../../packages/ui/theme.css";`.
+9. **`next.config.ts` usa las cabeceras de seguridad compartidas:**
+   `import { securityHeaders } from "@nexo/config/next-security"` y
+   `async headers() { return securityHeaders(); }`. Incluyen HSTS,
+   `frame-ancestors 'none'`, nosniff, Referrer-Policy y Permissions-Policy.
+10. **El grupo autenticado tiene `loading.tsx` (`PageSkeleton`) y
+    `error.tsx` (`ErrorState`)**, y la app tiene `src/app/global-error.tsx`
+    (client component con su propio `<html lang="es">`, `ErrorState` y sin
+    `error.message`) para los errores del layout raíz, que `error.tsx` no
+    captura. Ver "Nexo Enterprise UI v2" arriba.
+11. **Textos en español neutro**, sin voseo: ver "Lenguaje de la interfaz".

@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
 import { EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
-import { getPlatformSettings } from "@/lib/platform-settings";
+import { getPlatformSettings } from "@nexo/auth";
+import { permisosDe } from "@/lib/permisos";
 import MarcaForm from "./marca-form";
 
 export const metadata: Metadata = {
@@ -22,15 +20,12 @@ export const metadata: Metadata = {
  * /configuracion/marca (Nexo → Configuración → Marca, §1.9) — misma
  * lógica de negocio, ahora dentro del layout autenticado con NexoShell.
  * /ajustes queda como redirect por compatibilidad.
+ *
+ * Kernel (2026-10-20): la marca sale de getPlatformSettings (@nexo/auth),
+ * los mismos campos que lee el login.
  */
 export default async function ConfiguracionMarcaPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-
-  const [canEdit, settings] = await Promise.all([
-    hasPermission({ supabase, companyId }, "nexo.configuracion.editar"),
-    getPlatformSettings(supabase),
-  ]);
+  const [permisos, settings] = await Promise.all([permisosDe(), getPlatformSettings()]);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -39,13 +34,10 @@ export default async function ConfiguracionMarcaPage() {
         description="Logo, imagen de fondo, favicon, textos y bullets del login, y el copyright que se muestra en toda la plataforma."
       />
 
-      {canEdit ? (
+      {permisos.marcaEditar ? (
         <MarcaForm initial={settings} />
       ) : (
-        <EmptyState
-          title="Sin permiso para editar la marca"
-          description="Tu cuenta no tiene el permiso nexo.configuracion.editar para esta empresa."
-        />
+        <EmptyState variant="no-access" title="No tienes acceso a la configuración de marca" />
       )}
     </div>
   );

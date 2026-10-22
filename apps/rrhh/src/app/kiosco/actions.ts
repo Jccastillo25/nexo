@@ -1,7 +1,8 @@
 "use server";
 
 import { headers } from "next/headers";
-import { createAnonClient } from "@/lib/supabase/server";
+import { createAnonClient as crearClienteAnonimo } from "@nexo/supabase";
+import type { Database } from "@/lib/supabase/database.types";
 import { borrarTokenTerminal, guardarTokenTerminal, leerTokenTerminal } from "./terminal-cookie";
 import { ACCIONES, RESULTADO_ACCION, esAccion, type Accion } from "./acciones";
 
@@ -19,12 +20,22 @@ const MAX_COMMITS_PER_WINDOW = 60;
 const MIN_INTERVAL_MS = 600; // debounce estricto entre intentos consecutivos
 
 /**
+ * Cliente anónimo del kernel (2026-10-20), sin cookies ni sesión: la
+ * credencial del kiosco es el token de la terminal + el PIN, validados por
+ * RPC security definer ejecutables por `anon`.
+ */
+function createAnonClient() {
+  return crearClienteAnonimo<Database>();
+}
+
+/**
  * Freno TEMPRANO de fuerza bruta a nivel de Server Action, por IP —
  * pedido explicitamente ("rate-limiting basico o debounce estricto...
  * antes de que toque la base de datos"). NO es la defensa autoritativa:
  * desde 2026-09-05 esa es el limite persistente en Postgres de
  * rrhh.kiosko_rate_limits (8 PINes invalidos por kiosko en 1 minuto ->
- * bloqueo de 5 minutos), aplicado dentro de rrhh.fn_registrar_marca_kiosko
+ * bloqueo de 5 minutos), aplicado dentro de rrhh.fn_registrar_marca_kiosko,
+ * la función interna a la que llega registrar_marca_terminal
  * (security definer, supabase/migrations/20260905000005_rrhh_public_auth_hardening.sql)
  * con comparación bcrypt. Esta Map vive en memoria de UNA instancia de funcion
  * serverless: se resetea en cada cold start, no se comparte entre
@@ -52,11 +63,11 @@ function checkRateLimit(
   }
 
   if (conIntervaloMinimo && now - entry.lastAttempt < MIN_INTERVAL_MS) {
-    return { ok: false, message: "Muy rápido — esperá un segundo.", rapido: true };
+    return { ok: false, message: "Muy rápido — espera un segundo.", rapido: true };
   }
 
   if (entry.count >= max) {
-    return { ok: false, message: "Demasiados intentos. Esperá un minuto." };
+    return { ok: false, message: "Demasiados intentos. Espera un minuto." };
   }
 
   entry.count += 1;
@@ -99,15 +110,17 @@ function esMotivo(value: unknown): value is MotivoRechazo {
  * `accion = null` es la vista previa (devuelve las acciones válidas sin
  * escribir) y `accion` con un tipo registra la marca (el botón es la
  * confirmación). Desde el enrolamiento de terminales (2026-10-17) el
- * dispositivo sale de la cookie `nexo_terminal` (registrar_marca_terminal);
- * sin cookie se usa el camino heredado de NEXO_KIOSKO_ID, sin cambios. Con
- * cookie nunca se usa la env, aunque el token esté revocado.
+ * dispositivo sale de la cookie `nexo_terminal` (registrar_marca_terminal).
+ * Sin cookie no se marca: la pantalla queda en "Terminal sin asignar". El
+ * camino heredado por variable de entorno se retiró el 2026-10-20 (N7/H5).
  */
 export async function marcarAsistencia(pin: string, solicitudId: string, accion: Accion | null): Promise<MarcarResult> {
   const token = await leerTokenTerminal();
-  const kioskoId = process.env.NEXO_KIOSKO_ID;
   const rechazado: MarcarResult = { estado: "rechazada", message: "No fue posible registrar la marcación." };
-  if ((!token && !kioskoId) || typeof pin !== "string" || !/^[0-9]{4}$/.test(pin) ||
+  if (!token) {
+    return { estado: "terminal_no_autorizada", message: "Esta terminal no está asignada. Pide un código de asignación." };
+  }
+  if (typeof pin !== "string" || !/^[0-9]{4}$/.test(pin) ||
       typeof solicitudId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(solicitudId) ||
       !(accion === null || esAccion(accion))) return rechazado;
   // Freno por IP en dos contadores (la clave nunca incluye el token):
@@ -116,22 +129,17 @@ export async function marcarAsistencia(pin: string, solicitudId: string, accion:
   // - confirmaciones (el botón): contador propio, tope más alto y sin
   //   intervalo mínimo, para que llamar directo a la action con `accion` no
   //   sirva para saltarse el freno (revisión 2026-10-17, hallazgo #2).
-  const ip = await ipDeLaSolicitud();
-  const base = (token ? "terminal" : kioskoId) + ":" + ip;
+  const base = "terminal:" + (await ipDeLaSolicitud());
   const rl = accion === null
     ? checkRateLimit("previa:" + base, MAX_PREVIEWS_PER_WINDOW)
     : checkRateLimit("confirma:" + base, MAX_COMMITS_PER_WINDOW, false);
   if (!rl.ok) return { estado: "error", message: rl.message };
-  const { data, error } = token
-    ? await createAnonClient().rpc("registrar_marca_terminal", {
-        p_token: token, p_pin: pin, p_solicitud_id: solicitudId, p_accion: accion,
-      })
-    : await createAnonClient().rpc("registrar_marca_kiosko", {
-        p_pin: pin, p_kiosko_id: kioskoId!, p_solicitud_id: solicitudId, p_accion: accion,
-      });
+  const { data, error } = await createAnonClient().rpc("registrar_marca_terminal", {
+    p_token: token, p_pin: pin, p_solicitud_id: solicitudId, p_accion: accion,
+  });
   if (error) return { estado: "error", message: "No se pudo confirmar el resultado. Reintenta el mismo envío." };
   if (!data || typeof data !== "object" || Array.isArray(data)) return rechazado;
-  if (token && data.estado === "terminal_no_autorizada") {
+  if (data.estado === "terminal_no_autorizada") {
     await borrarTokenTerminal();
     return { estado: "terminal_no_autorizada", message: "Esta terminal ya no está autorizada. Pide un código nuevo." };
   }
@@ -144,7 +152,7 @@ export async function marcarAsistencia(pin: string, solicitudId: string, accion:
   if (data.estado === "registrada" && esAccion(data.tipo)) {
     // Renueva la vigencia de 400 días de la cookie con cada marca: una terminal
     // en uso no pierde su asignación.
-    if (token) await guardarTokenTerminal(token);
+    await guardarTokenTerminal(token);
     return {
       estado: "registrada",
       message: RESULTADO_ACCION[data.tipo],

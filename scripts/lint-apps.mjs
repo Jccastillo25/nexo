@@ -46,12 +46,8 @@ const REGISTRO = {
   "nexo-agencia": { estado: "gate" },
   "nexo-atencion": { estado: "gate" },
   "nexo-productos": { estado: "gate" },
+  "nexo-presupuesto": { estado: "gate" },
   "web-corporativo": { estado: "gate" },
-  "materiales-jcastillo-crm": {
-    estado: "deuda",
-    motivo:
-      "src/components/DeleteClienteButton.tsx: error react-hooks (setState sincrónico dentro de un efecto) + warning de variable sin usar en src/app/(app)/clientes/actions.ts. Pre-existente (archivos sin tocar desde a6abb2e), con eslint-config-next 16.3.0.",
-  },
   "transporte-app": {
     estado: "deuda",
     motivo:

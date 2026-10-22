@@ -11,8 +11,10 @@
 // `public` viene del generador real
 // (generate_typescript_types/`supabase gen types typescript`, regenerado
 // 2026-09-02) — incluye `has_permission`, `get_platform_settings`,
-// `get_visible_apps`, `update_platform_settings`, `registrar_marca_kiosko`,
-// `set_pin_empleado`, `validar_acceso_operativo` y `crear_empleado`.
+// `get_visible_apps`, `update_platform_settings`, `set_pin_empleado`,
+// `validar_acceso_operativo` y `crear_empleado`. La RPC heredada del kiosco
+// con dispositivo fijo se quitó el 2026-10-20: el kiosco solo marca con
+// `registrar_marca_terminal`.
 //
 // `crm`, `core` y `rrhh` estan escritos a mano porque esos schemas
 // todavia no estan expuestos en la API de Supabase (Settings > API >
@@ -84,8 +86,73 @@ export type Database = {
         Args: { p_company_id: string; p_desde: string; p_hasta: string; p_empleado_id?: string; p_contrato_id?: string; p_estado?: string; p_limit?: number; p_offset?: number };
         Returns: { marca_id: string; empleado_id: string; empleado_label: string; contrato_id: string; contrato_numero: number; fecha_local: string; tipo: string; marcado_en: string; estado: string }[];
       };
-      registrar_marca_kiosko: {
-        Args: { p_kiosko_id: string; p_pin: string; p_solicitud_id: string; p_accion: string | null };
+      // Reportes de Asistencia (2026-10-18) — ver
+      // supabase/migrations/20261018014127_asistencia_reportes.sql. Devuelven
+      // jsonb; la forma real está en src/lib/reportes-asistencia/tipos.ts.
+      asistencia_reporte_diario: {
+        Args: {
+          p_company_id: string;
+          p_desde: string;
+          p_hasta: string;
+          p_departamento_id?: string;
+          p_puesto_id?: string;
+          p_empleado_id?: string;
+          p_contrato_id?: string;
+          p_estado?: string;
+          p_incluir_no_laborables?: boolean;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
+      asistencia_reporte_resumen: {
+        Args: {
+          p_company_id: string;
+          p_desde: string;
+          p_hasta: string;
+          p_departamento_id?: string;
+          p_puesto_id?: string;
+          p_empleado_id?: string;
+          p_contrato_id?: string;
+        };
+        Returns: Json;
+      };
+      asistencia_reporte_tardanzas: {
+        Args: {
+          p_company_id: string;
+          p_desde: string;
+          p_hasta: string;
+          p_departamento_id?: string;
+          p_puesto_id?: string;
+          p_empleado_id?: string;
+          p_contrato_id?: string;
+          p_tipo?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
+      asistencia_reporte_incidencias: {
+        Args: {
+          p_company_id: string;
+          p_desde: string;
+          p_hasta: string;
+          p_departamento_id?: string;
+          p_puesto_id?: string;
+          p_empleado_id?: string;
+          p_contrato_id?: string;
+          p_tipo?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
+      asistencia_reporte_opciones: {
+        Args: { p_company_id: string };
+        Returns: Json;
+      };
+      asistencia_registrar_exportacion: {
+        Args: { p_company_id: string; p_reporte: string; p_formato: string; p_filtros: Json; p_filas: number };
         Returns: Json;
       };
       // Enrolamiento de terminales (2026-10-17) — ver
@@ -818,7 +885,7 @@ export type Database = {
       };
       // Particionada por rango mensual desde el dia 1 — no cambia la
       // forma de Row/Insert/Update. Las marcas de origen "kiosko" se
-      // insertan via el RPC registrar_marca_kiosko (security definer).
+      // insertan via el RPC registrar_marca_terminal (security definer).
       kiosko_solicitudes: {
         Row: { id: string; solicitud_id: string; company_id: string; kiosko_id: string; fecha_local: string; resultado: 'registrada' | 'rechazada'; respuesta: Json; creado_en: string };
         Insert: never;

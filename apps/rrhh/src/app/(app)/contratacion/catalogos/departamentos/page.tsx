@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
+import { contextoActual } from "@nexo/auth";
 import { EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import type { Database } from "@/lib/supabase/database.types";
+import { permisosDe } from "@/lib/permisos-rrhh";
 import DepartamentosPanel, { type DepartamentoRow } from "./departamentos-panel";
 
 export const metadata: Metadata = {
@@ -16,43 +16,45 @@ export const metadata: Metadata = {
  * (Fase 5, catálogo aparte para la dirección del empleado).
  */
 export default async function DepartamentosPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-
-  const [canVer, canCrear, canEditar] = await Promise.all([
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.departamentos.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.departamentos.crear"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.departamentos.editar"),
-  ]);
-
-  let departamentos: DepartamentoRow[] = [];
-  if (canVer) {
-    const { data, error } = await supabase
+  const { supabase, companyId } = await contextoActual<Database>();
+  // Departamentos en paralelo con los permisos (la RLS los protege igual).
+  const [permisos, departamentosRes] = await Promise.all([
+    permisosDe(),
+    supabase
       .schema("rrhh")
       .from("departamentos")
       .select("id, nombre, descripcion, activo")
       .eq("company_id", companyId)
-      .order("nombre");
+      .order("nombre"),
+  ]);
 
-    if (error) throw new Error(`No se pudieron cargar los departamentos: ${error.message}`);
-    departamentos = data ?? [];
+  if (!permisos.departamentosVer) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader title="Departamentos" />
+        <EmptyState variant="no-access" title="No tienes acceso a los departamentos" />
+      </div>
+    );
   }
 
+  if (departamentosRes.error) {
+    // El detalle va al log del servidor; error.tsx muestra solo la referencia.
+    console.error("departamentos: listado", departamentosRes.error);
+    throw new Error("No se pudieron cargar los departamentos.");
+  }
+  const departamentos: DepartamentoRow[] = departamentosRes.data ?? [];
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Departamentos"
-        description="Unidades organizacionales de la empresa (ej. Ventas, Operaciones) — usadas al crear un puesto o un contrato."
+        description="Unidades de la empresa (por ejemplo, Ventas u Operaciones), usadas al crear un puesto o un contrato."
       />
-
-      {canVer ? (
-        <DepartamentosPanel departamentos={departamentos} canCrear={canCrear} canEditar={canEditar} />
-      ) : (
-        <EmptyState
-          title="Sin permiso para ver departamentos"
-          description="No tenés el permiso rrhh.expedientes.departamentos.ver."
-        />
-      )}
+      <DepartamentosPanel
+        departamentos={departamentos}
+        canCrear={permisos.departamentosCrear}
+        canEditar={permisos.departamentosEditar}
+      />
     </div>
   );
 }

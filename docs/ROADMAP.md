@@ -16,7 +16,7 @@ Historial anterior: **2026-09-06**.
 | Monorepo Turborepo/pnpm | ✅ | Base Nexo creada. |
 | `nexo-core` / `core.*` | ✅ | Supabase común, permisos y catálogo de apps. |
 | Nexo launcher | ✅ | Login, módulos y Multi-Zones operativos. |
-| CRM infraestructura | ✅ | Adaptado a `nexo-core`; MVP actual todavía es principalmente clientes. |
+| CRM | ❌ Retirado 2026-10-20 | Borrado por pedido del usuario (código, app del Launcher, esquemas `crm` y `metas`), sin datos. Respaldo en la rama local `respaldo/crm-2026-10-20`. Lo reemplaza la réplica de AG Negocio en la app ERP. |
 | RRHH infraestructura | ✅ | Schema, RLS, permisos, expedientes básicos y kiosko desplegados. |
 | Flotilla/Ruta360 en monorepo | ✅ código importado | Falta adaptación a Nexo. |
 | Nexo Mobile | ⏳ | Arquitectura definida; `apps/mobile` todavía no existe. |
@@ -71,10 +71,14 @@ Fuente: [`DRIVER_ACCESS_AND_KIOSK.md`](DRIVER_ACCESS_AND_KIOSK.md).
 | Fase | Objetivo | Estado |
 |---|---|---|
 | 1 | **Cerrar RRHH**: expediente general/laboral, contratos, PIN solo asistencia, jornadas, consolidación, incidencias, planillas y E2E | ⏳ Próxima fase activa |
-| 2 | **Kernel compartido + identidad operacional**: `@nexo/auth`, `@nexo/supabase`, relación empleado↔Auth, provisión/restablecimiento de cuentas y APIs reutilizables | ⏳ |
-| 3 | **CRM MVP real**: leads, oportunidades, pipeline, actividades, cotizaciones y pedido | ⏳ |
+| 2 | **Kernel compartido + identidad operacional**: `@nexo/auth`, `@nexo/supabase`, relación empleado↔Auth, provisión/restablecimiento de cuentas y APIs reutilizables | 🟡 Kernel de código hecho en local (2026-10-20/21, revisión integral): `@nexo/supabase`, `@nexo/auth`, `getPermisos`/`misPermisos` y `@nexo/config`, con las 6 apps migradas y `pnpm verify` en verde. La RPC `mis_permisos` está aplicada en `nexo-core` (`20261021164649`, 2026-10-21). Faltan la relación empleado↔Auth, la provisión de cuentas, los datos maestros en `core` y los eventos entre módulos (propuesta pendiente de aprobación). [Detalle](status-log/2026-10-21-mejoras-revision-integral.md) |
+| 3 | ~~CRM MVP real~~: retirado el 2026-10-20. Clientes, cotizaciones y facturación pasan a la réplica de AG Negocio (fila ERP de abajo) | ❌ Retirado |
 | 4 | **Transporte/Flotilla**: adaptar Ruta360, Panel Conductor Web, identidad Nexo y primera vertical Mobile | ⏳ |
 | — | **Productos (catálogo maestro) → Listas de precios**: adelantado por decisión del usuario 2026-10-16, en paralelo a RRHH ([plan 14](plan/14-productos.md)) | 🟡 Productos: esquema aplicado, app en local |
+| — | ~~Metas y Presupuesto dentro del CRM~~ ([plan 15](plan/15-metas-ventas.md)) | ❌ Retirado el 2026-10-20 con el CRM; vuelve como app Presupuesto (fila de abajo) |
+| — | **Presupuesto, app aparte en el proyecto de Vercel `nexo-crm`** (pedido del usuario 2026-10-20). Fase 1: presupuesto de ventas y metas (recupera el plan 15). Fase 2: presupuesto por centro de costo de AG Negocio ([plan 19](plan/19-presupuesto.md)) | 🟡 Fase 1: Paso Cero y esquema aplicados (`20261020183127`, `20261020184030`); app en local; falta activar y desplegar |
+| — | **Réplica de AG Negocio dentro de Nexo** (pedido del usuario 2026-10-20): copiar completo el ERP actual y luego mejorarlo, sin el bloque académico. Son 144 pantallas en 11 grupos, en las etapas R0 a R9 ([plan 18](plan/18-replica-ag-negocio.md)) | 🟡 R0 hecho: CRM retirado (`20261020143821`). Sigue el Paso Cero de R1 y R2 |
+| — | *Antes:* **ERP/CRM de Materiales J Castillo dentro de Nexo, con ERPNext como referencia funcional** (decisión del usuario 2026-10-19; el embudo se retiró el 2026-10-20). No se instala ERPNext: se siguen el login único, Supabase `nexo-core` y la norma de permisos. De ERPNext se toman los procesos (ventas, inventario, compras, contabilidad), igual que con NextCRM (MIT) para el embudo. Primer corte: embudo comercial del CRM ([plan 16](plan/16-crm-embudo-comercial.md)) | 🟡 Embudo: Paso Cero y esquema aplicados (2026-10-19/20, 48 RPC); UI en curso. ERP ([plan 17](plan/17-erp.md)): Paso Cero aplicado el 2026-10-20 (apps `precios` y `erp` inactivas). Etapas: E1 Precios → E2 Contabilidad → E3 Inventario → E4 Compras/CxP/Bancos → E5 Ventas/Facturación DGI/Caja/CxC → E6 Cierre y corte |
 | 5 | **Inventario mínimo**: almacenes, existencias, movimientos y reservas (el catálogo de productos ya viene de la app Productos) | ⏳ |
 | 6 | **Fabricación**: BOM, órdenes, reserva, producción, merma, calidad y terminado | ⏳ |
 | 7 | **Nexo Mobile Android/iOS**: consolidar shell y verticales operativas para distribución | ⏳ |
@@ -128,7 +132,8 @@ No editar migraciones aplicadas; usar migraciones nuevas.
 | Módulo | Estado |
 |---|---|
 | Nexo Launcher | ✅ Validado |
-| CRM cliente CRUD | ✅ Validado como capacidad actual; no equivale al CRM completo objetivo |
+| CRM | ❌ Retirado el 2026-10-20 (reemplazado por la réplica de AG Negocio) |
+| ERP (réplica de AG Negocio) | 🟡 Inventario y retiro del CRM hechos; Paso Cero pendiente |
 | RRHH | ❌ No validado E2E |
 | Transporte/Flotilla Nexo | ⏳ Sin adaptar |
 | Productos (catálogo maestro) | 🟡 Esquema aplicado y app implementada en local 2026-10-16; sin validar ni desplegar |

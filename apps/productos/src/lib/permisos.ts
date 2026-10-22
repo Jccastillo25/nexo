@@ -1,5 +1,4 @@
-import { hasPermission } from "@nexo/permissions";
-import type { createClient } from "@/lib/supabase/server";
+import { misPermisos } from "@nexo/auth";
 
 /** Códigos del Paso Cero (20261016203638). */
 export const P = {
@@ -25,9 +24,16 @@ export const P = {
 export type Permiso = keyof typeof P;
 export type Permisos = Record<Permiso, boolean>;
 
-/** Todos los permisos del módulo del usuario actual (para ocultar/deshabilitar en la UI). */
-export async function permisosDe(supabase: Awaited<ReturnType<typeof createClient>>, companyId: string): Promise<Permisos> {
-  const claves = Object.keys(P) as Permiso[];
-  const valores = await Promise.all(claves.map((k) => hasPermission({ supabase, companyId }, P[k])));
-  return Object.fromEntries(claves.map((k, i) => [k, valores[i]])) as Permisos;
+const CLAVES = Object.keys(P) as Permiso[];
+const CODIGOS = Object.values(P);
+
+/**
+ * Todos los permisos del módulo del usuario actual, para ocultar o
+ * deshabilitar en la UI. Layout y páginas piden SIEMPRE esta misma lista, así
+ * misPermisos (cacheada por request) hace una sola consulta por carga.
+ * Las Server Actions no la usan: llaman a requirePermission antes de mutar.
+ */
+export async function permisosDe(): Promise<Permisos> {
+  const tiene = await misPermisos(CODIGOS);
+  return Object.fromEntries(CLAVES.map((k) => [k, tiene.has(P[k])])) as Permisos;
 }

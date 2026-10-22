@@ -1,29 +1,26 @@
 "use server";
 
 import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
-import { filtrosValidos, type FiltrosMarcas } from "./filtros";
+import { contextoActual } from "@nexo/auth";
 import type { Database } from "@/lib/supabase/database.types";
+import { P_ASISTENCIA } from "@/lib/permisos-asistencia";
+import { leerMarcas, type MarcasResult } from "./consulta";
+import type { FiltrosMarcas } from "./filtros";
 
-export type MarcaRow = Database["public"]["Functions"]["consultar_marcas"]["Returns"][number];
-export type MarcasResult = { ok: true; rows: MarcaRow[] } | { ok: false; message: string };
-
+/**
+ * Consulta de marcas desde el navegador (filtros y paginación). Es un
+ * endpoint público: valida el permiso con requirePermission antes de leer,
+ * aunque la página ya lo haya comprobado con la lista cacheada.
+ */
 export async function consultarMarcas(filtros: FiltrosMarcas): Promise<MarcasResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
   try {
-    await requirePermission({ supabase, companyId }, "rrhh.asistencia.marcas.ver");
+    await requirePermission({ supabase, companyId }, P_ASISTENCIA.marcasVer);
   } catch (err) {
-    if (err instanceof PermissionDeniedError) return { ok: false, message: "Sin permiso para ver marcas." };
+    if (err instanceof PermissionDeniedError) {
+      return { ok: false, message: "No tienes permiso para ver las marcas. Pide acceso a quien administra Nexo." };
+    }
     throw err;
   }
-  if (!filtrosValidos(filtros)) return { ok: false, message: "Revisa los filtros: rango máximo de 62 días y fechas válidas." };
-  const { data, error } = await supabase.rpc("consultar_marcas", {
-    p_company_id: companyId, p_desde: filtros.desde, p_hasta: filtros.hasta,
-    p_empleado_id: filtros.empleadoId || undefined, p_contrato_id: filtros.contratoId || undefined,
-    p_estado: filtros.estado || undefined, p_limit: 50, p_offset: filtros.offset ?? 0,
-  });
-  if (error) return { ok: false, message: "No se pudieron consultar las marcas. Intenta de nuevo." };
-  return { ok: true, rows: data ?? [] };
+  return leerMarcas(supabase, companyId, filtros);
 }

@@ -65,13 +65,70 @@ function fechaLocal(fecha: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: ZONA, year: "numeric", month: "2-digit", day: "2-digit" }).format(fecha);
 }
 
+/** Suma (o resta) días a una fecha "AAAA-MM-DD" sin pasar por la zona del servidor. */
+function sumarDias(fecha: string, dias: number): string {
+  const d = new Date(`${fecha}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
 /** Rango [desde, hasta] en fecha local para el período; valor desconocido = hoy. */
 export function rangoDe(periodo: string | undefined): { periodo: Periodo; desde: string; hasta: string } {
   const p = PERIODOS.find((x) => x.valor === periodo) ?? PERIODOS[0];
   const hoy = fechaLocal(new Date());
-  const desde = new Date(`${hoy}T12:00:00Z`);
-  desde.setUTCDate(desde.getUTCDate() - p.dias);
-  return { periodo: p.valor, desde: desde.toISOString().slice(0, 10), hasta: hoy };
+  return { periodo: p.valor, desde: sumarDias(hoy, -p.dias), hasta: hoy };
+}
+
+/**
+ * Los `dias` días inmediatamente anteriores a un rango, para comparar.
+ * Hoy (desde = hasta = 20/10) → 13/10 a 19/10.
+ */
+export function rangoAnterior(rango: { desde: string }, dias = 7): { desde: string; hasta: string } {
+  return { desde: sumarDias(rango.desde, -dias), hasta: sumarDias(rango.desde, -1) };
+}
+
+/**
+ * Segundos que lleva en la fila el turno en espera más antiguo (por
+ * `en_fila_desde`, que se reinicia al reactivar), o null si nadie espera.
+ */
+export function esperaMasAntigua(
+  turnos: readonly { estado: string; en_fila_desde: string }[],
+  ahoraMs: number
+): number | null {
+  let masAntiguo: number | null = null;
+  for (const t of turnos) {
+    if (t.estado !== "esperando") continue;
+    const desde = Date.parse(t.en_fila_desde);
+    if (Number.isNaN(desde)) continue;
+    if (masAntiguo === null || desde < masAntiguo) masAntiguo = desde;
+  }
+  return masAntiguo === null ? null : Math.max(0, Math.round((ahoraMs - masAntiguo) / 1000));
+}
+
+/** Comparación de un tiempo con su período anterior, con la forma de `delta` de MetricCard. */
+export interface ComparacionDuracion {
+  value: string;
+  direction: "up" | "down" | "flat";
+  tone: "positive" | "negative" | "neutral";
+}
+
+/**
+ * Diferencia entre dos tiempos en segundos (actual − anterior). Que baje es
+ * bueno (menos espera): bajar = positivo, subir = negativo. Sin alguno de los
+ * dos valores no hay comparación (null).
+ */
+export function compararDuracion(
+  actual: number | null | undefined,
+  anterior: number | null | undefined
+): ComparacionDuracion | null {
+  if (actual === null || actual === undefined || anterior === null || anterior === undefined) return null;
+  const diferencia = Math.round(actual - anterior);
+  if (diferencia === 0) return { value: "0 s", direction: "flat", tone: "neutral" };
+  return {
+    value: formatoDuracion(Math.abs(diferencia)),
+    direction: diferencia > 0 ? "up" : "down",
+    tone: diferencia > 0 ? "negative" : "positive",
+  };
 }
 
 /** 535 → "8 min 55 s"; 10579 → "2 h 56 min"; null → "—". */

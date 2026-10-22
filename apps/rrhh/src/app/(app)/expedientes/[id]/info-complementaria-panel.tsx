@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useToast } from "@nexo/ui";
+import { Alert, Button, Field, Input, Select, useToast } from "@nexo/ui";
 import {
   guardarInfoComplementaria,
   type InfoComplementariaInput,
@@ -22,9 +22,6 @@ const ESTADO_CIVIL_LABEL: Record<EstadoCivil, string> = {
   divorciado_a: "Divorciado/a",
   viudo_a: "Viudo/a",
 };
-
-const inputClass =
-  "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500";
 
 /**
  * Fase 5 (2026-09-16, bloque pre-F1.5): pestaña "Información
@@ -69,16 +66,17 @@ export default function InfoComplementariaPanel({
   }
 
   return (
-    <form onSubmit={guardar} className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5">
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+    <form
+      onSubmit={guardar}
+      className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs"
+    >
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
-      <label className="flex flex-col gap-1.5 text-sm sm:w-64">
-        <span className="text-neutral-500">Estado civil</span>
-        <select
+      <Field label="Estado civil" className="sm:w-64">
+        <Select
           disabled={!canEditar}
           value={form.estadoCivil}
           onChange={(e) => update("estadoCivil", e.target.value as EstadoCivil)}
-          className={`${inputClass} disabled:opacity-60`}
         >
           <option value="">Sin especificar</option>
           {Object.entries(ESTADO_CIVIL_LABEL).map(([value, label]) => (
@@ -86,53 +84,47 @@ export default function InfoComplementariaPanel({
               {label}
             </option>
           ))}
-        </select>
-      </label>
+        </Select>
+      </Field>
 
-      <div className="border-t border-neutral-100 pt-4">
-        <h3 className="mb-3 text-sm font-semibold text-neutral-900">Contacto de emergencia</h3>
+      <fieldset className="border-t border-neutral-100 pt-4">
+        <legend className="mb-3 text-sm font-semibold text-neutral-900">Contacto de emergencia</legend>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Nombre</span>
-            <input
+          <Field label="Nombre">
+            <Input
               disabled={!canEditar}
               value={form.contactoEmergenciaNombre}
               onChange={(e) => update("contactoEmergenciaNombre", e.target.value)}
-              className={`${inputClass} disabled:opacity-60`}
+              autoComplete="off"
             />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Teléfono</span>
-            <input
+          </Field>
+          <Field label="Teléfono">
+            <Input
+              type="tel"
+              inputMode="tel"
               disabled={!canEditar}
               value={form.contactoEmergenciaTelefono}
               onChange={(e) => update("contactoEmergenciaTelefono", e.target.value)}
-              className={`${inputClass} disabled:opacity-60`}
+              autoComplete="off"
             />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Parentesco</span>
-            <input
+          </Field>
+          <Field label="Parentesco">
+            <Input
               disabled={!canEditar}
               value={form.contactoEmergenciaParentesco}
               onChange={(e) => update("contactoEmergenciaParentesco", e.target.value)}
-              className={`${inputClass} disabled:opacity-60`}
             />
-          </label>
+          </Field>
         </div>
-      </div>
+      </fieldset>
 
-      {canEditar && (
+      {canEditar ? (
         <div>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {isPending ? "Guardando…" : "Guardar"}
-          </button>
+          <Button type="submit" loading={isPending}>
+            Guardar información
+          </Button>
         </div>
-      )}
+      ) : null}
     </form>
   );
 }

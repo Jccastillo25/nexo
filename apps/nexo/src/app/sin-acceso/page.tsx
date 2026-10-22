@@ -1,44 +1,31 @@
 import type { Metadata } from "next";
-import { EmptyState, PageHeader } from "@nexo/ui";
-import { NEXO_NAV_ITEMS } from "@/lib/nav";
+import { ButtonLink, EmptyState } from "@nexo/ui";
 
 export const metadata: Metadata = {
   title: "Sin acceso · Nexo",
 };
 
 /**
- * Página de acceso denegado — mismo patrón que apps/crm y apps/rrhh
- * ("sin-acceso" FUERA del grupo (app) para evitar bucles de redirección).
+ * Página de acceso denegado — mismo patrón que los módulos ("sin-acceso"
+ * FUERA del grupo (app) para evitar bucles de redirección).
  *
  * IMPORTANTE: lanzar PermissionDeniedError NO renderiza esta página por sí
  * solo. Es el guard de servidor de la ruta protegida el que debe redirigir
  * aquí explícitamente. El ticket #18 mueve Agencia a su propia zona,
  * cuya pantalla de denegación vive en apps/agencia/src/app/sin-acceso.
  * Esta página queda disponible para los recursos propios de Nexo.
+ *
+ * Nunca muestra un código de permiso (EmptyState variant="no-access").
  */
 export default function SinAccesoPage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10 sm:px-6">
-      <PageHeader
-        title="Sin acceso"
-        description="Tu cuenta no tiene permisos para ver este recurso. Si creés que es un error, pedile a un owner/admin que revise tus permisos."
-      />
+    <main className="mx-auto flex min-h-full w-full max-w-2xl flex-col justify-center px-4 py-16 sm:px-6">
+      <h1 className="sr-only">Sin acceso</h1>
       <EmptyState
-        title="Acceso denegado"
-        description="No podés ver esta sección con los permisos actuales de tu cuenta. Podés volver al inicio del panel para continuar."
+        variant="no-access"
+        title="No tienes acceso a esta sección"
+        action={<ButtonLink href="/">Volver al inicio</ButtonLink>}
       />
-      <ul className="flex flex-col gap-2">
-        {NEXO_NAV_ITEMS.map((item) => (
-          <li key={item.href}>
-            <a
-              href={item.href}
-              className="text-sm font-medium text-neutral-800 underline underline-offset-2 hover:text-neutral-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
-            >
-              {item.label}
-            </a>
-          </li>
-        ))}
-      </ul>
     </main>
   );
 }

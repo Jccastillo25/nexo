@@ -29,7 +29,7 @@ npx.cmd --yes pnpm@9.15.9 --filter <app> run typecheck
 npx.cmd --yes pnpm@9.15.9 --filter <app> run lint
 ```
 
-Si tocaste `packages/ui` o varias apps: `npx.cmd --yes pnpm@9.15.9 typecheck` y `npx.cmd --yes pnpm@9.15.9 lint:gate`. Si el coordinador lo pide, `pnpm verify` completo. Nombres de app: `nexo-panel`, `rrhh`, `nexo-atencion`, `nexo-productos`, `nexo-agencia`, `materiales-jcastillo-crm`, `transporte-app`, `web-corporativo`.
+Si tocaste `packages/ui` o varias apps: `npx.cmd --yes pnpm@9.15.9 typecheck` y `npx.cmd --yes pnpm@9.15.9 lint:gate`. Si el coordinador lo pide, `pnpm verify` completo. Nombres de app: `nexo-panel`, `rrhh`, `nexo-atencion`, `nexo-productos`, `nexo-agencia`, `transporte-app`, `web-corporativo`.
 
 ## Entrega
 

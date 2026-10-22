@@ -1,10 +1,11 @@
 import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { updateSession } from "@nexo/supabase";
 
-// Next.js 16: el archivo "middleware" se renombró a "proxy". Ver
-// node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md
+// Next.js 16: el archivo "middleware" se renombró a "proxy". Sin sesión,
+// updateSession manda al login del panel con next=/agencia<ruta>.
 export async function proxy(request: NextRequest) {
-  return updateSession(request);
+  const { response } = await updateSession(request, { basePath: "/agencia" });
+  return response;
 }
 
 export const config = {

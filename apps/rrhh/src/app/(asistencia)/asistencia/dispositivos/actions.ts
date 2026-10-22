@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermission, mensajeDeError, MENSAJE_SIN_PERMISO } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import type { Database } from "@/lib/supabase/database.types";
 import { P_ASISTENCIA } from "@/lib/permisos-asistencia";
 import { esIdValido, validarDispositivo } from "./validacion";
 
@@ -22,8 +22,7 @@ const NO_ENCONTRADO = "No se encontró el dispositivo. Recarga la página e inte
  * eliminar (fuera de alcance): solo desactivar/reactivar.
  */
 async function contexto(codigo: string, accion: string) {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
   try {
     await requirePermission({ supabase, companyId }, codigo);
   } catch (err) {

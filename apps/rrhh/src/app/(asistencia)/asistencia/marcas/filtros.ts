@@ -4,6 +4,9 @@ export const ESTADOS_MARCA = [
 ] as const;
 export type EstadoMarca = (typeof ESTADOS_MARCA)[number];
 
+/** Filas por página de la consulta de marcas (servidor y navegador). */
+export const TAMANO_PAGINA_MARCAS = 50;
+
 export type FiltrosMarcas = {
   desde: string; hasta: string; empleadoId?: string; contratoId?: string;
   estado?: string; offset?: number;

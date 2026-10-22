@@ -15,11 +15,21 @@ import type { PermisosAsistencia } from "@/lib/permisos-asistencia";
 export function asistenciaNav(p: PermisosAsistencia): NexoNavItem[] {
   const marcaciones: NexoNavItem[] = [
     ...(p.marcasVer ? [{ label: "Marcas", href: "/asistencia/marcas", icon: "list" as const }] : []),
-    ...(p.marcasVer ? [{ label: "Incidencias", icon: "alert" as const }] : []),
     ...(p.justificacionesVer ? [{ label: "Justificaciones", icon: "file" as const }] : []),
   ];
+  // Reportes (2026-10-18): las incidencias y el resumen ya existen como
+  // reportes, por eso salieron los "Pronto" equivalentes.
+  const reportes: NexoNavItem[] = p.reportesVer
+    ? [
+        { label: "Asistencia diaria", href: "/asistencia/reportes/diaria", icon: "calendar" },
+        { label: "Resumen por persona", href: "/asistencia/reportes/resumen", icon: "users" },
+        { label: "Tardanzas y salidas", href: "/asistencia/reportes/tardanzas", icon: "clock" },
+        { label: "Incidencias", href: "/asistencia/reportes/incidencias", icon: "alert" },
+        { label: "Tarjeta individual", href: "/asistencia/reportes/tarjeta", icon: "file" },
+      ]
+    : [];
   const analisis: NexoNavItem[] = [
-    ...(p.marcasVer ? [{ label: "Resumen diario", icon: "calendar" as const }] : []),
+    ...reportes,
     ...(p.kioskosVer ? [{ label: "Envíos del kiosco", icon: "receipt" as const }] : []),
   ];
   const configuracion: NexoNavItem[] = [

@@ -1,25 +1,35 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { EmptyState, PageHeader } from "@nexo/ui";
+import { permisosDe } from "@/lib/permisos-rrhh";
+import { primeraPantallaPermitida } from "@/lib/planilla/rutas";
 
 export const metadata: Metadata = {
-  title: "Planillas · RRHH",
+  title: "Planilla · RRHH",
 };
 
 /**
- * Placeholder de ruta — mismo criterio que expedientes/page.tsx: este
- * turno construyo estructura + Kiosco, el motor de planillas (que lee de
- * rrhh.parametros_ley, ver 20260902000008) queda para un turno aparte.
+ * Entrada de Planilla (B0): sin pantalla propia. Redirige a la primera que
+ * el rol puede abrir (resumen → novedades → vacaciones → préstamos →
+ * liquidaciones → régimen → declaraciones → parámetros → conceptos). Los
+ * KPIs viven en /planillas/resumen para que ningún ítem del menú sea prefijo
+ * de otro (el sidebar marca activo por prefijo).
  *
- * Nexo Enterprise UI (2026-09-07): placeholder historico conservado tal
- * cual (ajuste obligatorio del rediseño) — solo restyle a tema claro.
+ * Sin ninguno de esos permisos muestra el acceso denegado aquí mismo (nunca
+ * redirige a sí misma).
  */
-export default function PlanillasPage() {
+export default async function PlanillasPage() {
+  const permisos = await permisosDe();
+  const destino = primeraPantallaPermitida(permisos);
+  if (destino) redirect(destino);
+
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title="Planillas" />
+    <div className="flex max-w-6xl flex-col gap-6">
+      <PageHeader title="Planilla" />
       <EmptyState
-        title="Motor de planillas — pendiente de construir en un turno aparte"
-        description="Lee de rrhh.parametros_ley y respeta modalidad_contrato."
+        variant="no-access"
+        title="Tu rol no tiene acceso a Planilla"
+        description="Pide los permisos de Planilla a quien administra Nexo."
       />
     </div>
   );

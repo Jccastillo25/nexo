@@ -1,30 +1,37 @@
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
+import { contextoActual } from "@nexo/auth";
 import { EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
-import { P_ASISTENCIA } from "@/lib/permisos-asistencia";
-import { consultarMarcas } from "./actions";
+import type { Database } from "@/lib/supabase/database.types";
+import { permisosAsistencia } from "@/lib/permisos-asistencia";
 import { hoyManagua } from "@/lib/fecha-managua";
+import { leerMarcas } from "./consulta";
 import MarcasClient from "./marcas-client";
 
 export const metadata: Metadata = { title: "Marcas · Asistencia" };
 
+const TITULO = "Marcas";
+const DESCRIPCION = "Entradas, descansos y salidas registradas. Hora de Nicaragua.";
+
 // Movida desde (app)/marcas (2026-10-17) al separar Asistencia de RRHH:
-// mismo contenido y la misma RPC (public.consultar_marcas).
+// mismo contenido y la misma RPC (public.consultar_marcas). El permiso sale de
+// la lista cacheada del request (la misma que pidió el layout): no hay otra
+// consulta de permisos en la carga.
 export default async function MarcasPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-  if (!await hasPermission({ supabase, companyId }, P_ASISTENCIA.marcasVer)) {
-    return <div className="flex flex-col gap-6">
-      <PageHeader title="Marcas" description="Entradas, descansos y salidas registradas. Hora de Nicaragua." />
-      <EmptyState title="No tienes acceso a las marcas" description="Tu rol no permite consultar las marcas. Pide acceso a tu administrador." />
-    </div>;
+  const [{ supabase, companyId }, permisos] = await Promise.all([contextoActual<Database>(), permisosAsistencia()]);
+  if (!permisos.marcasVer) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader title={TITULO} description={DESCRIPCION} />
+        <EmptyState variant="no-access" title="No tienes acceso a las marcas" />
+      </div>
+    );
   }
   const hoy = hoyManagua();
-  const initial = await consultarMarcas({ desde: hoy, hasta: hoy });
-  return <div className="flex flex-col gap-6">
-    <PageHeader title="Marcas" description="Entradas, descansos y salidas registradas. Hora de Nicaragua." />
-    <MarcasClient hoy={hoy} initial={initial} />
-  </div>;
+  const initial = await leerMarcas(supabase, companyId, { desde: hoy, hasta: hoy });
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title={TITULO} description={DESCRIPCION} />
+      <MarcasClient hoy={hoy} initial={initial} />
+    </div>
+  );
 }

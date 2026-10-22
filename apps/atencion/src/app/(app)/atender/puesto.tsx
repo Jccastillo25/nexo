@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useTransition } from "react";
-import { FormSection, useToast } from "@nexo/ui";
+import { Alert, Button, FormSection, useToast } from "@nexo/ui";
 import { llamarTurno, rellamarTurno, terminarTurno } from "../actions";
 import { horaCorta, useCola } from "./use-cola";
 import { useAvisoSonoro } from "./aviso-sonoro";
@@ -11,10 +11,12 @@ import NoSePresentaron from "./no-se-presentaron";
 /**
  * Puesto de atención: llamar al siguiente, repetir el llamado, terminar
  * (atendido / ausente) y, con permiso, llamar a un turno fuera de orden.
+ * Cada botón se muestra solo con su permiso; el servidor vuelve a validarlo.
  */
 export default function Puesto({
   sucursalId,
   puesto,
+  puedeLlamar,
   puedeFueraOrden,
   puedeFinalizar,
   puedeAusente,
@@ -23,6 +25,7 @@ export default function Puesto({
   sucursalId: string;
   puedeReactivar: boolean;
   puesto: string;
+  puedeLlamar: boolean;
   puedeFueraOrden: boolean;
   puedeFinalizar: boolean;
   puedeAusente: boolean;
@@ -113,7 +116,7 @@ export default function Puesto({
                   .filter(Boolean)
                   .join(" · ") || "Sin teléfono ni factura"}
               </p>
-              <p className="mt-1 text-xs text-neutral-400">
+              <p className="mt-1 text-xs text-neutral-500">
                 Llamado {actual.veces_llamado}{" "}
                 {actual.veces_llamado === 1 ? "vez" : "veces"} ·{" "}
                 {horaCorta(actual.llamado_en)}
@@ -143,37 +146,39 @@ export default function Puesto({
               </div>
             </dl>
             <div className="flex flex-wrap justify-center gap-2">
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() =>
-                  ejecutar(
-                    () => rellamarTurno(),
-                    `Turno ${actual.numero} llamado de nuevo.`,
-                  )
-                }
-                className="rounded-md border border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
-              >
-                Repetir llamado
-              </button>
+              {puedeLlamar && (
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  disabled={isPending}
+                  onClick={() =>
+                    ejecutar(
+                      () => rellamarTurno(),
+                      `Turno ${actual.numero} llamado de nuevo.`,
+                    )
+                  }
+                >
+                  Repetir llamado
+                </Button>
+              )}
               {puedeAusente && (
-                <button
-                  type="button"
+                <Button
+                  variant="destructive-outline"
+                  size="lg"
                   disabled={isPending}
                   onClick={() =>
                     ejecutar(
                       () => terminarTurno("ausente"),
-                      `Turno ${actual.numero} marcado ausente.`,
+                      `Turno ${actual.numero} marcado como no presentado.`,
                     )
                   }
-                  className="rounded-md border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
                 >
                   No se presentó
-                </button>
+                </Button>
               )}
               {puedeFinalizar && (
-                <button
-                  type="button"
+                <Button
+                  size="lg"
                   disabled={isPending}
                   onClick={() =>
                     ejecutar(
@@ -181,10 +186,9 @@ export default function Puesto({
                       `Turno ${actual.numero} atendido.`,
                     )
                   }
-                  className="rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
                 >
                   Atendido
-                </button>
+                </Button>
               )}
             </div>
           </>
@@ -195,16 +199,23 @@ export default function Puesto({
                 ? "No hay clientes esperando."
                 : `${esperando.length} en espera.`}
             </p>
-            <button
-              type="button"
-              disabled={isPending || esperando.length === 0}
-              onClick={() =>
-                ejecutar(() => llamarTurno(null), "Turno llamado.")
-              }
-              className="rounded-xl bg-blue-600 px-10 py-5 text-xl font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              Llamar siguiente
-            </button>
+            {puedeLlamar ? (
+              <Button
+                size="lg"
+                className="min-h-14 min-w-56"
+                loading={isPending}
+                disabled={esperando.length === 0}
+                onClick={() =>
+                  ejecutar(() => llamarTurno(null), "Turno llamado.")
+                }
+              >
+                <span className="text-lg">Llamar siguiente</span>
+              </Button>
+            ) : (
+              <p className="text-sm text-neutral-500">
+                Tu rol no permite llamar turnos en este puesto.
+              </p>
+            )}
           </>
         )}
         {ultimo && (
@@ -235,27 +246,23 @@ export default function Puesto({
                 ? "● En vivo"
                 : "○ Reconectando… (se actualiza cada 15 s)"}
             </span>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={aviso.alternar}
               aria-pressed={aviso.activado}
-              className={`rounded-md border px-3 py-1.5 font-semibold ${
-                aviso.activado
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                  : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-              }`}
             >
               {aviso.activado
                 ? "Sonido activado"
                 : "Activar sonido de nuevos clientes"}
-            </button>
+            </Button>
           </div>
           {aviso.activado && aviso.bloqueado && (
             <p className="text-xs text-amber-700">
-              Tocá cualquier parte de la página para habilitar el sonido.
+              Toca cualquier parte de la página para habilitar el sonido.
             </p>
           )}
-          {errorCola && <p className="text-sm text-red-600">{errorCola}</p>}
+          {errorCola && <Alert tone="error">{errorCola}</Alert>}
           {esperando.length === 0 ? (
             <p className="text-sm text-neutral-500">Nadie en espera.</p>
           ) : (
@@ -284,19 +291,20 @@ export default function Puesto({
                     </div>
                   </div>
                   {puedeFueraOrden && !actual && i > 0 && (
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       disabled={isPending}
+                      aria-label={`Llamar ahora el turno ${t.numero}`}
                       onClick={() =>
                         ejecutar(
                           () => llamarTurno(t.id),
                           `Turno ${t.numero} llamado fuera de orden.`,
                         )
                       }
-                      className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
                     >
                       Llamar ahora
-                    </button>
+                    </Button>
                   )}
                 </li>
               ))}

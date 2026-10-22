@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import type { Database } from "@/lib/supabase/database.types";
 
 export interface ActionResult {
   ok: boolean;
@@ -24,8 +24,7 @@ export interface PuestoInput {
  * (mismo patron que rrhh.departamentos/rrhh.jornadas). Sin DELETE expuesto.
  */
 export async function crearPuesto(input: PuestoInput): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.puestos.crear");
@@ -35,7 +34,7 @@ export async function crearPuesto(input: PuestoInput): Promise<ActionResult> {
   }
 
   if (!input.departamentoId) {
-    return { ok: false, message: "Elegí un departamento para este puesto." };
+    return { ok: false, message: "Elige un departamento para este puesto." };
   }
 
   const { error } = await supabase.schema("rrhh").from("puestos").insert({
@@ -60,8 +59,7 @@ export async function editarPuesto(
   puestoId: string,
   input: PuestoInput & { activo: boolean }
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.puestos.editar");
@@ -71,7 +69,7 @@ export async function editarPuesto(
   }
 
   if (!input.departamentoId) {
-    return { ok: false, message: "Elegí un departamento para este puesto." };
+    return { ok: false, message: "Elige un departamento para este puesto." };
   }
 
   const { error } = await supabase
@@ -110,8 +108,7 @@ export async function asignarPlantillaPredeterminada(
   puestoId: string,
   plantillaId: string | null
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.plantillas.editar");

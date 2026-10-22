@@ -1,7 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ConfirmDialog, StatusBadge, useToast } from "@nexo/ui";
+import {
+  Alert,
+  Button,
+  ConfirmDialog,
+  DataTable,
+  EmptyState,
+  Field,
+  Input,
+  StatusBadge,
+  useToast,
+} from "@nexo/ui";
 import {
   crearJornada,
   editarJornada,
@@ -47,6 +57,10 @@ const DIAS = [
   { n: 7, label: "Domingo" },
 ] as const;
 
+function nombreDia(n: number): string {
+  return DIAS.find((x) => x.n === n)?.label ?? "";
+}
+
 function diasCompletos(existentes: JornadaDiaRow[]): DiaInput[] {
   return DIAS.map(({ n }) => {
     const fila = existentes.find((d) => d.dia_semana === n);
@@ -62,14 +76,15 @@ function diasCompletos(existentes: JornadaDiaRow[]): DiaInput[] {
   });
 }
 
-const inputClass =
-  "rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-900 outline-none focus:border-blue-500";
+const CHECKBOX =
+  "size-4 rounded border-neutral-300 text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
 
 /**
  * Nexo Enterprise UI (2026-09-07) §1.11: feedback idle→loading→success de
  * "Guardar días" via useToast, y confirmacion antes de descartar cambios
- * sin guardar en el editor de dias — sin tocar la logica/DB de F1.4 (misma
- * forma de llamar a guardarDiasJornada de siempre).
+ * sin guardar en el editor de dias — sin tocar la logica/DB de F1.4.
+ * 2026-10-20: campos, botones y tabla del kit; confirmación antes de
+ * eliminar una jornada.
  */
 export default function JornadasPanel({
   jornadas,
@@ -85,6 +100,7 @@ export default function JornadasPanel({
   const [dias, setDias] = useState<DiaInput[]>([]);
   const [diasIniciales, setDiasIniciales] = useState<DiaInput[]>([]);
   const [pendingCloseId, setPendingCloseId] = useState<string | null>(null);
+  const [porEliminar, setPorEliminar] = useState<JornadaRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -142,10 +158,13 @@ export default function JornadasPanel({
     });
   }
 
-  function eliminar(id: string) {
+  function confirmarEliminar() {
+    if (!porEliminar) return;
+    const id = porEliminar.id;
     setError(null);
     startTransition(async () => {
       const res = await eliminarJornada(id);
+      setPorEliminar(null);
       if (!res.ok) {
         setError(res.message ?? "No se pudo eliminar la jornada.");
         show(res.message ?? "No se pudo eliminar la jornada.", "error");
@@ -179,201 +198,221 @@ export default function JornadasPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-neutral-900">Jornadas</h2>
-        {canCrear && !showForm && (
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            + Nueva jornada
-          </button>
-        )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-neutral-900">Plantillas de jornada</h2>
+        {canCrear && !showForm ? (
+          <Button variant="secondary" onClick={() => setShowForm(true)}>
+            Nueva jornada
+          </Button>
+        ) : null}
       </div>
 
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
-      {showForm && (
-        <form onSubmit={crear} className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-5">
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Nombre</span>
-            <input
-              required
-              value={nuevo.nombre}
-              onChange={(e) => setNuevo((n) => ({ ...n, nombre: e.target.value }))}
-              placeholder="ej. Administrativo 8-17"
-              className={inputClass}
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Descripción (opcional)</span>
-            <input
-              value={nuevo.descripcion}
-              onChange={(e) => setNuevo((n) => ({ ...n, descripcion: e.target.value }))}
-              className={inputClass}
-            />
-          </label>
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              Crear
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="text-sm text-neutral-500 hover:text-neutral-900"
-            >
+      {showForm ? (
+        <form
+          onSubmit={crear}
+          className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs"
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Nombre" required>
+              <Input
+                required
+                value={nuevo.nombre}
+                onChange={(e) => setNuevo((n) => ({ ...n, nombre: e.target.value }))}
+                placeholder="Ej.: Administrativo 8-17"
+              />
+            </Field>
+            <Field label="Descripción" optional>
+              <Input
+                value={nuevo.descripcion}
+                onChange={(e) => setNuevo((n) => ({ ...n, descripcion: e.target.value }))}
+              />
+            </Field>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" onClick={() => setShowForm(false)} disabled={isPending}>
               Cancelar
-            </button>
+            </Button>
+            <Button type="submit" loading={isPending}>
+              Crear jornada
+            </Button>
           </div>
         </form>
-      )}
+      ) : null}
 
       <div className="flex flex-col gap-3">
-        {jornadas.length === 0 && (
-          <p className="rounded-xl border border-neutral-200 bg-white px-4 py-6 text-center text-sm text-neutral-400">
-            Todavía no hay jornadas creadas. Sin al menos una, no se puede activar ningún contrato nuevo.
-          </p>
-        )}
+        {jornadas.length === 0 ? (
+          <EmptyState
+            title="Todavía no hay jornadas"
+            description="Sin al menos una jornada no se puede activar ningún contrato nuevo."
+          />
+        ) : null}
 
         {jornadas.map((j) => (
-          <div key={j.id} className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="font-medium text-neutral-900">{j.nombre}</span>
-                {j.descripcion && <span className="ml-2 text-sm text-neutral-400">{j.descripcion}</span>}
+          <div key={j.id} className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4 shadow-xs">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-medium text-neutral-900">{j.nombre}</p>
+                {j.descripcion ? <p className="text-sm text-neutral-500">{j.descripcion}</p> : null}
               </div>
-              <StatusBadge label={j.activo ? "activa" : "inactiva"} tone={j.activo ? "positive" : "neutral"} />
+              <StatusBadge label={j.activo ? "Activa" : "Inactiva"} tone={j.activo ? "positive" : "neutral"} />
             </div>
 
-            <div className="flex items-center gap-3 text-sm">
-              {canEditar && (
-                <button type="button" onClick={() => abrirDias(j)} className="text-neutral-500 hover:text-neutral-900">
-                  {expandedId === j.id ? "Ocultar días" : "Días y horarios"}
-                </button>
-              )}
-              {canEditar && (
-                <button type="button" onClick={() => toggleActivo(j)} className="text-neutral-500 hover:text-neutral-900">
-                  {j.activo ? "Desactivar" : "Activar"}
-                </button>
-              )}
-              {canEliminar && (
-                <button type="button" onClick={() => eliminar(j.id)} className="text-red-500 hover:text-red-700">
-                  Eliminar
-                </button>
-              )}
-            </div>
-
-            {expandedId === j.id && (
-              <div className="flex flex-col gap-2 border-t border-neutral-100 pt-3">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[640px] text-sm">
-                    <thead>
-                      <tr className="text-left text-neutral-400">
-                        <th className="py-1 pr-2">Día</th>
-                        <th className="px-2">Laborable</th>
-                        <th className="px-2">Entrada</th>
-                        <th className="px-2">Salida</th>
-                        <th className="px-2">Descanso (min)</th>
-                        <th className="px-2">Tol. entrada</th>
-                        <th className="px-2">Tol. salida</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dias.map((d) => {
-                        const label = DIAS.find((x) => x.n === d.diaSemana)?.label;
-                        return (
-                          <tr key={d.diaSemana} className="text-neutral-700">
-                            <td className="py-1 pr-2">{label}</td>
-                            <td className="px-2">
-                              <input
-                                type="checkbox"
-                                checked={d.laborable}
-                                onChange={(e) => updateDia(d.diaSemana, { laborable: e.target.checked })}
-                              />
-                            </td>
-                            <td className="px-2">
-                              <input
-                                type="time"
-                                disabled={!d.laborable}
-                                value={d.horaEntrada}
-                                onChange={(e) => updateDia(d.diaSemana, { horaEntrada: e.target.value })}
-                                className={`${inputClass} disabled:opacity-40`}
-                              />
-                            </td>
-                            <td className="px-2">
-                              <input
-                                type="time"
-                                disabled={!d.laborable}
-                                value={d.horaSalida}
-                                onChange={(e) => updateDia(d.diaSemana, { horaSalida: e.target.value })}
-                                className={`${inputClass} disabled:opacity-40`}
-                              />
-                            </td>
-                            <td className="px-2">
-                              <input
-                                type="number"
-                                min={0}
-                                disabled={!d.laborable}
-                                value={d.minutosDescanso}
-                                onChange={(e) => updateDia(d.diaSemana, { minutosDescanso: Number(e.target.value) })}
-                                className={`${inputClass} w-20 disabled:opacity-40`}
-                              />
-                            </td>
-                            <td className="px-2">
-                              <input
-                                type="number"
-                                min={0}
-                                disabled={!d.laborable}
-                                value={d.toleranciaEntradaMin}
-                                onChange={(e) =>
-                                  updateDia(d.diaSemana, { toleranciaEntradaMin: Number(e.target.value) })
-                                }
-                                className={`${inputClass} w-20 disabled:opacity-40`}
-                              />
-                            </td>
-                            <td className="px-2">
-                              <input
-                                type="number"
-                                min={0}
-                                disabled={!d.laborable}
-                                value={d.toleranciaSalidaMin}
-                                onChange={(e) =>
-                                  updateDia(d.diaSemana, { toleranciaSalidaMin: Number(e.target.value) })
-                                }
-                                className={`${inputClass} w-20 disabled:opacity-40`}
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    disabled={isPending}
+            {canEditar || canEliminar ? (
+              <div className="flex flex-wrap items-center gap-1">
+                {canEditar ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => abrirDias(j)}
-                    className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 disabled:opacity-50"
+                    aria-expanded={expandedId === j.id}
                   >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
+                    {expandedId === j.id ? "Ocultar días" : "Días y horarios"}
+                  </Button>
+                ) : null}
+                {canEditar ? (
+                  <Button variant="ghost" size="sm" disabled={isPending} onClick={() => toggleActivo(j)}>
+                    {j.activo ? "Desactivar" : "Activar"}
+                  </Button>
+                ) : null}
+                {canEliminar ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     disabled={isPending}
-                    onClick={guardarDias}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                    onClick={() => setPorEliminar(j)}
+                    aria-label={`Eliminar la jornada ${j.nombre}`}
                   >
+                    Eliminar
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+
+            {expandedId === j.id ? (
+              <div className="flex flex-col gap-3 border-t border-neutral-100 pt-3">
+                <DataTable
+                  rows={dias}
+                  rowKey={(d) => String(d.diaSemana)}
+                  density="compact"
+                  caption={`Días y horarios de ${j.nombre}`}
+                  columns={[
+                    {
+                      key: "dia",
+                      header: "Día",
+                      render: (d) => <span className="font-medium text-neutral-900">{nombreDia(d.diaSemana)}</span>,
+                    },
+                    {
+                      key: "laborable",
+                      header: "Laborable",
+                      render: (d) => (
+                        <input
+                          type="checkbox"
+                          checked={d.laborable}
+                          onChange={(e) => updateDia(d.diaSemana, { laborable: e.target.checked })}
+                          aria-label={`${nombreDia(d.diaSemana)} es laborable`}
+                          className={CHECKBOX}
+                        />
+                      ),
+                    },
+                    {
+                      key: "entrada",
+                      header: "Entrada",
+                      render: (d) => (
+                        <div className="w-32">
+                          <Input
+                            type="time"
+                            disabled={!d.laborable}
+                            value={d.horaEntrada}
+                            onChange={(e) => updateDia(d.diaSemana, { horaEntrada: e.target.value })}
+                            aria-label={`Hora de entrada del ${nombreDia(d.diaSemana).toLowerCase()}`}
+                          />
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "salida",
+                      header: "Salida",
+                      render: (d) => (
+                        <div className="w-32">
+                          <Input
+                            type="time"
+                            disabled={!d.laborable}
+                            value={d.horaSalida}
+                            onChange={(e) => updateDia(d.diaSemana, { horaSalida: e.target.value })}
+                            aria-label={`Hora de salida del ${nombreDia(d.diaSemana).toLowerCase()}`}
+                          />
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "descanso",
+                      header: "Descanso (min)",
+                      render: (d) => (
+                        <div className="w-24">
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            disabled={!d.laborable}
+                            value={d.minutosDescanso}
+                            onChange={(e) => updateDia(d.diaSemana, { minutosDescanso: Number(e.target.value) })}
+                            aria-label={`Minutos de descanso del ${nombreDia(d.diaSemana).toLowerCase()}`}
+                          />
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "tolEntrada",
+                      header: "Tolerancia de entrada (min)",
+                      render: (d) => (
+                        <div className="w-24">
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            disabled={!d.laborable}
+                            value={d.toleranciaEntradaMin}
+                            onChange={(e) =>
+                              updateDia(d.diaSemana, { toleranciaEntradaMin: Number(e.target.value) })
+                            }
+                            aria-label={`Tolerancia de entrada del ${nombreDia(d.diaSemana).toLowerCase()}, en minutos`}
+                          />
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "tolSalida",
+                      header: "Tolerancia de salida (min)",
+                      render: (d) => (
+                        <div className="w-24">
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            disabled={!d.laborable}
+                            value={d.toleranciaSalidaMin}
+                            onChange={(e) =>
+                              updateDia(d.diaSemana, { toleranciaSalidaMin: Number(e.target.value) })
+                            }
+                            aria-label={`Tolerancia de salida del ${nombreDia(d.diaSemana).toLowerCase()}, en minutos`}
+                          />
+                        </div>
+                      ),
+                    },
+                  ]}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="ghost" disabled={isPending} onClick={() => abrirDias(j)}>
+                    Cancelar
+                  </Button>
+                  <Button loading={isPending} onClick={guardarDias}>
                     {isPending ? "Guardando…" : "Guardar días"}
-                  </button>
+                  </Button>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         ))}
       </div>
@@ -381,12 +420,26 @@ export default function JornadasPanel({
       <ConfirmDialog
         open={pendingCloseId !== null}
         title="Tienes cambios sin guardar"
-        description="Si cerrás el editor ahora, se pierden los cambios de días y horarios que no guardaste."
+        description="Si cierras el editor ahora, se pierden los cambios de días y horarios que no guardaste."
         confirmLabel="Descartar cambios"
         cancelLabel="Seguir editando"
         destructive
         onConfirm={descartarYCerrar}
         onCancel={() => setPendingCloseId(null)}
+      />
+      <ConfirmDialog
+        open={porEliminar !== null}
+        title="Eliminar jornada"
+        description={
+          porEliminar
+            ? `¿Eliminar la jornada «${porEliminar.nombre}»? Si ya se asignó a un contrato no se puede eliminar; en ese caso, desactívala.`
+            : undefined
+        }
+        confirmLabel="Eliminar jornada"
+        destructive
+        pending={isPending}
+        onConfirm={confirmarEliminar}
+        onCancel={() => setPorEliminar(null)}
       />
     </div>
   );
