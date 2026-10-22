@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { hasPermission } from "@nexo/permissions";
+import { contextoActual } from "@nexo/auth";
 import { EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import type { Database } from "@/lib/supabase/database.types";
+import { permisosDe } from "@/lib/permisos-rrhh";
 import EditarEmpleadoForm from "./editar-empleado-form";
 
 export const metadata: Metadata = {
   title: "Editar expediente · RRHH",
 };
 
+const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * P3 (reconciliación de navegación 2026-09-14, ver docs/status-log/):
  * edición real del Expediente General — ruta separada de la ficha de
- * solo lectura (/expedientes/[id]), que antes "Editar" reutilizaba sin
- * ninguna funcionalidad real. Solo permite editar los campos del
+ * solo lectura (/expedientes/[id]). Solo permite editar los campos del
  * Expediente General (nombre/apellido/documento/email/teléfono) — nunca
  * datos contractuales.
  */
@@ -24,11 +25,11 @@ export default async function EditarExpedientePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  if (!ES_UUID.test(id)) notFound();
 
-  const [canEditar, empleadoResult] = await Promise.all([
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.empleados.editar"),
+  const { supabase, companyId } = await contextoActual<Database>();
+  const [permisos, empleadoResult] = await Promise.all([
+    permisosDe(),
     supabase
       .schema("rrhh")
       .from("empleados")
@@ -38,26 +39,32 @@ export default async function EditarExpedientePage({
       .maybeSingle(),
   ]);
 
-  if (!canEditar) {
+  if (!permisos.empleadosEditar) {
     return (
-      <EmptyState
-        title="Sin permiso para editar este expediente"
-        description="No tenés el permiso rrhh.expedientes.empleados.editar para esta empresa."
-      />
+      <div className="flex max-w-3xl flex-col gap-6">
+        <PageHeader title="Editar expediente" back={{ href: `/expedientes/${id}`, label: "Expediente" }} />
+        <EmptyState variant="no-access" title="No tienes acceso a editar este expediente" />
+      </div>
     );
   }
 
   const { data: empleado, error } = empleadoResult;
   if (error) {
-    throw new Error(`No se pudo cargar el expediente: ${error.message}`);
+    // El detalle va al log del servidor; error.tsx muestra solo la referencia.
+    console.error("editar expediente: empleado", error);
+    throw new Error("No se pudo cargar el expediente.");
   }
   if (!empleado) {
     notFound();
   }
 
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
-      <PageHeader title={`Editar — ${empleado.nombre} ${empleado.apellido}`} />
+    <div className="flex max-w-3xl flex-col gap-6">
+      <PageHeader
+        title={`Editar: ${empleado.nombre} ${empleado.apellido}`}
+        description="Datos personales del expediente general."
+        back={{ href: `/expedientes/${id}`, label: "Expediente" }}
+      />
       <EditarEmpleadoForm empleado={empleado} />
     </div>
   );

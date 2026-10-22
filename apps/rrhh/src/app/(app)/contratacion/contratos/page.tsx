@@ -1,18 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { hasPermission } from "@nexo/permissions";
-import { DataTable, EmptyState, PageHeader, RowActionIcons, StatusBadge, type StatusTone } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import { ButtonLink, DataTable, EmptyState, NexoIcon, PageHeader, StatusBadge, fechaCorta } from "@nexo/ui";
+import type { Database } from "@/lib/supabase/database.types";
+import { permisosDe } from "@/lib/permisos-rrhh";
+import { ESTADO_CONTRATO, type EstadoContrato } from "@/lib/contratos";
+import { FiltroEstadoContratos } from "./filtro-estado";
 
 export const metadata: Metadata = {
   title: "Contratos · RRHH",
 };
 
+/** `?estado=` válido o null: cualquier otro valor se ignora (lista completa). */
+function leerEstado(valor: string | string[] | undefined): EstadoContrato | null {
+  return typeof valor === "string" && Object.keys(ESTADO_CONTRATO).includes(valor) ? (valor as EstadoContrato) : null;
+}
+
 interface ContratoListRow {
   id: string;
   numero_contrato: number;
-  estado: "borrador" | "activo" | "finalizado";
+  estado: EstadoContrato;
   fecha_inicio: string | null;
   empleado_id: string;
   empleados: { nombre: string; apellido: string } | null;
@@ -20,58 +27,58 @@ interface ContratoListRow {
   departamentos: { nombre: string } | null;
 }
 
-const ESTADO_TONE: Record<ContratoListRow["estado"], StatusTone> = {
-  borrador: "warning",
-  activo: "positive",
-  finalizado: "neutral",
-};
-
 /**
  * Listado de rrhh.contratos de TODOS los empleados (Contratación →
- * Contratos). Columna "Acciones" (👁 Ver contrato / ✎ Editar, solo en
- * borrador) separa explícitamente "ver la ficha del contrato" (ojo,
- * siempre) de "ir al expediente del empleado" (click en el nombre).
+ * Contratos). Toda la fila abre la ficha del contrato (rowHref; el "N.º" es
+ * el enlace con foco de teclado). El nombre del empleado conserva su propio
+ * enlace al expediente.
  *
  * P2 (reconciliación de navegación 2026-09-14, ver docs/status-log/):
- * Contratación absorbe TODO el ciclo contractual — "+ Nuevo contrato"
- * (/contratacion/contratos/nuevo, selecciona un empleado existente) y la
- * ficha de cada contrato (/contratacion/contratos/[id], ciclo completo
- * crear→editar→jornada→activar→PIN→finalizar) — el expediente del
- * empleado (/expedientes/[id]) ya no tiene ningún dato ni acción
- * contractual.
+ * Contratación absorbe TODO el ciclo contractual — "Nuevo contrato"
+ * (/contratacion/contratos/nuevo) y la ficha de cada contrato
+ * (/contratacion/contratos/[id], ciclo completo
+ * crear→editar→jornada→activar→PIN→finalizar).
+ *
+ * Filtro por estado en la URL (`?estado=borrador|activo|finalizado`): los
+ * KPI del Dashboard de RRHH enlazan a la lista filtrada que cuentan.
  */
-export default async function ContratosListPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+export default async function ContratosListPage({ searchParams }: PageProps<"/contratacion/contratos">) {
+  const [{ supabase, companyId }, params] = await Promise.all([contextoActual<Database>(), searchParams]);
+  const estado = leerEstado(params.estado);
 
-  const [canVer, canEditar, canCrear] = await Promise.all([
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.ver"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar"),
-    hasPermission({ supabase, companyId }, "rrhh.expedientes.contratos.crear"),
-  ]);
-  if (!canVer) {
-    return (
-      <EmptyState
-        title="Sin permiso para ver contratos"
-        description="No tenés el permiso rrhh.expedientes.contratos.ver para esta empresa."
-      />
-    );
-  }
-
-  const { data, error } = await supabase
+  let consulta = supabase
     .schema("rrhh")
     .from("contratos")
     .select(
       "id, numero_contrato, estado, fecha_inicio, empleado_id, empleados!contratos_empleado_id_fkey(nombre, apellido), puestos!contratos_puesto_id_fkey(nombre), departamentos!contratos_departamento_id_fkey(nombre)"
     )
-    .eq("company_id", companyId)
-    .order("numero_contrato", { ascending: false });
+    .eq("company_id", companyId);
+  if (estado) consulta = consulta.eq("estado", estado);
 
-  if (error) {
-    throw new Error(`No se pudo cargar el listado de contratos: ${error.message}`);
+  // Contratos en paralelo con los permisos (la RLS los protege igual); se
+  // descartan si no hay permiso de verlos.
+  const [permisos, contratosRes] = await Promise.all([
+    permisosDe(),
+    consulta.order("numero_contrato", { ascending: false }),
+  ]);
+
+  if (!permisos.contratosVer) {
+    return (
+      <div className="flex flex-col gap-4">
+        <PageHeader title="Contratos" />
+        <EmptyState variant="no-access" title="No tienes acceso a los contratos" />
+      </div>
+    );
   }
 
-  const rows = (data ?? []) as unknown as ContratoListRow[];
+  if (contratosRes.error) {
+    // El detalle va al log del servidor; error.tsx muestra solo la referencia.
+    console.error("contratos: listado", contratosRes.error);
+    throw new Error("No se pudo cargar el listado de contratos.");
+  }
+
+  const rows = (contratosRes.data ?? []) as unknown as ContratoListRow[];
+  const puedeCrear = permisos.contratosCrear;
 
   return (
     <div className="flex flex-col gap-4">
@@ -79,70 +86,84 @@ export default async function ContratosListPage() {
         title="Contratos"
         description="Todos los contratos registrados, de todos los empleados."
         actions={
-          canCrear && (
-            <Link
-              href="/contratacion/contratos/nuevo"
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-            >
-              + Nuevo contrato
-            </Link>
-          )
+          puedeCrear ? (
+            <ButtonLink href="/contratacion/contratos/nuevo" icon={<NexoIcon name="file" />}>
+              Nuevo contrato
+            </ButtonLink>
+          ) : null
         }
       />
 
       <DataTable
         rows={rows}
         rowKey={(c) => c.id}
-        emptyLabel="Todavía no hay contratos registrados."
+        rowHref={(c) => `/contratacion/contratos/${c.id}`}
+        caption={estado ? `Contratos de la empresa en estado ${ESTADO_CONTRATO[estado].label.toLowerCase()}` : "Contratos de la empresa"}
+        toolbar={<FiltroEstadoContratos estado={estado} />}
+        empty={
+          estado ? (
+            <EmptyState
+              bare
+              variant="no-results"
+              title={`No hay contratos en estado ${ESTADO_CONTRATO[estado].label.toLowerCase()}`}
+              description="Elige otro estado o quita el filtro para ver todos los contratos."
+              action={
+                <ButtonLink href="/contratacion/contratos" variant="secondary">
+                  Quitar filtro
+                </ButtonLink>
+              }
+            />
+          ) : (
+            <EmptyState
+              bare
+              title="Todavía no hay contratos"
+              description="Crea el primer contrato a partir de un expediente existente."
+              action={
+                puedeCrear ? (
+                  <ButtonLink href="/contratacion/contratos/nuevo" variant="secondary">
+                    Nuevo contrato
+                  </ButtonLink>
+                ) : null
+              }
+            />
+          )
+        }
         columns={[
           {
             key: "numero",
-            header: "#",
-            render: (c) => <span className="font-mono text-neutral-500">{c.numero_contrato}</span>,
+            header: "N.º",
+            numeric: true,
+            width: "5rem",
+            render: (c) => (
+              <span className="tabular-nums">
+                <span className="sr-only">Contrato </span>
+                {c.numero_contrato}
+              </span>
+            ),
           },
           {
             key: "empleado",
             header: "Empleado",
-            render: (c) => (
-              <Link href={`/expedientes/${c.empleado_id}`} className="font-medium text-neutral-900 hover:underline">
-                {c.empleados ? `${c.empleados.nombre} ${c.empleados.apellido}` : "—"}
-              </Link>
-            ),
+            render: (c) =>
+              c.empleados ? (
+                <Link
+                  href={`/expedientes/${c.empleado_id}`}
+                  className="rounded-sm font-medium text-neutral-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                >
+                  {c.empleados.nombre} {c.empleados.apellido}
+                </Link>
+              ) : (
+                "—"
+              ),
           },
           { key: "puesto", header: "Puesto", render: (c) => c.puestos?.nombre ?? "—" },
           { key: "departamento", header: "Departamento", render: (c) => c.departamentos?.nombre ?? "—" },
-          { key: "inicio", header: "Inicio", render: (c) => c.fecha_inicio ?? "—" },
+          { key: "inicio", header: "Inicio", render: (c) => <span className="tabular-nums">{fechaCorta(c.fecha_inicio)}</span> },
           {
             key: "estado",
             header: "Estado",
-            render: (c) => <StatusBadge label={c.estado} tone={ESTADO_TONE[c.estado]} />,
-          },
-          {
-            key: "acciones",
-            header: "Acciones",
-            align: "right",
             render: (c) => (
-              <RowActionIcons
-                actions={[
-                  {
-                    key: "ver",
-                    icon: "eye",
-                    label: "Ver contrato",
-                    href: `/contratacion/contratos/${c.id}`,
-                  },
-                  {
-                    key: "editar",
-                    icon: "pencil",
-                    label: "Editar",
-                    href: `/contratacion/contratos/${c.id}`,
-                    disabled: !canEditar || c.estado !== "borrador",
-                    disabledReason:
-                      c.estado !== "borrador"
-                        ? "Solo se puede editar un contrato en borrador."
-                        : "Editar",
-                  },
-                ]}
-              />
+              <StatusBadge label={ESTADO_CONTRATO[c.estado].label} tone={ESTADO_CONTRATO[c.estado].tone} />
             ),
           },
         ]}

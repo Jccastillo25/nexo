@@ -1,16 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { contextoActual } from "@nexo/auth";
 import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
 import { P } from "@/lib/permisos";
 import type { FilaExportada, FilaImportacion } from "@/lib/importacion";
 import type { Resultado, ResultadoImportacion } from "@/lib/tipos";
 
 async function contexto(codigos: string[]) {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual();
   try {
     for (const code of codigos) await requirePermission({ supabase, companyId }, code);
   } catch (err) {

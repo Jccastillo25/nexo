@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
 import { EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import { permisosDe } from "@/lib/permisos";
+import type { Database } from "@/lib/supabase/database.types";
 import UsuarioForm from "../usuario-form";
 
 export const metadata: Metadata = {
@@ -10,18 +10,13 @@ export const metadata: Metadata = {
 };
 
 export default async function NuevoUsuarioPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const [{ supabase, companyId }, permisos] = await Promise.all([contextoActual<Database>(), permisosDe()]);
 
-  const canCreate = await hasPermission({ supabase, companyId }, "nexo.administracion.usuarios.crear");
-  if (!canCreate) {
+  if (!permisos.usuariosCrear) {
     return (
       <div className="flex max-w-3xl flex-col gap-6">
         <PageHeader title="Nuevo usuario" />
-        <EmptyState
-          title="Sin permiso para crear usuarios"
-          description="Tu cuenta no tiene el permiso nexo.administracion.usuarios.crear para esta empresa."
-        />
+        <EmptyState variant="no-access" title="No tienes acceso a la creación de usuarios" />
       </div>
     );
   }
@@ -35,7 +30,10 @@ export default async function NuevoUsuarioPage() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <PageHeader title="Nuevo usuario" description="La contraseña la ponés vos; el usuario la cambia en su primer ingreso." />
+      <PageHeader
+        title="Nuevo usuario"
+        description="Tú pones la contraseña temporal; el usuario la cambia en su primer ingreso."
+      />
       <UsuarioForm
         roles={(roles ?? []).filter((r) => r.activo).map((r) => ({ id: r.id, nombre: r.nombre }))}
         sucursales={sucError ? null : (sucursales ?? []).filter((s) => s.activa).map((s) => ({ id: s.id, nombre: s.nombre }))}

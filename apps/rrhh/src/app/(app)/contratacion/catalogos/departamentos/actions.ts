@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import type { Database } from "@/lib/supabase/database.types";
 
 export interface ActionResult {
   ok: boolean;
@@ -23,8 +23,7 @@ export interface DepartamentoInput {
  * activa/desactiva, mismo criterio que empleados/contratos.
  */
 export async function crearDepartamento(input: DepartamentoInput): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.departamentos.crear");
@@ -54,8 +53,7 @@ export async function editarDepartamento(
   departamentoId: string,
   input: DepartamentoInput & { activo: boolean }
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.departamentos.editar");

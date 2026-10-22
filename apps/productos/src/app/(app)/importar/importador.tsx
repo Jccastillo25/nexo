@@ -2,7 +2,18 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FormSection, MetricCard, StatusBadge, useToast } from "@nexo/ui";
+import {
+  Alert,
+  Button,
+  DataTable,
+  FormSection,
+  MetricCard,
+  StatusBadge,
+  entero,
+  useToast,
+  type DataTableColumn,
+} from "@nexo/ui";
+import { fechaIsoManagua } from "@/lib/formato";
 import {
   COLUMNAS_ERP,
   detectar,
@@ -23,6 +34,9 @@ interface Archivo {
   fila: number;
 }
 
+/** Acción en curso: solo su botón muestra el indicador de carga. */
+type Accion = "revisar" | "confirmar" | "exportar";
+
 // Reglas de limpieza de lib/importacion.ts, con ejemplos reales de los Excel del ERP (plan 14 §4).
 const LIMPIEZA: [string, string][] = [
   ["Código con espacio al inicio (\" 001001021\")", "Lo guarda como 001001021"],
@@ -32,6 +46,11 @@ const LIMPIEZA: [string, string][] = [
   ["Costo de relleno (C$ 1.00 o vacío)", "Usa el costo real del Consolidado de productos"],
   ["Producto sin clase, tipo ni categoría", "Lo importa igual y queda en “Para revisar”"],
   ["ID del producto del ERP", "Lo conserva como ID de Nexo; los nuevos siguen desde el más alto + 1"],
+];
+
+const COLUMNAS_LIMPIEZA: DataTableColumn<[string, string]>[] = [
+  { key: "excel", header: "Lo que trae el Excel", render: ([excel]) => excel },
+  { key: "nexo", header: "Lo que hace Nexo", render: ([, nexo]) => nexo },
 ];
 
 const NOMBRES_CATALOGO: Record<keyof ResultadoImportacion["catalogos_nuevos"], string> = {
@@ -66,7 +85,9 @@ export default function Importador({ puedeImportar, puedeExportar }: { puedeImpo
   const [previa, setPrevia] = useState<ResultadoImportacion | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [leyendo, setLeyendo] = useState(false);
+  const [accion, setAccion] = useState<Accion | null>(null);
   const [isPending, startTransition] = useTransition();
+  const cargando = (a: Accion) => isPending && accion === a;
 
   async function elegir(lista: FileList | null) {
     if (!lista?.length) return;
@@ -81,7 +102,7 @@ export default function Importador({ puedeImportar, puedeExportar }: { puedeImpo
       if (!plantilla) {
         setFilas([]);
         setAvisos([]);
-        setError("No encontré la plantilla de importación del ERP (la que tiene “Nombre del Producto / Servicio”).");
+        setError("No se encontró la plantilla de importación del ERP (la que tiene “Nombre del Producto / Servicio”).");
         return;
       }
       const costos = consolidado ? leerConsolidado(consolidado.hoja, consolidado.fila) : null;
@@ -89,7 +110,9 @@ export default function Importador({ puedeImportar, puedeExportar }: { puedeImpo
       setFilas(r.filas);
       setAvisos(r.avisos);
     } catch (e) {
-      setError(`No se pudo leer el archivo: ${e instanceof Error ? e.message : String(e)}`);
+      // El detalle del lector de Excel queda en la consola, no en pantalla.
+      console.error("leer Excel", e);
+      setError("No se pudo leer el archivo. Comprueba que sea un .xlsx exportado del ERP y vuelve a elegirlo.");
     } finally {
       setLeyendo(false);
     }
@@ -97,6 +120,7 @@ export default function Importador({ puedeImportar, puedeExportar }: { puedeImpo
 
   function revisar(confirmar: boolean) {
     setError(null);
+    setAccion(confirmar ? "confirmar" : "revisar");
     startTransition(async () => {
       const res = await importarProductos(filas, confirmar);
       if (!res.ok || !res.data) {
@@ -113,6 +137,7 @@ export default function Importador({ puedeImportar, puedeExportar }: { puedeImpo
 
   function exportar() {
     setError(null);
+    setAccion("exportar");
     startTransition(async () => {
       const res = await exportarProductos();
       if (!res.ok || !res.data) {
@@ -124,7 +149,8 @@ export default function Importador({ puedeImportar, puedeExportar }: { puedeImpo
         COLUMNAS_ERP.map((h) => ({ value: h, fontWeight: "bold" as const })),
         ...res.data.map((p) => filaErp(p).map((v) => (v === null ? null : { value: v }))),
       ];
-      await writeXlsxFile(datos, { sheet: "Productos" }).toFile(`Productos_Nexo_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      // Fecha de Managua: después de las 6 p. m. la UTC ya marca el día siguiente.
+      await writeXlsxFile(datos, { sheet: "Productos" }).toFile(`Productos_Nexo_${fechaIsoManagua()}.xlsx`);
       show(`Exportados ${res.data.length} productos.`, "success");
     });
   }
@@ -143,12 +169,16 @@ export default function Importador({ puedeImportar, puedeExportar }: { puedeImpo
           title="1. Archivos del ERP"
           description="Elige la plantilla de importación de productos y, si lo tienes, el Consolidado de productos (de ahí sale el costo real). Se cruzan por código."
         >
-          <label className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-600 hover:border-blue-400 hover:bg-blue-50/40">
+          <label className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-600 transition-colors hover:border-blue-400 hover:bg-blue-50/40 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-blue-600">
             <span className="font-semibold text-blue-700">Elegir archivos .xlsx</span>
             <span className="text-xs text-neutral-500">Puedes elegir los dos a la vez. Nada se guarda hasta que confirmes.</span>
             <input type="file" accept=".xlsx" multiple className="sr-only" onChange={(e) => elegir(e.target.files)} />
           </label>
-          {leyendo && <p className="text-sm text-neutral-500">Leyendo archivos…</p>}
+          {leyendo ? (
+            <p role="status" className="text-sm text-neutral-500">
+              Leyendo archivos…
+            </p>
+          ) : null}
           {archivos.length > 0 && (
             <ul className="flex flex-col gap-2">
               {archivos.map((a) => (
@@ -162,45 +192,35 @@ export default function Importador({ puedeImportar, puedeExportar }: { puedeImpo
             </ul>
           )}
           {archivos.length === 0 && (
-            <div className="overflow-x-auto rounded-lg border border-neutral-200">
-              <table className="w-full text-sm">
-                <thead className="bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  <tr>
-                    <th className="px-3 py-2">Lo que trae el Excel</th>
-                    <th className="px-3 py-2">Lo que hace Nexo</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100 text-neutral-700">
-                  {LIMPIEZA.map(([excel, nexo]) => (
-                    <tr key={excel}>
-                      <td className="px-3 py-2">{excel}</td>
-                      <td className="px-3 py-2">{nexo}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              caption="Limpieza que aplica Nexo al importar"
+              density="compact"
+              columns={COLUMNAS_LIMPIEZA}
+              rows={LIMPIEZA}
+              rowKey={([excel]) => excel}
+            />
           )}
         </FormSection>
       ) : (
-        <p className="rounded-md bg-neutral-200/60 px-3 py-2 text-sm text-neutral-700">
-          Importar requiere “Importar productos”, “Editar costo” y “Editar datos fiscales”: la importación escribe todos esos datos.
-        </p>
+        <Alert tone="info" title="Tu rol solo permite exportar">
+          Importar requiere los permisos “Importar productos”, “Editar costo” y “Editar datos fiscales”, porque la
+          importación escribe todos esos datos. Si los necesitas, pídelos a quien administra Nexo en tu empresa.
+        </Alert>
       )}
 
       {plantilla && filas.length > 0 && (
         <FormSection title="2. Lo que se leyó" description="Antes de tocar la base: limpieza aplicada y avisos para revisar después.">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <MetricCard label="Productos en la plantilla" value={filas.length} />
-            <MetricCard label="Con ID del ERP" value={conId} hint="Conservan ese ID en Nexo" />
+            <MetricCard label="Productos en la plantilla" value={entero(filas.length)} />
+            <MetricCard label="Con ID del ERP" value={entero(conId)} hint="Conservan ese ID en Nexo" />
             <MetricCard label="Costo del consolidado" value={consolidado ? "Sí" : "No"} tone={consolidado ? "positive" : "warning"} hint={consolidado ? consolidado.nombre : "Se usará el costo de la plantilla"} />
           </div>
           {avisosAgrupados.length > 0 && (
             <div className="flex flex-col gap-2">
               {avisosAgrupados.map(([mensaje, lista]) => (
                 <details key={mensaje} className="rounded-lg border border-neutral-200 px-3 py-2 text-sm">
-                  <summary className="cursor-pointer">
-                    <span className="mr-2 inline-block min-w-8 rounded bg-amber-50 px-1.5 text-center font-semibold tabular-nums text-amber-700">{lista.length}</span>
+                  <summary className="cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                    <StatusBadge label={entero(lista.length)} tone="warning" dot={false} className="mr-2 min-w-8 justify-center tabular-nums" />
                     {mensaje}
                   </summary>
                   <ul className="mt-2 max-h-48 overflow-y-auto text-xs text-neutral-600">
@@ -215,10 +235,9 @@ export default function Importador({ puedeImportar, puedeExportar }: { puedeImpo
             </div>
           )}
           <div>
-            <button type="button" onClick={() => revisar(false)} disabled={isPending}
-              className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60">
-              {isPending ? "Revisando…" : "Revisar en la base (vista previa)"}
-            </button>
+            <Button variant="secondary" onClick={() => revisar(false)} disabled={isPending} loading={cargando("revisar")}>
+              {cargando("revisar") ? "Revisando…" : "Revisar en la base (vista previa)"}
+            </Button>
           </div>
         </FormSection>
       )}
@@ -229,42 +248,46 @@ export default function Importador({ puedeImportar, puedeExportar }: { puedeImpo
           description={previa.confirmado ? "Los productos ya están en el catálogo." : "Esto es exactamente lo que pasaría. Todavía no se guardó nada."}
         >
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <MetricCard label="Nuevos" value={previa.creados} tone="positive" />
-            <MetricCard label="Actualizados" value={previa.actualizados} hint="Mismo código ya existente" />
-            <MetricCard label="Errores" value={previa.errores.length} tone={previa.errores.length ? "negative" : "positive"} />
+            <MetricCard label="Nuevos" value={entero(previa.creados)} tone="positive" />
+            <MetricCard label="Actualizados" value={entero(previa.actualizados)} hint="Mismo código ya existente" />
+            <MetricCard label="Errores" value={entero(previa.errores.length)} tone={previa.errores.length ? "negative" : "positive"} />
             <MetricCard label="Siguiente ID" value={previa.siguiente_id} hint="Para productos creados en Nexo" />
           </div>
           <p className="text-sm text-neutral-600">
             Catálogos nuevos:{" "}
             {Object.entries(previa.catalogos_nuevos)
               .filter(([, n]) => n > 0)
-              .map(([k, n]) => `${n} ${NOMBRES_CATALOGO[k as keyof typeof NOMBRES_CATALOGO]}`)
+              .map(([k, n]) => `${entero(n)} ${NOMBRES_CATALOGO[k as keyof typeof NOMBRES_CATALOGO]}`)
               .join(", ") || "ninguno"}
-            . Sin clasificación: {previa.sin_clasificacion}. Sin costo real: {previa.sin_costo}.
+            . Sin clasificación: {entero(previa.sin_clasificacion)}. Sin costo real: {entero(previa.sin_costo)}.
           </p>
           {previa.errores.length > 0 && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              <p className="font-semibold">Corrige estos errores en el Excel y vuelve a elegir el archivo. Con errores no se importa nada.</p>
+            <Alert
+              tone="error"
+              title={`${previa.errores.length === 1 ? "1 fila" : `${entero(previa.errores.length)} filas`} con errores: no se importa nada`}
+            >
+              <p>Corrige estas filas en el Excel y vuelve a elegir el archivo.</p>
               <ul className="mt-2 max-h-56 overflow-y-auto text-xs">
                 {previa.errores.map((er, i) => (
-                  <li key={i}>Fila {er.fila} · <span className="font-mono">{er.codigo || "(sin código)"}</span>: {er.mensaje}</li>
+                  <li key={i}>
+                    Fila {er.fila} · <span className="font-mono">{er.codigo || "(sin código)"}</span>: {er.mensaje}
+                  </li>
                 ))}
               </ul>
-            </div>
+            </Alert>
           )}
           {!previa.confirmado && previa.errores.length === 0 && (
             <div>
-              <button type="button" onClick={() => revisar(true)} disabled={isPending}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-                {isPending ? "Importando…" : `Confirmar importación de ${previa.total} productos`}
-              </button>
+              <Button onClick={() => revisar(true)} disabled={isPending} loading={cargando("confirmar")}>
+                {cargando("confirmar") ? "Importando…" : `Confirmar importación de ${entero(previa.total)} productos`}
+              </Button>
               <p className="mt-2 text-xs text-neutral-500">Todo o nada: si una fila falla, no se guarda ninguna.</p>
             </div>
           )}
         </FormSection>
       )}
 
-      {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
       {puedeExportar && (
         <FormSection
@@ -272,10 +295,9 @@ export default function Importador({ puedeImportar, puedeExportar }: { puedeImpo
           description="Descarga el catálogo de Nexo con las columnas de la plantilla de importación del ERP. Precio, margen y descuentos van vacíos: se manejan en Listas de precios."
         >
           <div>
-            <button type="button" onClick={exportar} disabled={isPending}
-              className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60">
+            <Button variant="secondary" onClick={exportar} disabled={isPending} loading={cargando("exportar")}>
               Descargar Excel para el ERP
-            </button>
+            </Button>
           </div>
         </FormSection>
       )}

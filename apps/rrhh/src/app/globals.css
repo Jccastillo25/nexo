@@ -4,6 +4,7 @@
    resolver de CSS de Tailwind/Lightning entienda resolucion de paquetes
    npm para un @import. */
 @import "../../../../packages/ui/tokens.css";
+@import "../../../../packages/ui/theme.css";
 
 /* Tailwind v4 solo escanea el arbol de esta app por default — @nexo/ui
    vive en packages/ui, fuera de ese arbol, asi que sin esto cualquier

@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual, revalidarPlatformSettings } from "@nexo/auth";
+import { createServiceRoleClient } from "@nexo/supabase/admin";
+import { P } from "@/lib/permisos";
+import type { Database } from "@/lib/supabase/database.types";
 
 export type SettingsFormState = { error: string | null; success: boolean };
 
@@ -29,7 +30,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
 
 function validateImageFile(file: File, label: string): string | null {
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    return `${label}: formato no permitido (${file.type || "desconocido"}). Usá PNG, JPG, WEBP, GIF o ICO.`;
+    return `${label}: formato no permitido (${file.type || "desconocido"}). Usa PNG, JPG, WEBP, GIF o ICO.`;
   }
   if (file.size > MAX_IMAGE_BYTES) {
     return `${label}: la imagen pesa ${(file.size / (1024 * 1024)).toFixed(1)} MB, el máximo permitido es 1.25 MB.`;
@@ -54,7 +55,7 @@ function mensajeDeSubida(err: unknown): string {
 }
 
 async function uploadImage(
-  admin: ReturnType<typeof createAdminClient>,
+  admin: ReturnType<typeof createServiceRoleClient>,
   file: File,
   baseName: string
 ): Promise<string> {
@@ -88,23 +89,24 @@ export async function updateSettings(
   // real; el techo duro real de 4.5 MB lo impone Vercel Functions, no
   // Next.js — ver el comentario ahí).
   try {
-    const supabase = await createClient();
+    const ctx = await contextoActual<Database>();
+    const { supabase } = ctx;
 
     try {
-      await requirePermission(
-        { supabase, companyId: getCompanyId() },
-        "nexo.configuracion.editar"
-      );
+      await requirePermission(ctx, P.marcaEditar);
     } catch (err) {
       if (err instanceof PermissionDeniedError) {
-        return { error: "No tenés permiso para editar esta configuración.", success: false };
+        return { error: "No tienes permiso para editar esta configuración.", success: false };
       }
       return { error: "No se pudo verificar el permiso.", success: false };
     }
 
-    let admin: ReturnType<typeof createAdminClient>;
+    // Service role solo para subir a Storage (bucket "platform-assets"),
+    // después de requirePermission; la escritura de core.platform_settings
+    // pasa por la RPC, que valida el permiso adentro.
+    let admin: ReturnType<typeof createServiceRoleClient>;
     try {
-      admin = createAdminClient();
+      admin = createServiceRoleClient();
     } catch (err) {
       // supabase-js tira sincrono ("supabaseKey is required") si falta
       // SUPABASE_SERVICE_ROLE_KEY en el entorno — sin este try/catch, esto
@@ -196,6 +198,9 @@ export async function updateSettings(
       };
     }
 
+    // La marca del kernel está cacheada entre requests (300 s): se invalida
+    // al instante en esta zona. Los módulos se actualizan solos en ≤ 300 s.
+    revalidarPlatformSettings();
     revalidatePath("/configuracion/marca");
     revalidatePath("/login");
     revalidatePath("/");

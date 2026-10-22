@@ -1,16 +1,11 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormSection, useToast } from "@nexo/ui";
+import { Alert, Button, ButtonLink, Field, FormSection, Input, Select, useToast } from "@nexo/ui";
 import type { AppGrupo } from "@/lib/permisos-catalogo";
 import type { PlantillaRol } from "@/lib/supabase/database.types";
 import { guardarRol } from "./actions";
-
-const inputClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
-const labelClass = "text-xs font-medium uppercase tracking-wide text-neutral-500";
 
 export interface RolFormProps {
   apps: AppGrupo[];
@@ -32,6 +27,10 @@ export default function RolForm({ apps, plantillas, inicial }: RolFormProps) {
   const [nombre, setNombre] = useState(inicial?.nombre ?? "");
   const [descripcion, setDescripcion] = useState(inicial?.descripcion ?? "");
   const [seleccion, setSeleccion] = useState<Set<string>>(() => new Set(inicial?.permisos ?? []));
+  // Tres lugares para un error: junto al nombre, en la sección de
+  // aplicaciones ("activa al menos una") o al pie (el resto).
+  const [errorNombre, setErrorNombre] = useState<string | null>(null);
+  const [errorApps, setErrorApps] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const plantillasPorApp = useMemo(() => {
@@ -52,6 +51,7 @@ export default function RolForm({ apps, plantillas, inicial }: RolFormProps) {
       cambio(next);
       return next;
     });
+    setErrorApps(null);
     setError(null);
   }
 
@@ -80,7 +80,7 @@ export default function RolForm({ apps, plantillas, inicial }: RolFormProps) {
       plantilla.permisos.filter((c) => app.codes.includes(c)).forEach((c) => s.add(c));
       if (app.accesoCode) s.add(app.accesoCode);
     });
-    show(`Plantilla "${plantilla.label}" cargada en ${app.nombre}. Revisala antes de guardar.`, "info");
+    show(`Plantilla "${plantilla.label}" cargada en ${app.nombre}. Revísala antes de guardar.`, "info");
   }
 
   function togglePermiso(code: string, marcado: boolean) {
@@ -88,15 +88,14 @@ export default function RolForm({ apps, plantillas, inicial }: RolFormProps) {
   }
 
   function guardar() {
+    setError(null);
     const nombreLimpio = nombre.trim();
-    if (nombreLimpio.length < 2) {
-      setError("Escribí un nombre para el rol (mínimo 2 caracteres).");
-      return;
-    }
-    if (!apps.some(appActiva)) {
-      setError("Activá al menos una aplicación.");
-      return;
-    }
+    const sinNombre = nombreLimpio.length < 2;
+    const sinApps = !apps.some(appActiva);
+    setErrorNombre(sinNombre ? "Escribe un nombre para el rol (mínimo 2 caracteres)." : null);
+    setErrorApps(sinApps ? "Activa al menos una aplicación." : null);
+    if (sinNombre || sinApps) return;
+
     startTransition(async () => {
       try {
         const res = await guardarRol({
@@ -106,8 +105,10 @@ export default function RolForm({ apps, plantillas, inicial }: RolFormProps) {
           permisos: Array.from(seleccion),
         });
         if (!res.ok) {
-          setError(res.message ?? "No se pudo guardar el rol.");
-          show(res.message ?? "No se pudo guardar el rol.", "error");
+          const message = res.message ?? "No se pudo guardar el rol.";
+          if (res.campo === "nombre") setErrorNombre(message);
+          else setError(message);
+          show(message, "error");
           return;
         }
         show(inicial ? "Rol actualizado." : "Rol creado.", "success");
@@ -126,40 +127,27 @@ export default function RolForm({ apps, plantillas, inicial }: RolFormProps) {
   return (
     <div className="flex flex-col gap-6">
       <FormSection title="Datos del rol">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="rol_nombre" className={labelClass}>
-            Nombre del rol
-          </label>
-          <input
-            id="rol_nombre"
+        <Field label="Nombre del rol" required error={errorNombre}>
+          <Input
             value={nombre}
             maxLength={80}
             onChange={(e) => {
               setNombre(e.target.value);
-              setError(null);
+              setErrorNombre(null);
             }}
             placeholder="Recepcionista sucursal central"
-            className={inputClass}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="rol_descripcion" className={labelClass}>
-            Descripción
-          </label>
-          <input
-            id="rol_descripcion"
-            value={descripcion}
-            maxLength={500}
-            onChange={(e) => setDescripcion(e.target.value)}
-            className={inputClass}
-          />
-        </div>
+        </Field>
+        <Field label="Descripción" optional>
+          <Input value={descripcion} maxLength={500} onChange={(e) => setDescripcion(e.target.value)} />
+        </Field>
       </FormSection>
 
       <FormSection
         title="Aplicaciones y permisos"
-        description="Activá cada aplicación a la que tiene acceso el rol y marcá lo que puede hacer dentro de ella."
+        description="Activa cada aplicación a la que tiene acceso el rol y marca lo que puede hacer dentro de ella."
       >
+        {errorApps ? <Alert tone="error">{errorApps}</Alert> : null}
         {apps.length === 0 && (
           <p className="text-sm text-neutral-500">No hay aplicaciones habilitadas para la empresa.</p>
         )}
@@ -175,7 +163,7 @@ export default function RolForm({ apps, plantillas, inicial }: RolFormProps) {
                     type="checkbox"
                     checked={activa}
                     onChange={(e) => toggleApp(app, e.target.checked)}
-                    className="h-4 w-4"
+                    className="size-4 accent-blue-600"
                   />
                   {app.nombre}
                 </label>
@@ -185,11 +173,11 @@ export default function RolForm({ apps, plantillas, inicial }: RolFormProps) {
                       {cantidad} {cantidad === 1 ? "permiso" : "permisos"}
                     </span>
                     {plantillasApp.length > 0 && (
-                      <select
+                      <Select
                         value=""
                         onChange={(e) => cargarPlantilla(app, e.target.value)}
                         aria-label={`Cargar plantilla de ${app.nombre}`}
-                        className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-700"
+                        className="w-full sm:w-52"
                       >
                         <option value="">Cargar plantilla…</option>
                         {plantillasApp.map((p) => (
@@ -197,36 +185,28 @@ export default function RolForm({ apps, plantillas, inicial }: RolFormProps) {
                             {p.label}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => marcarTodo(app, true)}
-                      className="rounded-md border border-neutral-300 px-2 py-1 text-neutral-700 hover:bg-neutral-50"
-                    >
+                    <Button variant="secondary" size="sm" onClick={() => marcarTodo(app, true)}>
                       Marcar todo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => marcarTodo(app, false)}
-                      className="rounded-md border border-neutral-300 px-2 py-1 text-neutral-700 hover:bg-neutral-50"
-                    >
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => marcarTodo(app, false)}>
                       Quitar todo
-                    </button>
+                    </Button>
                   </div>
                 ) : (
-                  <span className="text-xs text-neutral-400">Sin acceso</span>
+                  <span className="text-xs text-neutral-500">Sin acceso</span>
                 )}
               </div>
 
               {activa && (
                 <div className="flex flex-col gap-4 border-t border-neutral-100 px-4 py-3">
                   {app.dominios.length === 0 && (
-                    <p className="text-xs text-neutral-400">Esta aplicación no tiene permisos internos registrados.</p>
+                    <p className="text-xs text-neutral-500">Esta aplicación no tiene permisos internos registrados.</p>
                   )}
                   {app.dominios.map((dominio) => (
                     <div key={dominio.key} className="flex flex-col gap-2">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                         {dominio.label}
                       </h3>
                       {dominio.recursos.map((recurso) => (
@@ -239,11 +219,12 @@ export default function RolForm({ apps, plantillas, inicial }: RolFormProps) {
                             {recurso.permisos.map((p) => (
                               <label
                                 key={p.code}
-                                title={p.description ?? p.code}
+                                title={p.description ?? undefined}
                                 className="flex items-center gap-1.5 text-sm text-neutral-600"
                               >
                                 <input
                                   type="checkbox"
+                                  className="size-4 accent-blue-600"
                                   checked={seleccion.has(p.code)}
                                   onChange={(e) => togglePermiso(p.code, e.target.checked)}
                                 />
@@ -262,27 +243,15 @@ export default function RolForm({ apps, plantillas, inicial }: RolFormProps) {
         })}
       </FormSection>
 
-      {error && (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
-      )}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
-      <div className="flex gap-3">
-        <Link
-          href="/configuracion/roles"
-          className="rounded-md border border-neutral-300 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50"
-        >
+      <div className="flex flex-wrap gap-3">
+        <ButtonLink href="/configuracion/roles" variant="secondary">
           Cancelar
-        </Link>
-        <button
-          type="button"
-          onClick={guardar}
-          disabled={isPending}
-          className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isPending ? "Guardando…" : "Guardar rol"}
-        </button>
+        </ButtonLink>
+        <Button onClick={guardar} loading={isPending}>
+          Guardar rol
+        </Button>
       </div>
     </div>
   );

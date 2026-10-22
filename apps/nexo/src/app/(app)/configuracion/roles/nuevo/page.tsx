@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
-import { EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { Alert, EmptyState, PageHeader } from "@nexo/ui";
+import { contextoActual } from "@nexo/auth";
+import { permisosDe } from "@/lib/permisos";
+import type { Database } from "@/lib/supabase/database.types";
 import { mensajeAdministracion } from "../../errores";
 import { agruparCatalogo } from "@/lib/permisos-catalogo";
 import RolForm from "../rol-form";
@@ -12,18 +12,13 @@ export const metadata: Metadata = {
 };
 
 export default async function NuevoRolPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const [{ supabase, companyId }, permisos] = await Promise.all([contextoActual<Database>(), permisosDe()]);
 
-  const canCreate = await hasPermission({ supabase, companyId }, "nexo.administracion.roles.crear");
-  if (!canCreate) {
+  if (!permisos.rolesCrear) {
     return (
       <div className="flex max-w-4xl flex-col gap-6">
         <PageHeader title="Nuevo rol" />
-        <EmptyState
-          title="Sin permiso para crear roles"
-          description="Tu cuenta no tiene el permiso nexo.administracion.roles.crear para esta empresa."
-        />
+        <EmptyState variant="no-access" title="No tienes acceso a la creación de roles" />
       </div>
     );
   }
@@ -37,9 +32,9 @@ export default async function NuevoRolPage() {
     <div className="flex max-w-4xl flex-col gap-6">
       <PageHeader title="Nuevo rol" description="Nombre, aplicaciones con acceso y permisos internos de cada una." />
       {error ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <Alert tone="error">
           {mensajeAdministracion(error, "roles/nuevo: catálogo de permisos", "No se pudo cargar el catálogo de permisos. Intenta de nuevo.")}
-        </p>
+        </Alert>
       ) : (
         <RolForm apps={agruparCatalogo(catalogo ?? [])} plantillas={plantillas ?? []} inicial={null} />
       )}

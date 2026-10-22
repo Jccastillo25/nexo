@@ -2,8 +2,8 @@
 // pedido del usuario: "que las apps se vean así" con captura de la grilla de
 // Odoo). Formas planas en dos o tres tonos sobre un mosaico blanco. La clave
 // es `core.apps.icon` (ticket, handshake, truck, package, users-round, sun,
-// clock, más register, receipt, tag, warehouse, cart, calculator y bank para
-// las apps planificadas);
+// clock, target (Presupuesto), más register, receipt, tag, warehouse, cart,
+// calculator y bank para las apps planificadas);
 // sin coincidencia cae al icono de la categoría y, en último caso, al genérico.
 // Colores solo de la escala de Tailwind: es el único lugar donde una app tiene
 // identidad de color propia (regla "una sola paleta", CLAUDE.md).
@@ -247,6 +247,20 @@ function BankIcon({ className }: { className?: string }) {
   );
 }
 
+/** Presupuesto: diana con flecha (meta). */
+function TargetIcon({ className }: { className?: string }) {
+  return (
+    <Svg className={className}>
+      <circle className="fill-pink-600" cx="22" cy="26" r="18" />
+      <circle className="fill-white" cx="22" cy="26" r="12.5" />
+      <circle className="fill-pink-500" cx="22" cy="26" r="7.5" />
+      <circle className="fill-white" cx="22" cy="26" r="3" />
+      <path className="fill-slate-700" d="m21 25.5 17-15 2.2 2.4-17 15z" />
+      <path className="fill-amber-400" d="m36 6 2 6.2 6.2 2-5 4.2-6.1-1.6-1.6-6.2z" />
+    </Svg>
+  );
+}
+
 /** Genérico: cuatro bloques. */
 function GridIcon({ className }: { className?: string }) {
   return (
@@ -275,6 +289,7 @@ const POR_ICONO: Record<string, AppIconComponent> = {
   cart: CartIcon,
   calculator: CalculatorIcon,
   bank: BankIcon,
+  target: TargetIcon,
 };
 
 const POR_CATEGORIA: Record<string, AppIconComponent> = {

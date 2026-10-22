@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
 import { EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { permisosDe } from "@/lib/permisos-rrhh";
 import NuevoEmpleadoForm from "./nuevo-empleado-form";
 
 export const metadata: Metadata = {
@@ -16,31 +14,28 @@ export const metadata: Metadata = {
  * chequeo aca es UX (norma v3.0): sin el, alguien sin permiso veria el
  * formulario completo y recien se enteraria del rechazo al enviar.
  *
- * F1.1 (2026-09-07): ya no pasa `canEditarCompensacion` al formulario —
- * esta pagina solo crea el Expediente General. Compensacion/modalidad de
- * contrato pasan a formar parte del flujo de Contrato (F1.2).
+ * F1.1 (2026-09-07): esta pagina solo crea el Expediente General.
+ * Compensacion/modalidad de contrato pertenecen al flujo de Contrato (F1.2).
  */
 export default async function NuevoEmpleadoPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const permisos = await permisosDe();
 
-  const canCrear = await hasPermission(
-    { supabase, companyId },
-    "rrhh.expedientes.empleados.crear"
-  );
-
-  if (!canCrear) {
+  if (!permisos.empleadosCrear) {
     return (
-      <EmptyState
-        title="Sin permiso para dar de alta empleados"
-        description="No tenés el permiso rrhh.expedientes.empleados.crear para esta empresa."
-      />
+      <div className="flex max-w-3xl flex-col gap-6">
+        <PageHeader title="Nuevo empleado" back={{ href: "/expedientes", label: "Empleados" }} />
+        <EmptyState variant="no-access" title="No tienes acceso a dar de alta empleados" />
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title="Nuevo empleado" breadcrumb={[{ label: "Expedientes", href: "/expedientes" }]} />
+    <div className="flex max-w-3xl flex-col gap-6">
+      <PageHeader
+        title="Nuevo empleado"
+        description="Crea el expediente general. El puesto, el salario y el PIN se asignan después, con su contrato."
+        back={{ href: "/expedientes", label: "Empleados" }}
+      />
       <NuevoEmpleadoForm />
     </div>
   );

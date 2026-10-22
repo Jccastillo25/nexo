@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { useToast } from "@nexo/ui";
+import { Alert, Button, Field, Input, useToast } from "@nexo/ui";
 import { editarEmpleado, type EmpleadoInput } from "../actions";
 
 export interface EmpleadoEditable {
@@ -14,15 +14,13 @@ export interface EmpleadoEditable {
   telefono: string | null;
 }
 
-const inputClass =
-  "w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
-const labelClass = "text-xs font-medium uppercase tracking-wide text-neutral-500";
+type ErroresCampo = Partial<Record<"nombre" | "apellido" | "documentoIdentidad", string>>;
 
 /**
  * [Cancelar] [Guardar cambios] — Cancelar no muta nada y vuelve a la
- * ficha; Guardar pasa por idle → Guardando… → éxito/error (P3, regla
- * obligatoria del bloque). Un error deja el formulario abierto con los
- * datos tal cual estaban, nunca tumba la página.
+ * ficha; Guardar pasa por idle → Guardando… → éxito/error (P3). Un error
+ * deja el formulario abierto con los datos tal cual estaban, nunca tumba la
+ * página. Los obligatorios vacíos se marcan junto a su campo.
  */
 export default function EditarEmpleadoForm({ empleado }: { empleado: EmpleadoEditable }) {
   const router = useRouter();
@@ -34,23 +32,24 @@ export default function EditarEmpleadoForm({ empleado }: { empleado: EmpleadoEdi
     email: empleado.email ?? "",
     telefono: empleado.telefono ?? "",
   });
+  const [errores, setErrores] = useState<ErroresCampo>({});
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function update<K extends keyof EmpleadoInput>(key: K, value: EmpleadoInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+    if (key in errores) setErrores((e) => ({ ...e, [key]: undefined }));
   }
 
   function guardar(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.nombre.trim() || !form.apellido.trim()) {
-      setError("Nombre y apellido son obligatorios.");
-      return;
-    }
-    if (!form.documentoIdentidad.trim()) {
-      setError("El documento de identidad (cédula) es obligatorio.");
-      return;
-    }
+    const nuevos: ErroresCampo = {};
+    if (!form.nombre.trim()) nuevos.nombre = "Escribe los nombres.";
+    if (!form.apellido.trim()) nuevos.apellido = "Escribe los apellidos.";
+    if (!form.documentoIdentidad.trim()) nuevos.documentoIdentidad = "La cédula es obligatoria.";
+    setErrores(nuevos);
+    if (Object.keys(nuevos).length > 0) return;
+
     setError(null);
     startTransition(async () => {
       const res = await editarEmpleado(empleado.id, form);
@@ -69,81 +68,55 @@ export default function EditarEmpleadoForm({ empleado }: { empleado: EmpleadoEdi
   }
 
   return (
-    <form onSubmit={guardar} className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5">
-      {error && (
-        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
-      )}
+    <form
+      onSubmit={guardar}
+      noValidate
+      className="flex flex-col gap-5 rounded-xl border border-neutral-200 bg-white p-6 shadow-xs"
+    >
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Nombres">
-          <input
-            value={form.nombre}
-            onChange={(e) => update("nombre", e.target.value)}
-            required
-            className={inputClass}
-          />
+        <Field label="Nombres" required error={errores.nombre}>
+          <Input value={form.nombre} onChange={(e) => update("nombre", e.target.value)} autoComplete="off" />
         </Field>
-        <Field label="Apellidos">
-          <input
-            value={form.apellido}
-            onChange={(e) => update("apellido", e.target.value)}
-            required
-            className={inputClass}
-          />
+        <Field label="Apellidos" required error={errores.apellido}>
+          <Input value={form.apellido} onChange={(e) => update("apellido", e.target.value)} autoComplete="off" />
         </Field>
-        <Field label="Documento de identidad (cédula)">
-          <input
-            required
+        <Field label="Documento de identidad (cédula)" required error={errores.documentoIdentidad}>
+          <Input
             value={form.documentoIdentidad}
             onChange={(e) => update("documentoIdentidad", e.target.value)}
-            className={inputClass}
+            autoComplete="off"
           />
         </Field>
-        <Field label="Correo">
-          <input
+        <Field label="Correo" optional>
+          <Input
             type="email"
+            inputMode="email"
             value={form.email}
             onChange={(e) => update("email", e.target.value)}
-            className={inputClass}
+            autoComplete="off"
           />
         </Field>
-        <Field label="Teléfono">
-          <input
+        <Field label="Teléfono" optional>
+          <Input
+            type="tel"
+            inputMode="tel"
             value={form.telefono}
             onChange={(e) => update("telefono", e.target.value)}
-            className={inputClass}
+            autoComplete="off"
           />
         </Field>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={cancelar}
-          disabled={isPending}
-          className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="ghost" onClick={cancelar} disabled={isPending}>
           Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        </Button>
+        <Button type="submit" loading={isPending}>
           {isPending ? "Guardando…" : "Guardar cambios"}
-        </button>
+        </Button>
       </div>
     </form>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className={labelClass}>{label}</span>
-      {children}
-    </label>
   );
 }

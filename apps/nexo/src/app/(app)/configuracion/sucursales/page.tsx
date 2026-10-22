@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
-import { EmptyState, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { Alert, EmptyState, PageHeader } from "@nexo/ui";
+import { contextoActual } from "@nexo/auth";
+import { permisosDe } from "@/lib/permisos";
+import type { Database } from "@/lib/supabase/database.types";
 import { mensajeAdministracion } from "../errores";
 import SucursalesPanel from "./sucursales-panel";
 
@@ -16,23 +16,13 @@ export const metadata: Metadata = {
  * Usuarios; Atención las usa para la fila, los puestos y la numeración diaria.
  */
 export default async function SucursalesPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-  const ctx = { supabase, companyId };
+  const [{ supabase, companyId }, permisos] = await Promise.all([contextoActual<Database>(), permisosDe()]);
 
-  const [canView, canManage] = await Promise.all([
-    hasPermission(ctx, "nexo.administracion.sucursales.ver"),
-    hasPermission(ctx, "nexo.administracion.sucursales.gestionar"),
-  ]);
-
-  if (!canView) {
+  if (!permisos.sucursalesVer) {
     return (
       <div className="flex max-w-5xl flex-col gap-6">
         <PageHeader title="Sucursales" />
-        <EmptyState
-          title="Sin permiso para ver sucursales"
-          description="Tu cuenta no tiene el permiso nexo.administracion.sucursales.ver para esta empresa."
-        />
+        <EmptyState variant="no-access" title="No tienes acceso a las sucursales" />
       </div>
     );
   }
@@ -46,11 +36,11 @@ export default async function SucursalesPage() {
         description="Lugares donde opera la empresa. Cada usuario trabaja en las sucursales que le asignes en Usuarios."
       />
       {error ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <Alert tone="error">
           {mensajeAdministracion(error, "sucursales: admin_listar_sucursales", "No se pudieron cargar las sucursales. Intenta de nuevo.")}
-        </p>
+        </Alert>
       ) : (
-        <SucursalesPanel sucursales={sucursales ?? []} puedeGestionar={canManage} />
+        <SucursalesPanel sucursales={sucursales ?? []} puedeGestionar={permisos.sucursalesGestionar} />
       )}
     </div>
   );

@@ -2,12 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FormSection, StatusBadge, useToast } from "@nexo/ui";
+import { Alert, Button, Field, FormSection, Input, StatusBadge, useToast } from "@nexo/ui";
 import type { PuestoEstado } from "@/lib/supabase/database.types";
 import { guardarPuesto } from "./actions";
-
-const inputClass =
-  "rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
 
 interface Borrador {
   puestoId: string | null;
@@ -17,7 +14,15 @@ interface Borrador {
 }
 
 /** Puestos de la sucursal. El orden define cuál se asigna primero al iniciar atención. */
-export default function PuestosPanel({ sucursalId, puestos }: { sucursalId: string; puestos: PuestoEstado[] }) {
+export default function PuestosPanel({
+  sucursalId,
+  puestos,
+  errorCarga = false,
+}: {
+  sucursalId: string;
+  puestos: PuestoEstado[];
+  errorCarga?: boolean;
+}) {
   const router = useRouter();
   const { show } = useToast();
   const [borrador, setBorrador] = useState<Borrador | null>(null);
@@ -30,7 +35,8 @@ export default function PuestosPanel({ sucursalId, puestos }: { sucursalId: stri
     setError(null);
   }
 
-  function guardar() {
+  function guardar(e: React.FormEvent) {
+    e.preventDefault();
     if (!borrador) return;
     startTransition(async () => {
       const res = await guardarPuesto({ ...borrador, sucursalId });
@@ -49,77 +55,82 @@ export default function PuestosPanel({ sucursalId, puestos }: { sucursalId: stri
       title="Puestos de atención"
       description="Al iniciar atención, el agente recibe el primer puesto libre según este orden."
     >
-      <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200">
-        {puestos.map((p) => (
-          <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
-            <div className="flex items-center gap-3">
-              <span className="w-6 text-xs text-neutral-400">{p.orden}</span>
-              <span className="font-medium text-neutral-900">{p.nombre}</span>
-              {!p.activo && <StatusBadge label="Inactivo" tone="neutral" />}
-              {p.ocupado_por && <StatusBadge label={`Ocupado: ${p.ocupado_por}`} tone="info" />}
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setBorrador({ puestoId: p.id, nombre: p.nombre, orden: p.orden, activo: p.activo });
-                setError(null);
-              }}
-              className="text-xs font-medium text-blue-600 hover:text-blue-700"
-            >
-              Editar
-            </button>
-          </li>
-        ))}
-        {puestos.length === 0 && <li className="px-4 py-4 text-sm text-neutral-500">Todavía no hay puestos.</li>}
-      </ul>
+      {errorCarga ? (
+        <Alert tone="error">No se pudieron cargar los puestos. Recarga la página para intentarlo de nuevo.</Alert>
+      ) : (
+        <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200">
+          {puestos.map((p) => (
+            <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <span className="w-6 text-xs text-neutral-500 tabular-nums">{p.orden}</span>
+                <span className="font-medium text-neutral-900">{p.nombre}</span>
+                {!p.activo && <StatusBadge label="Inactivo" tone="neutral" />}
+                {p.ocupado_por && <StatusBadge label={`Ocupado: ${p.ocupado_por}`} tone="info" />}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`Editar ${p.nombre}`}
+                onClick={() => {
+                  setBorrador({ puestoId: p.id, nombre: p.nombre, orden: p.orden, activo: p.activo });
+                  setError(null);
+                }}
+              >
+                Editar
+              </Button>
+            </li>
+          ))}
+          {puestos.length === 0 && <li className="px-4 py-4 text-sm text-neutral-500">Todavía no hay puestos.</li>}
+        </ul>
+      )}
 
       {borrador ? (
-        <div className="flex flex-col gap-3 rounded-lg border border-neutral-200 p-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1 text-xs text-neutral-500">
-              Nombre
-              <input
+        // noValidate: los errores los da el servidor, en el aviso de abajo, no la burbuja del navegador.
+        <form onSubmit={guardar} noValidate className="flex flex-col gap-4 rounded-lg border border-neutral-200 p-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <Field label="Nombre" required className="w-full sm:w-64">
+              <Input
                 value={borrador.nombre}
                 maxLength={40}
+                required
+                autoComplete="off"
                 onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })}
-                className={inputClass}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-neutral-500">
-              Orden
-              <input
+            </Field>
+            <Field label="Orden" className="w-28">
+              <Input
                 type="number"
+                inputMode="numeric"
                 min={1}
                 value={borrador.orden}
                 onChange={(e) => setBorrador({ ...borrador, orden: Number(e.target.value) })}
-                className={`${inputClass} w-24`}
               />
-            </label>
-            <label className="flex items-center gap-2 pb-2 text-sm text-neutral-700">
-              <input type="checkbox" checked={borrador.activo} onChange={(e) => setBorrador({ ...borrador, activo: e.target.checked })} />
+            </Field>
+            <label className="flex h-9 items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                className="size-4 accent-blue-600"
+                checked={borrador.activo}
+                onChange={(e) => setBorrador({ ...borrador, activo: e.target.checked })}
+              />
               Activo
             </label>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setBorrador(null)} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
+          {error ? <Alert tone="error">{error}</Alert> : null}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => setBorrador(null)} disabled={isPending}>
               Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={guardar}
-              disabled={isPending}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-            >
-              {isPending ? "Guardando…" : "Guardar puesto"}
-            </button>
+            </Button>
+            <Button type="submit" loading={isPending}>
+              Guardar puesto
+            </Button>
           </div>
-        </div>
+        </form>
       ) : (
         <div>
-          <button type="button" onClick={nuevo} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
+          <Button variant="secondary" onClick={nuevo}>
             Agregar puesto
-          </button>
+          </Button>
         </div>
       )}
     </FormSection>

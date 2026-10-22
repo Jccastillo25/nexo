@@ -4,5 +4,12 @@
   "private": true,
   "description": "Motor de permisos unico de la suite Nexo (norma v3.0, DENY BY DEFAULT, 7 dominios)",
   "main": "./index.ts",
-  "types": "./index.ts"
+  "types": "./index.ts",
+  "peerDependencies": {
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "react": "^19"
+  }
 }

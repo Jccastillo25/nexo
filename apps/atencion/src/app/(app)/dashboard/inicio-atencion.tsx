@@ -1,15 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useToast } from "@nexo/ui";
+import { Alert, Button, ButtonLink, Field, Select, StatusBadge, hora, useToast } from "@nexo/ui";
 import type { MiEstado } from "@/lib/supabase/database.types";
 import { cerrarAtencion, iniciarAtencion } from "../actions";
 
-function hora(iso: string) {
-  return new Date(iso).toLocaleTimeString("es-NI", { hour: "2-digit", minute: "2-digit" });
-}
+type Tipo = "recepcion" | "puesto" | null;
 
 /**
  * "Iniciar atención" / "Cerrar atención" (decisión 2026-10-14). El servidor
@@ -21,17 +18,22 @@ export default function InicioAtencion({ estado }: { estado: MiEstado }) {
   const router = useRouter();
   const { show } = useToast();
   const [isPending, startTransition] = useTransition();
+  // Qué botón disparó la acción en curso, para mostrar el spinner solo en él.
+  const [accion, setAccion] = useState<Tipo | "cerrar">(null);
   const [sucursalId, setSucursalId] = useState(estado.sucursales.length === 1 ? estado.sucursales[0].id : "");
+  const [errorSucursal, setErrorSucursal] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const ambos = estado.puede_recepcion && estado.puede_puesto;
   const ninguno = !estado.puede_recepcion && !estado.puede_puesto;
 
-  function iniciar(tipo: "recepcion" | "puesto" | null) {
+  function iniciar(tipo: Tipo) {
     if (estado.sucursales.length > 1 && !sucursalId) {
-      setError("Elegí la sucursal donde vas a trabajar.");
+      setErrorSucursal("Elige la sucursal donde vas a trabajar.");
       return;
     }
+    setAccion(tipo);
+    setError(null);
     startTransition(async () => {
       const res = await iniciarAtencion(sucursalId || null, tipo);
       if (!res.ok || !res.data?.sesion) {
@@ -45,11 +47,11 @@ export default function InicioAtencion({ estado }: { estado: MiEstado }) {
   }
 
   function cerrar() {
+    setAccion("cerrar");
     startTransition(async () => {
       const res = await cerrarAtencion();
       if (!res.ok) {
         setError(res.message ?? "No se pudo cerrar la atención.");
-        show(res.message ?? "No se pudo cerrar la atención.", "error");
         return;
       }
       setError(null);
@@ -59,33 +61,27 @@ export default function InicioAtencion({ estado }: { estado: MiEstado }) {
   }
 
   const s = estado.sesion;
+  const cargando = (tipo: Tipo | "cerrar") => isPending && accion === tipo;
 
   return (
-    <section className="rounded-xl border border-neutral-200 bg-white p-5">
+    <section
+      aria-label="Tu atención"
+      className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs"
+    >
       {s ? (
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Atención abierta</p>
-            <p className="mt-1 text-lg font-semibold text-neutral-900">
+          <div className="min-w-0">
+            <StatusBadge label="Atención abierta" tone="positive" />
+            <p className="mt-2 text-lg font-semibold text-neutral-900">
               {s.tipo === "puesto" ? s.puesto : "Recepción"} · {s.sucursal}
             </p>
             <p className="text-sm text-neutral-500">Desde las {hora(s.inicio)}. Se cierra sola a medianoche.</p>
           </div>
-          <div className="flex gap-2">
-            <Link
-              href="/atender"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              {s.tipo === "puesto" ? "Ir a mi puesto" : "Ir a recepción"}
-            </Link>
-            <button
-              type="button"
-              onClick={cerrar}
-              disabled={isPending}
-              className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
-            >
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={cerrar} loading={cargando("cerrar")} disabled={isPending}>
               Cerrar atención
-            </button>
+            </Button>
+            <ButtonLink href="/atender">{s.tipo === "puesto" ? "Ir a mi puesto" : "Ir a recepción"}</ButtonLink>
           </div>
         </div>
       ) : ninguno ? (
@@ -94,10 +90,10 @@ export default function InicioAtencion({ estado }: { estado: MiEstado }) {
         </p>
       ) : estado.sucursales.length === 0 ? (
         <p className="text-sm text-neutral-500">
-          No tenés sucursales asignadas. Pedile a un administrador que te asigne una en Configuración → Usuarios.
+          No tienes sucursales asignadas. Pide a un administrador que te asigne una en Configuración → Usuarios.
         </p>
       ) : (
-        <div className="flex flex-col gap-4">
+        <>
           <div>
             <p className="text-lg font-semibold text-neutral-900">¿Empezamos?</p>
             <p className="text-sm text-neutral-500">
@@ -105,65 +101,59 @@ export default function InicioAtencion({ estado }: { estado: MiEstado }) {
                 ? "Se te asignará automáticamente el primer puesto libre."
                 : estado.puede_recepcion && !estado.puede_puesto
                   ? "Vas a atender la recepción."
-                  : "Elegí si vas a trabajar en recepción o en un puesto."}
+                  : "Elige si vas a trabajar en recepción o en un puesto."}
             </p>
           </div>
-          {estado.sucursales.length > 1 && (
-            <select
-              value={sucursalId}
-              onChange={(e) => {
-                setSucursalId(e.target.value);
-                setError(null);
-              }}
-              aria-label="Sucursal"
-              className="w-full max-w-xs rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm"
-            >
-              <option value="">Elegí la sucursal</option>
-              {estado.sucursales.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.nombre}
-                </option>
-              ))}
-            </select>
-          )}
+          {estado.sucursales.length > 1 ? (
+            <Field label="Sucursal" required error={errorSucursal} className="max-w-xs">
+              <Select
+                value={sucursalId}
+                onChange={(e) => {
+                  setSucursalId(e.target.value);
+                  setErrorSucursal(null);
+                }}
+              >
+                <option value="">Elige la sucursal</option>
+                {estado.sucursales.map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.nombre}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             {ambos ? (
               <>
-                <button
-                  type="button"
+                {/* Mismo nivel a propósito: ninguna de las dos es "la principal". */}
+                <Button
+                  variant="secondary"
+                  size="lg"
                   onClick={() => iniciar("recepcion")}
+                  loading={cargando("recepcion")}
                   disabled={isPending}
-                  className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   Iniciar atención en recepción
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="lg"
                   onClick={() => iniciar("puesto")}
+                  loading={cargando("puesto")}
                   disabled={isPending}
-                  className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   Iniciar atención en un puesto
-                </button>
+                </Button>
               </>
             ) : (
-              <button
-                type="button"
-                onClick={() => iniciar(null)}
-                disabled={isPending}
-                className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-              >
-                {isPending ? "Iniciando…" : "Iniciar atención"}
-              </button>
+              <Button size="lg" onClick={() => iniciar(null)} loading={cargando(null)} disabled={isPending}>
+                Iniciar atención
+              </Button>
             )}
           </div>
-        </div>
+        </>
       )}
-      {error && (
-        <p role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
-      )}
+      {error ? <Alert tone="error">{error}</Alert> : null}
     </section>
   );
 }

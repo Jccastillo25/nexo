@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { hasPermission } from "@nexo/permissions";
-import { PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import { Alert, PageHeader } from "@nexo/ui";
 import { mensajeAtencion } from "@/lib/errores";
+import { permisosDe } from "@/lib/permisos";
 import { rangoDe, type Metricas } from "@/lib/metricas";
+import type { Database } from "@/lib/supabase/database.types";
 import FiltrosMetricas from "@/components/metricas/filtros";
 import ResumenKpis from "@/components/metricas/resumen";
 import GraficoPorHora from "@/components/metricas/grafico-por-hora";
@@ -22,16 +22,21 @@ export const dynamic = "force-dynamic";
  * desglose por agente, puesto y día. Datos de public.atencion_metricas.
  */
 export default async function ReportesPage({ searchParams }: PageProps<"/reportes">) {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const [{ supabase, companyId }, permisos, params] = await Promise.all([
+    contextoActual<Database>(),
+    permisosDe(),
+    searchParams,
+  ]);
+  if (!permisos.reportes) redirect("/dashboard");
 
-  if (!(await hasPermission({ supabase, companyId }, "atencion.reportes.turno.ver"))) redirect("/dashboard");
-
-  const params = await searchParams;
   const { periodo, desde, hasta } = rangoDe(typeof params.periodo === "string" ? params.periodo : undefined);
 
-  const { data: sucursalesData } = await supabase.rpc("atencion_sucursales_reportes", { p_company_id: companyId });
-  const sucursales = sucursalesData ?? [];
+  const { data: sucursalesData, error: errorSucursales } = await supabase.rpc("atencion_sucursales_reportes", {
+    p_company_id: companyId,
+  });
+  if (errorSucursales) console.error("atencion_sucursales_reportes", errorSucursales);
+  // Sin la lista, el filtro de sucursal no se muestra y el reporte cubre todas las permitidas.
+  const sucursales = errorSucursales ? [] : (sucursalesData ?? []);
   const pedida = typeof params.sucursal === "string" ? params.sucursal : null;
   const sucursal = pedida && sucursales.some((s) => s.id === pedida) ? pedida : null;
 
@@ -49,11 +54,11 @@ export default async function ReportesPage({ searchParams }: PageProps<"/reporte
       <PageHeader title="Reportes" description="Turnos, tiempos de espera y de atención de toda la sucursal y de cada agente." />
       <FiltrosMetricas ruta="/reportes" periodo={periodo} sucursal={sucursal} sucursales={sucursales} />
       {error || !metricas ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <Alert tone="error" title="No se pudieron cargar los reportes">
           {error
-            ? mensajeAtencion(error, "atencion_metricas (reportes)", "No se pudieron cargar los reportes. Intenta de nuevo.")
-            : "No se pudieron cargar los reportes."}
-        </p>
+            ? mensajeAtencion(error, "atencion_metricas (reportes)", "Intenta de nuevo en unos minutos.")
+            : "Intenta de nuevo en unos minutos."}
+        </Alert>
       ) : (
         <>
           <ResumenKpis resumen={metricas.resumen} global />

@@ -1,15 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { contextoActual } from "@nexo/auth";
 import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
 import { P } from "@/lib/permisos";
 import type { Resultado } from "@/lib/tipos";
 
+// Cada acción valida su permiso con requirePermission antes de llamar a la
+// RPC; nunca con la caché de misPermisos (una acción es un endpoint público).
 async function contexto(code: string) {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual();
   try {
     await requirePermission({ supabase, companyId }, code);
   } catch (err) {

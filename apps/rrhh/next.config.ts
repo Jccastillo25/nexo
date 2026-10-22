@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { securityHeaders } from "@nexo/config/next-security";
 
 // Zona de Multi-Zones (ver docs/ARCHITECTURE.md): esta app se sirve bajo
 // nexo.materialesjcastillo.com/rrhh, cosida ahi por los rewrites de la
@@ -6,8 +7,10 @@ import type { NextConfig } from "next";
 // esta app vivan bajo ese prefijo — mismo patron que apps/crm/next.config.ts.
 const nextConfig: NextConfig = {
   basePath: "/rrhh",
-  // @nexo/permissions y @nexo/ui viven como fuente TS sin compilar en el workspace.
-  transpilePackages: ["@nexo/permissions", "@nexo/ui"],
+  // Los paquetes del workspace viven como fuente TS sin compilar. Kernel
+  // (2026-10-20): @nexo/auth y @nexo/supabase reemplazan los clientes y
+  // helpers que esta app tenía copiados en src/lib.
+  transpilePackages: ["@nexo/auth", "@nexo/supabase", "@nexo/permissions", "@nexo/ui"],
 
   images: {
     remotePatterns: [
@@ -25,24 +28,21 @@ const nextConfig: NextConfig = {
   // 2026-10-20: el kiosco pertenece a Asistencia, así que quien escriba
   // /rrhh/asistencia/kiosco en el equipo llega a la terminal. Las redirecciones
   // de next.config corren antes del proxy: no pide sesión.
+  // 2026-10-20 (rendimiento #1): la raíz /rrhh va a /rrhh/dashboard aquí, en
+  // el borde, sin pasar por el proxy ni por una función. `source: "/"` con
+  // basePath equivale a /rrhh.
   async redirects() {
     return [
+      { source: "/", destination: "/dashboard", permanent: false },
       { source: "/marcas", destination: "/asistencia/marcas", permanent: false },
       { source: "/asistencia/kiosco", destination: "/kiosco", permanent: false },
     ];
   },
 
+  // Cabeceras de seguridad compartidas (N4, 2026-10-20), ver
+  // packages/config/next-security.mjs.
   async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-        ],
-      },
-    ];
+    return securityHeaders();
   },
 
   productionBrowserSourceMaps: false,

@@ -7,6 +7,371 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-22 — Planilla PL2b (prestaciones) y PL2c (reportes y configuración) (APLICADAS)
+
+**Migraciones (9), aplicadas en este orden con `apply_migration` y guardadas con la versión remota:**
+
+| Versión | Archivo | Contenido |
+|---|---|---|
+| `20261021235639` | `rrhh_planilla_pl2b_paso_cero` | 2 permisos nuevos solo para la plantilla admin: `rrhh.planillas.liquidaciones.{pagar,anular}` (27 códigos `rrhh.planillas.*`) |
+| `20261022000001` | `rrhh_planilla_pl2b_1_tablas` | conceptos AGUINALDO, VACACIONES_PAGADAS, EMBARGO_ALIMENTOS, EMBARGO_JUDICIAL y PRESTAMO; tipo de planilla Aguinaldo; tablas `liquidaciones`, `liquidacion_lineas`, `prestamos`, `embargos`, `vacaciones_movimientos` y `provisiones` (estas dos particionadas por mes); columnas nuevas en `novedades`; RLS, policies y funciones de apoyo |
+| `20261022000431` | `rrhh_planilla_pl2b_2_motor` | motor ordinario con embargos, cuotas de préstamo y salario pagado en liquidación; motor del aguinaldo; huella con embargos, liquidaciones y reglas de conceptos |
+| `20261022000640` | `rrhh_planilla_pl2b_3_liquidacion` | liquidación pura y preparación (saldo de vacaciones, aguinaldo ya pagado, préstamos sin tocar el aguinaldo); triggers de inmutabilidad |
+| `20261022000939` | `rrhh_planilla_pl2b_4_rpc_vacaciones` | RPC de PL2a que cambian y las 6 RPC de vacaciones |
+| `20261022001314` | `rrhh_planilla_pl2b_5_prestamos_liquidaciones` | préstamos, embargos, liquidación como documento, pasivo y provisiones; privilegios y poscheques de PL2b |
+| `20261022001530` | `rrhh_planilla_pl2c_1_lectura` | parámetro `horas_extra_fraccion_minutos` (30, verificar) y 6 RPC de lectura |
+| `20261022001727` | `rrhh_planilla_pl2c_2_configuracion` | conceptos, tipos de planilla y tabla de IR |
+| `20261022001922` | `rrhh_planilla_pl2c_3_declaraciones_asistencia` | declaraciones INSS, INATEC e IR; propuesta e importación desde Asistencia; privilegios y poscheques de PL2c |
+
+**Aprobación:** el usuario eligió "Aplicar al pasar pruebas y revisión": cada migración se aplica cuando pasa PGlite, la revisión independiente y un ensayo revertido en remoto. PL2b y PL2c se escribieron como dos migraciones y se dividieron en partes en límites de sección (cada parte cabe en una llamada); cada parte revoca el EXECUTE de las funciones nuevas que crea, para que no queden expuestas entre partes. La huella de las funciones de la cadena dividida es idéntica a la de los archivos sin dividir.
+
+**Antes de aplicar:**
+- PL2b: dos rondas de `reviewer`; PL2c: dos rondas. Todo lo alto y medio corregido; la 2.ª ronda de PL2c dejó un medio (vacaciones aprobadas después de importar una ausencia) y tres bajos, corregidos antes de aplicar.
+- `npm run test:rrhh:planilla` (PGlite) con código 0: pruebas de PL2a, PL2b y PL2c.
+- Un ensayo revertido por parte, con pruebas sobre datos reales como el owner de la empresa: quincena del 1 al 15 de octubre calculada con 4 personas; aguinaldo 2026 con 4 personas; liquidación por renuncia al 31/10 preparada para los 4 contratos con salario; préstamo de 4 cuotas, embargo, liquidación como documento con la deducción del préstamo y aprobación rechazada a quien la creó; provisiones de septiembre (3 filas); lectura con RLS como `authenticated` y escritura directa denegada; propuesta de Asistencia con las marcas reales (52 ausencias y 0 horas extra del 1 al 15 de octubre: casi nadie marca en el kiosco).
+
+**Poscheque remoto:**
+- poscheques de PL2b y PL2c dentro de sus migraciones: OK (conceptos, tipo Aguinaldo, particiones registradas, RLS en tablas y particiones, sin escritura directa, EXECUTE correcto, núcleos sin EXECUTE para la API);
+- `md5(prosrc)` de las 81 funciones de planilla comparado con PGlite: 79 idénticas; `rrhh.fn_crear_contrato` y `rrhh.fn_editar_contrato` (de PL2a) difieren solo en comentarios y espacios (iguales al normalizarlos);
+- 0 planillas, 0 liquidaciones y 0 préstamos reales: los ensayos se revirtieron.
+
+**Advisors de seguridad después:** sin hallazgos nuevos fuera del patrón. Ninguna función de planilla es ejecutable por `anon` (siguen 5, las mismas); las RPC `planilla_*` aparecen en `authenticated_security_definer_function_executable`, como corresponde al patrón (cada una valida su permiso); las particiones nuevas no aparecen en `rls_enabled_no_policy`.
+
+**Rollback (antes de uso):** en el encabezado de `20261022000001_rrhh_planilla_pl2b_1_tablas.sql` (PL2b) y de `20261022001530_rrhh_planilla_pl2c_1_lectura.sql` (PL2c), en orden inverso: primero PL2c, después PL2b y al final el Paso Cero.
+
+## 2026-10-21 — Planilla PL2a: esquema y motor (APLICADA)
+
+**Migración:** `20261021191441_rrhh_planilla_pl2a_motor`, aplicada con `apply_migration` y guardada con la versión remota (se escribió con el prefijo local `20261021220000`). La aprobó el usuario ("Si", a la pregunta de aplicar PL2a). Diseño en el [plan 20 §3.1 y §7](plan/20-planilla.md).
+
+**Qué cambia:**
+- **Tablas nuevas en `rrhh`:** `contrato_regimen`, `ir_tramos`, `planilla_tipos`, `conceptos` y `planilla_empleados`, más `planilla_lineas` y `novedades` (particionadas por mes desde 2026-01).
+- **`planillas`:** estados nuevos y columnas de tipo, huellas, pago y anulación. Pierde la escritura directa.
+- **`planilla_detalles`:** queda en desuso.
+- **`parametros_ley`:**
+  - el 22.5% patronal se cierra y el 21.5% rige desde 2026-09-03;
+  - se agregan `certeza`, `fuente` y 16 parámetros;
+  - se retira la escritura directa.
+- **`feriados`:** columna `tipo` y los 14 de 2026.
+- **Contratos:**
+  - `contratos.fecha_antiguedad`, protegida por trigger;
+  - las 4 compensaciones activas pasan de `mensual` a `quincenal` (auditado) y el default queda en quincenal;
+  - `crear_contrato` y `editar_contrato` se recrean con `p_frecuencia_pago` opcional.
+- **12 RPC `public.planilla_*`.**
+- **Régimen inicial:** servicios profesionales exento en los 5 contratos activos.
+
+**Antes de aplicar:**
+- dos rondas de `reviewer`, con todos sus hallazgos corregidos;
+- `test:db` en verde;
+- tres ensayos en transacción revertida. El primero fue incompleto. El último incluyó la migración final completa y una corrida real de la 1.ª quincena de octubre con 4 personas.
+
+**Poscheque remoto:**
+- versión `20261021191441`;
+- 7 tablas nuevas y 26 particiones;
+- 12 RPC;
+- INSS patronal vigente de 0.2150;
+- 20 parámetros abiertos y 14 feriados;
+- régimen de servicios profesionales exento en 5 contratos;
+- 4 compensaciones en quincenal y 1 contrato activo sin salario;
+- `crear_contrato` con la firma nueva;
+- 4 auditorías de frecuencia;
+- 0 planillas.
+
+**Advisors de seguridad después:** sin hallazgos nuevos fuera del patrón esperado.
+- `rls_enabled_no_policy` (INFO): incluye las 26 particiones nuevas, que tienen RLS sin policies a propósito para bloquear el acceso directo.
+- `authenticated_security_definer_function_executable` (WARN): incluye las 12 RPC nuevas y las 2 de contrato recreadas; cada una valida su permiso.
+- `anon_security_definer_function_executable`: sigue en 5, ninguna de planilla.
+- `auth_leaked_password_protection`: ya existía.
+
+**Rollback (antes de uso):** está en el encabezado del archivo. Hay que borrar primero los triggers, después las tablas nuevas, y restaurar las policies y grants retirados, las RPC de contrato de `20260918043955`, la frecuencia según la auditoría y los parámetros.
+
+## 2026-10-21 — Planilla: Paso Cero (APLICADA)
+
+**Migración:** `20261021160943_rrhh_planilla_paso_cero`, aplicada con `apply_migration` y guardada con la versión remota. La aprobó el usuario: "Apruebo el Paso Cero de Planilla, incluyendo quitarle aprobar y anular al especialista de planillas. Aplícalo." Diseño en el [plan 20 §8](plan/20-planilla.md).
+
+Solo cambia el catálogo y las plantillas de rol: no crea tablas, no toca roles de empresa (`core.rol_permisos`) y no activa nada.
+- 15 códigos `rrhh.planillas.*` nuevos: `regimen.{ver,cambiar}`, `conceptos.{ver,gestionar}`, `planilla.pagar`, `vacaciones.{ver,registrar,aprobar}`, `prestamos.{ver,gestionar}`, `liquidaciones.{ver,calcular,aprobar}`, `declaraciones.generar` y `colillas.enviar`.
+- 34 asignaciones a plantillas.
+- **Separación de funciones:** `especialista_planillas` pierde `planilla.aprobar` y `planilla.anular`.
+
+**Ensayo:** antes de aplicar se probó dentro de una transacción revertida. Dio 34 asignaciones, todos los códigos con 4 segmentos, y no quedó nada.
+
+**Poscheque remoto:**
+- 25 permisos de planillas y 85 de RRHH.
+- Por plantilla: admin 25, especialista 18 (solo `planilla.ver` y `planilla.generar` del recurso planilla), consulta 7, supervisor 2 y gestor 1.
+- Régimen, pago, aprobación y anulación quedan solo en admin.
+
+**Rollback (antes de uso):** está en el encabezado del archivo. Borra los 15 códigos y sus asignaciones, y le devuelve aprobar y anular al especialista.
+
+## 2026-10-21 — Revisión integral: 4 migraciones (APLICADAS)
+
+Salen de la revisión integral del 2026-10-20 ([status-log](status-log/2026-10-20-revision-integral.md) y [implementación](status-log/2026-10-21-mejoras-revision-integral.md)).
+
+**Aplicación:**
+- Las aprobó el usuario el 2026-10-21. Se aplicaron una por una con `apply_migration` entre las 10:46 y las 10:50 (hora de Managua).
+- No se usó `db push`, que habría arrastrado `20261021090000_erp_r1_r2_paso_cero`, que sigue sin aplicar.
+- Antes de cada una se comprobó que no hubiera sesiones abiertas en Atención, consultas activas, transacciones largas ni locks en los esquemas, y que ninguna función dependiera de las que se renombran o revocan (`pg_depend`).
+- Los archivos se escribieron como `20261021030100…030400` y se renombraron a la versión remota.
+
+| Versión remota | Qué hace | Verificación | Rollback |
+|---|---|---|---|
+| `20261021164649_core_mis_permisos_rls_initplan` | RPC `public.mis_permisos(empresa, códigos[]) → text[]` (`security definer`, `search_path=''`, máximo 300 códigos, sin `anon`), que usa `getPermisos` del kernel. Además, `(select auth.uid())` en las políticas `company_memberships: ver la propia` y `user_app_roles: ver el propio`. `notify pgrst` | Como owner devuelve solo los códigos válidos y sin sesión devuelve `{}`. El advisor `auth_rls_initplan` pasa de 2 a 0 | `drop function public.mis_permisos(uuid,text[]);` y volver las dos políticas a `auth.uid()` sin `select` |
+| `20261021164748_presupuesto_indicadores_acotado` | `presupuesto_indicadores` acotada a la ventana que usa, más el índice `ix_facturas_company_cliente_norm_fecha` | Antes se ensayó en transacción revertida (44 casos con JSON idéntico). Después de aplicarla, los 10 meses de 2026 (equipo) tienen **la misma huella md5 que antes**, con **181 ms** de media (antes eran 660) | Recrear la función de `20261020204854` y `drop index presupuesto.ix_facturas_company_cliente_norm_fecha;` |
+| `20261021164902_seguridad_kiosco_reportes_exportar` | Revoca `registrar_marca_kiosko` a `anon` y `authenticated` (N7/H5). Las RPC de reportes `diario`, `tardanzas`, `incidencias` y `resumen` se envuelven: las originales pasan a `rrhh.*_base`, sin EXECUTE. Más de 200 filas exige `reportes.exportar`, salvo el diario de un contrato, y el resumen se recorta a 200 filas (N6). La firma del PDF sale de `core.perfiles` (N11). `productos_exportar` queda auditada (N5). `notify pgrst` | Los 4 reportes como owner dan **la misma huella que antes**. Un usuario sin permiso que pide 300 filas recibe `42501`. `registrar_marca_kiosko` ya no la puede ejecutar `anon`; `registrar_marca_terminal`, `canjear_codigo_terminal` y `estado_terminal` sí | Mover las `_base` de vuelta a `public` con su nombre original, `grant execute … to authenticated` en `registrar_marca_kiosko`, y recrear `asistencia_registrar_exportacion` y `productos_exportar` desde sus migraciones originales |
+| `20261021165004_indices_llaves_foraneas` | 101 índices B-Tree para 106 FK sin cobertura, con `lock_timeout` de 5 s | Poscheque con 0 FK sin índice. El advisor `unindexed_foreign_keys` pasa de 188 a 0. Tamaños: la tabla mayor es `presupuesto.facturas`, con 34 MB | `drop index` de cada uno (la lista está en el archivo) |
+
+**Advisors después:**
+- **Seguridad:** las funciones `security definer` ejecutables por `anon` bajan de 6 a 5 (salió `registrar_marca_kiosko`; las otras 5 son intencionales). `auth_leaked_password_protection` sigue pendiente: es configuración de Auth, a cargo del usuario.
+- **Rendimiento:** `unindexed_foreign_keys` y `auth_rls_initplan` en 0. `unused_index` pasa de 124 a 329; es informativo, porque los índices nuevos todavía no tienen uso.
+
+## 2026-10-20 — Presupuesto: venta diaria (APLICADA)
+
+**Migración:** `20261020210947_presupuesto_venta_diaria`, escrita como `20261020230000_…` y renombrada a la versión remota. Solo lectura.
+
+**Qué crea:** la RPC `public.presupuesto_venta_diaria(uuid, integer, integer, text)`, con el mismo alcance que `presupuesto_indicadores`. Devuelve la venta vigente por día del mes y del mismo mes del año anterior, sin clientes ni números de factura.
+
+**Ensayo:** octubre del equipo suma US$ 240,878.76, igual que el total del mes. La vista propia solo devuelve lo del vendedor vinculado.
+
+**Poscheque:** 19 RPC con anon 0.
+
+**Rollback:** `drop function public.presupuesto_venta_diaria(uuid,integer,integer,text);`
+
+## 2026-10-20 — Presupuesto: indicadores del Dashboard (APLICADA)
+
+**Migración:** `20261020204854_presupuesto_indicadores`, escrita como `20261020213000_…` y renombrada a la versión remota. Solo lectura, sin tablas ni permisos nuevos.
+
+**Qué crea:**
+- La RPC `public.presupuesto_indicadores(uuid, integer, integer, text)`. La vista `propio` exige `metas.avance_propio.ver` y la vista `equipo`, `metas.avance_equipo.ver`. Las listas de clientes y facturas solo vuelven con permiso de facturas.
+- Los helpers `presupuesto.fn_dias_habiles` y `presupuesto.fn_cliente_generico`.
+
+**Ensayo:** con datos reales, para el equipo (owner), el vendedor vinculado (transacción revertida) y sin vínculo.
+
+**Poscheque:** 18 RPC con anon 0. Los helpers no son ejecutables por `authenticated`.
+
+**Rollback:** `drop function public.presupuesto_indicadores(uuid,integer,integer,text); drop function presupuesto.fn_dias_habiles(date,date); drop function presupuesto.fn_cliente_generico(text);`
+
+## 2026-10-20 — Presupuesto: cuadro de meta y clientes (APLICADA)
+
+**Migración:** `20261020194816_presupuesto_tablero_clientes`, escrita como `20261020220000_…`. La pidió el usuario: elegir los vendedores del cuadro de meta, y que el vendedor vea sus clientes y qué les facturó.
+
+**Qué crea:**
+- La columna `presupuesto.vendedores.en_tablero` (true por defecto).
+- La RPC `presupuesto_guardar_tablero`, que exige `metas.meta_vendedor.gestionar`.
+- `presupuesto_equipo` vuelve a crearse, ahora con `en_tablero`.
+- Las RPC `presupuesto_clientes` y `presupuesto_facturas_cliente`, con el helper `presupuesto.fn_alcance_facturas`: todos con `factura.ver`, o solo lo propio con `factura_propia.ver`.
+- No hay permisos nuevos y quedan 17 RPC.
+
+**Ensayo previo:** en una transacción revertida, con los datos reales: owner, filtro por vendedor, selector, vendedor vinculado y sin vínculo, y sin sesión.
+
+**Poscheque:** 17 RPC con anon 0. El helper no es ejecutable por `authenticated`.
+
+**Rollback:**
+- `drop` de las 3 RPC nuevas y del helper;
+- volver a crear `presupuesto_equipo` de `20261020184030`;
+- `alter table presupuesto.vendedores drop column en_tablero`.
+
+## 2026-10-20 — Activación de la app Presupuesto (APLICADA)
+
+**Migración:** `20261020192310_presupuesto_activar`, escrita como `20261020210000_…`. Decisión del usuario: "Sí, activa Presupuesto para la empresa para probarla en local".
+
+**Qué hace:** activa la app en `core.apps` y la habilita en `core.company_apps` para `materiales-jcastillo`. No asigna roles ni usuarios.
+
+**Poscheque:**
+- el owner tiene `presupuesto.ver_modulo`;
+- un miembro sin rol, no;
+- ningún rol de empresa tiene permisos `presupuesto.*`.
+
+**Efecto en producción:** el mosaico aparece en el Launcher de producción, pero no abre hasta que se despliegue `apps/presupuesto`, igual que pasó con Productos.
+
+**Rollback:** `update core.apps set active = false where slug = 'presupuesto'` y borrar su fila de `core.company_apps`.
+
+## 2026-10-20 — App Presupuesto: ajustes de la revisión (APLICADA)
+
+**Migración:** `20261020191334_presupuesto_ajustes_revision`, escrita como `20261020200000_…`.
+
+**Qué cambia:**
+- `presupuesto_vendedores` entrega `user_id` y el correo solo con `presupuesto.configuracion.vendedor.gestionar`; a los demás les da `vinculado`.
+- En `presupuesto_importar_facturas`, un número de fila que no es entero cuenta como fila 0 y no aborta el lote.
+- Los helpers de partición quedan con `search_path = ''`.
+
+**Ensayo previo:** en una transacción revertida, con los casos del owner, de un rol de gerente, de la fila "1.5" y de una partición nueva.
+
+**Poscheque:** los permisos de ejecución no cambiaron, los helpers quedaron con `search_path=""` y no hay datos.
+
+**Rollback:** volver a crear las dos funciones con su versión de `20261020184030`.
+
+## 2026-10-20 — App Presupuesto: esquema + RPC (APLICADA)
+
+**Migración:** `20261020184030_presupuesto_esquema`, escrita como `20261020190000_…` y renombrada a la versión remota. Es el esquema de Metas (`20261018135152`) renombrado: schema `metas` → `presupuesto`, `public.metas_*` → `public.presupuesto_*`, códigos `presupuesto.*` y mensajes en "tú". Agrega `presupuesto_mis_permisos`.
+
+**Qué crea:**
+- 6 tablas, todas con RLS y sin políticas: `vendedores`, `presupuestos`, `presupuesto_meses` y `metas_vendedor`, más `facturas` e `importaciones`, particionadas por mes y registradas en `core.tablas_particionadas`.
+- 14 RPC, ejecutables solo por `authenticated`. El schema queda sin USAGE para la API.
+
+**Ensayo previo:** se corrió completo en una transacción que termina con error a propósito, con datos PRUEBA:
+- importación con vista previa, sin duplicar;
+- presupuesto anual y rechazo de porcentajes que no suman 100 %;
+- metas sugeridas, y ajustadas que se conservan al regenerar;
+- equipo y facturas;
+- un usuario con solo la plantilla Vendedor ve solo lo suyo y se le deniegan 6 RPC;
+- sin sesión, todo denegado.
+
+Se verificó después que el remoto quedó igual.
+
+**Poscheque en remoto:** 14 RPC, 49 particiones de facturas (2023-01 a 2027-01), 4 de importaciones y 0 datos. Los helpers no son ejecutables por `authenticated`.
+
+**Rollback:** `drop schema presupuesto cascade`, borrar las 14 RPC `public.presupuesto_*` y las 2 filas de `core.tablas_particionadas`. No hay datos.
+
+[Detalle](status-log/2026-10-20-presupuesto-app.md).
+
+## 2026-10-20 — App Presupuesto: Paso Cero (APLICADA)
+
+**Migración:** `20261020183127_presupuesto_paso_cero`, escrita como `20261020170000_…`. La aprobó el usuario: "Si aplícalo".
+
+**Qué hace:**
+- Registra la app `presupuesto` en `core.apps`, inactiva y en la categoría Ventas.
+- Agrega 9 permisos: el trigger crea `presupuesto.ver_modulo` y la migración inserta los otros 8, de 4 segmentos.
+- Agrega las plantillas Vendedor 3, Gerente de ventas 7 y Administrador de ventas 9.
+
+**Verificación:**
+- Antes: no había nada de `presupuesto`.
+- Después: 9 permisos, plantillas 9/7/3, app inactiva y sin `company_apps`.
+- Ensayada antes en una transacción revertida.
+
+**Rollback:** borrar las plantillas, los 9 permisos y la app `presupuesto`.
+
+## 2026-10-20 — Retiro del CRM y de Metas (APLICADA)
+
+Migración `20261020143821_retirar_crm_y_metas`, escrita como `20261020200000_…`. La pidió el usuario: "Borra todo el CRM: el código de apps/crm con respaldo en una rama local, la app del Launcher y los esquemas crm y metas con sus permisos en nexo-core".
+
+**Qué hace:**
+- **Prechequeo.** Aborta si alguna tabla de datos de `crm` o `metas` tiene filas, si hay permisos `crm.*` en otro módulo o si algún usuario o rol de empresa tiene un permiso `crm.*`.
+- Borra las 48 RPC `public.crm_*` y las 13 `public.metas_*`.
+- Quita las 5 filas de `crm` y `metas` de `core.tablas_particionadas`.
+- `drop schema metas cascade`.
+- `drop schema crm cascade` y luego `create schema crm` vacío, con `revoke all` a `public`, `anon` y `authenticated`. Se conserva porque `crm` sigue en "Exposed schemas".
+- Borra 78 permisos de plantilla, 3 plantillas, 34 permisos y la app `crm`; la fila de `company_apps` cae en cascada.
+- **Poscheque.** Comprueba cada punto, incluido que `anon` y `authenticated` no tengan USAGE sobre `crm`.
+
+**Verificación:**
+- Antes de aplicar se confirmó que nada fuera de `crm` y `metas` depende de sus objetos (`pg_depend`, llaves foráneas, funciones, vistas y `cron.job`).
+- Se ensayó completa en una transacción revertida, y después se confirmó que el remoto seguía intacto.
+- Después de aplicar quedaron 9 apps, 184 permisos y 25 plantillas; `metas` no existe y `crm` tiene 0 objetos.
+- La Data API sigue sirviendo: una RPC pública devolvió 200.
+
+**Rollback:** volver a aplicar, en orden, las migraciones del CRM y de Metas que están en `supabase/migrations/`. No había datos.
+
+Detalle en [status-log/2026-10-20-retiro-crm-replica-ag-negocio.md](status-log/2026-10-20-retiro-crm-replica-ag-negocio.md).
+
+## 2026-10-20 — Paso Cero de Listas de precios + ERP (APLICADA)
+
+Migración `20261020064732_erp_precios_paso_cero`, escrita como `20261020120000_…`. La aprobó el usuario.
+
+**Qué hace:**
+- Registra las apps `precios` y `erp` como **inactivas**.
+- Agrega los permisos: `precios.*` (10, más el `ver_modulo` del trigger) y `erp.*` (51, más el `ver_modulo` del trigger).
+- Crea 12 plantillas:
+  - Precios: Consulta 3, Analista 7 y Administrador 11.
+  - ERP: Bodeguero 10, Jefe de bodega 15, Comprador 11, Cajero 10, Supervisor 18, Auxiliar contable 15, Contador 25, Gerente financiero 21 y Administrador 52.
+- No crea tablas.
+
+**Verificación:**
+- Antes de aplicar se ensayó en una transacción revertida.
+- La migración incluye un postcheck de los conteos exactos.
+- En remoto quedó la versión `20261020064732`, con 11 permisos de precios y 52 del ERP, y las dos apps inactivas.
+
+**Rollback:** borrar de `core.app_role_permissions`, `core.app_roles`, `core.permissions_catalog` y `core.apps` las filas `precios` y `erp`. No existen datos que dependan de ellas.
+
+Diseño en [plan/17-erp.md](plan/17-erp.md).
+
+## 2026-10-20 — CRM: esquema del embudo comercial (APLICADA)
+
+Migración `20261020060058_crm_embudo_esquema`, escrita como `20261019200000_…`. Aplica las decisiones del usuario P1–P7 y S6.
+
+**Qué crea en `crm`:**
+- 9 tablas: `embudo_parametros`, `etapas`, `origenes`, `motivos_perdida`, `correlativos`, `leads` y `oportunidades`, más `actividades`, `cotizaciones` + `cotizacion_lineas` y `eventos`, estas últimas particionadas por mes.
+- 3 funciones para crear particiones, registradas en `core.tablas_particionadas`.
+- Helpers `crm.fn_*`, sin `EXECUTE` para la API.
+- 48 RPC `public.crm_*`, con `EXECUTE` solo para `authenticated`.
+- La siembra S6 de la empresa.
+
+`crm.clientes` no cambia, pero ahora recibe FK desde el embudo.
+
+**Pruebas:**
+- Antes de aplicar: 19 grupos en verde en una transacción revertida.
+- Después, en remoto: 48 RPC, 16 particiones, siembra 6/6/6/1 y 0 datos.
+- Los avisos de seguridad solo muestran lo esperado.
+
+**Rollback** (no hay datos que dependan de esto):
+1. Borrar las 48 RPC y los `crm.fn_*`.
+2. Borrar las 11 tablas, de las hijas a las padres.
+3. Borrar las 3 filas de `core.tablas_particionadas`.
+
+[Detalle](status-log/2026-10-20-crm-embudo-esquema.md).
+
+## 2026-10-19 — CRM: Paso Cero del embudo comercial (APLICADA)
+
+`20261019152215_crm_embudo_paso_cero` (escrita como `20261019000000_…`), con la aprobación del usuario.
+
+- Agrega 21 permisos `crm.ventas.{lead,oportunidad,actividad,cotizacion}.*`, más `crm.ventas.equipo.ver`, `crm.ventas.asignacion.gestionar` y `crm.configuracion.embudo.gestionar`.
+- Amplía las plantillas: Vendedor 4 → 17, Gerente de ventas 10 → 27, Administrador de ventas 13 → 34.
+- No crea tablas ni funciones.
+
+Se ensayó en una transacción revertida y la migración trae precheck y postcheck. En remoto quedaron 34 permisos `crm` y ningún rol de empresa con los permisos nuevos.
+
+**Rollback:** borrar de `core.app_role_permissions` y de `core.permissions_catalog` esos 21 códigos. No existe ningún dato que dependa de ellos. [Detalle](status-log/2026-10-19-crm-embudo-paso-cero.md).
+
+## 2026-10-18 — Metas y Presupuesto dentro del CRM (APLICADA)
+
+`20261018184849_metas_dentro_de_crm` (escrita como `20261018190000_…`), con la aprobación del usuario. 8 permisos `crm.*` de 4 segmentos reemplazan a los `metas.*`; primeras plantillas del CRM (Vendedor 4, Gerente de ventas 10, Administrador de ventas 13); las 13 funciones del schema `metas` se reescriben desde su definición actual cambiando solo los literales de código (grants intactos); se borran plantillas, permisos y la app `metas` (y su `company_apps`). Probada antes en transacción revertida (permisos por rol, Launcher, denegaciones). Postcheck en remoto: 13 permisos `crm`, 0 filas de `metas` en el catálogo, 13 RPC. Rollback: volver a aplicar los permisos `metas.*` y reemplazar los literales al revés (sin datos al aplicar). [Detalle](status-log/2026-10-18-metas-dentro-de-crm.md).
+
+## 2026-10-18 — Metas de ventas: activación (APLICADA, luego reemplazada)
+
+> Reemplazada el mismo día por `20261018184849_metas_dentro_de_crm`: la app `metas` ya no existe.
+
+`20261018174647_metas_activar`, con la aprobación del usuario ("actívala"). Hace `core.apps.active = true` y `core.company_apps.enabled = true` para `materiales-jcastillo`, igual que `productos_activar`; no asigna roles ni usuarios. Postcheck: activa, habilitada y el owner tiene `metas.ver_modulo`. El mosaico ya aparece en el Launcher de producción, pero no abre hasta que exista el deploy y `METAS_APP_URL` en `nexocore`. Rollback: `update core.apps set active = false where slug = 'metas'`.
+
+## 2026-10-18 — Metas de ventas: Paso Cero + esquema (APLICADAS)
+
+El usuario aprobó la matriz ("Autorizado") tras ver la maqueta. Ambas aplicadas en `nexo-core` con sus prechecks. Verificación previa: no existía nada de `metas`. Detalle: [status-log](status-log/2026-10-18-metas-paso-cero-esquema.md).
+
+- **`20261018133816_metas_paso_cero`:** app `metas` inactiva (Ventas, `/metas`), 8 permisos + `metas.ver_modulo` del trigger, plantillas Vendedor (3), Gerente de ventas (7) y Administrador (9). No asigna nada a roles de empresa.
+- **`20261018135152_metas_esquema`** (escrita como `20261018140000_…`, renombrada a la versión remota sin tocar el SQL): schema `metas` con 6 tablas (facturas e importaciones particionadas por mes; 49 particiones de facturas desde 2023-01), 13 RPC `public.metas_*`, registro en `core.tablas_particionadas`. Antes de aplicarla, 18 pruebas en una transacción revertida, todas con el resultado esperado.
+- **Advisors:** solo `rls_enabled_no_policy` en `metas.*` (cerrado a propósito) y las 13 RPC `security definer` para `authenticated`. Nada nuevo para `anon`.
+- **Rollback:** `drop schema metas cascade; delete from core.tablas_particionadas where schema_nombre = 'metas';` y luego borrar plantillas, permisos y la app `metas` (sin datos todavía).
+
+## 2026-10-18 — Reportes de Asistencia (APLICADAS)
+
+El usuario aprobó la especificación, la matriz y las decisiones recomendadas ("Ok") y luego la aplicación ("Aplícalo"). Se aplicaron en `nexo-core` con sus prechecks y postchecks y se renombraron a la versión remota (escritas como `20261018100000_…` y `20261018100100_…`). Advisors de seguridad: 62 / 6 / 81 / 1 (antes 62 / 6 / 75 / 1); los 6 nuevos de `authenticated_security_definer` son las 6 RPC públicas de reportes, el mismo patrón que el resto de RPC del módulo; `anon` no cambió. Comprobación posterior como owner (transacción revertida): diario 1–17 oct con 15 filas, resumen e incidencias responden. Detalle: [status-log](status-log/2026-10-18-asistencia-reportes.md).
+
+- **`20261018014012_asistencia_reportes_paso_cero`:**
+  - permisos `rrhh.asistencia.reportes.ver` y `.exportar`;
+  - plantillas: Admin RRHH, Supervisor de Asistencia y Especialista de Planillas, ver y exportar; Consulta General, solo ver;
+  - no asigna nada a los roles de empresa. Verificado en remoto: Heyner, Mercedes y Prueba no tienen permisos de RRHH.
+- **`20261018014127_asistencia_reportes`:**
+  - núcleo `rrhh.fn_asistencia_dias`: una fila por contrato y día de Managua, con jornada, feriado, marcas truncadas al minuto, horas netas con el descanso real o el programado, tardanza y salida temprana desde la hora programada si superan la tolerancia, tiempo sobre jornada informativo, estado y observaciones;
+  - `rrhh.fn_reporte_validar`;
+  - funciones públicas `asistencia_reporte_{diario,resumen,tardanzas,incidencias,opciones}` y `asistencia_registrar_exportacion`, esta última auditada en `core.audit_log`.
+
+**Ensayo 1**, en `nexo-core` con datos sintéticos y todo revertido:
+
+| Día | Caso | Resultado |
+|---|---|---|
+| 05 | Completo | netas 510, sobre jornada 30 |
+| 06 | Tarde y sin descanso | netas 468, tardanza 12, sin descanso marcado |
+| 07 | Salida temprana | netas 470, salida temprana 10 |
+| 08 | Solo entrada | falta salida |
+| 09 | Sin marcas | sin marcas |
+| 10 | Feriado trabajado | no laborable 240 |
+| 11 | Domingo | día de descanso |
+| 12 | Descanso abierto | descanso sin cerrar |
+| 13 | Dentro de la tolerancia | netas 471, tardanza 0 |
+
+En el mismo ensayo:
+- **Resumen:** 7 días laborables, 1 ausencia, 2 incompletos, 3360 min programados, 1919 min netos y puntualidad 0,8333.
+- **Validaciones:** un rango de más de 62 días da 22023 y un usuario sin permiso da 42501.
+
+**Ensayo 2:** el archivo exacto contra datos reales (7 días), revertido; las 6 funciones responden. Después se comprobó que no quedó ni el núcleo, ni los permisos, ni auditorías.
+
 ## 2026-10-17 — P4d: freno de PIN sin salto (APLICADA)
 
 `20261018002033_rrhh_p4d_freno_pin`. Se escribió como `20261017240000_…`, el usuario la aprobó, se aplicó con sus prechecks y postchecks y se renombró a la versión remota; advisors de seguridad sin cambios (62 / 6 / 75 / 1). Corrige el hallazgo Alto #2 de la revisión de P4c: un PIN válido reiniciaba `intentos_en_ventana`, así que quien conociera su propio PIN podía intercalarlo con PINes ajenos sin bloquearse nunca. Las confirmaciones rechazadas tampoco contaban en ningún límite. Solo reemplaza `rrhh.fn_registrar_marca_kiosko`, con la misma firma:

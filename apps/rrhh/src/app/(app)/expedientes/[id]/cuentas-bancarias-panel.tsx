@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { StatusBadge, useToast } from "@nexo/ui";
+import { Alert, Button, DataTable, EmptyState, Field, Input, Select, StatusBadge, useToast } from "@nexo/ui";
 import { crearCuentaBancaria, editarCuentaBancaria, type CuentaBancariaInput } from "./cuentas-bancarias-actions";
 
 export interface CuentaBancariaRow {
@@ -15,8 +15,9 @@ export interface CuentaBancariaRow {
 }
 
 const EMPTY: CuentaBancariaInput = { banco: "", tipoCuenta: "ahorro", moneda: "NIO", numeroCuenta: "", principal: false };
-const inputClass =
-  "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500";
+
+const TIPO_LABEL: Record<CuentaBancariaRow["tipoCuenta"], string> = { ahorro: "Ahorro", corriente: "Corriente" };
+const MONEDA_LABEL: Record<CuentaBancariaRow["moneda"], string> = { NIO: "Córdobas", USD: "Dólares" };
 
 /**
  * Fase 5 (2026-09-16, bloque pre-F1.5): pestaña "Cuentas bancarias" --
@@ -94,140 +95,135 @@ export default function CuentasBancariasPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-neutral-900">Cuentas bancarias</h3>
-        {canCrear && !showForm && (
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            + Nueva cuenta
-          </button>
-        )}
+        {canCrear && !showForm ? (
+          <Button variant="secondary" onClick={() => setShowForm(true)}>
+            Agregar cuenta
+          </Button>
+        ) : null}
       </div>
 
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
-      {showForm && (
-        <form onSubmit={crear} className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-neutral-500">Banco</span>
-              <input
+      {showForm ? (
+        <form
+          onSubmit={crear}
+          className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs"
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Banco" required>
+              <Input
                 required
                 value={nuevo.banco}
                 onChange={(e) => setNuevo((n) => ({ ...n, banco: e.target.value }))}
-                className={inputClass}
               />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-neutral-500">Número de cuenta</span>
-              <input
+            </Field>
+            <Field label="Número de cuenta" required>
+              <Input
                 required
+                inputMode="numeric"
+                autoComplete="off"
                 value={nuevo.numeroCuenta}
                 onChange={(e) => setNuevo((n) => ({ ...n, numeroCuenta: e.target.value }))}
-                className={inputClass}
               />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-neutral-500">Tipo</span>
-              <select
+            </Field>
+            <Field label="Tipo">
+              <Select
                 value={nuevo.tipoCuenta}
                 onChange={(e) => setNuevo((n) => ({ ...n, tipoCuenta: e.target.value as "ahorro" | "corriente" }))}
-                className={inputClass}
               >
                 <option value="ahorro">Ahorro</option>
                 <option value="corriente">Corriente</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-neutral-500">Moneda</span>
-              <select
+              </Select>
+            </Field>
+            <Field label="Moneda">
+              <Select
                 value={nuevo.moneda}
                 onChange={(e) => setNuevo((n) => ({ ...n, moneda: e.target.value as "NIO" | "USD" }))}
-                className={inputClass}
               >
                 <option value="NIO">Córdobas (NIO)</option>
                 <option value="USD">Dólares (USD)</option>
-              </select>
-            </label>
+              </Select>
+            </Field>
           </div>
-          <label className="flex items-center gap-2 text-sm text-neutral-600">
+          <label className="flex items-center gap-2 text-sm text-neutral-700">
             <input
               type="checkbox"
               checked={nuevo.principal}
               onChange={(e) => setNuevo((n) => ({ ...n, principal: e.target.checked }))}
+              className="size-4 rounded border-neutral-300 text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             />
             Marcar como cuenta principal
           </label>
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              Agregar
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="text-sm text-neutral-500 hover:text-neutral-900"
-            >
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" onClick={() => setShowForm(false)} disabled={isPending}>
               Cancelar
-            </button>
+            </Button>
+            <Button type="submit" loading={isPending}>
+              Agregar cuenta
+            </Button>
           </div>
         </form>
-      )}
+      ) : null}
 
-      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
-        {cuentas.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-neutral-400">Sin cuentas bancarias registradas.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <tbody>
-              {cuentas.map((c) => (
-                <tr key={c.id} className="border-b border-neutral-100 last:border-0">
-                  <td className="px-4 py-2.5">
-                    <span className="font-medium text-neutral-900">{c.banco}</span>
-                    <span className="ml-2 text-neutral-400">
-                      {c.tipoCuenta} · {c.moneda} · {c.numeroCuenta}
-                    </span>
-                    {c.principal && (
-                      <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">principal</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <StatusBadge label={c.activo ? "activa" : "inactiva"} tone={c.activo ? "positive" : "neutral"} />
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    {canEditar && (
-                      <div className="flex justify-end gap-3">
-                        {!c.principal && c.activo && (
-                          <button
-                            type="button"
-                            onClick={() => hacerPrincipal(c)}
-                            className="text-neutral-500 hover:text-neutral-900"
-                          >
-                            Hacer principal
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => toggleActivo(c)}
-                          className="text-neutral-500 hover:text-neutral-900"
-                        >
-                          {c.activo ? "Desactivar" : "Activar"}
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <DataTable
+        rows={cuentas}
+        rowKey={(c) => c.id}
+        density="compact"
+        caption="Cuentas bancarias del empleado"
+        empty={<EmptyState bare title="Sin cuentas bancarias registradas" />}
+        columns={[
+          {
+            key: "banco",
+            header: "Banco",
+            render: (c) => (
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="font-medium text-neutral-900">{c.banco}</span>
+                {c.principal ? <StatusBadge label="Principal" tone="info" dot={false} /> : null}
+              </span>
+            ),
+          },
+          {
+            key: "cuenta",
+            header: "Cuenta",
+            render: (c) => (
+              <span className="text-neutral-600">
+                {TIPO_LABEL[c.tipoCuenta]} · {MONEDA_LABEL[c.moneda]} ·{" "}
+                <span className="tabular-nums">{c.numeroCuenta}</span>
+              </span>
+            ),
+          },
+          {
+            key: "estado",
+            header: "Estado",
+            render: (c) => (
+              <StatusBadge label={c.activo ? "Activa" : "Inactiva"} tone={c.activo ? "positive" : "neutral"} />
+            ),
+          },
+          ...(canEditar
+            ? [
+                {
+                  key: "acciones",
+                  header: "Acciones",
+                  align: "right" as const,
+                  render: (c: CuentaBancariaRow) => (
+                    <div className="flex justify-end gap-1">
+                      {!c.principal && c.activo ? (
+                        <Button variant="ghost" size="sm" disabled={isPending} onClick={() => hacerPrincipal(c)}>
+                          Hacer principal
+                        </Button>
+                      ) : null}
+                      <Button variant="ghost" size="sm" disabled={isPending} onClick={() => toggleActivo(c)}>
+                        {c.activo ? "Desactivar" : "Activar"}
+                      </Button>
+                    </div>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
     </div>
   );
 }

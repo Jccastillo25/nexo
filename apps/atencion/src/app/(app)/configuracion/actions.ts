@@ -1,11 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { contextoActual } from "@nexo/auth";
 import { requirePermission, PermissionDeniedError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
 import { mensajeAtencion } from "@/lib/errores";
-import type { CampoPantalla, CamposPantalla } from "@/lib/supabase/database.types";
+import type { CampoPantalla, CamposPantalla, Database } from "@/lib/supabase/database.types";
 
 export interface Resultado {
   ok: boolean;
@@ -13,15 +12,14 @@ export interface Resultado {
 }
 
 async function contexto(code: string) {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const ctx = await contextoActual<Database>();
   try {
-    await requirePermission({ supabase, companyId }, code);
+    await requirePermission(ctx, code);
   } catch (err) {
     if (err instanceof PermissionDeniedError) return { error: "Tu rol no permite esta acción." } as const;
     throw err;
   }
-  return { supabase, companyId } as const;
+  return ctx;
 }
 
 export async function guardarPuesto(input: {

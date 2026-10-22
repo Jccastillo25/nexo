@@ -1,20 +1,14 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { hasPermission } from "@nexo/permissions";
-import { DataTable, EmptyState, PageHeader, StatusBadge } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { Alert, ButtonLink, DataTable, EmptyState, PageHeader, StatusBadge, fechaHora } from "@nexo/ui";
+import { contextoActual } from "@nexo/auth";
+import { permisosDe } from "@/lib/permisos";
 import { mensajeAdministracion } from "../errores";
-import type { AdminUsuario } from "@/lib/supabase/database.types";
+import type { AdminUsuario, Database } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = {
   title: "Usuarios · Nexo",
 };
-
-function fecha(iso: string | null): string {
-  if (!iso) return "Nunca";
-  return new Date(iso).toLocaleDateString("es-NI", { day: "2-digit", month: "short", year: "numeric" });
-}
 
 /**
  * Usuarios de la empresa (docs/plan/12-administracion-usuarios-roles.md).
@@ -22,24 +16,13 @@ function fecha(iso: string | null): string {
  * nexo.administracion.usuarios.ver); acciones solo visibles con su permiso.
  */
 export default async function UsuariosPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-  const ctx = { supabase, companyId };
+  const [{ supabase, companyId }, permisos] = await Promise.all([contextoActual<Database>(), permisosDe()]);
 
-  const [canView, canCreate, canEdit] = await Promise.all([
-    hasPermission(ctx, "nexo.administracion.usuarios.ver"),
-    hasPermission(ctx, "nexo.administracion.usuarios.crear"),
-    hasPermission(ctx, "nexo.administracion.usuarios.editar"),
-  ]);
-
-  if (!canView) {
+  if (!permisos.usuariosVer) {
     return (
       <div className="flex max-w-5xl flex-col gap-6">
         <PageHeader title="Usuarios" />
-        <EmptyState
-          title="Sin permiso para ver usuarios"
-          description="Tu cuenta no tiene el permiso nexo.administracion.usuarios.ver para esta empresa."
-        />
+        <EmptyState variant="no-access" title="No tienes acceso a los usuarios" />
       </div>
     );
   }
@@ -52,35 +35,35 @@ export default async function UsuariosPage() {
         title="Usuarios"
         description="Cuentas con acceso a Nexo. Cada usuario tiene un rol, que define a qué aplicaciones entra y qué puede hacer."
         actions={
-          canCreate ? (
-            <Link
-              href="/configuracion/usuarios/nuevo"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              Nuevo usuario
-            </Link>
+          permisos.usuariosCrear ? (
+            <ButtonLink href="/configuracion/usuarios/nuevo">Nuevo usuario</ButtonLink>
           ) : undefined
         }
       />
 
-      {error && (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {mensajeAdministracion(error, "usuarios: admin_listar_usuarios", "No se pudieron cargar los usuarios. Intenta de nuevo.")}
-        </p>
-      )}
-
       <DataTable<AdminUsuario>
         rows={usuarios ?? []}
         rowKey={(u) => u.user_id}
+        caption="Usuarios"
         emptyLabel="Todavía no hay usuarios."
+        error={
+          error ? (
+            <Alert tone="error">
+              {mensajeAdministracion(error, "usuarios: admin_listar_usuarios", "No se pudieron cargar los usuarios. Intenta de nuevo.")}
+            </Alert>
+          ) : undefined
+        }
         columns={[
           {
             key: "nombre",
             header: "Nombre",
             render: (u) => {
               const nombre = u.nombre_completo ?? u.email;
-              return canEdit ? (
-                <Link href={`/configuracion/usuarios/${u.user_id}`} className="font-medium text-blue-700 hover:underline">
+              return permisos.usuariosEditar ? (
+                <Link
+                  href={`/configuracion/usuarios/${u.user_id}`}
+                  className="rounded-sm font-medium text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                >
                   {nombre}
                 </Link>
               ) : (
@@ -92,7 +75,7 @@ export default async function UsuariosPage() {
           {
             key: "rol",
             header: "Rol",
-            render: (u) => (u.es_owner ? <StatusBadge label="Owner" tone="info" /> : u.rol_nombre ?? "Sin rol"),
+            render: (u) => (u.es_owner ? <StatusBadge label="Propietario" tone="info" /> : u.rol_nombre ?? "Sin rol"),
           },
           { key: "empleado", header: "Empleado RRHH", render: (u) => u.empleado_nombre ?? "—" },
           {
@@ -105,7 +88,12 @@ export default async function UsuariosPage() {
               </div>
             ),
           },
-          { key: "ingreso", header: "Último ingreso", render: (u) => fecha(u.ultimo_ingreso) },
+          {
+            key: "ingreso",
+            header: "Último ingreso",
+            className: "whitespace-nowrap tabular-nums",
+            render: (u) => (u.ultimo_ingreso ? fechaHora(u.ultimo_ingreso) : "Nunca"),
+          },
         ]}
       />
     </div>

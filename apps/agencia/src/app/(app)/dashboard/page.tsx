@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { PageHeader, MetricCard, EmptyState } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
-import { hasPermission } from "@nexo/permissions";
+import { permisosDe } from "@/lib/permisos";
 import { DEMO_DATASET } from "@/lib/agency/fixtures";
 import { DEMO_DATA_NOTICE } from "@/lib/agency/types";
 import {
@@ -30,18 +28,13 @@ export const metadata: Metadata = {
 /**
  * Dashboard reutilizado del ticket #13, extraído como módulo en el ticket #18.
  * Solo lectura y datos de ejemplo. El layout exige agencia.ver_modulo y esta
- * página exige agencia.dashboard.resumen.ver, aprobados en el Paso Cero.
+ * página exige además agencia.dashboard.resumen.ver, aprobados en el Paso Cero.
+ * permisosDe() pide la misma lista que el layout: una sola consulta por carga.
  */
 export default async function DashboardAgenciaPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const permisos = await permisosDe();
 
-  const [canOpenAgency, canView] = await Promise.all([
-    hasPermission({ supabase, companyId }, "agencia.ver_modulo"),
-    hasPermission({ supabase, companyId }, "agencia.dashboard.resumen.ver"),
-  ]);
-
-  if (!canOpenAgency || !canView) {
+  if (!permisos.modulo || !permisos.dashboard) {
     return (
       <div className="flex max-w-3xl flex-col gap-6">
         <PageHeader
@@ -49,8 +42,9 @@ export default async function DashboardAgenciaPage() {
           description="Resumen de actividad, agentes de IA, tickets asignados y progreso por etapa."
         />
         <EmptyState
+          variant="no-access"
           title="Sin acceso a este Dashboard"
-          description="Tu cuenta no tiene habilitado el acceso a este Dashboard para esta empresa. Pedile a un owner/admin que revise tus permisos."
+          description="Tu cuenta no tiene habilitado este Dashboard. Si lo necesitas, pide acceso a quien administra Nexo en tu empresa."
         />
       </div>
     );

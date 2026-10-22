@@ -6,6 +6,7 @@
    clases `bg-[var(--nexo-enterprise-*)]` resuelven a nada (sidebar
    transparente), aunque compile sin errores. */
 @import "../../../../packages/ui/tokens.css";
+@import "../../../../packages/ui/theme.css";
 
 /* Tailwind v4 solo escanea el arbol de esta app por default — @nexo/ui
    vive en packages/ui, fuera de ese arbol, asi que sin esto cualquier

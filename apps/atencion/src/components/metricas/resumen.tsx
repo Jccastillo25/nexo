@@ -12,7 +12,6 @@ export default function ResumenKpis({ resumen, global }: { resumen: ResumenMetri
       <MetricCard
         label="Atendidos"
         value={r.atendidos}
-        tone="positive"
         hint={global && r.turnos !== null ? `de ${r.turnos} turnos entregados` : undefined}
       />
       <MetricCard

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { hasPermission } from "@nexo/permissions";
-import { EmptyState, PageHeader, StatusBadge } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { Alert, EmptyState, PageHeader, StatusBadge } from "@nexo/ui";
+import { sesionActual } from "@nexo/auth";
+import { permisosDe } from "@/lib/permisos";
+import type { Database } from "@/lib/supabase/database.types";
 import { mensajeAdministracion } from "../../errores";
 import UsuarioForm from "../usuario-form";
 import CuentaAcciones from "./cuenta-acciones";
@@ -13,25 +13,19 @@ export const metadata: Metadata = {
 };
 
 export default async function EditarUsuarioPage({ params }: PageProps<"/configuracion/usuarios/[id]">) {
-  const { id } = await params;
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-  const ctx = { supabase, companyId };
-
-  const [canEdit, canToggle, { data: { user } }] = await Promise.all([
-    hasPermission(ctx, "nexo.administracion.usuarios.editar"),
-    hasPermission(ctx, "nexo.administracion.usuarios.desactivar"),
-    supabase.auth.getUser(),
+  // sesionActual: el usuario hace falta para saber si es uno mismo. Es la misma
+  // llamada a Auth (en caché del request) que ya hizo el layout.
+  const [{ id }, { supabase, companyId, user }, permisos] = await Promise.all([
+    params,
+    sesionActual<Database>(),
+    permisosDe(),
   ]);
 
-  if (!canEdit) {
+  if (!permisos.usuariosEditar) {
     return (
       <div className="flex max-w-3xl flex-col gap-6">
         <PageHeader title="Editar usuario" />
-        <EmptyState
-          title="Sin permiso para editar usuarios"
-          description="Tu cuenta no tiene el permiso nexo.administracion.usuarios.editar para esta empresa."
-        />
+        <EmptyState variant="no-access" title="No tienes acceso a la edición de usuarios" />
       </div>
     );
   }
@@ -47,9 +41,12 @@ export default async function EditarUsuarioPage({ params }: PageProps<"/configur
 
   if (error) {
     return (
-      <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-        {mensajeAdministracion(error, "usuarios/[id]: admin_listar_usuarios", "No se pudo cargar el usuario. Intenta de nuevo.")}
-      </p>
+      <div className="flex max-w-3xl flex-col gap-6">
+        <PageHeader title="Editar usuario" />
+        <Alert tone="error">
+          {mensajeAdministracion(error, "usuarios/[id]: admin_listar_usuarios", "No se pudo cargar el usuario. Intenta de nuevo.")}
+        </Alert>
+      </div>
     );
   }
 
@@ -65,7 +62,7 @@ export default async function EditarUsuarioPage({ params }: PageProps<"/configur
           <span className="flex flex-wrap items-center gap-2">
             {u.email}
             <StatusBadge label={u.activo ? "Activo" : "Inactivo"} tone={u.activo ? "positive" : "negative"} />
-            {u.es_owner && <StatusBadge label="Owner" tone="info" />}
+            {u.es_owner && <StatusBadge label="Propietario" tone="info" />}
             {u.debe_cambiar_password && <StatusBadge label="Contraseña temporal" tone="warning" />}
           </span>
         }
@@ -95,7 +92,7 @@ export default async function EditarUsuarioPage({ params }: PageProps<"/configur
         }}
       />
       {!u.es_owner && !esUnoMismo && (
-        <CuentaAcciones userId={u.user_id} activo={u.activo} puedeCambiarEstado={canToggle} />
+        <CuentaAcciones userId={u.user_id} activo={u.activo} puedeCambiarEstado={permisos.usuariosDesactivar} />
       )}
     </div>
   );

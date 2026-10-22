@@ -339,6 +339,57 @@ Una planilla histórica no debe recalcularse usando datos actuales.
 
 Integración contable queda fuera mientras no exista Contabilidad.
 
+**Análisis del 2026-10-20:** [plan 20 — Planilla y prestaciones](plan/20-planilla.md) detalla este motor con AG Planilla como referencia funcional y el marco legal de Nicaragua 2026. También señala dos semillas de `rrhh.parametros_ley` que hay que corregir antes de calcular: el INSS patronal es 22.5% pero con menos de 50 trabajadores corresponde 21.5%, y el techo de C$100,000 es un valor de ejemplo. Además, `planilla_detalles` necesita `contrato_id` y líneas por concepto.
+
+**2026-10-21:**
+- El usuario decidió preparar las dos modalidades, laboral y servicios profesionales, con el régimen guardado en cada contrato.
+- Se aplicó el Paso Cero de Planilla (`20261021160943`), con 15 permisos nuevos.
+- Separación de funciones: `especialista_planillas` ya no aprueba ni anula planillas.
+- El detalle está en [PERMISSIONS.md](PERMISSIONS.md) y en el plan 20 §8.
+
+**PL2a, motor de la planilla ordinaria (2026-10-21; APLICADO en `nexo-core`, versión `20261021191441`):**
+- Migración `20261021191441_rrhh_planilla_pl2a_motor`.
+- **Flujo:** `borrador → calculada → aprobada → pagada`, o `anulada` con motivo. Todo pasa por RPC `public.planilla_*`, que sirven a Web y a Mobile.
+  - Quien crea o calcula no aprueba (decisión estricta del usuario).
+  - Aprobar rechaza la planilla si un insumo cambió después del cálculo.
+  - Lo aprobado ya no se edita: se anula y se genera otra que la reemplaza.
+- **Cálculo por contrato**, con los valores de `parametros_ley` e `ir_tramos` vigentes al cierre del período. El IR y el techo del INSS se suman por persona:
+  - salario por días comerciales con la regla 30/360 (diario a 4 decimales), menos faltas;
+  - horas extra (con los topes de 3 al día y 9 a la semana) y novedades;
+  - INSS laboral, IR y deducciones (nunca dejan el neto negativo);
+  - INSS patronal, INATEC y provisiones.
+  - La planilla guarda copia de los valores que usó.
+- **Régimen por contrato:** laboral o servicios profesionales. Los contratos activos entran como servicios profesionales exentos, como AG, y muestran el aviso "Revisar régimen con el contador".
+- **Frecuencia:** los contratos activos pasan a frecuencia quincenal, como AG (decisión del usuario), y `crear_contrato` y `editar_contrato` reciben la frecuencia.
+- **Antigüedad:** `fecha_antiguedad` se fija solo con `liquidaciones.aprobar`, y se hereda del contrato anterior cuando un aumento de salario crea otro.
+- **Simulador de liquidación** (no guarda nada):
+  - arts. 43, 45, 47 y 48 según la causa;
+  - el aguinaldo por año calendario nunca lleva descuentos (art. 97);
+  - la antigüedad se toma de `contratos.fecha_antiguedad` y se valora con el último salario.
+- **Pruebas en PGlite:** reproducen los casos dorados G1 (C$45,021.66), G2, G3, G4, G5, G6, G7 y G8.
+- **Pendiente (actualizado abajo, en PL2b y PL2c).**
+
+**PL2b, PL2c y pantallas (2026-10-22; APLICADAS en `nexo-core`, versiones `20261021235639` a `20261022001922`; pantallas en local, sin commit):**
+- **Ubicación:** Planilla va dentro del menú de RRHH (decisión 5 del usuario), con los grupos Nómina, Prestaciones, Análisis y Configuración.
+- **Vacaciones:** saldo calculado (2.5 días por mes de régimen con vacaciones), saldo inicial de AG a una fecha de corte, goce, pago (crea la novedad VACACIONES_PAGADAS), ajuste con signo; quien registra no aprueba; no se aprueba un saldo negativo; un día de vacaciones aprobadas no puede llevar una ausencia.
+- **Préstamos y adelantos:** cuotas en la fecha de fin de cada período; una cuota que no cabe en el neto pasa a la siguiente planilla con aviso; anular o cancelar con motivo.
+- **Embargos:** alimentos primero, por porcentaje o monto mensual prorrateado, con tope total; si el neto no alcanza, se corta y se avisa.
+- **Aguinaldo:** planilla de clase aguinaldo (ene–dic), días por vigencia del régimen con el salario actual, sin deducciones (art. 97), sin repetir lo pagado en una liquidación.
+- **Liquidación como documento:** calculada → aprobada → pagada, o anulada; vacaciones del saldo; préstamos descontados sin tocar el aguinaldo (lo que no cabe queda condonado); no la aprueba quien la creó o calculó; aprobarla finaliza el contrato con la fecha de egreso.
+- **Pasivo laboral** vivo y copia mensual en provisiones.
+- **Reportes y configuración:** detalle de la corrida, comparación con la planilla anterior, novedades, régimen por contrato, simulador de costo por régimen, conceptos, tipos de planilla, tabla de IR con vigencia, declaraciones INSS, INATEC e IR en pantalla y CSV, colillas, detalle para cheques e importación de horas extra y ausencias desde Asistencia (elegidas a mano).
+- **Pantallas:** 40 rutas bajo `/rrhh/planillas`; `rrhh` pasa typecheck, lint y build. **No validado:** ninguna pantalla se recorrió con sesión ni contra datos reales en el navegador.
+- **Pruebas:** `npm run test:rrhh:planilla` en PGlite (PL2a, PL2b y PL2c) y ensayos revertidos en `nexo-core` con los datos reales (quincena, aguinaldo, liquidación, préstamo, embargo, provisiones y Asistencia).
+- **Pendiente:**
+  - dar el rol de aprobador a una segunda persona: hoy solo el owner tiene los permisos y, por la separación de funciones, nadie puede aprobar lo que calculó;
+  - asignar salario al contrato activo que no lo tiene;
+  - confirmar con el contador: tope legal del embargo, fracción de horas extra (30 min), INSS e IR de las vacaciones pagadas, período del aguinaldo y los valores "verificar";
+  - número INSS en el expediente (la declaración lo muestra "Sin registrar");
+  - el formulario de contratos todavía no envía la frecuencia;
+  - la Asistencia real casi no tiene marcas: la propuesta trae casi todos los días como ausencias, y no deben importarse sin revisar;
+  - archivo del banco, formato oficial SIE/VET y asiento contable;
+  - la corrida en paralelo con AG.
+
 ---
 
 # 9. Permisos

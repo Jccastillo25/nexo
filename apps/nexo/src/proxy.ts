@@ -1,18 +1,28 @@
 import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { redirigirConSesion, updateSession } from "@nexo/supabase";
 
-// Next.js 16: el archivo "middleware" se renombro a "proxy".
+// Next.js 16: el archivo "middleware" se renombró a "proxy".
+//
+// Sesión con el kernel compartido (@nexo/supabase, 2026-10-20). Sin sesión,
+// updateSession manda al /login de este mismo panel con next=<ruta> (el
+// panel no tiene basePath) y conserva las cookies que Supabase haya escrito.
+// Con sesión, /login vuelve al Launcher. La contraseña temporal no se revisa
+// aquí: la exigen el layout autenticado y el Launcher (lib/perfil.ts).
 export async function proxy(request: NextRequest) {
-  return updateSession(request);
+  const { response, user } = await updateSession(request, { rutasPublicas: ["/login"] });
+
+  if (user && request.nextUrl.pathname === "/login") {
+    return redirigirConSesion(response, new URL("/", request.url));
+  }
+
+  return response;
 }
 
 export const config = {
   matcher: [
     // Corre en todas las rutas de la zona raiz, EXCEPTO:
     // - assets estaticos / imagenes
-    // - /crm/* — esa zona tiene su propio middleware de auth (apps/crm);
-    //   si el de aca tambien corriera, pisaria el flujo de login del CRM.
-    // - /rrhh/* — mismo motivo: apps/rrhh tiene su propio guard
+    // - /rrhh/* — apps/rrhh tiene su propio guard
     //   (apps/rrhh/src/proxy.ts), que excluye /rrhh/kiosco por ser la
     //   terminal publica del kiosko (sin sesion, autenticada por PIN).
     // - /agencia/* — pertenece exclusivamente a la app Agencia; no crear
@@ -23,6 +33,7 @@ export const config = {
     //   /atencion/_next/static/*) al login.
     // - /productos/* — apps/productos tiene su propio guard (mismo login de
     //   este panel); sus /productos/_next/static/* no deben pasar por aquí.
-    "/((?!_next/static|_next/image|favicon.ico|crm|rrhh|agencia(?:/|$)|atencion(?:/|$)|productos(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // - /presupuesto/* — apps/presupuesto, mismo caso que Productos.
+    "/((?!_next/static|_next/image|favicon.ico|rrhh(?:/|$)|agencia(?:/|$)|atencion(?:/|$)|productos(?:/|$)|presupuesto(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

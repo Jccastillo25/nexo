@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { hasPermission, mensajeDeError } from "@nexo/permissions";
-import { MetricCard, PageHeader } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
-import { P } from "@/lib/permisos";
+import { contextoActual } from "@nexo/auth";
+import { mensajeDeError } from "@nexo/permissions";
+import { Alert, ButtonLink, MetricCard, PageHeader, StatusBadge, entero, type StatusTone } from "@nexo/ui";
+import { permisosDe } from "@/lib/permisos";
 import type { Resumen } from "@/lib/tipos";
 
 export const metadata: Metadata = {
@@ -14,39 +13,42 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const pastilla = {
-  warning: "bg-amber-50 text-amber-700",
-  neutral: "bg-neutral-100 text-neutral-600",
-  positive: "bg-emerald-50 text-emerald-700",
-} as const;
+/** Resumen del catálogo. La RPC valida el permiso en la base. */
+async function leerResumen() {
+  const { supabase, companyId } = await contextoActual();
+  return supabase.rpc("productos_resumen", { p_company_id: companyId });
+}
 
 /** KPIs del catálogo (public.productos_resumen). Datos reales, nunca de ejemplo. */
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-  const ctx = { supabase, companyId };
+  // Primero el permiso: un bloque sin permiso no ejecuta su consulta (la RPC
+  // también deniega, pero no se llama en vano). permisosDe() es la misma
+  // lista ya cargada por el layout, así que esperar no suma otra consulta.
+  const permisos = await permisosDe();
+  if (!permisos.dashboard) redirect("/catalogo");
 
-  if (!(await hasPermission(ctx, P.dashboard))) redirect("/catalogo");
-  const [puedeCrear, puedeImportar] = await Promise.all([hasPermission(ctx, P.crear), hasPermission(ctx, P.importar)]);
-
-  const { data, error } = await supabase.rpc("productos_resumen", { p_company_id: companyId });
+  const { data, error } = await leerResumen();
+  const puedeCrear = permisos.crear;
+  const puedeImportar = permisos.importar;
   const r = data as Resumen | null;
 
   if (error || !r) {
     return (
       <div className="flex max-w-6xl flex-col gap-6">
         <PageHeader title="Catálogo de productos" />
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <Alert tone="error" title="No se pudo cargar el resumen">
           {error
-            ? mensajeDeError(error, "productos_resumen", "No se pudo cargar el resumen. Intenta de nuevo.")
-            : "No se pudo cargar el resumen."}
-        </p>
+            ? mensajeDeError(error, "productos_resumen", "Intenta de nuevo en unos minutos.")
+            : "Intenta de nuevo en unos minutos."}
+        </Alert>
       </div>
     );
   }
 
   const vacio = r.total === 0;
-  const revisar: { n: number; tono: keyof typeof pastilla; titulo: string; detalle: string; href: string }[] = [
+  // Con el catálogo vacío, importar es la acción principal y "Nuevo producto" la secundaria.
+  const importarEsPrincipal = vacio && puedeImportar;
+  const revisar: { n: number; tono: StatusTone; titulo: string; detalle: string; href: string | null }[] = [
     {
       n: r.sin_clasificacion,
       tono: r.sin_clasificacion > 0 ? "warning" : "positive",
@@ -59,10 +61,11 @@ export default async function DashboardPage() {
       : [
           {
             n: r.sin_costo,
-            tono: (r.sin_costo > 0 ? "warning" : "positive") as keyof typeof pastilla,
+            tono: (r.sin_costo > 0 ? "warning" : "positive") as StatusTone,
             titulo: "Sin costo de referencia",
             detalle: "Costo vacío o de relleno (C$ 1.00). Al importar se toma el costo real del Consolidado.",
-            href: "/catalogo",
+            // El listado no tiene un filtro "sin costo": solo texto.
+            href: null,
           },
         ]),
     {
@@ -70,7 +73,7 @@ export default async function DashboardPage() {
       tono: "neutral",
       titulo: "Sin código de barras",
       detalle: "No es obligatorio; se agrega cuando el proveedor lo trae.",
-      href: "/catalogo",
+      href: null,
     },
   ];
 
@@ -81,54 +84,42 @@ export default async function DashboardPage() {
         description={
           vacio
             ? "Resumen del catálogo maestro. Todavía está vacío: el primer paso es importar los Excel del ERP."
-            : `Resumen del catálogo maestro (${r.total} productos). Los precios se manejan en Listas de precios.`
+            : `Resumen del catálogo maestro (${entero(r.total)} productos). Los precios se manejan en Listas de precios.`
         }
         actions={
           puedeCrear ? (
-            <Link
-              href="/catalogo/nuevo"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              + Nuevo producto
-            </Link>
+            <ButtonLink href="/catalogo/nuevo" variant={importarEsPrincipal ? "secondary" : "primary"}>
+              Nuevo producto
+            </ButtonLink>
           ) : null
         }
       />
 
-      {vacio && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 px-5 py-4">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-blue-900">Primer paso: importar el catálogo del ERP</p>
-            <p className="mt-0.5 text-sm text-blue-800">
-              Sube la plantilla de importación y el Consolidado de productos. Ves una vista previa y nada se guarda hasta
-              que confirmas.
-            </p>
-          </div>
-          {puedeImportar && (
-            <Link
-              href="/importar"
-              className="shrink-0 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              Ir a Importar
-            </Link>
-          )}
-        </div>
-      )}
+      {vacio ? (
+        <Alert
+          tone="info"
+          title="Primer paso: importar el catálogo del ERP"
+          action={puedeImportar ? <ButtonLink href="/importar">Importar catálogo</ButtonLink> : undefined}
+        >
+          Sube la plantilla de importación y el Consolidado de productos. Verás una vista previa y nada se guarda hasta
+          que confirmes.
+        </Alert>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Productos activos" value={r.activos} hint={`${r.servicios} son servicios`} />
+        <MetricCard label="Productos activos" value={entero(r.activos)} hint={`${entero(r.servicios)} son servicios`} />
         <MetricCard
           label="Sin clasificación completa"
-          value={r.sin_clasificacion}
+          value={entero(r.sin_clasificacion)}
           tone={r.sin_clasificacion > 0 ? "warning" : "neutral"}
           hint="No pueden generar código automático"
         />
         <MetricCard
           label="Con código de barras"
-          value={r.con_codigo_barras}
-          hint={`${r.total - r.con_codigo_barras} sin código de barras`}
+          value={entero(r.con_codigo_barras)}
+          hint={`${entero(r.total - r.con_codigo_barras)} sin código de barras`}
         />
-        <MetricCard label="Descontinuados" value={r.descontinuados} hint="Se descontinúan, no se borran" />
+        <MetricCard label="Descontinuados" value={entero(r.descontinuados)} hint="Se descontinúan, no se borran" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
@@ -142,16 +133,22 @@ export default async function DashboardPage() {
           <ul className="mt-3 divide-y divide-neutral-100">
             {revisar.map((i) => (
               <li key={i.titulo} className="flex items-start gap-3 py-2.5">
-                <span className={`mt-0.5 min-w-10 rounded-full px-2 py-0.5 text-center text-xs font-semibold tabular-nums ${pastilla[i.tono]}`}>
-                  {i.n}
-                </span>
+                <StatusBadge
+                  label={entero(i.n)}
+                  tone={i.tono}
+                  dot={false}
+                  className="mt-0.5 min-w-10 justify-center tabular-nums"
+                />
                 <div className="min-w-0">
-                  {vacio || i.n === 0 ? (
-                    <p className="text-sm font-medium text-neutral-900">{i.titulo}</p>
-                  ) : (
-                    <Link href={i.href} className="text-sm font-medium text-neutral-900 hover:text-blue-700">
+                  {i.href && !vacio && i.n > 0 ? (
+                    <Link
+                      href={i.href}
+                      className="rounded-sm text-sm font-medium text-neutral-900 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                    >
                       {i.titulo}
                     </Link>
+                  ) : (
+                    <p className="text-sm font-medium text-neutral-900">{i.titulo}</p>
                   )}
                   <p className="text-xs text-neutral-500">{i.detalle}</p>
                 </div>
@@ -189,7 +186,10 @@ export default async function DashboardPage() {
           <ul className="mt-3 divide-y divide-neutral-100">
             {r.ultimos.map((u) => (
               <li key={u.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <Link href={`/catalogo/${u.id}`} className="min-w-0 truncate font-medium text-neutral-900 hover:text-blue-700">
+                <Link
+                  href={`/catalogo/${u.id}`}
+                  className="min-w-0 truncate rounded-sm font-medium text-neutral-900 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                >
                   {u.nombre}
                 </Link>
                 <span className="shrink-0 font-mono text-xs text-neutral-500">

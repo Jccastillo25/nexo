@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-import { campoActivo, type CamposPantalla, type PantallaEstado } from "@/lib/supabase/database.types";
+import { createAnonBrowserClient } from "@nexo/supabase/client";
+import { campoActivo, type CamposPantalla, type Database, type PantallaEstado } from "@/lib/supabase/database.types";
 
-const INTERVALO_MS = 3000;
+/** Sondeo con la pantalla visible. Oculta no sondea; al volver a verse carga al instante. */
+const INTERVALO_MS = 5000;
 const DESTACADO_MS = 8000;
 const VOLUMEN_NORMAL = 60;
 const VOLUMEN_ANUNCIO = 10;
@@ -85,13 +86,9 @@ function anunciar(llamado: Llamado, conSonido: boolean) {
  * propósito: pantalla inmersiva, mismo criterio que el kiosco de RRHH.
  */
 export default function PantallaPublica({ pantallaId }: { pantallaId: string }) {
-  const supabase = useMemo(
-    () =>
-      createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      }),
-    []
-  );
+  // Cliente anónimo, sin cookies: el televisor no tiene sesión y, si alguien
+  // la tuviera abierta en ese navegador, no se usa.
+  const supabase = useMemo(() => createAnonBrowserClient<Database>(), []);
   const [estado, setEstado] = useState<PantallaEstado | null>(null);
   const [sinAcceso, setSinAcceso] = useState(false);
   const [destacado, setDestacado] = useState<string | null>(null);
@@ -115,7 +112,7 @@ export default function PantallaPublica({ pantallaId }: { pantallaId: string }) 
         return;
       }
       setSinAcceso(false);
-      const nuevo = data as PantallaEstado;
+      const nuevo = data as unknown as PantallaEstado;
       const claves = new Set(nuevo.llamados.map((l) => `${l.numero}|${l.llamado_en}`));
       if (vistos.current) {
         const reciente = nuevo.llamados.find((l) => !vistos.current!.has(`${l.numero}|${l.llamado_en}`));
@@ -132,11 +129,31 @@ export default function PantallaPublica({ pantallaId }: { pantallaId: string }) 
       vistos.current = claves;
       setEstado(nuevo);
     }
-    cargar();
-    const id = window.setInterval(cargar, INTERVALO_MS);
+
+    let intervalo: number | null = null;
+    const sondear = () => {
+      if (intervalo === null) intervalo = window.setInterval(cargar, INTERVALO_MS);
+    };
+    const detener = () => {
+      if (intervalo !== null) window.clearInterval(intervalo);
+      intervalo = null;
+    };
+    const alCambiarVisibilidad = () => {
+      if (document.visibilityState === "visible") {
+        void cargar();
+        sondear();
+      } else {
+        detener();
+      }
+    };
+
+    void cargar();
+    if (document.visibilityState === "visible") sondear();
+    document.addEventListener("visibilitychange", alCambiarVisibilidad);
     return () => {
       activo = false;
-      window.clearInterval(id);
+      detener();
+      document.removeEventListener("visibilitychange", alCambiarVisibilidad);
     };
   }, [supabase, pantallaId, sonido]);
 
@@ -151,7 +168,8 @@ export default function PantallaPublica({ pantallaId }: { pantallaId: string }) 
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-6 text-center text-neutral-300">
         <p className="max-w-md text-lg">
-          Esta pantalla no está disponible. Revisá que esté activa en Atención → Configuración y que el módulo esté habilitado.
+          Esta pantalla no está disponible. Comprueba que esté activa en Atención → Configuración y que el módulo esté
+          habilitado.
         </p>
       </div>
     );

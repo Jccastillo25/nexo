@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useId, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useToast } from "@nexo/ui";
+import { Alert, Button, ButtonLink, Field, Input, Select, useToast } from "@nexo/ui";
 import { crearContrato, type CrearContratoInput } from "../actions";
 
 export interface EmpleadoOption {
@@ -38,10 +38,6 @@ export interface PuestoPlantillaOption {
   predeterminada: boolean;
 }
 
-const inputClass =
-  "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:text-neutral-400";
-const labelClass = "text-sm text-neutral-500";
-
 const EMPTY_FORM: CrearContratoInput = {
   puestoId: "",
   departamentoId: "",
@@ -54,26 +50,21 @@ const EMPTY_FORM: CrearContratoInput = {
 /**
  * Búsqueda simple (filtro client-side sobre la lista ya cargada — no hace
  * falta una nueva RPC de búsqueda para el tamaño real de plantilla de la
- * empresa) + selección de empleado, seguida del mismo formulario de datos
- * base de contrato que antes vivía en el expediente (ContratosPanel).
+ * empresa) + selección de empleado, seguida del formulario de datos base
+ * del contrato.
  *
- * 2026-09-17 (auditoría del botón "Crear borrador" deshabilitado): la
- * causa real no era de negocio — el `<select>` de empleados no tenía una
- * opción con `value=""`, así que cuando nada estaba elegido el navegador
- * resaltaba visualmente el PRIMER empleado de la lista (comportamiento
- * nativo de un `<select>` controlado sin opción vacía) mientras el estado
- * de React (`empleadoId`) seguía en `""` — el usuario veía "un empleado
- * elegido" pero el botón seguía deshabilitado por `!empleadoId`, sin
- * ningún mensaje visible que lo explicara. Se agrega la opción vacía
- * explícita de abajo y un banner de motivo siempre visible junto al botón.
+ * 2026-09-17 (auditoría del botón "Crear borrador" deshabilitado): el
+ * `<select>` de empleados tiene una opción con `value=""` explícita (sin
+ * ella, el navegador resaltaba el primer empleado mientras el estado seguía
+ * vacío) y un motivo siempre visible junto al botón cuando está
+ * deshabilitado.
  *
- * Reglas de negocio nuevas (2026-09-17, ver
- * supabase/migrations/20260917100000_...): puesto/departamento/plantilla
- * son obligatorios; el departamento se elige primero y filtra los puestos
- * disponibles; la plantilla se filtra por las asignadas a ese puesto
- * (rrhh.puesto_plantillas) y se pre-selecciona la predeterminada si existe;
- * sin "Fecha fin prevista" en este formulario (rrhh.fn_crear_contrato ya
- * no acepta ese parámetro).
+ * Reglas de negocio (2026-09-17, ver supabase/migrations/20260917100000_...):
+ * puesto/departamento/plantilla son obligatorios; el departamento se elige
+ * primero y filtra los puestos; la plantilla se filtra por las asignadas a
+ * ese puesto (rrhh.puesto_plantillas) y se preselecciona la predeterminada;
+ * sin "Fin previsto" en este formulario (rrhh.fn_crear_contrato no acepta
+ * ese parámetro).
  */
 export default function NuevoContratoForm({
   empleados,
@@ -92,6 +83,7 @@ export default function NuevoContratoForm({
 }) {
   const router = useRouter();
   const { show } = useToast();
+  const motivoId = useId();
   const [query, setQuery] = useState("");
   const [empleadoId, setEmpleadoId] = useState<string>("");
   const [form, setForm] = useState<CrearContratoInput>(EMPTY_FORM);
@@ -129,9 +121,8 @@ export default function NuevoContratoForm({
   }
 
   // Departamento cambia → limpiar puesto si ya no pertenece a él (y su
-  // plantilla, que depende del puesto). Puesto cambia → pre-seleccionar la
-  // plantilla predeterminada de ese puesto si tiene una, o limpiarla si no
-  // pertenece más al puesto elegido.
+  // plantilla, que depende del puesto). Puesto cambia → preseleccionar la
+  // plantilla predeterminada de ese puesto si tiene una.
   function cambiarDepartamento(departamentoId: string) {
     setForm((f) => {
       const puestoSigueValido = puestos.some(
@@ -151,38 +142,34 @@ export default function NuevoContratoForm({
     setForm((f) => ({ ...f, puestoId, plantillaContratoId: predeterminada?.plantillaId ?? "" }));
   }
 
-  // Motivo de bloqueo del boton, en orden de prioridad — siempre visible
-  // cuando el boton esta deshabilitado, nunca una razon adivinada por el
-  // usuario. Enlaza al contrato existente cuando lo hay.
+  // Motivo de bloqueo del botón, en orden de prioridad — siempre visible
+  // cuando el botón está deshabilitado. Enlaza al contrato existente cuando
+  // lo hay.
   const motivo: { texto: string; href?: string } | null = useMemo(() => {
-    if (isPending) return { texto: "Guardando…" };
-    if (!empleadoId) return { texto: "Elegí un empleado de la lista para continuar." };
+    if (!empleadoId) return { texto: "Elige un empleado de la lista para continuar." };
     if (seleccionado?.contratoAbiertoId) {
       return {
         texto: "Este empleado ya tiene un contrato activo o en borrador.",
         href: `/contratacion/contratos/${seleccionado.contratoAbiertoId}`,
       };
     }
-    if (!form.departamentoId) return { texto: "Elegí un departamento." };
+    if (!form.departamentoId) return { texto: "Elige un departamento." };
     if (!form.puestoId) {
       return puestosDelDepartamento.length === 0
-        ? { texto: "Este departamento no tiene puestos activos — creá uno en Catálogos → Puestos." }
-        : { texto: "Elegí un puesto de ese departamento." };
+        ? { texto: "Este departamento no tiene puestos activos. Crea uno en Catálogos → Puestos." }
+        : { texto: "Elige un puesto de ese departamento." };
     }
     if (!form.plantillaContratoId) {
       return plantillasDelPuesto.length === 0
-        ? {
-            texto:
-              "Este puesto no tiene ninguna plantilla de contrato asignada — asigná una en Catálogos → Puestos.",
-          }
-        : { texto: "Elegí una plantilla de contrato." };
+        ? { texto: "Este puesto no tiene plantillas de contrato asignadas. Asigna una en Catálogos → Puestos." }
+        : { texto: "Elige una plantilla de contrato." };
     }
     return null;
-  }, [isPending, empleadoId, seleccionado, form, puestosDelDepartamento.length, plantillasDelPuesto.length]);
+  }, [empleadoId, seleccionado, form, puestosDelDepartamento.length, plantillasDelPuesto.length]);
 
   function guardar(e: React.FormEvent) {
     e.preventDefault();
-    if (motivo) return;
+    if (motivo || isPending) return;
     setError(null);
     startTransition(async () => {
       const res = await crearContrato(empleadoId, form);
@@ -198,165 +185,170 @@ export default function NuevoContratoForm({
 
   return (
     <form onSubmit={guardar} className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-neutral-900">Empleado</h2>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por nombre, código o documento…"
-          className={inputClass}
-        />
-        <select
-          value={empleadoId}
-          onChange={(e) => setEmpleadoId(e.target.value)}
-          size={Math.min(8, Math.max(4, filtrados.length + 1))}
-          className={`${inputClass} h-auto`}
-        >
-          <option value="">— Elegí un empleado —</option>
-          {filtrados.length === 0 && <option disabled>Sin resultados</option>}
-          {filtrados.map((e) => (
-            <option key={e.id} value={e.id} disabled={!!e.contratoAbiertoId}>
-              {e.nombreCompleto} — #{e.codigoEmpleado}
-              {e.documentoIdentidad ? ` · ${e.documentoIdentidad}` : ""}
-              {e.contratoAbiertoId ? " (ya tiene un contrato activo/borrador)" : ""}
-            </option>
-          ))}
-        </select>
-      </div>
+      <section
+        aria-labelledby="nuevo-contrato-empleado"
+        className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs"
+      >
+        <h2 id="nuevo-contrato-empleado" className="text-sm font-semibold text-neutral-900">
+          Empleado
+        </h2>
+        <Field label="Buscar empleado">
+          <Input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Nombre, código o documento"
+            autoComplete="off"
+          />
+        </Field>
+        <Field label="Empleado" required hint={filtrados.length === 0 ? "Ningún empleado coincide con la búsqueda." : undefined}>
+          <Select
+            value={empleadoId}
+            onChange={(e) => setEmpleadoId(e.target.value)}
+            size={Math.min(8, Math.max(4, filtrados.length + 1))}
+          >
+            <option value="">Elige un empleado</option>
+            {filtrados.map((e) => (
+              <option key={e.id} value={e.id} disabled={!!e.contratoAbiertoId}>
+                {e.nombreCompleto} — #{e.codigoEmpleado}
+                {e.documentoIdentidad ? ` · ${e.documentoIdentidad}` : ""}
+                {e.contratoAbiertoId ? " (ya tiene un contrato activo o en borrador)" : ""}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </section>
 
-      <div className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-neutral-900">Datos del contrato</h2>
+      <section
+        aria-labelledby="nuevo-contrato-datos"
+        className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs"
+      >
+        <h2 id="nuevo-contrato-datos" className="text-sm font-semibold text-neutral-900">
+          Datos del contrato
+        </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Departamento">
-            <select
-              value={form.departamentoId}
-              onChange={(e) => cambiarDepartamento(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">— Elegí un departamento —</option>
+          <Field
+            label="Departamento"
+            required
+            hint={
+              departamentos.length === 0
+                ? "Todavía no hay departamentos. Créalos en Contratación → Catálogos → Departamentos."
+                : undefined
+            }
+          >
+            <Select value={form.departamentoId} onChange={(e) => cambiarDepartamento(e.target.value)}>
+              <option value="">Elige un departamento</option>
               {departamentos.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.nombre}
                 </option>
               ))}
-            </select>
-            {departamentos.length === 0 && (
-              <p className="text-xs text-neutral-400">
-                Sin departamentos creados todavía — ver Contratación → Catálogos → Departamentos.
-              </p>
-            )}
+            </Select>
           </Field>
-          <Field label="Puesto">
-            <select
+          <Field
+            label="Puesto"
+            required
+            hint={
+              form.departamentoId && puestosDelDepartamento.length === 0
+                ? "Este departamento todavía no tiene puestos activos."
+                : undefined
+            }
+          >
+            <Select
               value={form.puestoId}
               onChange={(e) => cambiarPuesto(e.target.value)}
               disabled={!form.departamentoId}
-              className={inputClass}
             >
-              <option value="">
-                {form.departamentoId ? "— Elegí un puesto —" : "Elegí primero un departamento"}
-              </option>
+              <option value="">{form.departamentoId ? "Elige un puesto" : "Elige primero un departamento"}</option>
               {puestosDelDepartamento.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.nombre}
                 </option>
               ))}
-            </select>
-            {form.departamentoId && puestosDelDepartamento.length === 0 && (
-              <p className="text-xs text-neutral-400">
-                Este departamento no tiene puestos activos todavía.
-              </p>
-            )}
+            </Select>
           </Field>
-          <Field label="Plantilla de contrato">
-            <select
+          <Field
+            label="Plantilla de contrato"
+            required
+            hint={
+              form.puestoId && plantillasDelPuesto.length === 0
+                ? "Este puesto no tiene plantillas asignadas. Asígnalas en Contratación → Catálogos → Puestos."
+                : undefined
+            }
+          >
+            <Select
               value={form.plantillaContratoId}
               onChange={(e) => update("plantillaContratoId", e.target.value)}
               disabled={!form.puestoId}
-              className={inputClass}
             >
-              <option value="">
-                {form.puestoId ? "— Elegí una plantilla —" : "Elegí primero un puesto"}
-              </option>
+              <option value="">{form.puestoId ? "Elige una plantilla" : "Elige primero un puesto"}</option>
               {plantillasDelPuesto.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.nombre}
                 </option>
               ))}
-            </select>
-            {form.puestoId && plantillasDelPuesto.length === 0 && (
-              <p className="text-xs text-neutral-400">
-                Sin plantillas asignadas a este puesto — ver Contratación → Catálogos → Puestos.
-              </p>
-            )}
+            </Select>
           </Field>
           <Field label="Modalidad">
-            <select
+            <Select
               value={form.modalidadContrato}
               onChange={(e) => update("modalidadContrato", e.target.value as CrearContratoInput["modalidadContrato"])}
-              className={inputClass}
             >
               <option value="nomina_estandar">Nómina estándar</option>
               <option value="comisionista_destajo">Comisionista / destajo</option>
-            </select>
+            </Select>
           </Field>
-          <Field label="Fecha de inicio">
-            <input
-              type="date"
-              value={form.fechaInicio}
-              onChange={(e) => update("fechaInicio", e.target.value)}
-              className={inputClass}
-            />
+          <Field label="Fecha de inicio" optional>
+            <Input type="date" value={form.fechaInicio} onChange={(e) => update("fechaInicio", e.target.value)} />
           </Field>
-          {canEditarSalario && (
-            <Field label="Salario base">
-              <input
+          {canEditarSalario ? (
+            <Field label="Salario base (C$)" optional>
+              <Input
                 type="number"
+                inputMode="decimal"
                 min={0}
                 step="0.01"
                 value={form.salarioBase ?? ""}
                 onChange={(e) => update("salarioBase", e.target.value ? Number(e.target.value) : undefined)}
-                className={inputClass}
               />
             </Field>
-          )}
+          ) : null}
         </div>
-      </div>
+      </section>
 
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
-      <div className="flex flex-col items-start gap-2">
-        <button
-          type="submit"
-          disabled={!!motivo}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isPending ? "Creando…" : "Crear borrador"}
-        </button>
-        {motivo && (
-          <p className="text-xs text-amber-600">
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <ButtonLink href="/contratacion/contratos" variant="ghost">
+            Cancelar
+          </ButtonLink>
+          <Button
+            type="submit"
+            loading={isPending}
+            disabled={!!motivo}
+            aria-describedby={motivo ? motivoId : undefined}
+          >
+            {isPending ? "Creando…" : "Crear borrador"}
+          </Button>
+        </div>
+        {motivo ? (
+          <p id={motivoId} className="text-xs text-amber-700">
             {motivo.texto}
-            {motivo.href && (
+            {motivo.href ? (
               <>
                 {" "}
-                <Link href={motivo.href} className="font-medium underline hover:text-amber-700">
+                <Link
+                  href={motivo.href}
+                  className="rounded-sm font-medium underline hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                >
                   Ver ese contrato
                 </Link>
               </>
-            )}
+            ) : null}
           </p>
-        )}
+        ) : null}
       </div>
     </form>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5 text-sm">
-      <span className={labelClass}>{label}</span>
-      {children}
-    </label>
   );
 }

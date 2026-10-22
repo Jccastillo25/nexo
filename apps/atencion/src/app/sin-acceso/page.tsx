@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { BackToPanelLink } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { signOut } from "@/app/login/actions";
-import { getPanelUrl } from "@/lib/panel";
-import { getLogoUrl } from "@/lib/platform-settings";
+import { getPanelUrl, getPlatformSettings, signOut } from "@nexo/auth";
 
 export const metadata: Metadata = {
   title: "Sin acceso · Atención",
@@ -11,16 +8,15 @@ export const metadata: Metadata = {
 
 /** Sesión válida sin `atencion.ver_modulo`. Fuera de (app) para no entrar en loop con su guard. */
 export default async function SinAccesoPage() {
-  const supabase = await createClient();
-  const [panelUrl, logoUrl] = await Promise.all([getPanelUrl(), getLogoUrl(supabase)]);
+  const [panelUrl, { logoUrl }] = await Promise.all([getPanelUrl(), getPlatformSettings()]);
 
   return (
     <div className="flex min-h-full flex-1 items-center justify-center bg-neutral-100 px-4 py-16">
       <div className="w-full max-w-sm text-center">
         <h1 className="text-2xl font-semibold text-neutral-900">Sin acceso</h1>
         <p className="mt-4 text-sm text-neutral-500">
-          Tu rol no incluye la aplicación Atención. Pedile a un administrador que la agregue a tu rol
-          en Configuración → Roles.
+          Tu rol no incluye la aplicación Atención. Pide a un administrador que la agregue a tu rol en
+          Configuración → Roles.
         </p>
         <div className="mt-6 flex items-center justify-center gap-4">
           <BackToPanelLink href={panelUrl} logoUrl={logoUrl} />

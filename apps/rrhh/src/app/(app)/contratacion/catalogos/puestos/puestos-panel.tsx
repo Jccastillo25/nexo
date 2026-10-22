@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { StatusBadge, useToast } from "@nexo/ui";
+import { Alert, Button, EmptyState, Field, Input, Select, StatusBadge, useToast } from "@nexo/ui";
 import { crearPuesto, editarPuesto, asignarPlantillaPredeterminada, type PuestoInput } from "./actions";
 
 export interface PuestoRow {
@@ -30,10 +30,9 @@ export interface PuestosPanelProps {
   canCrear: boolean;
   canEditar: boolean;
   canVerPlantillas: boolean;
+  /** rrhh.expedientes.plantillas.editar: lo exige asignarPlantillaPredeterminada en el servidor. */
+  canAsignarPlantilla: boolean;
 }
-
-const inputClass =
-  "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500";
 
 const EMPTY: PuestoInput = { nombre: "", descripcion: "", departamentoId: "" };
 
@@ -41,6 +40,8 @@ const EMPTY: PuestoInput = { nombre: "", descripcion: "", departamentoId: "" };
  * Fase 3 (2026-09-16, bloque pre-F1.5): catalogo de puestos. La plantilla
  * predeterminada por puesto es una sugerencia (rrhh.puesto_plantillas) que
  * se ofrece al crear un contrato para ese puesto -- nunca obliga nada.
+ * 2026-10-20: campos y botones del kit; el selector de plantilla se
+ * habilita con el mismo permiso que valida la acción (plantillas.editar).
  */
 export default function PuestosPanel({
   puestos,
@@ -49,25 +50,29 @@ export default function PuestosPanel({
   canCrear,
   canEditar,
   canVerPlantillas,
+  canAsignarPlantilla,
 }: PuestosPanelProps) {
   const { show } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [nuevo, setNuevo] = useState<PuestoInput>(EMPTY);
+  const [errorNuevoDepto, setErrorNuevoDepto] = useState<string | null>(null);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<PuestoInput>(EMPTY);
+  const [errorEditDepto, setErrorEditDepto] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function nombreDepartamento(id: string | null) {
-    return departamentos.find((d) => d.id === id)?.nombre ?? "—";
+    return departamentos.find((d) => d.id === id)?.nombre ?? "Sin departamento";
   }
 
   function crear(e: React.FormEvent) {
     e.preventDefault();
     if (!nuevo.departamentoId) {
-      setError("Elegí un departamento para este puesto.");
+      setErrorNuevoDepto("Elige un departamento para este puesto.");
       return;
     }
+    setErrorNuevoDepto(null);
     setError(null);
     startTransition(async () => {
       const res = await crearPuesto(nuevo);
@@ -84,14 +89,16 @@ export default function PuestosPanel({
 
   function empezarEdicion(p: PuestoRow) {
     setEditandoId(p.id);
+    setErrorEditDepto(null);
     setEditForm({ nombre: p.nombre, descripcion: p.descripcion ?? "", departamentoId: p.departamentoId ?? "" });
   }
 
   function guardarEdicion(p: PuestoRow) {
     if (!editForm.departamentoId) {
-      setError("Elegí un departamento para este puesto.");
+      setErrorEditDepto("Elige un departamento para este puesto.");
       return;
     }
+    setErrorEditDepto(null);
     setError(null);
     startTransition(async () => {
       const res = await editarPuesto(p.id, { ...editForm, activo: p.activo });
@@ -136,148 +143,141 @@ export default function PuestosPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-neutral-900">Puestos</h2>
-        {canCrear && !showForm && (
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            + Nuevo puesto
-          </button>
-        )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-neutral-900">Puestos de trabajo</h2>
+        {canCrear && !showForm ? (
+          <Button variant="secondary" onClick={() => setShowForm(true)}>
+            Nuevo puesto
+          </Button>
+        ) : null}
       </div>
 
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
-      {showForm && (
-        <form onSubmit={crear} className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-5">
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Nombre</span>
-            <input
-              required
-              value={nuevo.nombre}
-              onChange={(e) => setNuevo((n) => ({ ...n, nombre: e.target.value }))}
-              placeholder="ej. Vendedor de mostrador"
-              className={inputClass}
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Departamento</span>
-            <select
-              required
-              value={nuevo.departamentoId}
-              onChange={(e) => setNuevo((n) => ({ ...n, departamentoId: e.target.value }))}
-              className={inputClass}
-            >
-              <option value="">— Elegí un departamento —</option>
-              {departamentos.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.nombre}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Descripción (opcional)</span>
-            <input
-              value={nuevo.descripcion}
-              onChange={(e) => setNuevo((n) => ({ ...n, descripcion: e.target.value }))}
-              className={inputClass}
-            />
-          </label>
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              Crear
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="text-sm text-neutral-500 hover:text-neutral-900"
-            >
+      {showForm ? (
+        <form
+          onSubmit={crear}
+          noValidate
+          className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs"
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Nombre" required>
+              <Input
+                required
+                value={nuevo.nombre}
+                onChange={(e) => setNuevo((n) => ({ ...n, nombre: e.target.value }))}
+                placeholder="Ej.: Vendedor de mostrador"
+              />
+            </Field>
+            <Field label="Departamento" required error={errorNuevoDepto}>
+              <Select
+                value={nuevo.departamentoId}
+                onChange={(e) => {
+                  setNuevo((n) => ({ ...n, departamentoId: e.target.value }));
+                  setErrorNuevoDepto(null);
+                }}
+              >
+                <option value="">Elige un departamento</option>
+                {departamentos.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.nombre}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Descripción" optional className="sm:col-span-2">
+              <Input
+                value={nuevo.descripcion}
+                onChange={(e) => setNuevo((n) => ({ ...n, descripcion: e.target.value }))}
+              />
+            </Field>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" onClick={() => setShowForm(false)} disabled={isPending}>
               Cancelar
-            </button>
+            </Button>
+            <Button type="submit" loading={isPending} disabled={!nuevo.nombre.trim()}>
+              Crear puesto
+            </Button>
           </div>
         </form>
-      )}
+      ) : null}
 
       <div className="flex flex-col gap-3">
-        {puestos.length === 0 && (
-          <p className="rounded-xl border border-neutral-200 bg-white px-4 py-6 text-center text-sm text-neutral-400">
-            Todavía no hay puestos creados.
-          </p>
-        )}
+        {puestos.length === 0 ? (
+          <EmptyState title="Todavía no hay puestos" description="Crea el primero para poder usarlo en un contrato." />
+        ) : null}
 
         {puestos.map((p) => (
-          <div key={p.id} className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4">
+          <div key={p.id} className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4 shadow-xs">
             {editandoId === p.id ? (
-              <div className="flex flex-col gap-3">
-                <input
-                  value={editForm.nombre}
-                  onChange={(e) => setEditForm((f) => ({ ...f, nombre: e.target.value }))}
-                  className={inputClass}
-                />
-                <select
-                  required
-                  value={editForm.departamentoId}
-                  onChange={(e) => setEditForm((f) => ({ ...f, departamentoId: e.target.value }))}
-                  className={inputClass}
-                >
-                  <option value="">— Elegí un departamento —</option>
-                  {departamentos.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.nombre}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  value={editForm.descripcion}
-                  onChange={(e) => setEditForm((f) => ({ ...f, descripcion: e.target.value }))}
-                  placeholder="Descripción (opcional)"
-                  className={inputClass}
-                />
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => guardarEdicion(p)}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                  >
-                    Guardar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditandoId(null)}
-                    className="text-sm text-neutral-500 hover:text-neutral-900"
-                  >
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Nombre" required>
+                    <Input
+                      value={editForm.nombre}
+                      onChange={(e) => setEditForm((f) => ({ ...f, nombre: e.target.value }))}
+                    />
+                  </Field>
+                  <Field label="Departamento" required error={errorEditDepto}>
+                    <Select
+                      value={editForm.departamentoId}
+                      onChange={(e) => {
+                        setEditForm((f) => ({ ...f, departamentoId: e.target.value }));
+                        setErrorEditDepto(null);
+                      }}
+                    >
+                      <option value="">Elige un departamento</option>
+                      {departamentos.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.nombre}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="Descripción" optional className="sm:col-span-2">
+                    <Input
+                      value={editForm.descripcion}
+                      onChange={(e) => setEditForm((f) => ({ ...f, descripcion: e.target.value }))}
+                    />
+                  </Field>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="ghost" onClick={() => setEditandoId(null)} disabled={isPending}>
                     Cancelar
-                  </button>
+                  </Button>
+                  <Button
+                    loading={isPending}
+                    disabled={!editForm.nombre.trim()}
+                    onClick={() => guardarEdicion(p)}
+                  >
+                    Guardar cambios
+                  </Button>
                 </div>
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="font-medium text-neutral-900">{p.nombre}</span>
-                    <span className="ml-2 text-sm text-neutral-400">{nombreDepartamento(p.departamentoId)}</span>
-                    {p.descripcion && <span className="ml-2 text-sm text-neutral-400">{p.descripcion}</span>}
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-neutral-900">{p.nombre}</p>
+                    <p className="text-sm text-neutral-500">
+                      {nombreDepartamento(p.departamentoId)}
+                      {p.descripcion ? ` · ${p.descripcion}` : ""}
+                    </p>
                   </div>
-                  <StatusBadge label={p.activo ? "activo" : "inactivo"} tone={p.activo ? "positive" : "neutral"} />
+                  <StatusBadge label={p.activo ? "Activo" : "Inactivo"} tone={p.activo ? "positive" : "neutral"} />
                 </div>
 
-                {canVerPlantillas && (
-                  <label className="flex items-center gap-2 text-sm text-neutral-600">
-                    <span className="text-neutral-500">Plantilla predeterminada:</span>
-                    <select
+                {canVerPlantillas ? (
+                  <Field
+                    label="Plantilla predeterminada"
+                    className="sm:max-w-sm"
+                    hint={!canAsignarPlantilla ? "Tu rol no permite cambiarla." : undefined}
+                  >
+                    <Select
                       value={p.plantillaPredeterminadaId ?? ""}
-                      disabled={!canEditar || isPending}
+                      disabled={!canAsignarPlantilla || isPending}
                       onChange={(e) => cambiarPlantilla(p, e.target.value)}
-                      className={`${inputClass} disabled:opacity-50`}
                     >
                       <option value="">Ninguna</option>
                       {plantillas.map((pl) => (
@@ -285,28 +285,20 @@ export default function PuestosPanel({
                           {pl.nombre}
                         </option>
                       ))}
-                    </select>
-                  </label>
-                )}
+                    </Select>
+                  </Field>
+                ) : null}
 
-                {canEditar && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <button
-                      type="button"
-                      onClick={() => empezarEdicion(p)}
-                      className="text-neutral-500 hover:text-neutral-900"
-                    >
+                {canEditar ? (
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => empezarEdicion(p)} disabled={isPending}>
                       Editar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleActivo(p)}
-                      className="text-neutral-500 hover:text-neutral-900"
-                    >
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => toggleActivo(p)} disabled={isPending}>
                       {p.activo ? "Desactivar" : "Activar"}
-                    </button>
+                    </Button>
                   </div>
-                )}
+                ) : null}
               </>
             )}
           </div>

@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import type { Database } from "@/lib/supabase/database.types";
 
 export interface ActionResult {
   ok: boolean;
@@ -28,8 +28,7 @@ export interface BeneficiarioInput {
  * generico. Sin DELETE expuesto -- se desactiva.
  */
 export async function crearBeneficiario(empleadoId: string, input: BeneficiarioInput): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.beneficiarios.editar");
@@ -61,8 +60,7 @@ export async function editarBeneficiario(
   beneficiarioId: string,
   input: BeneficiarioInput & { activo: boolean }
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.beneficiarios.editar");

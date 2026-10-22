@@ -8,7 +8,9 @@
 //
 // Set aditivo respecto al de Sidebar.tsx (grid/users/folder/settings/chat/
 // clock/cash/calendar se mantienen con el mismo trazo) mas los nuevos que
-// necesita el arbol de navegacion de Nexo Enterprise UI.
+// necesita el arbol de navegacion de Nexo Enterprise UI. Los componentes del
+// kit (Alert, EmptyState, MetricCard, Pagination...) tambien sacan sus iconos
+// de aca: un solo trazo para toda la suite.
 const ICONS = {
   grid: (
     <>
@@ -164,6 +166,80 @@ const ICONS = {
     <>
       <rect x="2.8" y="3.5" width="14.4" height="10" rx="1.3" />
       <path d="M7 17h6M10 13.5V17" />
+    </>
+  ),
+  // Embudo comercial del CRM (2026-10-20): oportunidades y tipos de actividad.
+  funnel: <path d="M3 3.5h14l-5.3 6.6v5.6l-3.4 1.8v-7.4L3 3.5Z" />,
+  phone: (
+    <path d="M6.6 3H4.4A1.4 1.4 0 0 0 3 4.5C3.3 11 9 16.7 15.5 17a1.4 1.4 0 0 0 1.5-1.4v-2.2a1 1 0 0 0-.8-1l-2.6-.6a1 1 0 0 0-1 .3l-1.1 1.2a10.6 10.6 0 0 1-4.8-4.8l1.2-1.1a1 1 0 0 0 .3-1l-.6-2.6a1 1 0 0 0-1-.8Z" />
+  ),
+  mail: (
+    <>
+      <rect x="2.5" y="4.5" width="15" height="11" rx="1.5" />
+      <path d="m3 5.5 7 5.5 7-5.5" />
+    </>
+  ),
+  // Nexo Enterprise UI v2 (2026-10-20): estados (Alert, Field, EmptyState),
+  // navegación (PageHeader, Pagination, sidebar) y variación de KPIs.
+  info: (
+    <>
+      <circle cx="10" cy="10" r="7" />
+      <path d="M10 9v4.5M10 6.6v0" />
+    </>
+  ),
+  "check-circle": (
+    <>
+      <circle cx="10" cy="10" r="7" />
+      <path d="m7 10.2 2 2 4-4.4" />
+    </>
+  ),
+  "x-circle": (
+    <>
+      <circle cx="10" cy="10" r="7" />
+      <path d="m7.8 7.8 4.4 4.4M12.2 7.8l-4.4 4.4" />
+    </>
+  ),
+  "alert-circle": (
+    <>
+      <circle cx="10" cy="10" r="7" />
+      <path d="M10 6.4v4.4M10 13.6v0" />
+    </>
+  ),
+  inbox: (
+    <>
+      <path d="M3 11.5 5 4.5h10l2 7v4H3v-4Z" />
+      <path d="M3 11.5h4l1 2h4l1-2h4" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="8.5" cy="8.5" r="5.5" />
+      <path d="m17 17-4-4" />
+    </>
+  ),
+  x: <path d="M5 5l10 10M15 5 5 15" />,
+  "chevron-left": <path d="M12.5 4.5 7 10l5.5 5.5" />,
+  "chevron-right": <path d="M7.5 4.5 13 10l-5.5 5.5" />,
+  "chevron-down": <path d="M4.5 7.5 10 13l5.5-5.5" />,
+  "arrow-left": <path d="M16 10H4m0 0 5-5m-5 5 5 5" />,
+  "trend-up": <path d="m3 14 5-5 3 3 6-6M12.5 6H17v4.5" />,
+  "trend-down": <path d="m3 6 5 5 3-3 6 6M12.5 14H17V9.5" />,
+  minus: <path d="M5 10h10" />,
+  refresh: (
+    <>
+      <path d="M16.5 10A6.5 6.5 0 1 1 14.6 5.4" />
+      <path d="M16.5 3.5v3.8h-3.8" />
+    </>
+  ),
+  // 2026-10-20: pedidos por los ejecutores de la Fase 3 (botones "Nuevo …",
+  // descargas, editar en filas y campos bloqueados).
+  plus: <path d="M10 4.5v11M4.5 10h11" />,
+  download: <path d="M10 3v9.5m0 0-4-4m4 4 4-4M3.5 12.5v2.7A1.8 1.8 0 0 0 5.3 17h9.4a1.8 1.8 0 0 0 1.8-1.8v-2.7" />,
+  pencil: <path d="M12.8 4.2 15.8 7.2 7.5 15.5H4.5v-3l8.3-8.3ZM11 6l3 3" />,
+  lock: (
+    <>
+      <rect x="4.5" y="9" width="11" height="8" rx="1.6" />
+      <path d="M7 9V6.8a3 3 0 0 1 6 0V9" />
     </>
   ),
 } as const;

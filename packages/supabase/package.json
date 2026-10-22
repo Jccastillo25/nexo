@@ -2,7 +2,25 @@
   "name": "@nexo/supabase",
   "version": "0.0.0",
   "private": true,
-  "description": "Clients tipados de Supabase por schema (core, rrhh, flotilla, crm) y tipos generados",
+  "description": "Clientes de Supabase compartidos por todas las zonas de Nexo (servidor, navegador, anonimo) y la sesion del proxy/middleware",
   "main": "./index.ts",
-  "types": "./index.ts"
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./client": "./client.ts",
+    "./admin": "./admin.ts"
+  },
+  "peerDependencies": {
+    "next": "^16",
+    "react": "^19"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "next": "16.3.8",
+    "react": "^19"
+  }
 }

@@ -1,6 +1,117 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
-**Última actualización documental: 2026-10-17 — RRHH P1–P6 aplicadas en `nexo-core`.**
+**2026-10-22 — Planilla PL2b, PL2c y pantallas: APLICADAS en `nexo-core` (9 migraciones) y pantallas en local, sin commit.**
+- Paso Cero de PL2b (`20261021235639`): `liquidaciones.pagar` y `.anular`, solo admin (27 códigos).
+- PL2b en 5 partes (`20261022000001` a `20261022001314`): vacaciones, préstamos, embargos, aguinaldo, liquidación como documento, pasivo y provisiones (particionadas). PL2c en 3 partes (`20261022001530` a `20261022001922`): detalle, comparación, régimen, simulador, conceptos, tipos, tabla de IR, declaraciones e importación desde Asistencia.
+- Antes de aplicar: dos rondas de revisión por migración, `test:rrhh:planilla` en PGlite con código 0 y un ensayo revertido por parte con datos reales (quincena, aguinaldo, liquidación, préstamo, embargo, provisiones, RLS y Asistencia). Las 79 funciones de planilla son idénticas en remoto y en local; advisors sin hallazgos nuevos.
+- Pantallas: 40 rutas bajo `/rrhh/planillas` (Nómina, Prestaciones, Análisis y Configuración); typecheck, lint y build de `rrhh` en 0. **Sin recorrido visual con sesión.**
+- Bloqueo práctico: solo el owner tiene permisos de Planilla y, por la separación de funciones, no puede aprobar lo que calcula; hace falta una segunda persona aprobadora.
+[Detalle](status-log/2026-10-21-planilla-pl2b-pl2c-pantallas.md).
+
+**2026-10-21 — Planilla PL2a: esquema y motor de cálculo en RPC, APLICADA en `nexo-core` (`20261021191441`).**
+- Migración `20261021191441`:
+  - régimen por contrato con vigencia, 16 conceptos, planillas por línea y novedades particionadas;
+  - 12 RPC `public.planilla_*` (crear, calcular, aprobar, pagar, anular, novedades, régimen, antigüedad, parámetros y simulador de liquidación);
+  - INSS patronal en 21.5%, los 14 feriados de 2026 y los contratos activos en frecuencia quincenal.
+- Hay 9 decisiones del usuario, todas en el [plan 20 §3.1](plan/20-planilla.md): aguinaldo ene–dic, aprobación estricta, IR quincenal con ajuste, provisión a 1/12, antigüedad heredada y los contratos de hoy como servicios profesionales exentos, entre otras.
+- `test:db` en verde, con los casos dorados G1–G8 (liquidación de C$45,021.66) y 3 pruebas de mutación detectadas.
+- Revisión independiente: 2 hallazgos altos y 10 medios, todos corregidos.
+- Ensayo completo en `nexo-core`, revertido: los poscheques pasan y la quincena real se calcula con 4 personas.
+- **Aplicada** el 2026-10-21 con aprobación del usuario: el poscheque remoto da OK y los advisors no muestran hallazgos nuevos fuera del patrón. Sin commit y sin UI.
+[Detalle](status-log/2026-10-21-planilla-pl2a-motor.md).
+
+**2026-10-21 — Implementación de la revisión integral: código en local (sin commit) y migraciones APLICADAS en `nexo-core`.**
+- **Seguridad:** Next 16.3.8 y `pnpm audit` en 0. Cabeceras de seguridad en las 6 zonas. Login sin redirección abierta. Kiosco heredado retirado.
+- **Kernel compartido:** `@nexo/supabase`, `@nexo/auth` y `misPermisos`, con las 6 apps migradas: una consulta de permisos y una llamada a `getUser()` por carga.
+- **Kit Enterprise UI v2:** `Button`, `Field`, `Alert`, `Skeleton`, `ErrorState`, `Pagination`, `Tabs` y `formato`; Fase 3 en todas las apps, dashboards nuevos en RRHH, Asistencia y Atención, y español neutro.
+- `pnpm verify` en verde. Dos revisiones independientes sin hallazgos críticos ni altos.
+- **4 migraciones aplicadas** con aprobación del usuario: `20261021164649` (`mis_permisos`), `…164748` (indicadores, 181 ms frente a 660, misma salida), `…164902` (kiosco heredado cerrado y tope de 200 filas en reportes; los reportes del owner dan la misma salida) y `…165004` (101 índices).
+  - Advisors: 0 FK sin índice, 0 `auth_rls_initplan` y funciones ejecutables por `anon` de 6 a 5.
+- Falta el recorrido visual con sesión.
+[Detalle](status-log/2026-10-21-mejoras-revision-integral.md).
+
+**2026-10-20 — Planilla y prestaciones: análisis (solo documentación).**
+- El usuario quiere reemplazar AG Planilla con Nexo y mejorarla ([plan 20](plan/20-planilla.md)).
+- Se documentó el marco legal 2026: Código del Trabajo, IR de la DGI, INSS, INATEC y salario mínimo.
+- **Recorrido de AG Planilla con sesión (2026-10-21, solo lectura):**
+  - el menú tiene unas 120 opciones;
+  - hay 6 contratos vigentes, todos "Free-lance" **sin INSS ni IR** (decisión 0 pendiente, para el contador);
+  - una planilla quincenal y una de aguinaldo;
+  - INSS integral 21.5%;
+  - IR igual a la DGI;
+  - provisiones del 25%;
+  - se paga con cheque;
+  - hay un caso dorado de liquidación.
+- En `nexo-core` (solo lectura):
+  - `parametros_ley` tiene el INSS patronal en 22.5%, pero con menos de 50 trabajadores es 21.5%;
+  - el techo de C$100,000 es un valor de ejemplo;
+  - `planilla_detalles` no tiene `contrato_id`;
+  - `feriados` está vacía.
+- **2026-10-21, decisión del usuario:** dejar preparadas las dos modalidades (laboral y servicios profesionales), con el régimen por contrato.
+- **Paso Cero aplicado** (`20261021160943`): 15 permisos `rrhh.planillas.*` y separación de funciones (el especialista ya no aprueba ni anula). Verificado en remoto.
+- El modelo de datos sigue siendo propuesta. Sin tablas, sin código y sin commit.
+[Detalle](status-log/2026-10-20-planilla-analisis.md).
+
+**2026-10-20 — Revisión integral con subagentes (solo diagnóstico).**
+- Cuatro frentes, a pedido del usuario: UI/UX, rendimiento, seguridad y módulos repetidos o integración.
+- Hubo verificación remota (advisors, `pg_stat_statements`, Vercel) y un recorrido visual con la sesión del usuario.
+- **Seguridad:** 13 hallazgos, 0 críticos y 2 altos:
+  - N1: Next 16.3.0, con avisos críticos según `pnpm audit`;
+  - N2: sin MFA y con la protección de contraseñas filtradas apagada.
+  H5 se puede cerrar ya, porque `NEXO_KIOSKO_ID` no está en `nexo-rrhh`.
+- **Rendimiento:** unas 20 llamadas a `has_permission` por página. `presupuesto_indicadores` tarda 660 ms. La primera entrada a cada app tarda de 2,7 a 3,2 s.
+- **UI/UX:** al kit le faltan piezas básicas, hay controles falsos y los dashboards no tienen comparación.
+- **Módulos:** ninguna app está repetida, salvo una posible duplicación entre Agencia y `materiales-jcastillo-marketing-dashboard`, que es inferencia. El código de infraestructura está copiado en 6 apps, las personas existen en 4 lugares y no hay eventos entre módulos.
+- Sin cambios de código ni migraciones. Hay 8 decisiones pendientes del usuario.
+[Detalle](status-log/2026-10-20-revision-integral.md).
+
+**Última actualización documental: 2026-10-20 — App Presupuesto: esquema aplicado y app en local.**
+- El usuario pidió Presupuesto "como una app aparte pero que viva en el despliegue de CRM" ([plan 19](plan/19-presupuesto.md)).
+- Paso Cero aprobado y aplicado (`20261020183127`): 9 permisos `presupuesto.*`, plantillas Vendedor 3, Gerente 7 y Administrador 9, app inactiva.
+- Esquema aplicado (`20261020184030`): schema `presupuesto` cerrado, 14 RPC y facturas e importaciones particionadas. Antes se ensayó con todas sus pruebas en una transacción revertida.
+- `apps/presupuesto` está en local, con el código de Metas recuperado de la rama de respaldo. typecheck, lint, 9 pruebas y build en verde.
+- Hubo revisión independiente, sin hallazgos altos. Sus correcciones se aplicaron, incluida la migración `20261020191334`: el correo del vendedor vinculado ya solo lo ve quien administra vendedores.
+- **Activada** para la empresa (`20261020192310`), para probarla en local. El mosaico ya aparece en el Launcher de producción, pero no abre hasta el despliegue.
+- **Datos reales cargados** desde la app, con la sesión del usuario:
+  - 47 301 facturas del Excel, de 2023 a sep-2026, que cuadran al centavo por año, con 0 errores y 11 vendedores;
+  - el presupuesto 2026 de US$ 4,082,909.31 con el reparto del Excel.
+- Para no perder la factura `52372-A`, que tiene un vencimiento con el año 20233, se corrigió el lector: un vencimiento imposible queda vacío con aviso. Son 10 pruebas.
+- Las metas sugeridas de septiembre a diciembre están generadas con el reparto del Excel, que fue la decisión del usuario. Cada mes suma su meta de la empresa.
+- Nuevo (`20261020194816`, sin permisos nuevos):
+  - elegir los vendedores del cuadro de meta;
+  - **Clientes / Mis clientes**, con la última factura y lo facturado a cada cliente. El vendedor ve solo lo suyo y gerencia ve todo.
+  - Se ensayó en transacción revertida y se probó en el Chrome del usuario.
+- **KPIs del Dashboard** (`20261020204854`, solo lectura), elegidos tras investigar en internet:
+  - ritmo del mes: proyección al cierre y venta necesaria por día hábil, de lunes a sábado;
+  - comparación con el año anterior y acumulado del año;
+  - clientes atendidos y nuevos, clientes por recuperar, venta de contado y concentración top 10;
+  - Mi última factura y los clientes recientes.
+  - "Vario" (contado) no cuenta como cliente.
+  - Se probó la vista del equipo en Chrome. Mi avance solo se probó por SQL, porque ningún vendedor tiene usuario todavía.
+- **Ventas al 20/10/2026 importadas:** 717 facturas nuevas, para un total de 48,018. Octubre lleva 712 facturas, US$ 240,878.76. Antes se corrigió el lector: AG pone 0 en la columna de la otra moneda y ahora ese 0 se calcula con el tipo de cambio. Septiembre se verificó día por día.
+- **Dashboard del equipo rediseñado**, en pirámide:
+  - el número del mes con su ritmo y una barra de meta;
+  - 4 indicadores;
+  - la venta acumulada día a día, interactiva;
+  - el panel de clientes;
+  - el ranking de vendedores con su proyección.
+  - Usa la RPC nueva `presupuesto_venta_diaria` (`20261020210947`, solo lectura).
+  - Se probó en Chrome a 1024 px. La vista en celular no se comprobó.
+- Faltan vincular vendedores con usuarios, asignar plantillas y el despliegue en el proyecto `nexo-crm`. Sin commit.
+[Detalle](status-log/2026-10-20-presupuesto-app.md).
+
+**2026-10-20 — CRM retirado; réplica de AG Negocio en preparación.**
+- El usuario pidió replicar completo su ERP actual, AG Negocio (software propietario de AG Software, S.A.), y borrar el CRM.
+- Inventario hecho en solo lectura: 144 pantallas en 11 grupos ([plan 18](plan/18-replica-ag-negocio.md)).
+- Se borró `apps/crm`; el respaldo está en la rama local `respaldo/crm-2026-10-20`.
+- En nexo-core (`20261020143821`) se borró la app `crm` del Launcher con sus 34 permisos, el esquema `metas` completo y todo el contenido de `crm`. El esquema `crm` queda vacío hasta que el usuario lo quite de "Exposed schemas". No había datos.
+- typecheck 7/7, lint 6/6, test:db y build 7/7 en verde. Sin commit.
+- Sigue el Paso Cero de R1 (base) y R2 (contabilidad) del plan 18.
+[Detalle](status-log/2026-10-20-retiro-crm-replica-ag-negocio.md) · [Plan 18](plan/18-replica-ag-negocio.md).
+
+**2026-10-18 a 2026-10-20 — Metas y embudo comercial del CRM: retirados el 2026-10-20.** Se construyeron Metas y Presupuesto (`20261018135152`, `20261018184849`) y el embudo tipo NextCRM (`20261019152215`, `20261020060058`), pero se borraron sin datos al cambiar la referencia a AG Negocio. Su historia sigue en [Metas](status-log/2026-10-18-metas-dentro-de-crm.md) · [Embudo](status-log/2026-10-20-crm-embudo-esquema.md).
+
+**2026-10-17 — RRHH P1–P6 aplicadas en `nexo-core`.**
 Con aprobación del usuario, P1 → P2 → P3 → P4a → P4b → P6 aplicadas
 (`20261017131004` … `20261017131221`), postchecks del paquete y P7 sección A
 en verde en remoto; advisors solo con hallazgos esperados. El código (kiosco
@@ -83,7 +194,22 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
-| 2026-10-20 | [Kiosco: rutas que mandaban al login sin sesión](status-log/2026-10-20-kiosco-rutas-sin-sesion.md) | En producción, `/rrhh/kiosco` abre sin sesión, pero `/kiosco`, `/asistencia/kiosco`, `/rrhh/asistencia/kiosco` y `/rrhh/Kiosco` caían en el login. Ahora redirigen a `/rrhh/kiosco` antes del guard (`redirects` de nexo y rrhh, y el proxy de rrhh insensible a mayúsculas, que solo exime la ruta exacta). Probado en local; typecheck, lint y build en verde. PR pendiente de fusionar. |
+| 2026-10-22 | [Planilla PL2b, PL2c y pantallas](status-log/2026-10-21-planilla-pl2b-pl2c-pantallas.md) | Prestaciones, reportes y configuración aplicadas en `nexo-core` (9 migraciones, `20261021235639` a `20261022001922`) y 40 pantallas de Planilla en local; sin commit ni recorrido visual con sesión |
+| 2026-10-21 | [Planilla PL2a: esquema y motor en RPC](status-log/2026-10-21-planilla-pl2a-motor.md) | Migración `20261021191441` **aplicada en `nexo-core`**. Régimen por contrato, conceptos, planillas por línea y novedades particionadas. 12 RPC con separación de funciones, huella e inmutabilidad, y simulador de liquidación por causa. IR y techo del INSS por persona, días 30/360, INSS patronal en 21.5%, 14 feriados y contratos en quincenal. 9 decisiones del usuario. PGlite pasa G1–G8 (C$45,021.66) y más de 40 reglas, con mutaciones detectadas. Revisión independiente (2 altos y 10 medios) corregida. Ensayo completo en `nexo-core` revertido: poscheques OK y la quincena real se calcula con 4 personas. Sin commit. |
+| 2026-10-21 | [Implementación de la revisión integral](status-log/2026-10-21-mejoras-revision-integral.md) | Flujo coordinador → 9 ejecutores → 2 revisores → correcciones. Seguridad: Next 16.3.8 y overrides (`pnpm audit` 28 → 0), cabeceras compartidas, N8/N12 cerrados y el kiosco heredado retirado. Kernel `@nexo/supabase`/`@nexo/auth`/`getPermisos` con las 6 apps migradas. Kit Enterprise UI v2, Fases 3 y 4, menú filtrado por permiso y español neutro. 4 migraciones **aplicadas el 2026-10-21** (`20261021164649`–`20261021165004`) y verificadas en remoto con la misma salida que antes; advisors con 0 FK sin índice y `anon` de 6 a 5. `pnpm verify` en verde. Sin commit ni deploy; falta el recorrido visual. |
+| 2026-10-20 | [Planilla y prestaciones: análisis de AG Planilla y marco legal](status-log/2026-10-20-planilla-analisis.md) | El usuario quiere reemplazar AG Planilla ([plan 20](plan/20-planilla.md)). Ley de 2026 documentada (Código del Trabajo, IR de la DGI, INSS, INATEC y salario mínimo) y recorrido de AG con sesión el 2026-10-21: menú de unas 120 opciones, 6 contratos vigentes "Free-lance" sin INSS ni IR, INSS 21.5%, provisiones del 25% y un caso dorado de liquidación. Decisión: preparar las dos modalidades. Paso Cero aplicado (`20261021160943`): 15 permisos y el especialista ya no aprueba ni anula. Sin tablas. Remoto en solo lectura: INSS patronal sembrado en 22.5% cuando corresponde 21.5% con menos de 50 trabajadores, techo de ejemplo, `planilla_detalles` sin `contrato_id` y feriados vacíos. Paso Cero y modelo propuestos; sin código ni migraciones. |
+| 2026-10-20 | [Revisión integral: UI/UX, rendimiento, seguridad y módulos](status-log/2026-10-20-revision-integral.md) | Diagnóstico con 4 subagentes en solo lectura, más verificación remota y visual del coordinador. Seguridad: 13 hallazgos (2 altos: Next 16.3.0 vulnerable; sin MFA ni protección de contraseñas filtradas); H5 se puede cerrar. Rendimiento: unos 20 `has_permission` por página, `presupuesto_indicadores` de 660 ms, sin `loading.tsx` ni caché. UI/UX: 8 causas de lo genérico y propuesta Enterprise UI v2 en `packages/ui`. Módulos: infraestructura copiada en 6 apps, personas en 4 lugares, sin eventos; propuesta de maestros en `core` y outbox. Corregida la divergencia de `nexo-productos`. Sin código, sin migraciones, sin commit. |
+| 2026-10-20 | [App Presupuesto: Paso Cero, esquema y app](status-log/2026-10-20-presupuesto-app.md) | Es una app aparte que vivirá en el proyecto de Vercel `nexo-crm` ([plan 19](plan/19-presupuesto.md)). Paso Cero (`20261020183127`): 9 permisos y plantillas 3/7/9, app inactiva. Esquema (`20261020184030`): schema `presupuesto` cerrado, 14 RPC y hechos particionados, ensayado completo en transacción revertida (importación sin duplicar, metas sugeridas y ajustadas, el vendedor solo ve lo suyo, sin sesión se deniega todo). `apps/presupuesto` en local con el código de Metas del respaldo: typecheck, lint, 9 pruebas y build en verde. Revisión independiente sin hallazgos altos; sus correcciones van en `20261020191334` (el correo del vendedor solo lo ve quien administra vendedores; la importación no aborta por una fila mal numerada). Falta activar, el recorrido con sesión y el despliegue. Sin commit. |
+| 2026-10-20 | [Retiro del CRM + inventario de AG Negocio](status-log/2026-10-20-retiro-crm-replica-ag-negocio.md) | El usuario pidió replicar AG Negocio, su ERP actual, y borrar el CRM. Inventario en solo lectura de 144 pantallas ([plan 18](plan/18-replica-ag-negocio.md)). `apps/crm` borrada, con respaldo en la rama local `respaldo/crm-2026-10-20`. `20261020143821`: app `crm` y sus 34 permisos y 3 plantillas fuera, esquema `metas` borrado y `crm` vaciado (queda vacío por "Exposed schemas"); ensayado antes en transacción revertida y sin datos. Rewrite `/crm` y CI de metas retirados; un solo mosaico ERP en el Launcher. typecheck, lint, test:db y build en verde. Sin commit. |
+| 2026-10-20 | [ERP: plan y Paso Cero](plan/17-erp.md) | Decisiones del usuario: reemplazar el ERP actual por etapas, facturación fiscal DGI (ya hay autorización), costo promedio ponderado, catálogo de cuentas importado del ERP, una sola app ERP y libros en C$. Paso Cero aplicado (`20261020064732`): apps `precios` y `erp` inactivas, 11 + 52 permisos y 12 plantillas, ensayado antes en transacción revertida. Sin tablas. Sigue E1 Listas de precios; faltan los datos de la resolución DGI y los Excel. |
+| 2026-10-20 | [CRM: esquema del embudo comercial](status-log/2026-10-20-crm-embudo-esquema.md) | Se aplicaron 9 tablas en `crm`: actividades, cotizaciones con sus líneas y eventos van particionadas por mes. Además, 48 RPC `public.crm_*` con alcance propio o del equipo, control de versión, totales calculados en el servidor, aprobación de descuentos y la regla de que nadie aprueba lo propio (`20261020060058`). La configuración S6 quedó sembrada. Las 19 pruebas pasaron en transacción revertida; los avisos muestran solo lo esperado. Falta la UI y no hay datos ni commit. |
+| 2026-10-19 | [CRM: Paso Cero del embudo comercial](status-log/2026-10-19-crm-embudo-paso-cero.md) | Matriz aprobada y aplicada (`20261019152215`). Agrega 21 permisos para Leads, Oportunidades, Actividades y Cotizaciones, más el alcance de equipo, la reasignación y la configuración del embudo. Plantillas Vendedor 17, Gerente 27 y Administrador 34. Se ensayó en una transacción revertida antes de aplicar. NextCRM (MIT) sirve de referencia funcional. Sin tablas, pantallas ni commit. |
+| 2026-10-18 | [Metas y Presupuesto dentro del CRM](status-log/2026-10-18-metas-dentro-de-crm.md) | Decisión del usuario: un solo módulo de ventas. 8 permisos `crm.*` + plantillas Vendedor/Gerente/Administrador de ventas, 13 RPC reescritas con los códigos nuevos y app `metas` retirada (`20261018184849`, probada en transacción revertida). Pantallas movidas a `apps/crm` (`/crm/metas`…), `apps/metas` y rewrite `/metas` eliminados; deuda de lint del CRM corregida (CRM en el gate). lint/typecheck/test/build en verde. Sin datos, sin sesión real, sin commit. |
+| 2026-10-18 | [Metas de ventas: app + importador del Excel en bruto](status-log/2026-10-18-metas-app-importador.md) | `apps/metas` (zona `/metas`, 3006) con 6 pantallas; lector del Excel del ERP sin depurar (hojas, títulos, totales, duplicados, montos y fechas en texto) probado con el Excel real: 47 301 facturas que cuadran con su Dashboard; validador en Node; lotes de 1000 medidos (0.9 s). typecheck/lint/test/build en verde. Rewrite `/metas`, icono `target`. App inactiva, sin sesión real, sin datos, sin commit. |
+| 2026-10-18 | [Metas de ventas: Paso Cero + esquema](status-log/2026-10-18-metas-paso-cero-esquema.md) | App `metas` inactiva con 9 permisos y plantillas Vendedor/Gerente/Administrador (`20261018133816`); schema `metas` (6 tablas, facturas/importaciones particionadas, 13 RPC) aplicado (`20261018135152`) tras 18 pruebas revertidas: importación sin duplicar, anuladas fuera, reparto por 3 meses, vendedor ve solo lo suyo, `anon` sin acceso. Advisors solo con lo esperado. Sin datos, sin pantallas, sin commit. |
+| 2026-10-18 | [Reportes de Asistencia + PDF](status-log/2026-10-18-asistencia-reportes.md) | Paso Cero `reportes.ver`/`.exportar` y núcleo `rrhh.fn_asistencia_dias` + 6 RPC **aplicados** (`20261018014012`, `20261018014127`; advisors 62/6/81/1, +6 RPC autenticadas esperadas). En local: 5 reportes (diaria, resumen, tardanzas, incidencias, tarjeta), PDF en Route Handler (jspdf fijado) y vista de impresión, ambos auditados. typecheck, lint, build y 24 pruebas en verde; `reviewer` sin altos (bajos corregidos). Recorrido con sesión real en local como owner: 5 pantallas, PDF, impresión y 4 auditorías verificadas. Sin commit ni deploy (todo en local por pedido del usuario). |
+| 2026-10-18 | [Despliegue único: PR #48](status-log/2026-10-17-asistencia-app.md#despliegue-en-producción-2026-10-18) | `feat/launcher-iconos` fusionada en `main` (`9e11e82`) con los 5 checks obligatorios en verde (`lint-deuda` falla y no bloquea; es deuda previa). Los 6 proyectos de Vercel quedan READY en Production. En el dominio público, `/rrhh/kiosco` muestra «Terminal sin asignar» y `/rrhh/asistencia` y `/agencia` llevan al login. Falta el recorrido con sesión real en producción. |
+| 2026-10-20 | [Kiosco: rutas que mandaban al login sin sesión](status-log/2026-10-20-kiosco-rutas-sin-sesion.md) | En producción, `/rrhh/kiosco` abre sin sesión, pero `/kiosco`, `/asistencia/kiosco`, `/rrhh/asistencia/kiosco` y `/rrhh/Kiosco` caían en el login. Ahora redirigen a `/rrhh/kiosco` antes del guard (`redirects` de nexo y rrhh, y el proxy de rrhh insensible a mayúsculas, que solo exime la ruta exacta). Fusionado con el PR #49 (`a072908`). |
 | 2026-10-17 | [Enrolamiento de terminales de kiosco](status-log/2026-10-17-asistencia-app.md#enrolamiento-decisiones-y-migraciones-preparadas) | Paso Cero (`kioskos.asignar`/`revocar`) y tablas + 6 RPC aplicadas (`20261017180753`, `20261017180853`; 12 comprobaciones en transacción revertida; advisors solo con lo esperado). UI: código en Dispositivos, pantalla "Terminal sin asignar" (`/rrhh/kiosco?asignar=1`) y cookie httpOnly. Revisada por `reviewer` (sin altos); typecheck, lint, build, lint:gate y P5 en verde. Sin recorrido real ni commit. |
 | 2026-10-17 | [App Asistencia separada de RRHH](status-log/2026-10-17-asistencia-app.md) | Mosaico propio en `/rrhh/asistencia` (mismo deploy que RRHH): Dashboard, Marcas (movida, `/rrhh/marcas` redirige) y Dispositivos (registrar, editar, desactivar, reactivar). `core.apps` registrada (`20261017173701`, aplicada; solo el owner la ve). Vía `ux-planner` → `ui-frontend` → `reviewer` (sin bloqueos de código); typecheck, lint, lint:gate y build de RRHH en verde. Sin sesión real, sin deploy, sin commit. |
 | 2026-10-17 | [Revisión de seguridad](status-log/2026-10-17-revision-seguridad.md) | Diagnóstico (advisors + SQL de solo lectura en `nexo-core`): 0 críticos, 1 alto, 1 medio, 7 bajos. Correcciones con el flujo coordinador → 3 ejecutores `ui-frontend` → 2 rondas de `reviewer` (sin altos ni medios al final). Resueltos: H1 (PR #47 fusionado, `6619646`), H2 en código (`mensajeDeError` de `@nexo/permissions` en RRHH, Productos, CRM, Atención y Nexo), H7, H8, H9 y `weak_password` de Auth con mensaje propio. H4: migración `20261017164447` **aplicada en `nexo-core`** con aprobación del usuario (`anon` sin EXECUTE en `update_platform_settings`; advisor de funciones ejecutables por `anon` bajó de 4 a 3, todas intencionales). H3 y H5 quedan como propuesta; H6 lo hace el usuario en Supabase. `pnpm verify` en verde. Sin commit de estas correcciones, sin push. |
@@ -155,7 +281,7 @@ P2–P6 implementados en rama y verificados localmente, incluidas regresiones de
 | Área | Estado | Realidad conocida / siguiente paso |
 |---|---|---|
 | Agencia digital | 🟡 Preparada, sin activar | `apps/agencia`, `/agencia`, proyecto `nexo-agencia`; matriz aplicada, código compilado y pruebas técnicas OK. Revisión final de Claude y activación pendientes; cuentas y visualización manuales. |
-| CI / validación automatizada | ✅ Gate activo y verificado; workflow en uso | `.github/workflows/ci.yml` corre en cada PR con `typecheck` (7 apps, `next typegen && tsc --noEmit`), `lint` (todas las apps **excepto** la deuda documentada; el conjunto se deriva de `apps/*` y falla si una app no está clasificada), `build` (7 apps), `test-db-rrhh` (prueba SQL P1 contra la migración real, en PGlite) y `test-agencia-access`; `lint-deuda` expone la deuda de `crm`/`flotilla` sin bloquear. Una sola orden local: `pnpm verify`. **`main` exige los cinco checks desde el 2026-10-16** (`strict: false`, `enforce_admins: true`, sin force push ni borrado de rama; verificado por API). Límites (PGlite ≠ Postgres/Supabase real; sin RLS ni concurrencia) y comandos en [CI_CHECKS.md](CI_CHECKS.md). |
+| CI / validación automatizada | ✅ Gate activo y verificado; workflow en uso | `.github/workflows/ci.yml` corre en cada PR con `typecheck` (7 apps, `next typegen && tsc --noEmit`), `lint` (todas las apps **excepto** la deuda documentada; el conjunto se deriva de `apps/*` y falla si una app no está clasificada), `build` (7 apps), `test-db-rrhh` (prueba SQL P1 contra la migración real, en PGlite) y `test-agencia-access`; `lint-deuda` expone la deuda de `flotilla` sin bloquear. El job `test-metas-importacion` se retiró con el CRM el 2026-10-20, y el gate quedó en 6 apps más 1 con deuda. Una sola orden local: `pnpm verify`. **`main` exige los cinco checks desde el 2026-10-16** (`strict: false`, `enforce_admins: true`, sin force push ni borrado de rama; verificado por API). Límites (PGlite ≠ Postgres/Supabase real; sin RLS ni concurrencia) y comandos en [CI_CHECKS.md](CI_CHECKS.md). |
 | Nexo Core / Launcher | ✅ Validado | Monorepo, SSO, Multi-Zones, permisos y `nexo-core` operativos según última documentación verificada. Desde 2026-09-14, `/` es un App Launcher puro (selector de aplicaciones, sin KPIs) — ver fila siguiente. |
 | Administración de usuarios y roles (`apps/nexo`) | 🟡 En producción 2026-10-14 (PR #20, `main` `ff46bce`), sin validar con sesión real | Pantallas `/configuracion/usuarios`, `/roles`, `/auditoria`, `/cambiar-contrasena` + tarjeta "Configuración" en el Launcher; `nexocore` READY en Production; sin sesión redirige al login (verificado en el dominio público). Base de datos: Paso Cero (`20261014201119`) + esquema (`20261014203144`) — roles de empresa (un rol por usuario), `core.has_permission` reescrita, 14 RPC `admin_*` con anti-escalada y auditoría, vínculo con `rrhh.empleados.user_id`; 15 pruebas SQL. Pendiente: recorrido con sesión real. Ver [status-log](status-log/2026-10-14-usuarios-roles-pantallas.md) y [`plan/12`](plan/12-administracion-usuarios-roles.md). |
 | Nexo Enterprise UI (shell/navegación) | 🟡 Pusheado a `main` 2026-09-17 (`392f676`), sin verificar en producción | Sidebar azul persistente + topbar con breadcrumb en RRHH/CRM (`NexoShell`). Desde 2026-09-17: la cabecera del sidebar muestra **texto fijo "Nexo"** (sin logo/ícono, nunca el nombre de la app activa) en vez del logo dinámico + nombre de módulo de 2026-09-14 — el nombre de la app sigue en el breadcrumb/contenido. `/` de `apps/nexo` (App Launcher) se movió fuera del grupo `(app)` y ya no usa `NexoShell` en absoluto (sin sidebar/topbar/buscador/menú) — header propio mínimo. `/configuracion/marca` conserva su `NexoShell` sin cambios de comportamiento. Código en `main`, `next build` limpio en las 3 apps — sin recorrido autenticado real ni verificación visual del deployment de Vercel disparado por el push. |
@@ -168,17 +294,24 @@ P2–P6 implementados en rama y verificados localmente, incluidas regresiones de
 | RRHH PIN contractual | ✅ F1.3 completada | El PIN nace solo al activar contrato, se revoca al finalizar, kiosko validado end-to-end contra la nueva credencial (2026-09-07). |
 | RRHH jornadas | ✅ F1.4 completada (modelo mínimo) | `rrhh.jornadas`/`jornada_dias`/`contrato_jornadas`/`feriados` existen, con RLS, RPC de asignación e interfaz de lectura para F1.5 (2026-09-07). Jornada obligatoria para activar contrato. Falta el motor de consolidación (F1.5) y las decisiones de negocio (hora extra, feriado pagado, etc.), explícitamente no implementadas. |
 | Asistencia (app) | 🟡 Implementada en local 2026-10-17, sin sesión real ni deploy | Separada de RRHH por decisión del usuario; vive en `apps/rrhh` (route group `(asistencia)`, `/rrhh/asistencia`). Visibilidad `asistencia.ver_modulo` (`20261017173701`, aplicada; hoy solo el owner); contenido con los permisos `rrhh.asistencia.*`. Pendiente: asignar el permiso de visibilidad a roles (Paso Cero), RPC de envíos del kiosco, enrolamiento de dispositivos (hoy manda `NEXO_KIOSKO_ID`), Incidencias/Justificaciones (F1.6). [Detalle](status-log/2026-10-17-asistencia-app.md). |
-| RRHH consolidación de asistencia | ⏳ Pendiente | No existe marcas → horas consolidadas. Será la RPC que Asistencia expone a Planillas (`asistencia_resumen_diario`, propuesta). |
-| RRHH planillas | ⏳ Pendiente | Ruta actual es placeholder; falta motor/reporte. |
-| Kiosko RRHH | ✅ Migrado a PIN contractual | `rrhh.fn_registrar_marca_kiosko` valida contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. Misma UI/rate-limit de antes. **2026-10-15 (P1, issue #30, en `main` `fc2b309`):** además cuenta coincidencias y no marca si el PIN es ambiguo en la empresa del kiosco — misma UI; la migración `20261015181000` sigue sin aplicarse a `nexo-core`. [Detalle](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md). **2026-10-20:** `/kiosco`, `/asistencia/kiosco`, `/rrhh/asistencia/kiosco` y las variantes con mayúsculas ahora llevan a `/rrhh/kiosco` sin pedir sesión. Antes caían en el login ([detalle](status-log/2026-10-20-kiosco-rutas-sin-sesion.md)). |
+| Asistencia reportes | 🟡 RPC aplicadas 2026-10-18; UI en local, recorrida como owner, sin commit ni deploy | 5 reportes con PDF e impresión auditados. [Detalle](status-log/2026-10-18-asistencia-reportes.md). |
+| RRHH consolidación de asistencia | ⏳ Pendiente | No existe marcas → horas consolidadas persistidas. El cálculo por día ya existe en `rrhh.fn_asistencia_dias` (reportes, 2026-10-18) y F1.5 debe reutilizarlo, no duplicarlo. |
+| RRHH planillas | 🟡 PL2a, PL2b y PL2c **aplicadas en `nexo-core`** (2026-10-21 y 2026-10-22) y probadas en PGlite; pantallas construidas en local, sin commit y sin recorrido visual | Motor ordinario y de aguinaldo, vacaciones, préstamos, embargos, liquidación como documento, pasivo, provisiones, declaraciones e importación desde Asistencia, todo en RPC. 40 rutas bajo `/rrhh/planillas`. Falta el recorrido con sesión, una segunda persona aprobadora, confirmar valores con el contador y la corrida en paralelo con AG. [PL2a](status-log/2026-10-21-planilla-pl2a-motor.md), [PL2b, PL2c y pantallas](status-log/2026-10-21-planilla-pl2b-pl2c-pantallas.md). |
+| Kiosko RRHH | ✅ Migrado a PIN contractual | `rrhh.fn_registrar_marca_kiosko` valida contra `rrhh.contrato_credenciales` desde F1.3 (2026-09-07), verificado end-to-end. Misma UI/rate-limit de antes. **2026-10-15 (P1, issue #30, en `main` `fc2b309`):** además cuenta coincidencias y no marca si el PIN es ambiguo en la empresa del kiosco — misma UI; la migración `20261015181000` sigue sin aplicarse a `nexo-core`. [Detalle](status-log/2026-10-15-rrhh-p1-pin-ambiguo.md). **2026-10-20, en producción:** el usuario reportó que en un iPad sin sesión el kiosco lo mandaba al login. `/rrhh/kiosco` sí abría sin sesión, pero `/kiosco`, `/asistencia/kiosco`, `/rrhh/asistencia/kiosco` y `/rrhh/Kiosco` (con mayúscula) caían en el login. Ahora esas rutas redirigen a `/rrhh/kiosco` antes del guard: van en `redirects` de `apps/nexo` y `apps/rrhh`, y en `apps/rrhh/src/proxy.ts`, que además deja de eximir rutas como `/kioscoX`.
+- Se fusionó con el [PR #49](https://github.com/Jccastillo25/nexo/pull/49) (`a072908`), con los cinco checks obligatorios en verde.
+- `nexocore` y `nexo-rrhh` quedaron READY en Production.
+- Verificado en el dominio público sin sesión y con User-Agent de iPad: las variantes llegan a "Terminal sin asignar" y `/rrhh/kioscos` y `/rrhh/asistencia` siguen pidiendo login.
+- Falta la prueba del usuario en el iPad.
+- [Detalle](status-log/2026-10-20-kiosco-rutas-sin-sesion.md), que está en `main`. |
 | RRHH piloto supervisado / MVP operativo (corte 2026-10-15) | 🟡 P2–P6 locales; piloto sin autorizar | PIN único, contrato, secuencia/idempotencia, confirmación y Marcas en rama. Sin aplicación remota ni E2E; M1–M4 fuera de alcance. [Paquete](RRHH_PAQUETE_OPERADOR.md). |
 | Identidad digital de empleados | ⚠️ Refactor de PIN cerrado, identidad digital sigue pendiente | `nombre_usuario + PIN` para acceso operativo ya no existe como diseño vigente (D-06 cerrado F1.3). Falta construir usuario+contraseña vía Supabase Auth (Fase 2, `core.identidad`) — diseño objetivo documentado, sin implementar. |
 | Panel de Conductor Web | 🟡 Código legacy aprovechable | Ruta360 tiene flujo de conductor, pero falta adaptación a identidad Nexo, contrato RRHH y permisos unificados. |
-| CRM | 🟡 MVP muy básico | Cliente CRUD y dashboard; faltan leads, oportunidades, actividades, cotizaciones/pedido. |
+| CRM | ❌ Retirado 2026-10-20 | Borrado por pedido del usuario: `apps/crm`, la app `crm` del Launcher con sus 34 permisos, el esquema `metas` y todo el contenido de `crm` (`20261020143821`). No había datos. El código está en la rama local `respaldo/crm-2026-10-20`. Pendiente del usuario: quitar `crm` de "Exposed schemas" (luego se borra el esquema vacío) y decidir qué hacer con el proyecto de Vercel del CRM. [Detalle](status-log/2026-10-20-retiro-crm-replica-ag-negocio.md). |
+| Réplica de AG Negocio (app `erp`) | 🟡 Inventario hecho 2026-10-20; falta el Paso Cero | El ERP actual (AG Negocio, propietario) se replica completo dentro de Nexo, sin el bloque académico. Son 144 pantallas en 11 grupos y las etapas van de R0 a R9; R0 (retiro del CRM) está hecha. Apps `erp` y `precios` registradas inactivas, con el Paso Cero del plan 17. Hay que rehacerlo con la matriz recurso × acción de AG antes de crear tablas. [Plan 18](plan/18-replica-ag-negocio.md). |
 | Transporte / Flotilla | 🟡 Código aprovechable, sin adaptar | Ruta360 importado; falta migración al modelo Nexo y eliminar identidad duplicada de conductores. |
 | Productos (catálogo maestro) | 🟡 Esquema aplicado + app implementada en local (2026-10-16), sin validar con sesión real | Paso Cero (`20261016203638`) + esquema/RPC (`20261016214634`) en `nexo-core`, probados en transacciones revertidas. `apps/productos` compila (typecheck/lint/build). App **activa** para la empresa desde 2026-10-16 (`20261016220935`, para probar en local); sin datos, sin commit ni proyecto Vercel: la tarjeta del Launcher de producción no abre hasta el deploy. Nexo es el maestro; el ERP se alimenta por exportación. Ver [plan 14](plan/14-productos.md). |
-| Listas de precios | ⏳ Pendiente | Siguiente después de Productos: precio base/mínimo, multiprecios, niveles por clasificación de cliente, comparativa y listas oficiales. App aparte o sección de Productos sin decidir. |
-| Inventario mínimo | ⏳ Pendiente | Necesario antes de Fabricación. Leerá el catálogo de Productos (no lo duplica). |
+| Listas de precios | ⏳ Pendiente | App aparte `precios` (decisión del 2026-10-17), registrada inactiva el 2026-10-20. Replicará las escalas de precio, los multiprecios y los usuarios por escala de AG Negocio (etapa R3 del [plan 18](plan/18-replica-ag-negocio.md)). |
+| Inventario | ⏳ Pendiente | Va dentro de la app `erp` (etapa R3 del plan 18): bodegas, kardex a costo promedio, ajustes, transferencias, levantamiento, fábrica y recetas. Lee el catálogo de Productos, no lo duplica. |
 | Fabricación | ⏳ Pendiente | No existe app/schema. |
 | Nexo Mobile Android/iOS | ⏳ Preparación arquitectónica | No existe `apps/mobile`. La app será operacional y no replicará toda la Web. Primera vertical productiva prevista: conductor/Transporte. |
 | Kernel compartido `@nexo/supabase/@nexo/auth` | ⚠️ Deuda | Existe estructura, pero la arquitectura documenta duplicación de clientes/middleware entre apps. |
@@ -228,7 +361,7 @@ Objetivo: cada marca válida debe quedar contextualizada con el contrato laboral
 
 Las tablas base (`rrhh.planillas`, `rrhh.planilla_detalles`) existen y están vacías (0 filas); el motor consolidación → planilla no está construido.
 
-Estado: ⏳ confirmado.
+Estado: 🟡 PL2a aplicada en `nexo-core` (2026-10-21, `20261021191441`): motor de la planilla ordinaria en RPC, con líneas por concepto y `contrato_id`. `planilla_detalles` queda en desuso. Las horas extra y las faltas entran como novedades; desde PL2c (2026-10-22) también se pueden importar, elegidas a mano, desde Asistencia. PL2b agrega las prestaciones. [Detalle](status-log/2026-10-21-planilla-pl2a-motor.md), [PL2b y PL2c](status-log/2026-10-21-planilla-pl2b-pl2c-pantallas.md).
 
 ## D-06 — PIN usado como login operativo
 
@@ -273,7 +406,7 @@ P1–P6 preparados en rama; P7 remoto/manual y autorización pendientes. F1.5–
 | F1.4 | Jornadas/turnos/feriados mínimos | ✅ | [Detalle](status-log/2026-09-07-f1-4-jornadas-minimas.md). Gap de rol señalado (`gestor_expedientes` sin `turnos.ver`), pendiente de aprobación aparte. |
 | F1.5 | Consolidación diaria de asistencia | ⏳ | Marcas → horas/incidencias. **Próximo trabajo** — ver sección 7. |
 | F1.6 | Incidencias/justificaciones | ⏳ | Validación previa a planilla. |
-| F1.7 | Motor de planillas + snapshots | ⏳ | No integración contable todavía. |
+| F1.7 | Motor de planillas + snapshots | 🟡 | PL2a, PL2b y PL2c aplicadas en `nexo-core` y probadas en PGlite; pantallas construidas en local sin recorrido visual ([plan 20](plan/20-planilla.md), [PL2a](status-log/2026-10-21-planilla-pl2a-motor.md), [PL2b y PL2c](status-log/2026-10-21-planilla-pl2b-pl2c-pantallas.md)). Falta el recorrido con sesión, la segunda persona aprobadora y la corrida en paralelo. Sin integración contable todavía. |
 | F1.8 | UI administración de kioscos | ⏳ | Eliminar SQL manual como operación normal. |
 | F1.9 | Seguridad/RBAC/E2E | ⏳ | Roles + RPC directa + RLS + advisors + contrato finalizado + PIN revocado. Incluye las pruebas por rol real pendientes de F1.3/F1.4 (ver esas entradas del log). |
 | F1.10 | Recorrido completo validado | ⏳ | Criterio para declarar RRHH MVP listo. |
@@ -462,6 +595,36 @@ Nunca ajustar la realidad para que coincida artificialmente con un documento vie
 
 # 7. Próxima acción obligatoria
 
+**Planilla ([plan 20](plan/20-planilla.md)):** PL2a, PL2b y PL2c están **aplicadas** en `nexo-core` y las pantallas están en local, sin commit. Pasos siguientes:
+1. Recorrido visual con sesión de las 40 pantallas (`/rrhh/planillas`) y verificación de cálculos por el usuario.
+2. Commit de las migraciones, pantallas y documentación cuando el usuario lo pida.
+3. Regenerar los tipos de `apps/rrhh` cuando el archivo compartido `database.types.ts` no tenga cambios de otra sesión, y tipar `periodos/datos.ts`.
+
+Pendientes del usuario:
+- dar el rol de aprobador a una segunda persona (sin eso nadie puede aprobar planillas, liquidaciones ni vacaciones);
+- asignar salario al contrato activo que no lo tiene;
+- validar con el contador los valores "verificar", el tope del embargo, la fracción de horas extra y el INSS e IR de vacaciones pagadas;
+- registrar el número INSS en el expediente;
+- corrida en paralelo con AG.
+
+**Réplica de AG Negocio ([plan 18](plan/18-replica-ag-negocio.md), pedido del usuario 2026-10-20):** R0 está hecho: el CRM se retiró (`20261020143821`) con respaldo en la rama local `respaldo/crm-2026-10-20`. Pasos siguientes:
+1. Paso Cero de R1 (base) y R2 (contabilidad): **preparado y ensayado, sin aplicar**. Son 50 códigos, que reemplazan 10 del plan 17 ([plan 18 §9](plan/18-replica-ag-negocio.md), `supabase/migrations/20261021090000_erp_r1_r2_paso_cero.sql`). Espera la aprobación del usuario.
+2. Esquema con pruebas en transacción revertida.
+3. Pantallas en `apps/erp`.
+
+Pendientes del usuario:
+- Quitar `crm` de "Exposed schemas"; después se borra el esquema vacío.
+- Pedir a AG Software un respaldo completo de sus datos.
+- Dar los datos de la resolución DGI.
+
+**Presupuesto ([plan 19](plan/19-presupuesto.md), pedido del usuario 2026-10-20):** es una app aparte que vivirá en el proyecto de Vercel `nexo-crm`, así que con eso queda decidido qué hacer con ese proyecto. El Paso Cero (`20261020183127`), el esquema (`20261020184030`), los ajustes de la revisión (`20261020191334`) y la activación (`20261020192310`) están **aplicados**. `apps/presupuesto` está en local y en verde ([detalle](status-log/2026-10-20-presupuesto-app.md)). Siguen:
+1. ~~Activar la app~~ ✅
+2. ~~El recorrido y la carga del Excel real~~ ✅ (47 301 facturas y presupuesto 2026).
+3. Commit y PR. Falta además generar las metas sugeridas y vincular los vendedores, que decide el usuario.
+4. Cambiar el *Root Directory* de `nexo-crm` a `apps/presupuesto` justo antes de fusionar, y poner `PRESUPUESTO_APP_URL` en `nexocore`.
+5. Importar el Excel real y vincular vendedores.
+6. Fase 2 (presupuesto por centro de costo), después de R2.
+
 **RRHH/kiosco:** P1–P6 **aplicadas** en `nexo-core` y su cliente **fusionado en `main`** (PR #47, `6619646`, 2026-10-17). Siguiente: P7 según [el paquete del Operador](RRHH_PAQUETE_OPERADOR.md). No iniciar marcaciones reales antes. P7 requiere remoto, usuarios reales y decisión de autorizar o posponer. No se sustituyen F1.5–F1.10 ni se inicia M1–M4.
 
 **`feat/launcher-iconos`:** commit `82664fb` + merge de `main` (con el PR #47) en local; conflictos resueltos en `apps/rrhh/src/lib/nav.ts` (Marcas con `href` e icono) y en este archivo. Encima, las correcciones de seguridad H2/H7/H8/H9 están sin commit y `pnpm verify` está en verde. Pendiente:
@@ -474,7 +637,7 @@ Detalle: [status-log](status-log/2026-10-17-revision-seguridad.md).
 
 **RRHH P1 (issue #30): aplicada.** Se aplicó en `nexo-core` el 2026-10-17 junto con P2–P6, con la versión remota `20261017131004` (el archivo `20261015181000_…` se renombró sin tocar su SQL).
 
-**CI (issue #43) — protección de `main`: hecha y verificada.** Desde el 2026-10-16 `main` exige los cinco checks del workflow `CI` (`typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access`, app GitHub Actions `app_id 15368`) antes de fusionar, con `strict: false`, `enforce_admins: true` y sin force push ni borrado de rama; **no** se exigen `lint-deuda (no bloquea)`, `Vercel Preview Comments` ni `Supabase Preview`. Verificado por API: `GET /branches/main` → `"protected": true` y `GET /branches/main/protection` devuelve exactamente esos cinco contextos. Comandos reproducibles y cómo cambiarlo: [CI_CHECKS.md](CI_CHECKS.md#protección-de-main-estado-verificado). Queda pendiente, aparte, corregir el lint pre-existente de `crm`/`flotilla` para moverlo a `lint:gate`.
+**CI (issue #43) — protección de `main`: hecha y verificada.** Desde el 2026-10-16 `main` exige los cinco checks del workflow `CI` (`typecheck`, `lint`, `build`, `test-db-rrhh`, `test-agencia-access`, app GitHub Actions `app_id 15368`) antes de fusionar, con `strict: false`, `enforce_admins: true` y sin force push ni borrado de rama; **no** se exigen `lint-deuda (no bloquea)`, `Vercel Preview Comments` ni `Supabase Preview`. Verificado por API: `GET /branches/main` → `"protected": true` y `GET /branches/main/protection` devuelve exactamente esos cinco contextos. Comandos reproducibles y cómo cambiarlo: [CI_CHECKS.md](CI_CHECKS.md#protección-de-main-estado-verificado). Queda pendiente, aparte, corregir el lint pre-existente de `flotilla` para moverlo a `lint:gate`.
 
 **Bloque complementario #18:** revisar Claude/Previews y obtener aprobación humana antes de publicar Agencia, fusionar su integración y habilitar la tarjeta. El orden de RRHH de abajo no cambia. Las pruebas de navegador son manuales por decisión del usuario.
 

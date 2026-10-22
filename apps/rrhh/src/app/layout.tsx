@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
-import { createClient } from "@/lib/supabase/server";
-import { getFaviconUrl } from "@/lib/platform-settings";
+import { getPlatformSettings } from "@nexo/auth";
 import "./globals.css";
 
 // Tipografia unica de toda la suite (ver docs/planning/NORMA_DISENO_UNIVERSAL.md
@@ -17,10 +16,12 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
  * estatico porque el favicon viene de core.platform_settings, no de un
  * archivo fijo. Sin favicon configurado, cae al favicon.ico por defecto de
  * Next (icons: undefined).
+ *
+ * Kernel (2026-10-20): getPlatformSettings() lee sin cookies y en caché entre
+ * requests (antes, una RPC con el cliente de sesión en cada carga).
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const supabase = await createClient();
-  const faviconUrl = await getFaviconUrl(supabase);
+  const { faviconUrl } = await getPlatformSettings();
 
   return {
     title: "RRHH · Materiales J Castillo",

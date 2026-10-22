@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { contextoActual } from "@nexo/auth";
 import { PageHeader, StatusBadge } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
 import { permisosDe } from "@/lib/permisos";
 import type { Catalogos, Producto } from "@/lib/tipos";
 import FichaProducto from "../ficha-producto";
@@ -18,13 +17,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export default async function ProductoPage({ params }: PageProps<"/catalogo/[id]">) {
   const { id } = await params;
   if (!UUID.test(id)) notFound();
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual();
 
   const [producto, catalogos, permisos] = await Promise.all([
     supabase.rpc("productos_obtener", { p_company_id: companyId, p_producto_id: id }),
     supabase.rpc("productos_catalogos", { p_company_id: companyId }),
-    permisosDe(supabase, companyId),
+    permisosDe(),
   ]);
   if (producto.error || !producto.data) notFound();
   const p = producto.data as Producto;

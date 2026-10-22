@@ -2,5 +2,10 @@
   "name": "@nexo/config",
   "version": "0.0.0",
   "private": true,
-  "description": "Configuracion compartida: eslint, tsconfig base, tailwind, entre todas las apps de Nexo"
+  "description": "Configuracion compartida entre las apps de Nexo: cabeceras de seguridad de next.config (next-security.mjs). eslint, tsconfig base y tailwind compartidos quedan pendientes.",
+  "type": "module",
+  "exports": {
+    "./next-security": "./next-security.mjs",
+    "./package.json": "./package.json"
+  }
 }

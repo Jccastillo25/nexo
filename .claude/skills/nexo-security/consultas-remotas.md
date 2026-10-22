@@ -115,7 +115,7 @@ order by 1;
 ```
 
 Lectura:
-- Patrón A (`crm`, `rrhh`): `authenticated_usage = true`. Si es `false`, las
+- Patrón A (`rrhh`): `authenticated_usage = true`. Si es `false`, las
   pantallas fallan con 42501 (bug ya visto dos veces).
 - Patrón B (`productos`, `atencion`, `core`): `false` en ambas columnas.
 - `anon_usage = true` fuera de `public` → hallazgo salvo justificación.

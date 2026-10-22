@@ -29,9 +29,10 @@ export async function guardarTokenTerminal(token: string): Promise<void> {
 
 /**
  * Quita el token de una terminal revocada. No borra la cookie: la deja con un
- * valor inútil para que, aunque se recargue, la página siga viendo "hay
- * cookie" y nunca vuelva al modo heredado de NEXO_KIOSKO_ID (estado_terminal
- * responde sin_asignar a este valor). Solo en Server Actions.
+ * valor inútil, al que estado_terminal responde sin_asignar, así que al
+ * recargar la página muestra "Terminal sin asignar". Desde que se retiró el
+ * modo heredado por variable de entorno (2026-10-20), sin cookie la página
+ * llega a la misma pantalla. Solo en Server Actions.
  */
 export async function borrarTokenTerminal(): Promise<void> {
   (await cookies()).set(NOMBRE, "revocado", OPCIONES);

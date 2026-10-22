@@ -21,10 +21,10 @@ export function ActivityFeed({
   emptyLabel = "Sin actividad registrada todavía.",
 }: ActivityFeedProps) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-5">
+    <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-xs">
       <h2 className="text-sm font-semibold text-neutral-900">{title}</h2>
       {items.length === 0 ? (
-        <p className="mt-3 text-xs text-neutral-400">{emptyLabel}</p>
+        <p className="mt-3 text-xs text-neutral-500">{emptyLabel}</p>
       ) : (
         <ul className="mt-3 flex flex-col gap-3">
           {items.map((item) => (
@@ -34,7 +34,7 @@ export function ActivityFeed({
                 <span className="text-xs text-neutral-500">{item.description}</span>
               )}
               {item.timestamp && (
-                <span className="text-[11px] text-neutral-400">{item.timestamp}</span>
+                <span className="text-[11px] text-neutral-500">{item.timestamp}</span>
               )}
             </li>
           ))}

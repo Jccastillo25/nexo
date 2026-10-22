@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { contextoActual } from "@nexo/auth";
 import { requirePermission, PermissionDeniedError, mensajeDeError, MENSAJE_SIN_PERMISO } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
 import { P } from "@/lib/permisos";
 import type { Resultado } from "@/lib/tipos";
 
@@ -22,8 +21,7 @@ const PERMISO: Record<TipoCatalogo, string> = {
 
 export async function guardarCatalogo(catalogo: TipoCatalogo, id: string | null, datos: Record<string, unknown>): Promise<Resultado> {
   if (!(catalogo in PERMISO)) return { ok: false, message: "Catálogo desconocido." };
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual();
   try {
     await requirePermission({ supabase, companyId }, PERMISO[catalogo]);
   } catch (err) {

@@ -31,7 +31,7 @@ Leer **solo el archivo que aplica a la tarea actual**, además de esta página. 
 | [`plan/03-rrhh-dominio.md`](plan/03-rrhh-dominio.md) | Reglas obligatorias de RRHH (Expediente General/Laboral, PIN contractual, entrada/salida), identidad digital del empleado, habilitación de conductor, modelo de datos objetivo, Paso Cero de permisos | RRHH, identidad digital, habilitación/deshabilitación de conductor |
 | [`plan/04-fase1-rrhh.md`](plan/04-fase1-rrhh.md) | FASE 1 completa — subfases F1.0 a F1.10, Definition of Done RRHH | trabajo activo de Fase 1 (RRHH) |
 | [`plan/05-fase2-kernel-compartido.md`](plan/05-fase2-kernel-compartido.md) | FASE 2 — `@nexo/supabase`, `@nexo/auth`, identidad operacional | Fase 2 |
-| [`plan/06-fase3-crm.md`](plan/06-fase3-crm.md) | FASE 3 — CRM MVP real | Fase 3 (CRM) |
+| [`plan/06-fase3-crm.md`](plan/06-fase3-crm.md) | FASE 3 — CRM MVP real. **Retirado el 2026-10-20:** el CRM se borró y su función pasa a la réplica de AG Negocio (plan 18) | solo historia |
 | [`plan/07-fase4-transporte.md`](plan/07-fase4-transporte.md) | FASE 4 — Transporte/Flotilla + Panel de Conductor | Fase 4 (Transporte/`apps/flotilla`) |
 | [`plan/08-fase5-inventario.md`](plan/08-fase5-inventario.md) | FASE 5 — Inventario mínimo | Fase 5 (Inventario) |
 | [`plan/09-fase6-fabricacion.md`](plan/09-fase6-fabricacion.md) | FASE 6 — Fabricación | Fase 6 (Fabricación) |
@@ -39,6 +39,12 @@ Leer **solo el archivo que aplica a la tarea actual**, además de esta página. 
 | [`plan/11-fase8-integracion.md`](plan/11-fase8-integracion.md) | FASE 8 — Integración completa + integraciones internas (RPC cross-schema) | Fase 8, o cualquier integración entre módulos existentes |
 | [`plan/12-administracion-usuarios-roles.md`](plan/12-administracion-usuarios-roles.md) | Administración de usuarios y roles en `apps/nexo` (decisiones 2026-10-14: un rol por usuario, rol = apps + permisos internos, contraseña puesta por el administrador, vínculo con RRHH). Paso Cero + diseño de `core.roles`/`has_permission` — **borrador, sin aplicar** | usuarios, roles, permisos, `core.has_permission`, alta de cuentas, y antes del módulo de Turnos |
 | [`plan/14-productos.md`](plan/14-productos.md) | Módulo Productos (catálogo maestro): decisión 2026-10-16 de adelantarlo como app propia antes de Listas de precios, análisis de las plantillas del ERP, Paso Cero aplicado, modelo de datos en borrador. Nexo es el maestro de productos | productos, clasificación, marcas, unidades, importación/exportación al ERP, y antes de Listas de precios o Inventario |
+| [`plan/15-metas-ventas.md`](plan/15-metas-ventas.md) | Metas de ventas y Presupuesto **dentro del CRM** (decisión 2026-10-18: el CRM es el módulo único de ventas): análisis del Excel de presupuesto 2026, decisiones (importar del ERP en bruto, meta sugerida por 3 meses + ajuste, US$, vendedor ve solo lo suyo), permisos `crm.*`, modelo de datos y pantallas. **Retirado el 2026-10-20** junto con el CRM (`20261020143821`) | solo historia; el presupuesto vuelve como app propia (plan 19) |
+| [`plan/16-crm-embudo-comercial.md`](plan/16-crm-embudo-comercial.md) | Embudo comercial del CRM (FASE 3): Leads, Oportunidades, Actividades y Cotizaciones, con NextCRM (MIT) como referencia. Paso Cero aprobado y aplicado el 2026-10-19 (`20261019152215`: 21 permisos, plantillas 17/27/34). Modelo de datos y orden de trabajo. **Retirado el 2026-10-20:** el usuario lo descartó a favor de replicar AG Negocio (plan 18) | solo historia |
+| [`plan/17-erp.md`](plan/17-erp.md) | ERP dentro de Nexo, con ERPNext como referencia. Decisiones del usuario del 2026-10-20: reemplazo del ERP por etapas, facturación fiscal DGI, costo promedio, catálogo de cuentas importado, una sola app ERP y libros en C$. Arquitectura integrada con Productos, Listas de precios y CRM; etapas E1–E6; medidas de seguridad; Paso Cero de `precios` (10 permisos) y `erp` (51 permisos), con sus plantillas, aplicado el 2026-10-20 (`20261020064732`, apps inactivas). Desde el 2026-10-20 la referencia funcional pasa a ser AG Negocio (plan 18) | listas de precios, inventario, compras, facturación, caja, cuentas por cobrar y por pagar, bancos, contabilidad, fiscal |
+| [`plan/18-replica-ag-negocio.md`](plan/18-replica-ag-negocio.md) | Réplica de AG Negocio, el ERP actual de Materiales J Castillo, dentro de Nexo (pedido del usuario 2026-10-20). Inventario de sus 144 pantallas en 11 grupos, reglas transversales, volumen de datos, mapeo a las apps `erp`, `productos` y `precios`, etapas R0–R9 y migración. Reemplaza al embudo del plan 16. **R0 hecho (2026-10-20):** CRM retirado (`20261020143821`) y bloque académico fuera. Sigue el Paso Cero de R1–R2 | réplica de AG Negocio, ventas, CxC, CxP, inventario, contabilidad, bancos, retenciones, informes, activos fijos, presupuesto, migración desde AG |
+| [`plan/19-presupuesto.md`](plan/19-presupuesto.md) | App Presupuesto, aparte, en el proyecto de Vercel `nexo-crm` (pedido del usuario 2026-10-20). Fase 1: presupuesto anual de ventas, metas por vendedor y facturas importadas de AG Negocio, recuperados del plan 15. Fase 2: presupuesto por centro de costo y comparativo de AG, después de la etapa R2 del ERP. Paso Cero (9 permisos `presupuesto.*`, 3 plantillas) y esquema **aplicados** el 2026-10-20 (`20261020183127`, `20261020184030`); `apps/presupuesto` en local | presupuesto, metas de ventas, avance por vendedor, importación de facturas, comparativo presupuesto contra lo real |
+| [`plan/20-planilla.md`](plan/20-planilla.md) | Planilla y prestaciones, para reemplazar AG Planilla (pedido del usuario 2026-10-20). Detalla F1.7 del plan 04: funciones declaradas por AG Planilla, marco legal de Nicaragua 2026 (Código del Trabajo, INSS, INATEC, IR, salario mínimo), fórmulas del motor, comparación con RRHH en `nexo-core`, correcciones a `parametros_ley`, optimizaciones, modelo de datos y Paso Cero propuestos, y etapas PL0–PL7. Recorrido de AG con sesión hecho y decisión de soportar las dos modalidades (laboral y servicios profesionales). **Paso Cero aplicado** el 2026-10-21 (`20261021160943`); esquema y motor pendientes | planilla, nómina, INSS, INATEC, IR, vacaciones, aguinaldo, indemnización, liquidaciones, préstamos, colillas, declaraciones |
 | [`plan/13-atencion-turnos.md`](plan/13-atencion-turnos.md) | Módulo Atención (turnos de sala de espera, varias sucursales): decisiones 2026-10-14, Paso Cero aplicado, modelo de datos previsto | Atención/turnos de clientes, sucursales, pantalla pública |
 
 ---
@@ -48,13 +54,15 @@ Leer **solo el archivo que aplica a la tarea actual**, además de esta página. 
 ```text
 FASE 1  RRHH completo + separar PIN de login
 FASE 2  Kernel compartido + identidad digital operacional
-FASE 3  CRM real
+FASE 3  CRM real                     → retirado 2026-10-20; lo cubre la réplica de AG Negocio
 FASE 4  Transporte adaptado + Panel Conductor + primera vertical Mobile
-FASE 5  Inventario mínimo
-FASE 6  Fabricación
+FASE 5  Inventario mínimo            → parte de la réplica de AG Negocio (etapa R3)
+FASE 6  Fabricación                  → fábrica y fórmulas de AG Negocio en la etapa R3
 FASE 7  Nexo Mobile consolidado Android/iOS
 FASE 8  Integración completa
 ```
+
+Decisión del usuario del 2026-10-20: el ERP actual, AG Negocio, se replica completo dentro de Nexo y luego se mejora ([plan 18](plan/18-replica-ag-negocio.md), etapas R0–R9). La réplica corre en paralelo a RRHH, igual que Productos. Ventas, cuentas por cobrar, compras, inventario, contabilidad, bancos e informes quedan en una sola app `erp`.
 
 ---
 

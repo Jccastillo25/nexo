@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { useToast } from "@nexo/ui";
+import { Alert, Button, Field, Select, Textarea, useToast } from "@nexo/ui";
 import { guardarDireccion, type DireccionInput } from "./direccion-actions";
 
 export interface DepartamentoGeoOption {
@@ -20,9 +20,6 @@ export interface DireccionData {
   municipioGeoId: string | null;
   direccionDetalle: string | null;
 }
-
-const inputClass =
-  "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500";
 
 /**
  * Fase 5 (2026-09-16, bloque pre-F1.5): pestaña "Dirección" del
@@ -78,17 +75,18 @@ export default function DireccionPanel({
   }
 
   return (
-    <form onSubmit={guardar} className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5">
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+    <form
+      onSubmit={guardar}
+      className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs"
+    >
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="text-neutral-500">Departamento</span>
-          <select
+        <Field label="Departamento">
+          <Select
             disabled={!canEditar}
             value={form.departamentoGeoId}
             onChange={(e) => update("departamentoGeoId", e.target.value)}
-            className={`${inputClass} disabled:opacity-60`}
           >
             <option value="">Sin asignar</option>
             {departamentos.map((d) => (
@@ -96,15 +94,20 @@ export default function DireccionPanel({
                 {d.nombre}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="text-neutral-500">Municipio</span>
-          <select
+          </Select>
+        </Field>
+        <Field
+          label="Municipio"
+          hint={
+            municipios.length === 0
+              ? "El catálogo de municipios todavía no está cargado. Puedes guardar solo el departamento."
+              : undefined
+          }
+        >
+          <Select
             disabled={!canEditar || municipiosDelDepartamento.length === 0}
             value={form.municipioGeoId}
             onChange={(e) => update("municipioGeoId", e.target.value)}
-            className={`${inputClass} disabled:opacity-60`}
           >
             <option value="">Sin asignar</option>
             {municipiosDelDepartamento.map((m) => (
@@ -112,38 +115,28 @@ export default function DireccionPanel({
                 {m.nombre}
               </option>
             ))}
-          </select>
-          {municipios.length === 0 && (
-            <span className="text-xs text-neutral-400">
-              Catálogo de municipios pendiente de cargar — podés guardar solo el departamento.
-            </span>
-          )}
-        </label>
+          </Select>
+        </Field>
       </div>
 
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="text-neutral-500">Referencia de dirección</span>
-        <textarea
+      <Field label="Referencia de dirección">
+        <Textarea
           disabled={!canEditar}
           value={form.direccionDetalle}
           onChange={(e) => update("direccionDetalle", e.target.value)}
-          placeholder="ej. De la rotonda Rubén Darío, 2c al lago, casa esquinera"
+          placeholder="Ej.: de la rotonda Rubén Darío, 2 c. al lago, casa esquinera"
           rows={3}
-          className={`${inputClass} disabled:opacity-60`}
+          autoComplete="street-address"
         />
-      </label>
+      </Field>
 
-      {canEditar && (
+      {canEditar ? (
         <div>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {isPending ? "Guardando…" : "Guardar dirección"}
-          </button>
+          <Button type="submit" loading={isPending}>
+            Guardar dirección
+          </Button>
         </div>
-      )}
+      ) : null}
     </form>
   );
 }

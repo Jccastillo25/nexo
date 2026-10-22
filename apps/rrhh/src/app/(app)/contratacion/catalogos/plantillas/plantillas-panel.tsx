@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { StatusBadge, useToast } from "@nexo/ui";
+import { Alert, Button, DataTable, EmptyState, Field, Input, StatusBadge, useToast } from "@nexo/ui";
 import { crearPlantilla, editarPlantilla, type PlantillaInput } from "./actions";
 
 export interface PlantillaRow {
@@ -18,13 +18,11 @@ export interface PlantillasPanelProps {
   canEditar: boolean;
 }
 
-const inputClass =
-  "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500";
-
 /**
  * Fase 3 (2026-09-16, bloque pre-F1.5): catalogo de plantillas de
  * contrato. Sin gestion de archivo todavia -- "tieneArchivo" queda listo
  * para cuando Fase 4 (Storage privado) permita subir el documento real.
+ * 2026-10-20: campos, botones y tabla del kit.
  */
 export default function PlantillasPanel({ plantillas, canCrear, canEditar }: PlantillasPanelProps) {
   const { show } = useToast();
@@ -66,103 +64,95 @@ export default function PlantillasPanel({ plantillas, canCrear, canEditar }: Pla
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-neutral-900">Plantillas de contrato</h2>
-        {canCrear && !showForm && (
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            + Nueva plantilla
-          </button>
-        )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-neutral-900">Plantillas</h2>
+        {canCrear && !showForm ? (
+          <Button variant="secondary" onClick={() => setShowForm(true)}>
+            Nueva plantilla
+          </Button>
+        ) : null}
       </div>
 
-      <p className="text-xs text-neutral-400">
-        Este catálogo todavía no permite adjuntar el documento de la plantilla — esa parte llega en un
-        bloque posterior (Storage privado). Por ahora podés crear el nombre y asignarlo como
-        predeterminado de un puesto en Contratación → Catálogos → Puestos.
-      </p>
+      <Alert tone="info">
+        Todavía no se puede adjuntar el documento de la plantilla. Por ahora puedes crear su nombre y asignarla como
+        predeterminada de un puesto en Contratación → Catálogos → Puestos.
+      </Alert>
 
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
-      {showForm && (
-        <form onSubmit={crear} className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-5">
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Nombre</span>
-            <input
-              required
-              value={nuevo.nombre}
-              onChange={(e) => setNuevo((n) => ({ ...n, nombre: e.target.value }))}
-              placeholder="ej. Contrato vendedor de mostrador"
-              className={inputClass}
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-neutral-500">Descripción (opcional)</span>
-            <input
-              value={nuevo.descripcion}
-              onChange={(e) => setNuevo((n) => ({ ...n, descripcion: e.target.value }))}
-              className={inputClass}
-            />
-          </label>
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              Crear
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="text-sm text-neutral-500 hover:text-neutral-900"
-            >
+      {showForm ? (
+        <form
+          onSubmit={crear}
+          className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs"
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Nombre" required>
+              <Input
+                required
+                value={nuevo.nombre}
+                onChange={(e) => setNuevo((n) => ({ ...n, nombre: e.target.value }))}
+                placeholder="Ej.: Contrato vendedor de mostrador"
+              />
+            </Field>
+            <Field label="Descripción" optional>
+              <Input
+                value={nuevo.descripcion}
+                onChange={(e) => setNuevo((n) => ({ ...n, descripcion: e.target.value }))}
+              />
+            </Field>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" onClick={() => setShowForm(false)} disabled={isPending}>
               Cancelar
-            </button>
+            </Button>
+            <Button type="submit" loading={isPending}>
+              Crear plantilla
+            </Button>
           </div>
         </form>
-      )}
+      ) : null}
 
-      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
-        {plantillas.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-neutral-400">
-            Todavía no hay plantillas creadas.
-          </p>
-        ) : (
-          <table className="w-full text-sm">
-            <tbody>
-              {plantillas.map((p) => (
-                <tr key={p.id} className="border-b border-neutral-100 last:border-0">
-                  <td className="px-4 py-2.5">
-                    <span className="font-medium text-neutral-900">{p.nombre}</span>
-                    {p.descripcion && <span className="ml-2 text-neutral-400">{p.descripcion}</span>}
-                  </td>
-                  <td className="px-4 py-2.5 text-neutral-400">
-                    {p.tieneArchivo ? "con archivo" : "sin archivo todavía"}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <StatusBadge label={p.activo ? "activo" : "inactivo"} tone={p.activo ? "positive" : "neutral"} />
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    {canEditar && (
-                      <button
-                        type="button"
-                        onClick={() => toggleActivo(p)}
-                        className="text-neutral-500 hover:text-neutral-900"
-                      >
-                        {p.activo ? "Desactivar" : "Activar"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <DataTable
+        rows={plantillas}
+        rowKey={(p) => p.id}
+        density="compact"
+        caption="Plantillas de contrato"
+        empty={<EmptyState bare title="Todavía no hay plantillas" />}
+        columns={[
+          {
+            key: "nombre",
+            header: "Plantilla",
+            render: (p) => <span className="font-medium text-neutral-900">{p.nombre}</span>,
+          },
+          { key: "descripcion", header: "Descripción", render: (p) => p.descripcion ?? "—" },
+          {
+            key: "archivo",
+            header: "Documento",
+            render: (p) => (p.tieneArchivo ? "Adjunto" : "Sin documento"),
+          },
+          {
+            key: "estado",
+            header: "Estado",
+            render: (p) => (
+              <StatusBadge label={p.activo ? "Activa" : "Inactiva"} tone={p.activo ? "positive" : "neutral"} />
+            ),
+          },
+          ...(canEditar
+            ? [
+                {
+                  key: "acciones",
+                  header: "Acciones",
+                  align: "right" as const,
+                  render: (p: PlantillaRow) => (
+                    <Button variant="ghost" size="sm" disabled={isPending} onClick={() => toggleActivo(p)}>
+                      {p.activo ? "Desactivar" : "Activar"}
+                    </Button>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
     </div>
   );
 }

@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import type { Database } from "@/lib/supabase/database.types";
 
 export interface ActionResult {
   ok: boolean;
@@ -35,8 +35,7 @@ export async function guardarInfoComplementaria(
   empleadoId: string,
   input: InfoComplementariaInput
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.info_complementaria.editar");

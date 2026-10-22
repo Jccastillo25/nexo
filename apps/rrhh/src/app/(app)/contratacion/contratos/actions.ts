@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermission, PermissionDeniedError, mensajeDeError } from "@nexo/permissions";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
+import { contextoActual } from "@nexo/auth";
+import type { Database } from "@/lib/supabase/database.types";
 
 // fn_crear_contrato / fn_editar_contrato niegan con 'Permiso denegado:
 // rrhh.expedientes.compensacion.editar (requerido para fijar salario)'. El
@@ -109,8 +109,7 @@ export async function crearContrato(
   empleadoId: string,
   input: CrearContratoInput
 ): Promise<CrearContratoResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.contratos.crear");
@@ -146,8 +145,7 @@ export async function editarContrato(
   contratoId: string,
   input: ContratoInput
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar");
@@ -184,8 +182,7 @@ export async function editarContrato(
  * No se puede recuperar después, solo regenerar (ver `regenerarPin`).
  */
 export async function activarContrato(contratoId: string): Promise<PinResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.contratos.activar");
@@ -214,8 +211,7 @@ export async function activarContrato(contratoId: string): Promise<PinResult> {
  * inmediato.
  */
 export async function regenerarPin(contratoId: string): Promise<PinResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.credenciales.regenerar");
@@ -243,8 +239,7 @@ export async function regenerarPin(contratoId: string): Promise<PinResult> {
  * pin_hash, así que no hay forma de que este RPC devuelva el PIN.
  */
 export async function verEstadoCredencial(contratoId: string): Promise<EstadoCredencialResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.credenciales.ver");
@@ -286,8 +281,7 @@ export async function asignarJornada(
   jornadaId: string,
   vigenteDesde?: string
 ): Promise<AsignarJornadaResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.contratos.editar");
@@ -312,8 +306,7 @@ export async function asignarJornada(
 }
 
 export async function finalizarContrato(contratoId: string): Promise<ActionResult> {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
+  const { supabase, companyId } = await contextoActual<Database>();
 
   try {
     await requirePermission({ supabase, companyId }, "rrhh.expedientes.contratos.finalizar");

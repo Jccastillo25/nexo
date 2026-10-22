@@ -59,8 +59,11 @@ Cada aplicación Web mantiene despliegue independiente:
 
 ```text
 apps/nexo      → zona raíz
-apps/crm       → /crm
-apps/rrhh      → /rrhh
+apps/rrhh      → /rrhh (+ /rrhh/asistencia)
+apps/agencia   → /agencia
+apps/atencion  → /atencion
+apps/productos → /productos
+apps/erp       → /erp (réplica de AG Negocio, por crear)
 apps/flotilla  → /flotilla (al adaptar)
 ```
 
@@ -273,6 +276,26 @@ Evitar lógica crítica encerrada exclusivamente en Server Actions de Next.js.
 
 Los Server Actions actúan como adaptadores Web; la autoridad de negocio y permisos debe quedar disponible para Mobile sin duplicación.
 
+## 8.1 Kernel compartido de las zonas (2026-10-20)
+
+La revisión integral del 2026-10-20 encontró la infraestructura copiada en
+6 apps, con copias que ya habían divergido: algunas no pasaban las cookies
+de sesión ni `Cache-Control` en las redirecciones del proxy. Desde entonces
+vive en paquetes del workspace. Cada app los compila con `transpilePackages`
+y las zonas siguen siendo deploys independientes.
+
+| Paquete | Qué ofrece |
+|---|---|
+| `@nexo/supabase` | `createServerClient()` (con cookies), `createAnonClient()` (sin sesión, para RPC públicas), `updateSession(request, { basePath, rutasPublicas })` para el `proxy.ts` de cada zona (SSO al login del panel, que siempre conserva cookies y `Cache-Control`) y `redirigirConSesion()`. Además, `@nexo/supabase/client` (`createBrowserClient`) y `@nexo/supabase/admin` (`createServiceRoleClient`, `server-only`) |
+| `@nexo/auth` | Es `server-only`. Incluye `getCompanyId()` y `getPanelUrl()`, más `sesionActual()`, con una sola llamada a `getUser()` por request (`cache` de React), para el layout. Para páginas y acciones, `contextoActual()`, con el mismo cliente y sin llamar a Auth. También `misPermisos(códigos)` (ver [PERMISSIONS.md](PERMISSIONS.md)), `signOut` (también en `@nexo/auth/acciones`) y `getPlatformSettings()`, cacheada entre requests 5 minutos con la etiqueta `platform-settings`; la acción de Marca la invalida con `revalidarPlatformSettings()` |
+| `@nexo/permissions` | `hasPermission` y `requirePermission`, sin cambios, más `getPermisos(ctx, códigos)`: una RPC `mis_permisos`, con respaldo a `has_permission` y fail-closed |
+| `@nexo/config` | `@nexo/config/next-security`: las cabeceras de seguridad HTTP de todas las zonas |
+| `@nexo/ui` | El kit de interfaz y `@nexo/ui/formato` (fechas en `America/Managua` y montos C$/US$, sin Next ni React; también sirve a Mobile) |
+
+Pendiente: `@nexo/types` sigue vacío. Los tipos generados de `public` y una
+posible separación de `formato` en `@nexo/format` quedan para la etapa de
+contratos entre módulos (ver la hoja de ruta de la revisión integral).
+
 ---
 
 # 9. Offline-first
@@ -281,7 +304,7 @@ Prioridad:
 
 1. Transporte — obligatorio.
 2. Fabricación — deseable/operacional.
-3. CRM — parcial.
+3. Ventas en el ERP (preventa y rutas de vendedor, como la app móvil de AG Negocio) — parcial.
 4. RRHH — principalmente consulta/autoservicio; marcación móvil no se asume aprobada.
 
 Toda escritura offline debe soportar:
@@ -330,20 +353,36 @@ La provisión de cuentas debe usar Admin SDK/API soportada por Supabase, nunca `
 
 # 12. Configuración efectiva conocida de Multi-Zones
 
-Verificada en producción al 2026-09-04:
+Proyectos del equipo `julio-s-projects7`, verificados con el MCP de Vercel el 2026-10-20 (la tabla anterior, del 2026-09-04, solo listaba 3):
 
 | Proyecto Vercel | App | Root Directory |
 |---|---|---|
 | `nexocore` | `apps/nexo` | `apps/nexo` |
-| `nexo-crm` | `apps/crm` | `apps/crm` |
-| `nexo-rrhh` | `apps/rrhh` | `apps/rrhh` |
+| `nexo-crm` | `apps/crm` (borrada el 2026-10-20); pasará a `apps/presupuesto` | `apps/crm` hoy; `apps/presupuesto` al desplegar |
+| `nexo-rrhh` | `apps/rrhh` (incluye Asistencia y el kiosco) | `apps/rrhh` |
+| `nexo-atencion` | `apps/atencion` | `apps/atencion` |
+| `nexo-agencia` | `apps/agencia` | `apps/agencia` |
+| `nexo-productos` | `apps/productos` (tiene un deploy de producción READY; los docs anteriores decían que no había proyecto) | `apps/productos` |
+| `materiales-jcastillo-web` | `apps/web-corporativo` (dominio aparte) | — |
+| `materiales-jcastillo-marketing-dashboard` | Fuera del monorepo. Posible solapamiento con `apps/agencia`, a decidir por el usuario | — |
+
+`nexo-crm` quedó sin código en el repositorio con el retiro del CRM del 2026-10-20 ([status-log](status-log/2026-10-20-retiro-crm-replica-ag-negocio.md)). Decisión del usuario del mismo día: lo reutiliza la app **Presupuesto** ([plan 19](plan/19-presupuesto.md)), que no tiene proyecto propio. Al desplegar:
+- su *Root Directory* pasa a `apps/presupuesto` justo antes de fusionar el PR que trae la app y el retiro del CRM;
+- `nexocore` recibe `PRESUPUESTO_APP_URL`, la URL de producción de ese proyecto.
+
+Sus variables (`NEXO_COMPANY_ID`, `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`) ya están puestas.
 
 Contrato de rutas actual:
 
 ```text
-/crm      → CRM_APP_URL
-/rrhh     → RRHH_APP_URL
+/rrhh         → RRHH_APP_URL
+/agencia      → AGENCIA_APP_URL      (solo si está definida)
+/atencion     → ATENCION_APP_URL     (solo si está definida)
+/productos    → PRODUCTOS_APP_URL    (solo si está definida)
+/presupuesto  → PRESUPUESTO_APP_URL  (solo si está definida; en local, puerto 3001)
 ```
+
+El proxy del panel excluye `/presupuesto`, igual que `/productos`: la zona tiene su propio guard y redirige al login del panel.
 
 `/rrhh/kiosco` sigue siendo una excepción deliberada al guard de sesión del usuario porque el kiosko autentica dispositivo + PIN, no una sesión personal.
 
@@ -356,7 +395,7 @@ Accesos al kiosco sin sesión (2026-10-20). Son `redirects` de `next.config`, qu
 /rrhh/<Kiosco en cualquier mayúscula> → /rrhh/kiosco   (apps/rrhh/src/proxy.ts)
 ```
 
-El proxy de RRHH solo exime del guard `/kiosco` y sus subrutas, en minúsculas. Antes, `startsWith("/kiosco")` también dejaba sin guard rutas como `/kioscoX`. La query, por ejemplo `?asignar=1`, se conserva en todas las redirecciones.
+El proxy de RRHH solo exime del guard la ruta exacta `/kiosco`, en minúsculas (la revisión de seguridad del 2026-10-20 quitó también las subrutas). Antes, `startsWith("/kiosco")` dejaba sin guard rutas como `/kioscoX`. La query, por ejemplo `?asignar=1`, se conserva en todas las redirecciones.
 
 ---
 
@@ -367,7 +406,8 @@ El proxy de RRHH solo exime del guard `/kiosco` y sus subrutas, en minúsculas. 
 - [ ] Definir/provisionar identidad digital de empleados mediante Supabase Auth.
 - [ ] Implementar Panel de Conductor Web sobre la identidad Nexo.
 - [ ] Crear `apps/mobile` tras spike técnico.
-- [ ] Completar `@nexo/supabase` y `@nexo/auth`.
+- [x] Completar `@nexo/supabase` y `@nexo/auth` (2026-10-20, ver §8.1; con la migración de cada app en curso).
+- [ ] Datos maestros en `core` (terceros, sucursal y empresa fiscal, tipo de cambio) y eventos entre módulos (outbox `core.eventos`): propuesta de la revisión integral del 2026-10-20, pendiente de aprobación. **Hay que decidirlo antes de aplicar el Paso Cero de ERP R1**, cuya migración local crea una empresa y una sucursal propias del ERP.
 - [ ] Pipeline CI/CD por app.
 - [ ] Estrategia de versionado de paquetes compartidos.
 - [ ] Distribución Android/iOS y gestión de versiones.

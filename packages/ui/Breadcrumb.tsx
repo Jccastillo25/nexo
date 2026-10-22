@@ -35,12 +35,13 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
             {item.href && !isLast ? (
               <Link
                 href={item.href}
-                className="truncate text-neutral-500 transition-colors hover:text-neutral-900"
+                className="truncate rounded-sm text-neutral-500 transition-colors hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 {item.label}
               </Link>
             ) : (
               <span
+                aria-current={isLast ? "page" : undefined}
                 className={`truncate ${isLast ? "font-medium text-neutral-900" : "text-neutral-500"}`}
               >
                 {item.label}

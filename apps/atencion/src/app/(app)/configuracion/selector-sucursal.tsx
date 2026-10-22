@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Field, Select } from "@nexo/ui";
 
+/** Sucursal que se está configurando; la elección queda en la URL (?sucursal=). */
 export default function SelectorSucursal({
   sucursales,
   actual,
@@ -11,22 +13,24 @@ export default function SelectorSucursal({
 }) {
   const router = useRouter();
   if (sucursales.length < 2) {
-    return <p className="text-sm text-neutral-600">Sucursal: <span className="font-medium">{sucursales[0]?.nombre}</span></p>;
+    return (
+      <p className="text-sm text-neutral-600">
+        Sucursal: <span className="font-medium text-neutral-900">{sucursales[0]?.nombre}</span>
+      </p>
+    );
   }
   return (
-    <label className="flex items-center gap-2 text-sm text-neutral-600">
-      Sucursal
-      <select
+    <Field label="Sucursal" className="max-w-xs">
+      <Select
         value={actual}
-        onChange={(e) => router.push(`/configuracion?sucursal=${e.target.value}`)}
-        className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900"
+        onChange={(e) => router.push(`/configuracion?sucursal=${encodeURIComponent(e.target.value)}`)}
       >
         {sucursales.map((s) => (
           <option key={s.id} value={s.id}>
             {s.nombre}
           </option>
         ))}
-      </select>
-    </label>
+      </Select>
+    </Field>
   );
 }

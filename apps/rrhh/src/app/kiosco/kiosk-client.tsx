@@ -8,6 +8,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+// Solo el formateador (sin cargar el barril de componentes del kit).
+import { hora } from "@nexo/ui/formato";
 import { canjearCodigo, marcarAsistencia, type MarcarResult } from "./actions";
 import { BOTON_ACCION, type Accion } from "./acciones";
 import { KioskFlow } from "./kiosk-flow";
@@ -63,7 +65,7 @@ export default function KioskClient({ modo, kioskoNombre }: { modo: ModoKiosco; 
   // Pantalla de asignación abierta en esta sesión de la página. Se fija en
   // el cliente porque al canjear o borrar la cookie la Server Action vuelve
   // a renderizar la página con otro `modo`: así el mensaje de éxito dura sus
-  // 2 s, y un token revocado no vuelve al modo heredado de la env.
+  // 2 s, y un token revocado pasa a asignación sin esperar a recargar.
   const [asignacion, setAsignacion] = useState<{ aviso?: string } | null>(() => (modo === "asignar" ? {} : null));
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -237,7 +239,7 @@ export default function KioskClient({ modo, kioskoNombre }: { modo: ModoKiosco; 
           <>
             <div className="flex flex-col items-center gap-3">
               <p className="text-sm font-medium uppercase tracking-wide text-white/60">
-                Ingresá tu PIN
+                Ingresa tu PIN
               </p>
               <PinDots length={pin.length} error={status.kind === "error"} />
               {status.kind === "error" && (
@@ -594,22 +596,15 @@ const ICONO_RESULTADO: Record<Accion, { simbolo: string; clase: string }> = {
   salida: { simbolo: "←", clase: "bg-amber-500/20 text-amber-400" },
 };
 
-/** Hora del servidor en HH:MM, Nicaragua. */
+/** Hora del servidor (hora de Managua, formato de la suite), o null si no llegó una válida. */
 function horaMarca(iso: string | undefined): string | null {
-  if (!iso) return null;
-  const fecha = new Date(iso);
-  if (Number.isNaN(fecha.getTime())) return null;
-  return fecha.toLocaleTimeString("es-NI", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-    timeZone: "America/Managua",
-  });
+  const texto = hora(iso);
+  return texto === "—" ? null : texto;
 }
 
 function SuccessPanel({ result }: { result: MarcarResult }) {
   const icono = ICONO_RESULTADO[result.tipo ?? "entrada"];
-  const hora = horaMarca(result.marcadoEn);
+  const horaTexto = horaMarca(result.marcadoEn);
   return (
     <div role="status" className="flex flex-col items-center gap-3 py-6 text-center">
       <span
@@ -620,7 +615,7 @@ function SuccessPanel({ result }: { result: MarcarResult }) {
       </span>
       <p className="text-2xl font-semibold text-white">
         {result.message}
-        {hora ? <span className="tabular-nums"> · {hora}</span> : null}
+        {horaTexto ? <span className="tabular-nums"> · {horaTexto}</span> : null}
       </p>
       {/* A proposito: sin nombre del empleado. El kiosko es un
           dispositivo sin sesion — el feedback nunca revela la identidad

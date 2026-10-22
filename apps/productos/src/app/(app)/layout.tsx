@@ -1,26 +1,21 @@
 import { redirect } from "next/navigation";
 import { NexoShell } from "@nexo/ui";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyId } from "@/lib/company";
-import { getPanelUrl } from "@/lib/panel";
-import { getCopyrightText } from "@/lib/platform-settings";
+import { getPanelUrl, getPlatformSettings, sesionActual, signOut } from "@nexo/auth";
 import { permisosDe } from "@/lib/permisos";
 import { productosNav } from "@/lib/nav";
-import { signOut } from "@/app/login/actions";
 
 // El proxy autentica; este layout autoriza el módulo con el motor compartido.
+// sesionActual y permisosDe quedan en caché del request: la página los
+// reutiliza sin otra llamada a Auth ni otra consulta de permisos.
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const companyId = getCompanyId();
-  const permisos = await permisosDe(supabase, companyId);
+  const [permisos, { user }, panelUrl, ajustes] = await Promise.all([
+    permisosDe(),
+    sesionActual(),
+    getPanelUrl(),
+    getPlatformSettings(),
+  ]);
 
   if (!permisos.modulo || !permisos.ver) redirect("/sin-acceso");
-
-  const [panelUrl, { data: { user } }, copyrightText] = await Promise.all([
-    getPanelUrl(),
-    supabase.auth.getUser(),
-    getCopyrightText(supabase),
-  ]);
 
   return (
     <NexoShell
@@ -30,7 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       userEmail={user?.email}
       onSignOut={signOut}
       backHref={panelUrl}
-      footerText={copyrightText}
+      footerText={ajustes.copyrightText}
     >
       {children}
     </NexoShell>

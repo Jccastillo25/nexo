@@ -3,7 +3,20 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ConfirmDialog, DataTable, EmptyState, PageHeader, StatusBadge, useToast } from "@nexo/ui";
+import {
+  Alert,
+  Button,
+  ConfirmDialog,
+  DataTable,
+  EmptyState,
+  Field,
+  Input,
+  NexoIcon,
+  PageHeader,
+  StatusBadge,
+  hora,
+  useToast,
+} from "@nexo/ui";
 import {
   cambiarEstadoDispositivo,
   editarDispositivo,
@@ -25,8 +38,6 @@ export interface DispositivoFila {
   activo: boolean;
   /** Fecha de registro ya formateada (es-NI, America/Managua). */
   registrado: string;
-  /** Es la terminal configurada en este despliegue (NEXO_KIOSKO_ID). */
-  enUso: boolean;
   /** Estado del equipo; `null` si no se pudo consultar. */
   equipo: EstadoEquipo | null;
   /** Hora de vencimiento del código pendiente, ya formateada. */
@@ -67,20 +78,11 @@ type PanelCodigo = {
 
 const VACIO: DispositivoInput = { nombre: "", ubicacion: "" };
 
-const inputClass =
-  "w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/30 aria-[invalid=true]:border-red-400";
-const botonPrimario =
-  "rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50";
-const botonSecundario =
-  "rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50";
+// Acciones de fila: texto de color (azul, neutro o rojo) en una celda densa.
+// El kit no tiene una variante de botón de texto con color de peligro, por eso
+// estas siguen locales; el resto de los botones son <Button> del kit.
 const botonFila =
   "rounded-md px-2 py-1 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50";
-
-const formatoHora = new Intl.DateTimeFormat("es-NI", {
-  timeZone: "America/Managua",
-  hour: "2-digit",
-  minute: "2-digit",
-});
 
 /** "0123456789" → "01234 56789". */
 function agruparCodigo(codigo: string) {
@@ -269,7 +271,7 @@ export default function DispositivosPanel({
         nombre,
         codigo: res.codigo,
         venceEn: vence.getTime(),
-        venceHora: formatoHora.format(vence),
+        venceHora: hora(vence),
         origen: window.location.origin,
         vencido: false,
       });
@@ -317,41 +319,40 @@ export default function DispositivosPanel({
 
   const botonRegistrar =
     canCrear && !errorDeCarga ? (
-      <button type="button" onClick={abrirRegistro} disabled={isPending} className={botonPrimario}>
+      <Button onClick={abrirRegistro} disabled={isPending}>
         Registrar dispositivo
-      </button>
+      </Button>
     ) : null;
 
-  const errorNombre = errorForm?.campo === "nombre";
-  const errorUbicacion = errorForm?.campo === "ubicacion";
+  // Un error de validación va junto a su campo; uno sin campo (servidor), en un Alert.
+  const errorNombre = errorForm?.campo === "nombre" ? errorForm.message : undefined;
+  const errorUbicacion = errorForm?.campo === "ubicacion" ? errorForm.message : undefined;
+  const errorGeneral = errorForm && !errorForm.campo ? errorForm.message : null;
 
   const descripcionConfirmacion = porDesactivar
-    ? `La terminal «${porDesactivar.nombre}» dejará de registrar marcas de inmediato. Las marcas ya registradas no cambian.${
-        porDesactivar.enUso ? " La terminal del kiosco de este despliegue dejará de funcionar." : ""
-      }`
+    ? `La terminal «${porDesactivar.nombre}» dejará de registrar marcas de inmediato. Las marcas ya registradas no cambian.`
     : undefined;
 
   const conAcciones = canEditar || canAsignar || canRevocar;
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={titulo} description={descripcion} actions={formulario ? null : botonRegistrar} />
+      <PageHeader title={titulo} description={descripcion} actions={formulario || panel ? null : botonRegistrar} />
 
       {formulario && (
         <form
           onSubmit={guardar}
           noValidate
           aria-labelledby="dispositivo-form-titulo"
-          className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm"
+          className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs"
         >
           <h2 id="dispositivo-form-titulo" className="text-base font-semibold text-neutral-900">
             {formulario.modo === "crear" ? "Registrar dispositivo" : `Editar «${formulario.nombre}»`}
           </h2>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <label className="flex min-w-0 flex-col gap-1.5 text-sm">
-              <span className="text-neutral-600">Nombre</span>
-              <input
+            <Field label="Nombre" required error={errorNombre}>
+              <Input
                 ref={nombreRef}
                 name="nombre"
                 required
@@ -360,40 +361,29 @@ export default function DispositivosPanel({
                 value={campos.nombre}
                 onChange={(e) => setCampos((c) => ({ ...c, nombre: e.target.value }))}
                 placeholder="ej. Terminal bodega central"
-                aria-invalid={errorNombre}
-                aria-describedby={errorNombre ? "dispositivo-form-error" : undefined}
-                className={inputClass}
               />
-            </label>
-            <label className="flex min-w-0 flex-col gap-1.5 text-sm">
-              <span className="text-neutral-600">Ubicación (opcional)</span>
-              <input
+            </Field>
+            <Field label="Ubicación" optional error={errorUbicacion}>
+              <Input
                 name="ubicacion"
                 maxLength={UBICACION_MAX}
                 autoComplete="off"
                 value={campos.ubicacion}
                 onChange={(e) => setCampos((c) => ({ ...c, ubicacion: e.target.value }))}
                 placeholder="ej. Entrada de personal"
-                aria-invalid={errorUbicacion}
-                aria-describedby={errorUbicacion ? "dispositivo-form-error" : undefined}
-                className={inputClass}
               />
-            </label>
+            </Field>
           </div>
 
-          {errorForm && (
-            <p id="dispositivo-form-error" role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-              {errorForm.message}
-            </p>
-          )}
+          {errorGeneral ? <Alert tone="error">{errorGeneral}</Alert> : null}
 
           <div className="flex flex-wrap items-center gap-3">
-            <button type="submit" disabled={isPending} className={botonPrimario}>
-              {isPending ? "Guardando…" : formulario.modo === "crear" ? "Registrar dispositivo" : "Guardar cambios"}
-            </button>
-            <button type="button" onClick={cerrarFormulario} disabled={isPending} className={botonSecundario}>
+            <Button variant="secondary" onClick={cerrarFormulario} disabled={isPending}>
               Cancelar
-            </button>
+            </Button>
+            <Button type="submit" loading={isPending}>
+              {isPending ? "Guardando…" : formulario.modo === "crear" ? "Registrar dispositivo" : "Guardar cambios"}
+            </Button>
           </div>
         </form>
       )}
@@ -401,7 +391,7 @@ export default function DispositivosPanel({
       {panel && (
         <section
           aria-labelledby="codigo-terminal-titulo"
-          className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm"
+          className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-xs"
         >
           <h2
             id="codigo-terminal-titulo"
@@ -418,17 +408,15 @@ export default function DispositivosPanel({
                 El código venció. Genera uno nuevo.
               </p>
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
+                <Button variant="secondary" onClick={cerrarPanel} disabled={isPending}>
+                  Cerrar
+                </Button>
+                <Button
                   onClick={() => generarCodigo(panel.kioskoId, panel.nombre, abridorPanelRef.current)}
-                  disabled={isPending}
-                  className={botonPrimario}
+                  loading={isPending}
                 >
                   {isPending ? "Generando…" : "Generar otro código"}
-                </button>
-                <button type="button" onClick={cerrarPanel} disabled={isPending} className={botonSecundario}>
-                  Cerrar
-                </button>
+                </Button>
               </div>
             </>
           ) : (
@@ -438,44 +426,45 @@ export default function DispositivosPanel({
               </p>
               <ol className="flex list-decimal flex-col gap-1 pl-5 text-sm text-neutral-700">
                 <li className="break-words">
-                  En el equipo del kiosco abre <span className="font-medium text-neutral-900">{panel.origen}/rrhh/kiosco?asignar=1</span>.
+                  En el equipo del kiosco abre <span className="font-medium text-neutral-900">{panel.origen}/rrhh/kiosco</span>.
                 </li>
                 <li>Escribe este código.</li>
                 <li>Sirve una sola vez y vence a las {panel.venceHora}.</li>
               </ol>
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Este código no se volverá a mostrar.</p>
+              <Alert tone="warning">Este código no se volverá a mostrar.</Alert>
               <div className="flex flex-wrap items-center gap-3">
-                <button type="button" onClick={() => void copiarCodigo(panel.codigo)} className={botonPrimario}>
-                  Copiar código
-                </button>
-                <button type="button" onClick={() => router.refresh()} className={botonSecundario}>
-                  Actualizar estado
-                </button>
-                <button type="button" onClick={cerrarPanel} className={botonSecundario}>
+                <Button variant="secondary" onClick={cerrarPanel}>
                   Cerrar
-                </button>
+                </Button>
+                <Button variant="secondary" onClick={() => router.refresh()} icon={<NexoIcon name="refresh" />}>
+                  Actualizar estado
+                </Button>
+                <Button onClick={() => void copiarCodigo(panel.codigo)}>Copiar código</Button>
               </div>
             </>
           )}
         </section>
       )}
 
-      {errorAccion && (
-        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-          {errorAccion}
-        </p>
-      )}
+      {errorAccion ? <Alert tone="error">{errorAccion}</Alert> : null}
 
-      {errorEquipos && !errorDeCarga && (
-        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudo consultar qué equipos están asignados. Intenta de nuevo.
-        </p>
-      )}
+      {errorEquipos && !errorDeCarga ? (
+        <Alert tone="warning">
+          No se pudo consultar qué equipos están asignados. La columna «Equipo» dice «No disponible»; recarga la página
+          en unos minutos.
+        </Alert>
+      ) : null}
 
       {errorDeCarga ? (
-        <p role="alert" className="rounded-xl border border-neutral-200 bg-white px-4 py-6 text-center text-sm text-neutral-700">
-          No se pudieron cargar los dispositivos. Intenta de nuevo.
-        </p>
+        <EmptyState
+          variant="error"
+          title="No se pudieron cargar los dispositivos"
+          action={
+            <Button variant="secondary" onClick={() => router.refresh()} icon={<NexoIcon name="refresh" />}>
+              Intentar de nuevo
+            </Button>
+          }
+        />
       ) : filas.length === 0 ? (
         <EmptyState
           title="Todavía no hay dispositivos registrados"
@@ -484,7 +473,15 @@ export default function DispositivosPanel({
               ? "Registra la primera terminal para que el personal pueda marcar entradas y salidas."
               : "Pide a un administrador que registre la terminal."
           }
-          action={formulario ? undefined : botonRegistrar}
+          // Una sola acción primary por pantalla: la del PageHeader. Aquí se
+          // repite como secondary para no competir con ella.
+          action={
+            formulario || !canCrear ? undefined : (
+              <Button variant="secondary" onClick={abrirRegistro} disabled={isPending}>
+                Registrar dispositivo
+              </Button>
+            )
+          }
         />
       ) : (
         <DataTable<DispositivoFila>
@@ -497,16 +494,14 @@ export default function DispositivosPanel({
               render: (f) => (
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <span className="font-medium text-neutral-900">{f.nombre}</span>
-                  {f.enUso && <StatusBadge label="En uso por esta terminal" tone="info" />}
                   {f.activo && (
                     // La terminal es pública y no va en el menú; desde aquí se
                     // abre en otra pestaña. next/link aplica el basePath /rrhh.
-                    // ?asignar=1: si este navegador no tiene equipo asignado,
-                    // muestra la pantalla para canjear el código aunque exista
-                    // NEXO_KIOSKO_ID. Abre la terminal de este navegador, no la
-                    // del dispositivo de la fila.
+                    // Abre la terminal de este navegador, no la del dispositivo
+                    // de la fila: sin equipo asignado muestra la pantalla para
+                    // canjear el código.
                     <Link
-                      href="/kiosco?asignar=1"
+                      href="/kiosco"
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label="Abrir la terminal en una pestaña nueva"

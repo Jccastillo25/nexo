@@ -36,7 +36,7 @@ verificadas en el código.
 | Revocar de `public` no quita `anon` | `20260830000012_fix_update_platform_settings_execute_grant.sql` |
 | Avisos esperados del advisor | `docs/MIGRATION_LOG.md:204-208` |
 | SQL dinámico con `format(%I)` | `20260902000002_partition_core_audit_log.sql:48-53` |
-| SSO y redirección al panel | `apps/crm/src/lib/supabase/middleware.ts:43-55`, `apps/productos/src/app/login/actions.ts` |
+| SSO y redirección al panel | `apps/productos/src/lib/supabase/middleware.ts:37-48`, `apps/productos/src/app/login/actions.ts` |
 | Validación de `next` (open redirect) | `apps/nexo/src/app/login/actions.ts:8-11,36` |
 | `server-only` en cliente `service_role` | `apps/nexo/src/lib/supabase/admin.ts:1` |
 | `companyId` desde el servidor | `apps/productos/src/lib/company.ts:5-13` |

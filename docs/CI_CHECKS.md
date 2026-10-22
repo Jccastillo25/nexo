@@ -33,11 +33,12 @@ agrupados bajo el workflow `CI`. Verificado por API sobre el commit `b3edfb9`
 | Check | Comando | Qué cubre | ¿Bloquea el merge? |
 |---|---|---|---|
 | `typecheck` | `pnpm typecheck` | Cobertura de la tarea + `next typegen && tsc --noEmit` en las **8 apps** (`apps/*/package.json` → `typecheck`). Cubre el código de las apps y, por imports, el de `packages/*`. El `next typegen` es obligatorio: sin él, los tipos generados por Next (`LayoutProps`, `PageProps`, `.next/types/*`) no existen en un clon limpio. | **Sí** |
-| `lint` | `pnpm lint:gate` | ESLint en **todas las apps de `apps/*` excepto las de la lista de deuda documentada** (`materiales-jcastillo-crm`, `transporte-app`). El conjunto se **deriva del sistema de archivos**, no de una lista escrita a mano: si una app no está clasificada, el check **falla** (`lint:plan`) y además corre la autocomprobación `lint:self-test`. | **Sí** |
+| `lint` | `pnpm lint:gate` | ESLint en **todas las apps de `apps/*` excepto las de la lista de deuda documentada** (hoy solo `transporte-app`). El conjunto se **deriva del sistema de archivos**, no de una lista escrita a mano: si una app no está clasificada, el check **falla** (`lint:plan`) y además corre la autocomprobación `lint:self-test`. | **Sí** |
 | `build` | `pnpm build` | `next build` real de las 8 apps, sin variables de entorno ni secretos. | **Sí** |
 | `test-db-rrhh` | `pnpm test:db` | P1 aislado/compartido, SQL real P2/P3/P4/P6 con bcrypt en PGlite, controlador P5, filtros P6 y catálogo P7 sobre modelo local. Sin Supabase ni concurrencia real. | **Sí** |
 | `test-agencia-access` | `pnpm test:agencia:access` | Arnés offline existente de acceso denegado/otorgado en `apps/agencia` (sin red, sin cuentas). | **Sí** |
-| `lint-deuda (no bloquea)` | `pnpm lint:deuda` | ESLint de `materiales-jcastillo-crm` y `transporte-app`, donde `main` **ya falla** hoy. Se publica en cada PR para no ocultar la deuda, pero no bloquea. | No |
+| `test-presupuesto-importacion` | `pnpm test:presupuesto` | Las 10 pruebas del lector del Excel de facturas de AG Negocio de la app Presupuesto (`apps/presupuesto/src/lib/metas/importacion.test.ts`): títulos, totales, duplicados, anuladas, lotes y vencimientos imposibles. Sin red ni base (desde el 2026-10-20). | No, todavía. Para que bloquee, el usuario lo agrega a la protección de `main`. |
+| `lint-deuda (no bloquea)` | `pnpm lint:deuda` | ESLint de `transporte-app`, donde `main` **ya falla** hoy. Se publica en cada PR para no ocultar la deuda, pero no bloquea. El CRM entró al gate el 2026-10-18 y se borró el 2026-10-20 junto con su job `test-metas-importacion`. | No |
 
 ### Clasificación de apps para el gate de lint (observación de revisión del PR #44)
 
@@ -48,13 +49,13 @@ que **cada** app esté clasificada en su `REGISTRO`:
 
 - `gate` → entra en `pnpm lint:gate` (check bloqueante).
 - `deuda` → excluida del bloqueo **a propósito**, con el motivo escrito al lado
-  (`materiales-jcastillo-crm` y `transporte-app`, ver la tabla de deuda de
-  abajo). Sigue visible por `pnpm lint:deuda` en cada PR.
+  (hoy solo `transporte-app`, ver la tabla de deuda de abajo; el CRM pasó al
+  gate el 2026-10-18). Sigue visible por `pnpm lint:deuda` en cada PR.
 
 El script falla —y por lo tanto el check `lint` falla— si: hay una app **sin
 clasificar**; el registro menciona una app que **ya no existe** (registro
 podrido); el gate queda **vacío**; o una app del gate **no declara** la tarea
-`lint`. Para corregir el lint de `crm`/`flotilla`, basta mover su entrada de
+`lint`. Para corregir el lint de `flotilla`, basta mover su entrada de
 `deuda` a `gate` y borrar el motivo.
 
 Comprobación de que esto no se rompe en silencio: `pnpm lint:self-test` crea un
@@ -98,7 +99,7 @@ sirvió además para descubrir el problema de `next typegen` descrito abajo.
 | bcrypt | Se usa `bcrypt` real (pgcrypto), pero la comparación corre en PGlite: sirve para la lógica de coincidencia, **no** mide el costo/tiempos del `crypt()` en el Postgres de Supabase. |
 | App / navegador | Nada de esto recorre el kiosco en un navegador (Server Action → PostgREST → RPC), ni Rate Limit por IP, ni la UI. |
 | Deploy | `build` compila, pero no valida Vercel, dominios, rewrites de Multi-Zones ni variables de entorno reales. |
-| Lint | 2 de 8 apps no están cubiertas por el check bloqueante (ver deuda abajo). |
+| Lint | 1 de 8 apps (`transporte-app`) no está cubierta por el check bloqueante (ver deuda abajo). |
 
 ## Deuda pre-existente en `main` (NO son regresiones de este cambio)
 
@@ -108,7 +109,7 @@ Medido sobre `main` `fc2b309` antes de tocar nada:
 |---|---|---|
 | `typecheck` no revisaba nada | Ninguna app declaraba `typecheck`; `turbo run typecheck` terminaba en **0 tareas con exit 0** (éxito silencioso). | Se agregó `typecheck: tsc --noEmit` a las 7 apps y un guard (`scripts/check-app-tasks.mjs`) que falla si la tarea no existe en ninguna app o falta en alguna. Verificado: con las 7 apps, `tsc --noEmit` pasa **sin errores previos** (`main` estaba limpio de tipos). |
 | `typecheck` no era reproducible en un clon limpio | Descubierto por el **primer run real del workflow**, no por inspección: en el clon de CI falló `web-corporativo` con `src/app/layout.tsx(33,50): error TS2304: Cannot find name 'LayoutProps'`, porque `next-env.d.ts` está **gitignoreado** (`next-env.d.ts` en el `.gitignore` raíz y en `apps/web-corporativo/.gitignore`) y los tipos generados por Next viven en `.next/`, que no existe en un checkout nuevo. En local pasaba porque los archivos generados ya estaban ahí. | Se cambió la tarea de cada app a **`next typegen && tsc --noEmit`** (el comando oficial de Next 16 para generar esos tipos sin build completo). Reproducido localmente borrando `.next` y `next-env.d.ts` (mismo TS2304, exit 2) y verificado después del cambio: **7/7 tareas OK en clon limpio simulado**. |
-| `lint` fallaba en 2 apps | `materiales-jcastillo-crm`: `src/components/DeleteClienteButton.tsx` (error `react-hooks` *setState sincrónico dentro de un efecto*) + warning de variable sin usar en `clientes/actions.ts`. `transporte-app`: `lib/offline/useOfflineSync.ts` (mismo error `react-hooks`). Archivos sin tocar desde commits antiguos (`a6abb2e`), con `eslint-config-next` 16.3.0. | **No se tocaron** (sería un refactor funcional fuera de alcance). Se dejan visibles en el check informativo `lint-deuda` y se propone ticket aparte. |
+| `lint` fallaba en 2 apps | `materiales-jcastillo-crm`: `src/components/DeleteClienteButton.tsx` (error `react-hooks` *setState sincrónico dentro de un efecto*) + warning de variable sin usar en `clientes/actions.ts`. `transporte-app`: `lib/offline/useOfflineSync.ts` (mismo error `react-hooks`). Archivos sin tocar desde commits antiguos (`a6abb2e`), con `eslint-config-next` 16.3.0. | **No se tocaron** (sería un refactor funcional fuera de alcance). Se dejan visibles en el check informativo `lint-deuda` y se propone ticket aparte. **2026-10-18:** la deuda del CRM se corrigió al integrar Metas y Presupuesto (`DeleteClienteButton` sin `setState` en efecto); el CRM está en el gate. |
 | Sin workflows | No existía `.github/workflows/`. | Se agregó `ci.yml`. |
 | Supabase Preview | El check de Supabase Preview puede quedar omitido y **no** valida migraciones. | Se documenta como no confiable; la validación de migraciones es `test-db-rrhh`. |
 
@@ -125,7 +126,8 @@ fusionar:
 | `build` | **Sí** |
 | `test-db-rrhh` | **Sí** |
 | `test-agencia-access` | **Sí** |
-| `lint-deuda (no bloquea)` | **No** — es informativo a propósito: mide la deuda pre-existente de `crm`/`flotilla` y se deja visible en cada PR |
+| `test-presupuesto-importacion` | **No** — se agregó el 2026-10-20; queda fuera de la protección hasta que el usuario lo incluya |
+| `lint-deuda (no bloquea)` | **No** — es informativo a propósito: mide la deuda pre-existente de `flotilla` y se deja visible en cada PR |
 | `Vercel Preview Comments` y previews de Vercel | **No** — dependen del proyecto de Vercel y de su límite de builds |
 | `Supabase Preview` | **No** — puede quedar en `skipping` y no valida migraciones |
 

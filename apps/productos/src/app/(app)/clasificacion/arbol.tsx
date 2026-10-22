@@ -2,12 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { EmptyState, StatusBadge, useToast } from "@nexo/ui";
+import { Alert, Button, EmptyState, Field, Input, StatusBadge, useToast } from "@nexo/ui";
 import type { Clasificacion } from "@/lib/tipos";
 import { guardarClasificacion } from "./actions";
-
-const inputClass =
-  "rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
 
 type Nivel = Clasificacion["nivel"];
 const HIJO: Record<Nivel, Nivel | null> = { clase: "tipo", tipo: "categoria", categoria: null };
@@ -35,6 +32,7 @@ export default function ArbolClasificacion({ clasificaciones, puedeGestionar }: 
   const { show } = useToast();
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorNombre, setErrorNombre] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const hijos = (padreId: string | null, nivel: Nivel) =>
@@ -48,17 +46,20 @@ export default function ArbolClasificacion({ clasificaciones, puedeGestionar }: 
 
   function nuevo(nivel: Nivel, padreId: string | null) {
     setError(null);
+    setErrorNombre(null);
     setBorrador({ id: null, nivel, padreId, numero: siguiente(hijos(padreId, nivel)), nombre: "", activa: true, usado: false });
   }
 
   function editar(c: Clasificacion) {
     setError(null);
+    setErrorNombre(null);
     setBorrador({ id: c.id, nivel: c.nivel, padreId: c.padre_id, numero: c.numero, nombre: c.nombre, activa: c.activa, usado: c.productos > 0 });
   }
 
   function guardar() {
     if (!borrador) return;
-    if (!borrador.nombre.trim()) return setError("Escribe el nombre.");
+    setError(null);
+    if (!borrador.nombre.trim()) return setErrorNombre("Escribe el nombre.");
     startTransition(async () => {
       const res = await guardarClasificacion(borrador);
       if (!res.ok) return setError(res.message ?? "No se pudo guardar.");
@@ -69,39 +70,45 @@ export default function ArbolClasificacion({ clasificaciones, puedeGestionar }: 
   }
 
   const formulario = (b: Borrador) => (
-    <div className="flex flex-col gap-2 rounded-lg border border-blue-200 bg-blue-50/40 p-3">
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-xs text-neutral-600">
-          Número
-          <input
-            className={`${inputClass} w-20 font-mono`}
+    <div className="flex flex-col gap-3 rounded-lg border border-blue-200 bg-blue-50/40 p-3">
+      <div className="flex flex-wrap items-start gap-3">
+        <Field label="Número" className="w-20">
+          <Input
+            className="font-mono"
             value={b.numero}
             maxLength={2}
             disabled={b.usado}
             inputMode="numeric"
             onChange={(e) => setBorrador({ ...b, numero: e.target.value.replace(/\D/g, "") })}
           />
-        </label>
-        <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-neutral-600">
-          Nombre
-          <input className={`${inputClass} w-full`} value={b.nombre} maxLength={80} autoFocus onChange={(e) => setBorrador({ ...b, nombre: e.target.value })} />
-        </label>
+        </Field>
+        <Field label="Nombre" required error={errorNombre} className="min-w-48 flex-1">
+          <Input
+            value={b.nombre}
+            maxLength={80}
+            autoFocus
+            onChange={(e) => {
+              setErrorNombre(null);
+              setBorrador({ ...b, nombre: e.target.value });
+            }}
+          />
+        </Field>
         {b.id && (
-          <label className="flex items-center gap-2 pb-1.5 text-sm text-neutral-700">
+          <label className="mt-[26px] flex h-9 items-center gap-2 text-sm text-neutral-700">
             <input type="checkbox" checked={b.activa} onChange={(e) => setBorrador({ ...b, activa: e.target.checked })} />
             Activa
           </label>
         )}
       </div>
       {b.usado && <p className="text-xs text-neutral-500">El número está fijo porque ya hay productos con esta clasificación.</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex gap-2">
-        <button type="button" onClick={() => setBorrador(null)} className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
+      {error ? <Alert tone="error">{error}</Alert> : null}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" size="sm" onClick={() => setBorrador(null)}>
           Cancelar
-        </button>
-        <button type="button" onClick={guardar} disabled={isPending} className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
+        </Button>
+        <Button size="sm" onClick={guardar} loading={isPending}>
           {isPending ? "Guardando…" : "Guardar"}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -116,16 +123,16 @@ export default function ArbolClasificacion({ clasificaciones, puedeGestionar }: 
           style={{ paddingLeft: 16 + profundidad * 24 }}
         >
           <span className="rounded bg-blue-50 px-1.5 py-0.5 font-mono text-xs font-semibold text-blue-700">{c.numero}</span>
-          <span className={c.activa ? "text-neutral-900" : "text-neutral-400 line-through"}>{c.nombre}</span>
+          <span className={c.activa ? "text-neutral-900" : "text-neutral-500 line-through"}>{c.nombre}</span>
           {!c.activa && <StatusBadge label="Inactiva" tone="neutral" />}
-          <span className="ml-auto hidden whitespace-nowrap text-xs text-neutral-400 sm:inline">
+          <span className="ml-auto hidden whitespace-nowrap text-xs text-neutral-500 sm:inline">
             {c.nivel === "categoria" ? `Código ${prefijo(c)}-` : c.codigo_erp ? `ERP: ${c.codigo_erp}` : ""}
             {c.productos > 0 ? ` · ${c.productos} prod.` : ""}
           </span>
           {puedeGestionar && (
-            <button type="button" onClick={() => editar(c)} className="text-xs font-semibold text-blue-600 hover:text-blue-700">
+            <Button variant="link" className="ml-auto sm:ml-0" aria-label={`Editar ${c.nombre}`} onClick={() => editar(c)}>
               Editar
-            </button>
+            </Button>
           )}
         </div>
         {editando && borrador && <div style={{ paddingLeft: 16 + profundidad * 24 }} className="py-2 pr-4">{formulario(borrador)}</div>}
@@ -137,9 +144,9 @@ export default function ArbolClasificacion({ clasificaciones, puedeGestionar }: 
                 {borrador && !borrador.id && borrador.padreId === c.id ? (
                   formulario(borrador)
                 ) : (
-                  <button type="button" onClick={() => nuevo(hijo, c.id)} className="text-xs font-semibold text-blue-600 hover:text-blue-700">
+                  <Button variant="link" onClick={() => nuevo(hijo, c.id)}>
                     + Agregar {NOMBRE[hijo]} (siguiente: {siguiente(hijos(c.id, hijo))})
-                  </button>
+                  </Button>
                 )}
               </li>
             )}
@@ -153,20 +160,12 @@ export default function ArbolClasificacion({ clasificaciones, puedeGestionar }: 
 
   return (
     <div className="flex flex-col gap-4">
-      {!puedeGestionar && (
-        <p className="rounded-md bg-neutral-200/60 px-3 py-2 text-sm text-neutral-700">Solo lectura: tu rol no permite gestionar la clasificación.</p>
-      )}
+      {!puedeGestionar && <Alert tone="info">Solo lectura: tu rol no permite gestionar la clasificación.</Alert>}
       {clases.length === 0 && !borrador ? (
         <EmptyState
           title="Todavía no hay clasificación"
           description="Se crea sola al importar el Excel del ERP, o agrégala a mano."
-          action={
-            puedeGestionar ? (
-              <button type="button" onClick={() => nuevo("clase", null)} className="text-sm font-semibold text-blue-600 hover:text-blue-700">
-                Agregar la primera clase
-              </button>
-            ) : undefined
-          }
+          action={puedeGestionar ? <Button onClick={() => nuevo("clase", null)}>Agregar la primera clase</Button> : undefined}
         />
       ) : (
         <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
@@ -176,9 +175,9 @@ export default function ArbolClasificacion({ clasificaciones, puedeGestionar }: 
               {borrador && !borrador.id && borrador.nivel === "clase" ? (
                 formulario(borrador)
               ) : (
-                <button type="button" onClick={() => nuevo("clase", null)} className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+                <Button variant="link" onClick={() => nuevo("clase", null)}>
                   + Agregar clase (siguiente: {siguiente(clases)})
-                </button>
+                </Button>
               )}
             </div>
           )}
