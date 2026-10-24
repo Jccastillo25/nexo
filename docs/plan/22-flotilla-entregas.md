@@ -480,7 +480,7 @@ Migración **aplicada** en `nexo-core` con aprobación del usuario ("Si"): [`202
 |---|---|---|
 | E0 | ✅ Hecho 2026-10-23 | Sección 18 |
 | Paso Cero | ✅ Aplicado 2026-10-23 | `20261024034727` |
-| E1 | 🟡 En local 2026-10-23 | Zona `/flotilla` con SSO, `NexoShell`, permisos y menú; Ruta360 retirado; typecheck/lint/build en 0. Habilitada para la empresa (`20261024035935`) y abierta con la sesión del owner; proxy del panel corregido. Falta el proyecto de Vercel |
+| E1 | 🟡 En local 2026-10-23 | Zona `/flotilla` con SSO, `NexoShell`, permisos y menú; Ruta360 retirado; typecheck/lint/build en 0. Habilitada para la empresa (`20261024035935`); proxy del panel corregido. **En producción** desde el 2026-10-24 (PR #51, proyecto `nexo-flotilla`), verificada con la sesión del owner |
 | E2 | ✅ Aplicado 2026-10-24 (falta la prueba con dos sesiones concurrentes) | Sección 21. `20261024140400` + `20261024140609` (índices de FK); PGlite en verde; poscheque y advisors remotos |
 | E3–E10 | ⏳ Pendiente | Sigue E3: alta y validación de órdenes (RPC y pantallas) |
 
