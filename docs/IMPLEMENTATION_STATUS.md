@@ -1,6 +1,42 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
-**2026-10-22 — Planilla PL2b, PL2c y pantallas: APLICADAS en `nexo-core` (9 migraciones) y pantallas en local, sin commit.**
+**2026-10-24 — Flotilla: E2 (esquema de Entregas) APLICADO en `nexo-core`, y Flotilla en camino a producción.**
+- `20261024140400` + `20261024140609`: schema `flotilla` cerrado (solo RPC) con 21 tablas, 3 de ellas hechos particionados. Invariantes en la base: sin sobrecomprometer la factura, sin doble despacho, una línea en un solo recorrido activo, transiciones, bitácora inmutable e idempotencia ([plan 22 §21](plan/22-flotilla-entregas.md)). 0 FK sin índice.
+- PGlite en verde (`test:flotilla:e2`, dentro de `test:db`), con la mutación detectada. Poscheque y advisors remotos revisados.
+- Vercel: proyecto `nexo-flotilla` creado (Root Directory `apps/flotilla`) y `FLOTILLA_APP_URL` en `nexocore` (Production). El resultado del despliegue queda en el [log](status-log/2026-10-24-flotilla-e2-esquema.md).
+- Falta la prueba con dos sesiones concurrentes y E3 (RPC y pantallas de órdenes).
+[Detalle](status-log/2026-10-24-flotilla-e2-esquema.md).
+
+**2026-10-23 — Flotilla: Entregas. Paso Cero APLICADO en `nexo-core` (`20261024034727`); zona `/flotilla` adaptada en local (E1).**
+- Pedido del usuario: implementar la especificación de Entregas y dejar Flotilla lista ([plan 22](plan/22-flotilla-entregas.md)).
+- E0: `flotilla` existe en el catálogo pero **no está habilitada para la empresa**; no hay schema, tablas ni proyecto de Vercel.
+- Paso Cero: 35 códigos de 4 segmentos y 6 plantillas; poscheque remoto con los conteos esperados.
+- E1: Ruta360 retirado; `nexo-flotilla` con `basePath`, login único, `NexoShell`, permisos y menú; rewrite `/flotilla` en el panel; Flotilla entra al gate de lint. typecheck, lint y build en 0; sin sesión manda al login del panel.
+- Habilitada para la empresa (`20261024035935`): el owner entra en local y ve el Dashboard. Se corrigió el `matcher` del proxy del panel, que no excluía `/flotilla` y provocó un 429 de Auth que cerró la sesión local.
+- Falta: comprobar el menú desplegable tras volver a iniciar sesión, E2 (esquema) y el proyecto de Vercel. Sin commit.
+[Detalle](status-log/2026-10-23-flotilla-entregas-e0.md).
+
+**2026-10-23 — Panel de plataforma (super admin): Paso Cero APLICADO en `nexo-core` (`20261024033541`).**
+- Pedido del usuario: crear empresas, asignarles módulos y un cupo de usuarios ([plan 21](plan/21-plataforma-empresas.md)).
+- Decisiones del usuario:
+  - un usuario puede estar en varias empresas y elige una al entrar;
+  - roles y apps por empresa;
+  - el super admin puede entrar a cualquier empresa, con auditoría;
+  - el primer administrador se crea en el alta;
+  - el cupo cuenta los usuarios activos.
+- 9 códigos `nexo.plataforma.*`. Precheck en 0; poscheck con 9 códigos de 4 segmentos y 0 asignaciones; advisors sin hallazgos nuevos.
+- **Divergencia:** el código usa una sola empresa (`NEXO_COMPANY_ID`). La etapa 3 la toma de la cookie de empresa activa en las 6 zonas.
+- Transitorio: los códigos aparecen en el editor de roles de la empresa, pero nada los evalúa. Sin esquema, sin código y sin commit.
+[Detalle](status-log/2026-10-23-plataforma-paso-cero.md).
+
+**2026-10-22 — Planilla: techo del INSS por persona en el mes, APLICADO en `nexo-core` (`20261022034035`).**
+- Corrige el hallazgo P1 de la revisión del PR #50: el techo del INSS se topaba por quincena, con la mitad, y un mes con quincenas desiguales cotizaba de menos.
+- **Regla, aprobada por el usuario:** techo acumulado del mes. Ninguna planilla cotiza más de lo devengado ni deja un neto negativo. Por encima del techo, la 1.ª quincena cotiza más que la 2.ª. Se descartó el ajuste en la 2.ª quincena porque dejaba netos negativos.
+- **Verificación:** `test:rrhh:planilla` con 17 OK y la mutación detectada; dos rondas de revisión; dos ensayos revertidos; poscheque remoto con la huella igual a la local. Advisors sin cambios.
+- Hoy no cambia ningún cálculo: no hay planillas y ningún contrato activo cotiza INSS.
+[Detalle](status-log/2026-10-22-planilla-techo-inss.md).
+
+**2026-10-22 — Planilla PL2b, PL2c y pantallas: APLICADAS en `nexo-core` (9 migraciones); pantallas en el PR #50, todavía sin fusionar.**
 - Paso Cero de PL2b (`20261021235639`): `liquidaciones.pagar` y `.anular`, solo admin (27 códigos).
 - PL2b en 5 partes (`20261022000001` a `20261022001314`): vacaciones, préstamos, embargos, aguinaldo, liquidación como documento, pasivo y provisiones (particionadas). PL2c en 3 partes (`20261022001530` a `20261022001922`): detalle, comparación, régimen, simulador, conceptos, tipos, tabla de IR, declaraciones e importación desde Asistencia.
 - Antes de aplicar: dos rondas de revisión por migración, `test:rrhh:planilla` en PGlite con código 0 y un ensayo revertido por parte con datos reales (quincena, aguinaldo, liquidación, préstamo, embargo, provisiones, RLS y Asistencia). Las 79 funciones de planilla son idénticas en remoto y en local; advisors sin hallazgos nuevos.
@@ -194,6 +230,10 @@ Cada fila es una subfase o bloque ya cerrado, con el detalle completo de qué se
 
 | Fecha | Entrada | Resumen de una línea |
 |---|---|---|
+| 2026-10-24 | [Flotilla: E2, esquema de Entregas](status-log/2026-10-24-flotilla-e2-esquema.md) | `20261024140400` y `20261024140609` **aplicadas**: schema `flotilla` cerrado, 21 tablas (3 particionadas), contadores e invariantes por trigger y CHECK, transiciones, inmutabilidad, idempotencia y 0 FK sin índice. PGlite en verde con mutación detectada; poscheque y advisors remotos. Proyecto de Vercel `nexo-flotilla` creado |
+| 2026-10-23 | [Flotilla: Entregas, E0, Paso Cero y E1](status-log/2026-10-23-flotilla-entregas-e0.md) | Especificación del usuario registrada como plan 22. E0: app `flotilla` sin habilitar para la empresa, sin schema ni proyecto de Vercel. Paso Cero `20261024034727` **aplicado**: 35 códigos de 4 segmentos y 6 plantillas. E1 en local: Ruta360 retirado, `nexo-flotilla` con SSO, `NexoShell`, permisos y menú, rewrite `/flotilla`, gate de lint con 8 apps. typecheck, lint y build en 0. Sin sesión real ni commit |
+| 2026-10-23 | [Panel de plataforma: diseño y Paso Cero](status-log/2026-10-23-plataforma-paso-cero.md) | Plan 21 con las decisiones del usuario (multiempresa con selector, super admin que entra auditado, primer administrador en el alta, cupo de activos). `20261024033541` **aplicada**: 9 códigos `nexo.plataforma.*`, 0 asignaciones, advisors sin cambios. El código sigue con una sola empresa (`NEXO_COMPANY_ID`). Sin esquema, código ni commit |
+| 2026-10-22 | [Planilla: techo del INSS por persona en el mes](status-log/2026-10-22-planilla-techo-inss.md) | Migración `20261022034035` **aplicada en `nexo-core`**: techo acumulado del mes, sin netos negativos. Corrige el P1 de la revisión del PR #50. 17 pruebas OK, mutación detectada, dos revisiones y dos ensayos revertidos. Huella remota igual a la local |
 | 2026-10-22 | [Planilla PL2b, PL2c y pantallas](status-log/2026-10-21-planilla-pl2b-pl2c-pantallas.md) | Prestaciones, reportes y configuración aplicadas en `nexo-core` (9 migraciones, `20261021235639` a `20261022001922`) y 40 pantallas de Planilla en local; sin commit ni recorrido visual con sesión |
 | 2026-10-21 | [Planilla PL2a: esquema y motor en RPC](status-log/2026-10-21-planilla-pl2a-motor.md) | Migración `20261021191441` **aplicada en `nexo-core`**. Régimen por contrato, conceptos, planillas por línea y novedades particionadas. 12 RPC con separación de funciones, huella e inmutabilidad, y simulador de liquidación por causa. IR y techo del INSS por persona, días 30/360, INSS patronal en 21.5%, 14 feriados y contratos en quincenal. 9 decisiones del usuario. PGlite pasa G1–G8 (C$45,021.66) y más de 40 reglas, con mutaciones detectadas. Revisión independiente (2 altos y 10 medios) corregida. Ensayo completo en `nexo-core` revertido: poscheques OK y la quincena real se calcula con 4 personas. Sin commit. |
 | 2026-10-21 | [Implementación de la revisión integral](status-log/2026-10-21-mejoras-revision-integral.md) | Flujo coordinador → 9 ejecutores → 2 revisores → correcciones. Seguridad: Next 16.3.8 y overrides (`pnpm audit` 28 → 0), cabeceras compartidas, N8/N12 cerrados y el kiosco heredado retirado. Kernel `@nexo/supabase`/`@nexo/auth`/`getPermisos` con las 6 apps migradas. Kit Enterprise UI v2, Fases 3 y 4, menú filtrado por permiso y español neutro. 4 migraciones **aplicadas el 2026-10-21** (`20261021164649`–`20261021165004`) y verificadas en remoto con la misma salida que antes; advisors con 0 FK sin índice y `anon` de 6 a 5. `pnpm verify` en verde. Sin commit ni deploy; falta el recorrido visual. |
@@ -308,7 +348,7 @@ P2–P6 implementados en rama y verificados localmente, incluidas regresiones de
 | Panel de Conductor Web | 🟡 Código legacy aprovechable | Ruta360 tiene flujo de conductor, pero falta adaptación a identidad Nexo, contrato RRHH y permisos unificados. |
 | CRM | ❌ Retirado 2026-10-20 | Borrado por pedido del usuario: `apps/crm`, la app `crm` del Launcher con sus 34 permisos, el esquema `metas` y todo el contenido de `crm` (`20261020143821`). No había datos. El código está en la rama local `respaldo/crm-2026-10-20`. Pendiente del usuario: quitar `crm` de "Exposed schemas" (luego se borra el esquema vacío) y decidir qué hacer con el proyecto de Vercel del CRM. [Detalle](status-log/2026-10-20-retiro-crm-replica-ag-negocio.md). |
 | Réplica de AG Negocio (app `erp`) | 🟡 Inventario hecho 2026-10-20; falta el Paso Cero | El ERP actual (AG Negocio, propietario) se replica completo dentro de Nexo, sin el bloque académico. Son 144 pantallas en 11 grupos y las etapas van de R0 a R9; R0 (retiro del CRM) está hecha. Apps `erp` y `precios` registradas inactivas, con el Paso Cero del plan 17. Hay que rehacerlo con la matriz recurso × acción de AG antes de crear tablas. [Plan 18](plan/18-replica-ag-negocio.md). |
-| Transporte / Flotilla | 🟡 Código aprovechable, sin adaptar | Ruta360 importado; falta migración al modelo Nexo y eliminar identidad duplicada de conductores. |
+| Transporte / Flotilla | 🟡 Zona adaptada (E1) y esquema de Entregas aplicado (E2, 2026-10-24); sin RPC ni pantallas de órdenes | 2026-10-23, [plan 22](plan/22-flotilla-entregas.md) (Entregas): Paso Cero aplicado (`20261024034727`), Ruta360 retirado y `apps/flotilla` como zona de Nexo (SSO, `NexoShell`, permisos). Falta habilitar la app para la empresa, E2 (schema `flotilla`), la habilitación de conductores sobre RRHH y el proyecto de Vercel. |
 | Productos (catálogo maestro) | 🟡 Esquema aplicado + app implementada en local (2026-10-16), sin validar con sesión real | Paso Cero (`20261016203638`) + esquema/RPC (`20261016214634`) en `nexo-core`, probados en transacciones revertidas. `apps/productos` compila (typecheck/lint/build). App **activa** para la empresa desde 2026-10-16 (`20261016220935`, para probar en local); sin datos, sin commit ni proyecto Vercel: la tarjeta del Launcher de producción no abre hasta el deploy. Nexo es el maestro; el ERP se alimenta por exportación. Ver [plan 14](plan/14-productos.md). |
 | Listas de precios | ⏳ Pendiente | App aparte `precios` (decisión del 2026-10-17), registrada inactiva el 2026-10-20. Replicará las escalas de precio, los multiprecios y los usuarios por escala de AG Negocio (etapa R3 del [plan 18](plan/18-replica-ag-negocio.md)). |
 | Inventario | ⏳ Pendiente | Va dentro de la app `erp` (etapa R3 del plan 18): bodegas, kardex a costo promedio, ajustes, transferencias, levantamiento, fábrica y recetas. Lee el catálogo de Productos, no lo duplica. |

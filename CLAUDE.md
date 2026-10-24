@@ -310,7 +310,12 @@ una, se ven desde la siguiente.
    agregado y que el módulo tenga su propio `basePath` configurado — si
    falta cualquiera de los dos, el link no da 404 por la ruta en sí sino
    porque nadie la reescribe hacia el deploy real; agregar el rewrite es
-   la corrección, no cambiar `route` a una URL absoluta.
+   la corrección, no cambiar `route` a una URL absoluta. Además, el
+   `matcher` de [`apps/nexo/src/proxy.ts`](apps/nexo/src/proxy.ts) tiene que
+   excluir el prefijo del módulo (`flotilla(?:/|$)`): si no, cada
+   `/<módulo>/_next/static/*` refresca la sesión en el panel y en la zona a
+   la vez, Supabase responde 429 y la sesión se pierde (pasó con Flotilla el
+   2026-10-23).
 5. **Checklist de "módulo nuevo desplegado pero no carga"** — tres causas
    reales y distintas, ya vistas todas al conectar RRHH (2026-09-04), cada
    una con un síntoma que parece el mismo 500/404 genérico. Verificalas en
@@ -592,8 +597,8 @@ import { Analytics } from "@vercel/analytics/next";
 </body>
 ```
 
-Ya está en `apps/nexo`, `apps/rrhh`, `apps/productos` y `apps/web-corporativo`.
-Falta agregarlo a `apps/flotilla` cuando se adapte en su fase.
+Ya está en `apps/nexo`, `apps/rrhh`, `apps/productos`, `apps/web-corporativo` y,
+desde el 2026-10-24, `apps/flotilla`.
 
 ## Regla obligatoria: validación local y CI antes de abrir un PR
 

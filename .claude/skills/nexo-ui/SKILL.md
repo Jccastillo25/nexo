@@ -45,6 +45,59 @@ las da el coordinador en el encargo; esta skill no las reemplaza.
    - botones con verbo específico ("Crear producto", no "Enviar");
    - errores que dicen qué pasó y cómo resolverlo;
    - estados vacíos que invitan a la acción siguiente.
+6. **Filtro anti-relleno** (ver la sección siguiente) antes de entregar.
+
+## Anti-relleno: texto y decoración genéricos
+
+Ideas tomadas de antislop (MIT, ver [SOURCE.md](SOURCE.md)) y reducidas a lo
+que aplica a una suite interna de gestión. No es una lista de palabras
+prohibidas para aplicar a ciegas: se busca el **patrón**, y un caso aislado se
+corrige solo si no aporta información.
+
+**Textos de la interfaz**
+- Botones y enlaces con la acción concreta del negocio. Evitar los genéricos
+  "Enviar", "Continuar", "Más información", "Empezar", "Explorar", "Descubrir",
+  "Ver más" cuando existe un verbo preciso: "Guardar contrato", "Calcular
+  planilla", "Ver liquidación", "Importar facturas".
+- Sin adjetivos de folleto: "potente", "inteligente", "revolucionario", "de
+  última generación", "sin fricciones", "todo en uno", "impulsado por IA". Se
+  dice qué hace la pantalla: "Calcula INSS, IR e INATEC del período".
+- Sin muletillas: "Es importante destacar que", "Cabe mencionar", "A
+  continuación podrás", "Con el fin de". Ir directo al dato o la instrucción.
+- El sistema no "entiende", "sabe" ni "decide": muestra, calcula, valida o
+  rechaza. Y cuando importa quién hizo algo, se nombra ("Aprobada por
+  M. López", no "Fue aprobada").
+- Una sola cautela por frase ("puede tardar unos minutos"), no "podría
+  posiblemente tardar".
+- Listas con los elementos que de verdad hay, no siempre tres.
+- Sin emojis en títulos, botones, menús, insignias ni mensajes.
+- En frases de la interfaz no se usa la raya (—) para unir ideas: se usa punto,
+  coma, dos puntos o paréntesis. Se mantiene el uso ya establecido en el repo de
+  "—" como valor vacío en una celda o campo de solo lectura.
+- Nada inventado: ni cifras, ni nombres, ni fechas, ni "más de 100 empresas lo
+  usan", ni afirmaciones de seguridad o rendimiento sin evidencia. Si falta el
+  dato, `EmptyState`, "Pendiente de integración" o se omite la frase (es la
+  regla de cero datos de ejemplo de `CLAUDE.md`).
+
+**Decoración**
+- `StatusBadge` solo para un estado real del registro (Borrador, Aprobada,
+  Pagada). Nada de insignias decorativas ("Nuevo", "Beta", "Rápido") ni una
+  insignia encima del título que repite lo que dice el `PageHeader`.
+- Un punto de color marca un estado real, sin brillo y sin pulso infinito
+  (`animate-pulse`/`animate-ping` solo mientras algo está en curso de verdad).
+- Iconos de `NexoIcon` elegidos por lo que hace el ítem; nada de destellos,
+  estrellas o robots de relleno. Si ningún icono encaja, se pide uno nuevo en
+  `packages/ui/nexo-icons.tsx`.
+- Flechas solo donde indican dirección (paginación, "Ver detalle" en una
+  fila), no en cada botón.
+- Sombra solo para marcar elevación (la tarjeta estándar ya trae `shadow-sm`;
+  diálogos y menús flotantes, más). No se suman sombras, brillos ni bordes de
+  color a cada elemento.
+- Una franja de color a la izquierda solo si marca un estado (alerta, activo).
+- Cada control tiene comportamiento real. Lo que no existe todavía no se
+  muestra como botón activo; en el menú es un hijo sin `href` ("Pronto").
+- En un dashboard, cada tarjeta responde a una pregunta del usuario y toda
+  variación indica contra qué período se compara (detalle en `nexo-dashboards`).
 
 ## Restricciones
 
@@ -65,6 +118,7 @@ las da el coordinador en el encargo; esta skill no las reemplaza.
 - `npx.cmd --yes pnpm@9.15.9 --filter <app> run typecheck` y `run lint` sin errores.
 - Recorrer la [lista de verificación de nexo-ui-review](../nexo-ui-review/SKILL.md) sobre los archivos tocados.
 - Buscar en el diff colores hex (`#[0-9a-f]{3,6}`) y `font-family` nuevos: no debe haber.
+- Releer los textos nuevos contra "Anti-relleno": botones genéricos, adjetivos de folleto, emojis, raya dentro de frases y cifras sin fuente.
 
 ## Si falta información o una herramienta
 

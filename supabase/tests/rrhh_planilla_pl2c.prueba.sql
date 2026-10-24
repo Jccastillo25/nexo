@@ -1276,4 +1276,111 @@ begin
 end;
 $$;
 
+-- -----------------------------------------------------------------------------
+-- Techo del INSS por persona en el mes (migración 20261022034035), junio de
+-- 2027: quincenas desiguales, salario fijo sobre el techo, ingreso el 16 y
+-- egreso el 16 después de una 1.ª quincena alta
+-- -----------------------------------------------------------------------------
+create function pg_temp.inss(p_planilla uuid, p_k text, p_codigo text, p_campo text default 'monto')
+returns numeric language sql as $$
+  select case p_campo when 'base' then l.base else l.monto end from rrhh.planilla_lineas l
+  where l.planilla_id = p_planilla and l.contrato_id = pg_temp.id(p_k) and l.concepto_codigo = p_codigo
+$$;
+
+do $$
+declare
+  a uuid := pg_temp.id('A');
+  v_q1 uuid;
+  v_q2 uuid;
+  v_k text;
+  x record;
+begin
+  -- LQ: C$60,000 al mes y comisión de C$80,000 en la 1.ª quincena. LH: C$150,000
+  -- fijo. LN: C$150,000 desde el 16. RN: como LQ, pero termina el 16 (devenga un
+  -- día en la 2.ª). Techo de la semilla: C$100,000.
+  perform pg_temp.contrato('LQ', 60000.00, 'quincenal', date '2027-06-01');
+  perform pg_temp.contrato('LH', 150000.00, 'quincenal', date '2027-06-01');
+  perform pg_temp.contrato('LN', 150000.00, 'quincenal', date '2027-06-16');
+  perform pg_temp.contrato('RN', 60000.00, 'quincenal', date '2027-06-01', date '2027-06-16');
+  perform pg_temp.como('ADM');
+  foreach v_k in array array['LQ', 'LH', 'RN'] loop
+    perform public.planilla_regimen_cambiar(a, pg_temp.id(v_k), 'laboral', 'integral', 'tabla_progresiva', null,
+      true, true, true, date '2027-06-01', 'PRUEBA techo del INSS');
+  end loop;
+  perform public.planilla_regimen_cambiar(a, pg_temp.id('LN'), 'laboral', 'integral', 'tabla_progresiva', null,
+    true, true, true, date '2027-06-16', 'PRUEBA techo del INSS');
+
+  perform pg_temp.como('ESP');
+  foreach v_k in array array['LQ', 'RN'] loop
+    perform public.planilla_novedad_crear(a, pg_temp.id(v_k), pg_temp.concepto('COMISION'), date '2027-06-10', null, 80000);
+  end loop;
+  v_q1 := public.planilla_crear(a, pg_temp.id('TQUI'), date '2027-06-01', date '2027-06-15');
+  perform public.planilla_calcular(a, v_q1);
+  -- 1.ª quincena con el techo del mes: LQ y RN devengan C$110,000 y cotizan
+  -- C$100,000 (antes C$50,000); LH devenga C$75,000 y cotiza todo.
+  if coalesce(pg_temp.inss(v_q1, 'LQ', 'INSS_LABORAL', 'base') <> 100000.00 or pg_temp.inss(v_q1, 'LQ', 'INSS_LABORAL') <> 7000.00
+     or pg_temp.inss(v_q1, 'RN', 'INSS_LABORAL', 'base') <> 100000.00
+     or pg_temp.inss(v_q1, 'LH', 'INSS_LABORAL', 'base') <> 75000.00, true) then
+    raise exception 'FALLO PL2: techo del mes en la primera quincena: base de LQ %', pg_temp.inss(v_q1, 'LQ', 'INSS_LABORAL', 'base');
+  end if;
+
+  v_q2 := public.planilla_crear(a, pg_temp.id('TQUI'), date '2027-06-16', date '2027-06-30');
+  perform pg_temp.debe_fallar(format('select public.planilla_calcular(%L, %L)', a, v_q2), 'el INSS y el IR',
+    'INSS de la segunda quincena sin la primera aprobada');
+  perform pg_temp.como('ADM');
+  perform public.planilla_aprobar(a, v_q1);
+  perform pg_temp.como('ESP');
+  perform public.planilla_calcular(a, v_q2);
+
+  -- LQ y RN llegaron al techo en la 1.ª: la 2.ª no cotiza. (Antes LQ cotizaba
+  -- C$50,000 y C$30,000: el mes quedaba en C$80,000.)
+  if coalesce(pg_temp.inss(v_q2, 'LQ', 'INSS_LABORAL', 'base'), 0) <> 0 or coalesce(pg_temp.inss(v_q2, 'RN', 'INSS_LABORAL', 'base'), 0) <> 0 then
+    raise exception 'FALLO PL2: la segunda quincena cotiza sobre el techo ya cubierto: base de LQ %', pg_temp.inss(v_q2, 'LQ', 'INSS_LABORAL', 'base');
+  end if;
+  -- LH: el resto del techo, C$25,000. LN entra el 16: techo del mes sobre sus C$75,000.
+  if coalesce(pg_temp.inss(v_q2, 'LH', 'INSS_LABORAL', 'base') <> 25000.00 or pg_temp.inss(v_q2, 'LH', 'INSS_LABORAL') <> 1750.00
+     or pg_temp.inss(v_q2, 'LH', 'INSS_PATRONAL') <> 5375.00 or pg_temp.inss(v_q2, 'LN', 'INSS_LABORAL', 'base') <> 75000.00, true) then
+    raise exception 'FALLO PL2: techo con salario fijo o con ingreso el 16: base de LH %, de LN %',
+      pg_temp.inss(v_q2, 'LH', 'INSS_LABORAL', 'base'), pg_temp.inss(v_q2, 'LN', 'INSS_LABORAL', 'base');
+  end if;
+  -- L3 (C$11,350, debajo del techo): cada quincena cotiza lo suyo.
+  if coalesce(pg_temp.inss(v_q2, 'L3', 'INSS_LABORAL', 'base') <> 5675.00, true) then
+    raise exception 'FALLO PL2: INSS de L3 debajo del techo: base %', pg_temp.inss(v_q2, 'L3', 'INSS_LABORAL', 'base');
+  end if;
+  -- Para cada persona, el mes cotiza min(devengado, techo); ninguna planilla
+  -- cotiza más de lo devengado en ella ni deja un neto negativo.
+  if exists (select 1 from rrhh.planilla_empleados e
+             where e.planilla_id in (v_q1, v_q2) and e.regimen_inss <> 'ninguno'
+             group by e.empleado_id
+             having sum(coalesce((select sum(l.base) from rrhh.planilla_lineas l
+                                  where l.planilla_empleado_id = e.id and l.concepto_codigo = 'INSS_LABORAL'), 0))
+                 <> least(sum(coalesce((select sum(l.monto) from rrhh.planilla_lineas l
+                                        where l.planilla_empleado_id = e.id and l.tipo = 'devengado' and l.afecta_inss), 0)), 100000)) then
+    raise exception 'FALLO PL2: la base del INSS del mes no es min(devengado, techo) para alguna persona';
+  end if;
+  if exists (select 1 from rrhh.planilla_empleados e
+             where e.planilla_id in (v_q1, v_q2)
+               and (e.neto < 0
+                    or coalesce((select sum(l.base) from rrhh.planilla_lineas l
+                                 where l.planilla_empleado_id = e.id and l.concepto_codigo = 'INSS_LABORAL'), 0)
+                       > coalesce((select sum(l.monto) from rrhh.planilla_lineas l
+                                   where l.planilla_empleado_id = e.id and l.tipo = 'devengado' and l.afecta_inss), 0))) then
+    raise exception 'FALLO PL2: una planilla de junio cotiza más de lo devengado o deja un neto negativo';
+  end if;
+
+  -- La declaración del mes suma el techo completo para LQ y para LH.
+  perform pg_temp.como('ADM');
+  perform public.planilla_aprobar(a, v_q2);
+  perform pg_temp.como('ESP');
+  select * into x from public.planilla_declaracion_inss(a, date '2027-06-01') d where d.empleado_id = pg_temp.id('ELQ');
+  if coalesce(x.salario_inss <> 100000.00 or x.inss_laboral <> 7000.00 or x.inss_patronal <> 21500.00, true) then
+    raise exception 'FALLO PL2: declaración del INSS de junio para LQ: salario %', x.salario_inss;
+  end if;
+  select * into x from public.planilla_declaracion_inss(a, date '2027-06-01') d where d.empleado_id = pg_temp.id('ELH');
+  if coalesce(x.salario_inss <> 100000.00 or x.inss_laboral <> 7000.00, true) then
+    raise exception 'FALLO PL2: declaración del INSS de junio para LH: salario %', x.salario_inss;
+  end if;
+end;
+$$;
+
 rollback;

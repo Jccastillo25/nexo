@@ -64,7 +64,7 @@ apps/agencia   → /agencia
 apps/atencion  → /atencion
 apps/productos → /productos
 apps/erp       → /erp (réplica de AG Negocio, por crear)
-apps/flotilla  → /flotilla (al adaptar)
+apps/flotilla  → /flotilla (basePath desde 2026-10-23; rewrite por FLOTILLA_APP_URL)
 ```
 
 La ruta registrada en `core.apps.route` siempre es relativa. La URL real de Vercel existe únicamente como destino de rewrite.

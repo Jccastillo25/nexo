@@ -48,11 +48,9 @@ const REGISTRO = {
   "nexo-productos": { estado: "gate" },
   "nexo-presupuesto": { estado: "gate" },
   "web-corporativo": { estado: "gate" },
-  "transporte-app": {
-    estado: "deuda",
-    motivo:
-      "lib/offline/useOfflineSync.ts:22 error react-hooks (setState sincrónico dentro de un efecto). Pre-existente (archivo sin tocar desde a6abb2e).",
-  },
+  // 2026-10-23: el código heredado de Ruta360 (`transporte-app`, en deuda) se
+  // retiró al adaptar Flotilla a Nexo (plan 22, E1); la app nueva entra al gate.
+  "nexo-flotilla": { estado: "gate" },
 };
 
 const ERRORES = [];
@@ -176,11 +174,12 @@ function selfTest() {
     }
 
     // Registro podrido: una entrada que apunta a una app que ya no existe.
-    rmSync(join(appsDir, "fixture-transporte-app"), { recursive: true, force: true });
+    const borrada = Object.keys(REGISTRO).at(-1);
+    rmSync(join(appsDir, `fixture-${borrada}`), { recursive: true, force: true });
     const conRegistroPodrido = plan();
     if (conRegistroPodrido.status === 0) {
       fallos.push("una entrada de REGISTRO sin app real no hizo fallar el plan (registro podrido)");
-    } else if (!conRegistroPodrido.salida.includes("transporte-app")) {
+    } else if (!conRegistroPodrido.salida.includes(borrada)) {
       fallos.push("el plan falló por registro podrido pero no nombró la entrada obsoleta");
     } else {
       console.log("ok  entrada de REGISTRO sin app real -> el plan falla y la nombra");

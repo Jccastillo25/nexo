@@ -48,6 +48,15 @@ la fuente.
 - Dentro del módulo, `next/link` y `router.push`; el `basePath` se aplica solo ahí. Usa `<a>` plano únicamente para cruzar de zona.
 - Las rutas con estado (filtros, página) reflejan su estado en la URL (`searchParams`), como el listado de Productos.
 
+**6. Comentarios en el código (bajo)**
+Ideas de antislop-code (MIT, ver [SOURCE.md](SOURCE.md)). Aplica al código que
+se escribe o toca en la tarea; no se reescriben comentarios ajenos al diff.
+- Un comentario dice algo que el código no muestra: el porqué, una regla de negocio, una decisión del kit, un caso borde, un riesgo de seguridad o de rendimiento, un contrato con una RPC. Ejemplo del repo: el comentario de tamaños en `packages/ui/Button.tsx` explica por qué `sm` queda en 32 px.
+- No se escriben: comentarios que repiten la línea siguiente ("// Inicializa el estado"), narración por pasos ("Paso 1", "Ahora…"), etiquetas vacías ("Función auxiliar", "Lógica principal"), JSDoc que solo repite la firma, marcas de cierre (`} // fin if`), banners de `====` o mayúsculas, emojis.
+- Un `TODO` nombra la tarea concreta y su contexto, o no se escribe.
+- Uno por bloque lógico, no uno por línea; una o dos líneas, en español y escritas como una frase normal (sin mayúsculas sostenidas).
+- Cuando se limpian comentarios, no se cambia nada más: ni código, ni nombres, ni formato.
+
 ## Restricciones
 
 - No cambiar `basePath`, rewrites de `apps/nexo/next.config.ts`, `proxy.ts` ni la autenticación sin aprobación del coordinador.

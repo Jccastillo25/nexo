@@ -27,6 +27,23 @@ Se agregaron reglas propias de Nexo que la fuente no tiene: RPC para Mobile,
 - Micro-optimizaciones de JavaScript (`js-*`) y `advanced-*`: bajo impacto para el volumen actual, y meterían ruido en las revisiones.
 - Las otras skills del repo: `react-native-guidelines` (Nexo Mobile en pausa), `vercel-deploy-claimable` (despliega en servicios externos, prohibido sin aprobación), `vercel-optimize`, `react-view-transitions`, `composition-patterns` y `writing-guidelines` (no hay una necesidad actual que no cubran `nexo-ui` y `CLAUDE.md`).
 
+## Incorporación de antislop-code (2026-10-21)
+
+| Campo | Valor |
+|---|---|
+| Fuente | https://github.com/miqdadbadjuber/anti-slop/blob/439a2ef5b9dd0ebe74e8113ff43f5928d0fe2a6a/skills/antislop-code/SKILL.md |
+| Commit | `439a2ef5b9dd0ebe74e8113ff43f5928d0fe2a6a` (2026-10-16), release declarada v3.2.21 |
+| Licencia | MIT, © 2026 Miqdad Badjuber (`LICENSE` del repo) |
+| Inspección | `SKILL.md` leído completo vía WebFetch. Su frontmatter declara `allowed-tools: Read Write Edit Glob Grep`, que no se trajo |
+
+Se tomó, redactado de nuevo y en español, la sección 6 "Comentarios en el
+código": qué comentarios aportan (porqué, regla de negocio, caso borde,
+seguridad, contrato) y cuáles sobran (repetir la línea, narración por pasos,
+etiquetas vacías, JSDoc eco, marcas de cierre, banners, emojis, TODO vago). Se
+agregó la restricción de no reescribir comentarios fuera del diff. Se descartó
+la dependencia del archivo central `antislop.md` y su referencia a la regla
+R-31. No se evaluó contra una tarea real.
+
 ## Evaluación
 
 La selección se hizo comparando cada regla con el código real (layouts con

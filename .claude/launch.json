@@ -36,6 +36,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "pnpm@9", "--filter", "nexo-presupuesto", "run", "dev:zone"],
       "port": 3001
+    },
+    {
+      "name": "flotilla",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "pnpm@9", "--filter", "nexo-flotilla", "run", "dev:zone"],
+      "port": 3006
     }
   ]
 }

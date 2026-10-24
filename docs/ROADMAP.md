@@ -135,7 +135,7 @@ No editar migraciones aplicadas; usar migraciones nuevas.
 | CRM | ❌ Retirado el 2026-10-20 (reemplazado por la réplica de AG Negocio) |
 | ERP (réplica de AG Negocio) | 🟡 Inventario y retiro del CRM hechos; Paso Cero pendiente |
 | RRHH | ❌ No validado E2E |
-| Transporte/Flotilla Nexo | ⏳ Sin adaptar |
+| Transporte/Flotilla Nexo | 🟡 Entregas (plan 22): Paso Cero aplicado y zona `/flotilla` adaptada en local (2026-10-23); falta el esquema |
 | Productos (catálogo maestro) | 🟡 Esquema aplicado y app implementada en local 2026-10-16; sin validar ni desplegar |
 | Listas de precios | ⏳ No existe (siguiente después de Productos) |
 | Inventario | ⏳ No existe |
