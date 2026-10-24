@@ -57,6 +57,21 @@
   - Corrección: `20261024140609`, probada antes en PGlite. Su poscheque y el advisor dan 0.
 - Advisor de seguridad: solo `rls_enabled_no_policy` (INFO), esperado por diseño. Ninguna función de flotilla ejecutable por `anon` ni `authenticated`.
 
+## Despliegue en producción (2026-10-24)
+
+- [PR #51](https://github.com/Jccastillo25/nexo/pull/51), fusionado en `main` (`a43364b`) con merge commit, a pedido del usuario ("Hazlo tú").
+  - El CI pasó en verde: 14 checks y 0 fallos.
+  - Antes, `pnpm install --frozen-lockfile` y `pnpm verify` locales terminaron con código 0.
+- El cambio de un comentario en `.github/workflows/ci.yml` quedó fuera, porque el token de `gh` no tiene el permiso `workflow`. El comentario sigue mencionando la deuda de flotilla, que ya no existe.
+- La propuesta `20261021090000_erp_r1_r2_paso_cero.sql` (ERP, sin aplicar ni aprobar) quedó fuera a propósito y sigue solo en local.
+- Vercel:
+  - proyecto nuevo `nexo-flotilla` (Root Directory `apps/flotilla`, dominio `nexo-flotilla.vercel.app`) con `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `NEXO_COMPANY_ID`;
+  - `FLOTILLA_APP_URL` en `nexocore` (Production);
+  - los 7 proyectos de `main` quedaron READY con `a43364b`.
+- Verificado en el dominio público:
+  - sin sesión (navegador integrado), `/flotilla` lleva a `/login?next=/flotilla/dashboard`, lo que confirma el rewrite hacia la zona;
+  - con la sesión del owner (Chrome del usuario), `/flotilla` abre el Dashboard y el grupo Entregas se despliega con sus opciones en "Pronto".
+
 ## Pendiente
 
 - Prueba de concurrencia real con dos sesiones (escenario 4).

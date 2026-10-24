@@ -1,9 +1,10 @@
 # Nexo — Estado Vivo de Implementación (dashboard)
 
-**2026-10-24 — Flotilla: E2 (esquema de Entregas) APLICADO en `nexo-core`, y Flotilla en camino a producción.**
+**2026-10-24 — Flotilla EN PRODUCCIÓN (PR #51, `a43364b`) y E2 (esquema de Entregas) APLICADO en `nexo-core`.**
+- `nexo-flotilla` READY. En el dominio público, `/flotilla` abre el Dashboard con la sesión del owner y el menú desplegable funciona. Sin sesión, manda al login del panel.
 - `20261024140400` + `20261024140609`: schema `flotilla` cerrado (solo RPC) con 21 tablas, 3 de ellas hechos particionados. Invariantes en la base: sin sobrecomprometer la factura, sin doble despacho, una línea en un solo recorrido activo, transiciones, bitácora inmutable e idempotencia ([plan 22 §21](plan/22-flotilla-entregas.md)). 0 FK sin índice.
 - PGlite en verde (`test:flotilla:e2`, dentro de `test:db`), con la mutación detectada. Poscheque y advisors remotos revisados.
-- Vercel: proyecto `nexo-flotilla` creado (Root Directory `apps/flotilla`) y `FLOTILLA_APP_URL` en `nexocore` (Production). El resultado del despliegue queda en el [log](status-log/2026-10-24-flotilla-e2-esquema.md).
+- Vercel: proyecto `nexo-flotilla` (Root Directory `apps/flotilla`) y `FLOTILLA_APP_URL` en `nexocore` (Production). Los 7 proyectos de `main` quedaron READY ([log](status-log/2026-10-24-flotilla-e2-esquema.md)).
 - Falta la prueba con dos sesiones concurrentes y E3 (RPC y pantallas de órdenes).
 [Detalle](status-log/2026-10-24-flotilla-e2-esquema.md).
 
