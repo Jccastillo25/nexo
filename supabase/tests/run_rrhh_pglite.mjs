@@ -20,7 +20,8 @@ try {
   // Los errores SQL pueden incluir valores de credenciales: nunca imprimirlos.
   // Las aserciones de Planilla (PL2) llevan cifras, así que admiten dígitos y `.,:`.
   const diagnostic = /^FALLO P[2-7]: [\p{L} ]+$/u.test(error.message ?? '')
-    || /^FALLO PL2: [\p{L}\p{N} .,:]+$/u.test(error.message ?? '') || error.code === '42702'
+    || /^FALLO PL2: [\p{L}\p{N} .,:]+$/u.test(error.message ?? '')
+    || /^FALLO E2: [\p{L}\p{N} .,:]+$/u.test(error.message ?? '') || error.code === '42702'
     ? error.message : `SQLSTATE ${error.code ?? 'desconocido'}`;
   console.error(`FALLO SQL local: ${diagnostic}; sin argumentos ni valores`);
   process.exitCode = 1;

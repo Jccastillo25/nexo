@@ -8,7 +8,7 @@ import { securityHeaders } from "@nexo/config/next-security";
 // aqui y el basePath de alla tienen que coincidir en el prefijo.
 //
 // `/rrhh` ya esta conectado; `/agencia` se configura por AGENCIA_APP_URL en
-// el ticket #18. flotilla se agrega al llegar su fase — ver docs/ROADMAP.md.
+// el ticket #18. `/flotilla` tiene basePath desde el 2026-10-23 (plan 22, E1).
 // Agregar un rewrite para un modulo que todavia no tiene basePath
 // configurado rompe ese modulo, no lo actives antes de tiempo.
 // `/crm` se retiro el 2026-10-20: el CRM se borro para replicar AG Negocio
@@ -24,6 +24,8 @@ const PRODUCTOS_APP_URL = process.env.PRODUCTOS_APP_URL;
 // Presupuesto (plan 19): mismo criterio. En producción apunta al proyecto de
 // Vercel que era del CRM.
 const PRESUPUESTO_APP_URL = process.env.PRESUPUESTO_APP_URL;
+// Flotilla (plan 22): mismo criterio, sin destino no hay rewrite.
+const FLOTILLA_APP_URL = process.env.FLOTILLA_APP_URL;
 
 const nextConfig: NextConfig = {
   // Kernel compartido (2026-10-20): sesión, empresa, marca y permisos viven en
@@ -97,6 +99,12 @@ const nextConfig: NextConfig = {
         ? [
             { source: "/presupuesto", destination: `${PRESUPUESTO_APP_URL}/presupuesto` },
             { source: "/presupuesto/:path*", destination: `${PRESUPUESTO_APP_URL}/presupuesto/:path*` },
+          ]
+        : []),
+      ...(FLOTILLA_APP_URL
+        ? [
+            { source: "/flotilla", destination: `${FLOTILLA_APP_URL}/flotilla` },
+            { source: "/flotilla/:path*", destination: `${FLOTILLA_APP_URL}/flotilla/:path*` },
           ]
         : []),
     ];

@@ -11,6 +11,7 @@
         "ATENCION_APP_URL",
         "PRODUCTOS_APP_URL",
         "PRESUPUESTO_APP_URL",
+        "FLOTILLA_APP_URL",
         "NEXO_PANEL_URL",
         "NEXO_COMPANY_ID",
         "SUPABASE_SERVICE_ROLE_KEY",

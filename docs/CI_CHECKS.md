@@ -33,12 +33,12 @@ agrupados bajo el workflow `CI`. Verificado por API sobre el commit `b3edfb9`
 | Check | Comando | Qué cubre | ¿Bloquea el merge? |
 |---|---|---|---|
 | `typecheck` | `pnpm typecheck` | Cobertura de la tarea + `next typegen && tsc --noEmit` en las **8 apps** (`apps/*/package.json` → `typecheck`). Cubre el código de las apps y, por imports, el de `packages/*`. El `next typegen` es obligatorio: sin él, los tipos generados por Next (`LayoutProps`, `PageProps`, `.next/types/*`) no existen en un clon limpio. | **Sí** |
-| `lint` | `pnpm lint:gate` | ESLint en **todas las apps de `apps/*` excepto las de la lista de deuda documentada** (hoy solo `transporte-app`). El conjunto se **deriva del sistema de archivos**, no de una lista escrita a mano: si una app no está clasificada, el check **falla** (`lint:plan`) y además corre la autocomprobación `lint:self-test`. | **Sí** |
+| `lint` | `pnpm lint:gate` | ESLint en **todas las apps de `apps/*` excepto las de la lista de deuda documentada** (hoy ninguna: `transporte-app` se retiró el 2026-10-23 y `nexo-flotilla` entró al gate). El conjunto se **deriva del sistema de archivos**, no de una lista escrita a mano: si una app no está clasificada, el check **falla** (`lint:plan`) y además corre la autocomprobación `lint:self-test`. | **Sí** |
 | `build` | `pnpm build` | `next build` real de las 8 apps, sin variables de entorno ni secretos. | **Sí** |
-| `test-db-rrhh` | `pnpm test:db` | P1 aislado/compartido, SQL real P2/P3/P4/P6 con bcrypt en PGlite, controlador P5, filtros P6 y catálogo P7 sobre modelo local. Sin Supabase ni concurrencia real. | **Sí** |
+| `test-db-rrhh` | `pnpm test:db` | P1 aislado/compartido, SQL real P2/P3/P4/P6 con bcrypt en PGlite, controlador P5, filtros P6 y catálogo P7 sobre modelo local; Planilla; desde el 2026-10-24 también el esquema E2 de Flotilla (`test:flotilla:e2`: integridad por empresa, saldos, transiciones, inmutabilidad e idempotencia). Sin Supabase ni concurrencia real. | **Sí** |
 | `test-agencia-access` | `pnpm test:agencia:access` | Arnés offline existente de acceso denegado/otorgado en `apps/agencia` (sin red, sin cuentas). | **Sí** |
 | `test-presupuesto-importacion` | `pnpm test:presupuesto` | Las 10 pruebas del lector del Excel de facturas de AG Negocio de la app Presupuesto (`apps/presupuesto/src/lib/metas/importacion.test.ts`): títulos, totales, duplicados, anuladas, lotes y vencimientos imposibles. Sin red ni base (desde el 2026-10-20). | No, todavía. Para que bloquee, el usuario lo agrega a la protección de `main`. |
-| `lint-deuda (no bloquea)` | `pnpm lint:deuda` | ESLint de `transporte-app`, donde `main` **ya falla** hoy. Se publica en cada PR para no ocultar la deuda, pero no bloquea. El CRM entró al gate el 2026-10-18 y se borró el 2026-10-20 junto con su job `test-metas-importacion`. | No |
+| `lint-deuda (no bloquea)` | `pnpm lint:deuda` | ESLint de las apps en deuda. Desde el 2026-10-23 no hay ninguna (el código heredado de `transporte-app` se retiró al adaptar Flotilla, plan 22 E1) y el job termina en "sin deuda de lint registrada". El CRM entró al gate el 2026-10-18 y se borró el 2026-10-20 junto con su job `test-metas-importacion`. | No |
 
 ### Clasificación de apps para el gate de lint (observación de revisión del PR #44)
 
@@ -49,13 +49,13 @@ que **cada** app esté clasificada en su `REGISTRO`:
 
 - `gate` → entra en `pnpm lint:gate` (check bloqueante).
 - `deuda` → excluida del bloqueo **a propósito**, con el motivo escrito al lado
-  (hoy solo `transporte-app`, ver la tabla de deuda de abajo; el CRM pasó al
-  gate el 2026-10-18). Sigue visible por `pnpm lint:deuda` en cada PR.
+  (hoy ninguna: el CRM pasó al gate el 2026-10-18 y Flotilla el 2026-10-23).
+  Sigue visible por `pnpm lint:deuda` en cada PR.
 
 El script falla —y por lo tanto el check `lint` falla— si: hay una app **sin
 clasificar**; el registro menciona una app que **ya no existe** (registro
 podrido); el gate queda **vacío**; o una app del gate **no declara** la tarea
-`lint`. Para corregir el lint de `flotilla`, basta mover su entrada de
+`lint`. Al corregir el lint de una app en deuda, basta mover su entrada de
 `deuda` a `gate` y borrar el motivo.
 
 Comprobación de que esto no se rompe en silencio: `pnpm lint:self-test` crea un
@@ -100,7 +100,7 @@ sirvió además para descubrir el problema de `next typegen` descrito abajo.
 | App / navegador | Nada de esto recorre el kiosco en un navegador (Server Action → PostgREST → RPC), ni Rate Limit por IP, ni la UI. |
 | Deploy | `build` compila, pero no valida Vercel, dominios, rewrites de Multi-Zones ni variables de entorno reales. |
 | Variables en el build | El `build` de CI corre **sin** variables. Si una página con sesión lee una variable obligatoria antes de `cookies()`, Next intenta prerenderizarla y el build falla, aunque en Vercel no se note porque ahí las variables existen. Pasó el 2026-10-22 en el PR #50 con `NEXO_COMPANY_ID` en `/configuracion/auditoria`. Por eso `createServerClient` (`@nexo/supabase`) y `contextoActual` (`@nexo/auth`) llaman `cookies()` primero. |
-| Lint | 1 de 8 apps (`transporte-app`) no está cubierta por el check bloqueante (ver deuda abajo). |
+| Lint | Desde el 2026-10-23 las 8 apps están en el check bloqueante. |
 
 ## Deuda pre-existente en `main` (NO son regresiones de este cambio)
 
@@ -128,7 +128,7 @@ fusionar:
 | `test-db-rrhh` | **Sí** |
 | `test-agencia-access` | **Sí** |
 | `test-presupuesto-importacion` | **No** — se agregó el 2026-10-20; queda fuera de la protección hasta que el usuario lo incluya |
-| `lint-deuda (no bloquea)` | **No** — es informativo a propósito: mide la deuda pre-existente de `flotilla` y se deja visible en cada PR |
+| `lint-deuda (no bloquea)` | **No** — es informativo a propósito: mide la deuda de lint registrada (hoy ninguna) y se deja visible en cada PR |
 | `Vercel Preview Comments` y previews de Vercel | **No** — dependen del proyecto de Vercel y de su límite de builds |
 | `Supabase Preview` | **No** — puede quedar en `skipping` y no valida migraciones |
 

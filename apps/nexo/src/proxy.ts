@@ -34,6 +34,10 @@ export const config = {
     // - /productos/* — apps/productos tiene su propio guard (mismo login de
     //   este panel); sus /productos/_next/static/* no deben pasar por aquí.
     // - /presupuesto/* — apps/presupuesto, mismo caso que Productos.
-    "/((?!_next/static|_next/image|favicon.ico|rrhh(?:/|$)|agencia(?:/|$)|atencion(?:/|$)|productos(?:/|$)|presupuesto(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // - /flotilla/* — apps/flotilla, mismo caso (2026-10-23). Sin esta
+    //   exclusión, cada /flotilla/_next/static/* refrescaba la sesión aquí y
+    //   en la zona a la vez: con el token vencido, Supabase respondió 429 y
+    //   la sesión local se perdió.
+    "/((?!_next/static|_next/image|favicon.ico|rrhh(?:/|$)|agencia(?:/|$)|atencion(?:/|$)|productos(?:/|$)|presupuesto(?:/|$)|flotilla(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

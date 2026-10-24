@@ -7,6 +7,57 @@
 
 Orden de bitácora: más reciente arriba.
 
+## 2026-10-24 — Flotilla E2: esquema de Entregas e índices (APLICADAS)
+
+`20261024140400_flotilla_e2_esquema` y `20261024140609_flotilla_e2_indices_fk`, aplicadas con `apply_migration` y guardadas con la versión remota. El archivo local se escribió como `20261024070000_…` y `20261024141500_…`. Las aprobó el usuario: "Sube todo a producción", tras la pregunta "¿Aplico la migración de E2 en nexo-core?". Diseño en el [plan 22 §21](plan/22-flotilla-entregas.md).
+
+- **Qué hace:** crea el schema `flotilla` cerrado, con 21 tablas, 3 de ellas particionadas por mes (12 particiones). Agrega triggers de invariantes, transiciones, inmutabilidad y versión, y los helpers de permiso, idempotencia, bitácora y libro. La segunda migración reemplaza los índices simples por índices `(x_id, company_id)` que cubren las FK compuestas y agrega en las tablas padre de las particionadas los índices de `company_id` y `actor_id`. Las funciones de partición dejan de crear esos índices para no duplicarlos.
+- **Antes de aplicar:**
+  - `test:flotilla:e2` en PGlite con código 0, y la mutación del CHECK de doble despacho detectada;
+  - ensayo parcial en `nexo-core` dentro de una transacción revertida.
+- **Poscheque remoto:**
+  - 21 tablas, 12 particiones y 0 sin RLS;
+  - `authenticated` sin `USAGE`;
+  - 14 funciones;
+  - 0 FK sin índice cubriente (poscheque de la segunda migración y advisor de rendimiento).
+- **Advisors de seguridad:** solo `rls_enabled_no_policy` (INFO) para flotilla, esperado por diseño (schema cerrado, igual que `presupuesto`). Ninguna función de flotilla ejecutable por `anon` ni `authenticated`.
+- **Advisor de rendimiento:** `unused_index` en los índices nuevos (sin uso todavía, esperado).
+- **Rollback (sin datos):** `delete from core.tablas_particionadas where schema_nombre = 'flotilla'; drop schema flotilla cascade;`
+- [Detalle](status-log/2026-10-24-flotilla-e2-esquema.md).
+
+## 2026-10-23 — Flotilla: habilitada para la empresa (APLICADA)
+
+`20261024035935_flotilla_habilitar`, aplicada con `apply_migration` y guardada con la versión remota (archivo local escrito como `20261024060000_…`). Aprobada por el usuario ("Si" a habilitar Flotilla para la empresa).
+
+- **Qué hace:** inserta (o reactiva) la fila de `core.company_apps` de `flotilla` para `materiales-jcastillo`. `core.apps.flotilla` ya estaba activa. Sin roles ni usuarios.
+- **Precheck:** app activa en el catálogo y plantillas del Paso Cero presentes.
+- **Poscheck remoto:** `materiales-jcastillo=true`.
+- **Efecto:** el owner entra a `/flotilla` en local; el mosaico aparece en el Launcher de producción y no abre hasta que exista el proyecto de Vercel.
+- **Rollback:** `update core.company_apps set enabled = false where app_id = (select id from core.apps where slug = 'flotilla');`
+
+## 2026-10-23 — Flotilla: Entregas, Paso Cero (APLICADA)
+
+`20261024034727_flotilla_entregas_paso_cero`, aplicada con `apply_migration` y guardada con la versión remota (el archivo local se escribió como `20261024050000_…` y se renombró sin tocar su SQL). La aprobó el usuario ("Si") tras ver la matriz del [plan 22 §19](plan/22-flotilla-entregas.md).
+
+- **Qué hace:** solo catálogo. 35 códigos `flotilla.*` de 4 segmentos (dominios `dashboard`, `entregas`, `rutas`, `bodega`, `conductor`, `incidencias`, `flota`, `conductores`, `configuracion`, `reportes`) y 6 plantillas en `core.app_roles`. No crea el schema `flotilla`, no cambia `core.apps.active` ni habilita la app para la empresa, y no asigna nada a usuarios ni a roles de empresa.
+- **Precheck (dentro de la migración):** app `flotilla` presente, solo `flotilla.ver_modulo`, 0 plantillas, sin schema. Antes se ensayó la parte de inserción en una transacción revertida.
+- **Poscheck remoto:** 36 permisos `flotilla`; plantillas administracion 10, bodega 12, conductor 4, coordinador 24, gerencia 36, vendedor 8; 0 filas en `core.company_apps` para `flotilla`. Los controles de separación de funciones del poscheck pasaron (la migración no habría terminado).
+- **Advisors:** no se consultaron; la migración solo inserta filas de catálogo.
+- **Rollback (antes de uso):** `delete from core.app_role_permissions where app_role_id in (select id from core.app_roles where module_slug = 'flotilla'); delete from core.app_roles where module_slug = 'flotilla'; delete from core.permissions_catalog where module_slug = 'flotilla' and code <> 'flotilla.ver_modulo';`
+- [Detalle](status-log/2026-10-23-flotilla-entregas-e0.md).
+
+## 2026-10-23 — Panel de plataforma (super admin): Paso Cero (APLICADA)
+
+`20261024033541_nexo_plataforma_permisos_paso_cero`, aplicada con `apply_migration` y guardada con la versión remota (la versión va en UTC, por eso dice 24). La aprobó el usuario: "Apruebo el Paso Cero del plan 21. Aplica los 9 permisos nexo.plataforma.* en nexo-core con su precheck y poscheck." Diseño en el [plan 21 §3](plan/21-plataforma-empresas.md).
+
+- **Qué hace:** solo catálogo. Inserta 9 códigos del dominio nuevo `plataforma` en `nexo`: `empresas.{ver,crear,editar,desactivar,entrar}`, `modulos.asignar`, `administradores.gestionar`, `auditoria.ver` y `marca.editar`. No crea tablas ni asigna permisos a nadie.
+- **Precheck:** 0 códigos `nexo.plataforma.%` y 0 del dominio `plataforma`; 13 códigos de `nexo` y 210 en total; sin triggers en `core.permissions_catalog`.
+- **Poscheck:** 9 códigos `plataforma`, todos de 4 segmentos; 22 de `nexo` y 219 en total; 0 asignaciones en `core.rol_permisos`, `core.app_role_permissions` y `core.user_permissions`.
+- **Advisors de seguridad:** ningún hallazgo menciona el catálogo ni los códigos nuevos (la migración solo inserta filas).
+- **Transitorio, hasta la migración del esquema:** `admin_catalogo_permisos` no filtra por dominio, así que los 9 códigos aparecen en el editor de roles de la empresa y `admin_guardar_rol` los aceptaría. Hoy nada los evalúa, así que no dan acceso a nada; el esquema del plan 21 los excluye del editor y los rechaza en los roles.
+- **Rollback (antes de uso):** `delete from core.permissions_catalog where code like 'nexo.plataforma.%';` (borrar antes cualquier fila de `core.rol_permisos` con esos códigos).
+- [Detalle](status-log/2026-10-23-plataforma-paso-cero.md).
+
 ## 2026-10-22 — Planilla: techo del INSS por persona en el mes (APLICADA)
 
 `20261022034035_rrhh_planilla_techo_inss_quincena`, aplicada en `nexo-core` con aprobación explícita del usuario en el chat.

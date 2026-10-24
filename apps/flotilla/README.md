@@ -1,35 +1,15 @@
-# Ruta360
+# Flotilla (`/flotilla`)
 
-SaaS multi-tenant de control operativo de transporte: cada empresa cliente gestiona su propia flota, administradores y conductores, con evidencia auditable (GPS, fotos, timestamps de servidor) en cada viaje.
+Zona de Nexo para entregas, recorridos y conductores. Plan vigente:
+[`docs/plan/22-flotilla-entregas.md`](../../docs/plan/22-flotilla-entregas.md)
+(Entregas) dentro de la [Fase 4](../../docs/plan/07-fase4-transporte.md).
 
-La documentación técnica completa vive en [`docs/`](./docs/README.md):
+- Login único del panel (sin login propio), `NexoShell`, permisos
+  `flotilla.*` del Paso Cero `20261024034727`.
+- Datos en el schema `flotilla` de `nexo-core` (llega con la etapa E2).
+- Desarrollo local: `pnpm --filter nexo-flotilla dev:zone` (puerto 3006) y
+  `FLOTILLA_APP_URL=http://localhost:3006` en `apps/nexo/.env.local`.
 
-- **[docs/README.md](./docs/README.md)** — índice, quick start, producción.
-- **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — stack, modelo de roles, autenticación, offline-first, seguridad.
-- **[docs/DATABASE.md](./docs/DATABASE.md)** — esquema, RLS, funciones, storage, migraciones.
-- **[docs/ROADMAP.md](./docs/ROADMAP.md)** — avance por fases.
-
-La wiki técnica viva del proyecto (mantenida por Claude, se actualiza sola con cada cambio) vive
-en [`wiki/`](./wiki/index.md) — ver [wiki/index.md](./wiki/index.md) y las convenciones en
-[wiki/CLAUDE.md](./wiki/CLAUDE.md).
-
-## Quick start
-
-```bash
-npm install
-cp .env.local.example .env.local   # completar con credenciales de Supabase
-npm run dev
-```
-
-Requiere `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` (esta última solo en el servidor).
-
-## Nuevas mejoras
-
-- **Flujo de conductor simplificado**: ahora el conductor ve un único botón que cambia de etiqueta según el estado del viaje y, al completar, es redirigido automáticamente al inicio para iniciar otro viaje sin pasos extra.
-- Se removieron botones innecesarios y se optimizó la UI para una experiencia más fluida.
-
-## Producción
-
-- **App:** https://transporte.materialesjcastillo.com
-- **Panel Super Admin:** https://transporte.materialesjcastillo.com/supadmin/login
-- **Hosting:** Vercel · **Base de datos:** Supabase
+El código heredado de Ruta360 (otro proyecto de Supabase, login con PIN,
+`/supadmin`) se retiró el 2026-10-23 al empezar E1; sigue en el historial de
+Git de esta carpeta.

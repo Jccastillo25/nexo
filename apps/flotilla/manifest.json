@@ -1,0 +1,9 @@
+{
+  "slug": "flotilla",
+  "nombre": "Flotilla",
+  "categoria": "Cadena de suministro",
+  "icono": "truck",
+  "color": "azul",
+  "ruta": "/flotilla",
+  "depends": []
+}

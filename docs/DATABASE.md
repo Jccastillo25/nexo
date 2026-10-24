@@ -50,7 +50,7 @@ jornadas mínimas) completados (2026-09-07)**. `flotilla` todavía no existe.
 | `core` | Compañías, membresías/roles, catálogo de apps, catálogo de permisos, roles por app, auditoría, mapa de migración | Nuevo | ✅ Aplicado (2026-08-30), extendido 2026-09-02 (`app_scoped_roles`) |
 | `crm` | **Vacío desde el 2026-10-20.** Antes tenía `clientes` y el embudo comercial (12 tablas, 48 RPC `public.crm_*`) | CRM retirado por pedido del usuario; se replica AG Negocio en `erp` ([plan 18](plan/18-replica-ag-negocio.md)) | ❌ Contenido borrado (`20261020143821`), sin datos. El esquema se conserva sin GRANT solo porque sigue en "Exposed schemas"; se borra cuando el usuario lo quite de esa lista |
 | `rrhh` | Empleados, contratos, compensación, credenciales, jornadas/feriados (F1.4), kioscos, asistencia, seguridad de accesos, parámetros de ley, planillas, rate-limit de kiosko — 16 tablas base (22 con particiones) | Diseño nuevo para Nexo (no migración 1:1 de Gestor360) | ✅ Aplicado (2026-09-02 a 2026-09-04); auditoría de seguridad cerrada y verificada en producción (2026-09-05); F1.1-F1.4 (contratos/PIN contractual/jornadas) aplicados 2026-09-07. **MVP operativo sin validar** (motor de consolidación/planillas no construido) — ver [RRHH_MVP.md](RRHH_MVP.md) |
-| `flotilla` | Flota, viajes, conductores, evidencias | Migrado de Ruta360 | ⏳ Pendiente |
+| `flotilla` | Entregas: origen de la venta, órdenes y líneas, validaciones, recorridos, paradas y asignaciones, incidencias, evidencias, catálogos de flota y conductores, bitácora y libro de cantidades | Diseño nuevo ([plan 22](plan/22-flotilla-entregas.md)); de Ruta360 no se migró nada | ✅ Aplicado 2026-10-24 (`20261024140400` + índices `20261024140609`); sin datos. Cerrado a la API (ver sección propia) |
 | `atencion` | Turnos de sala de espera | Nuevo | ✅ Aplicado 2026-10-14 (ver sección propia) |
 | `productos` | Catálogo maestro de productos y sus catálogos (clasificación, marcas, unidades, proveedores, características, cuentas, centros de costo) | Nuevo, modelado sobre las plantillas del ERP | ✅ Aplicado 2026-10-16 (`20261016214634`); sin datos |
 | `metas` | — | Metas y Presupuesto del CRM (2026-10-18) | ❌ Borrado el 2026-10-20 (`20261020143821`) junto con sus 13 RPC `public.metas_*`, sin datos. Vuelve renombrado como `presupuesto` |
@@ -286,6 +286,22 @@ Indicadores del Dashboard (`20261020204854`):
 - Ahora son 18 RPC.
 
 Venta diaria (`20261020210947`): `presupuesto_venta_diaria(empresa, año, mes, vista)` devuelve, por cada día del mes, la venta vigente, la del mismo día del año anterior y si es día hábil. Tiene el mismo alcance que los indicadores. Ahora son 19 RPC.
+
+## Schema `flotilla` (2026-10-24, `20261024140400` y `20261024140609`)
+
+Entregas, plan 22 ([§21](plan/22-flotilla-entregas.md)). Cerrado como `presupuesto`: sin `USAGE` para `anon` ni `authenticated`, RLS activo sin policies en todas las tablas y particiones, y acceso solo por RPC `public.flotilla_*` con `security definer` (llegan desde E3). Sin datos.
+
+- **21 tablas.** Catálogos: `zonas`, `bodegas`, `vehiculos`, `conductores` (FK compuesta a `rrhh.empleados`), `motivos`, `reglas_envio` (versionadas) y `plantillas_mensaje`. Origen: `origenes` y `origen_lineas`. Trabajo: `ordenes`, `orden_lineas`, `validaciones`, `recorridos`, `paradas`, `parada_lineas`, `incidencias` y `evidencias`. Control: `operaciones` (idempotencia, sin particionar).
+- **Particionadas por mes** y registradas en `core.tablas_particionadas`: `eventos`, `movimientos` y `comunicaciones`. Son inmutables: un trigger rechaza `update` y `delete`.
+- **Integridad por empresa:** toda FK entre datos de negocio es compuesta `(id, company_id)`, con su índice `(x_id, company_id)` (`20261024140609`: 0 FK sin índice).
+- **Invariantes:**
+  - `origen_lineas.comprometida` la mantiene un trigger, y el CHECK `origen_lineas_no_sobrecomprometer` impide superar lo autorizado;
+  - los contadores de `orden_lineas` los mantiene un trigger desde `parada_lineas`, y el CHECK `orden_lineas_sin_doble_despacho` impide el doble despacho;
+  - el índice único parcial `parada_lineas_una_activa_uq` deja una línea en un solo recorrido activo;
+  - `recorridos_vehiculo_activo_uq` y `recorridos_conductor_activo_uq` impiden que un vehículo o un conductor salgan dos veces a la vez;
+  - `fn_tg_transicion` controla los estados permitidos y `fn_subir_version` sube la versión optimista.
+- **Helpers (sin `EXECUTE` para `anon`/`authenticated`):** `fn_exigir_alguno`, `fn_operacion_reclamar`, `fn_operacion_cerrar`, `fn_evento` y `fn_movimiento`. La vista `v_saldos_linea` da los saldos exigible, asignado, en tránsito y asignable.
+- **Pruebas:** `pnpm test:flotilla:e2` (PGlite, dentro de `test:db`).
 
 ## Schema `metas` (2026-10-18, `20261018135152`) — BORRADO el 2026-10-20
 
